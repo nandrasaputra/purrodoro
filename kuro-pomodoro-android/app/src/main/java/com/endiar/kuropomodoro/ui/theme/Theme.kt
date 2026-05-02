@@ -33,12 +33,13 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun KuroPomodoroTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme || dynamicColor) DarkColorScheme else LightColorScheme
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

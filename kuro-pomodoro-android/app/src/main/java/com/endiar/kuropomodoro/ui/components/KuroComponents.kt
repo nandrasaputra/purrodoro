@@ -2,7 +2,7 @@ package com.endiar.kuropomodoro.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,26 +34,24 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.TimerMode
-import com.endiar.kuropomodoro.ui.theme.Blush
-import com.endiar.kuropomodoro.ui.theme.CardWhite
 import com.endiar.kuropomodoro.ui.theme.Cocoa
-import com.endiar.kuropomodoro.ui.theme.CocoaSoft
 import com.endiar.kuropomodoro.ui.theme.Coral
-import com.endiar.kuropomodoro.ui.theme.Cream
 import com.endiar.kuropomodoro.ui.theme.Lavender
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.Peach
-import com.endiar.kuropomodoro.ui.theme.Sky
 
 @Composable
 fun KuroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp), content = content)
@@ -60,30 +60,39 @@ fun KuroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() 
 
 @Composable
 fun SectionTitle(title: String, subtitle: String? = null) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineSmall, color = Cocoa)
+        Text(title, style = MaterialTheme.typography.headlineSmall, color = colorScheme.onBackground)
         if (subtitle != null) {
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = CocoaSoft)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = colorScheme.onSurface.copy(alpha = 0.72f))
         }
     }
 }
 
 @Composable
 fun ModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
-    val color = when (mode) {
-        TimerMode.Focus -> Peach
-        TimerMode.ShortBreak -> Mint
+    val colorScheme = MaterialTheme.colorScheme
+    val selectedColor = when (mode) {
+        TimerMode.Focus -> colorScheme.secondary
+        TimerMode.ShortBreak -> colorScheme.tertiary
         TimerMode.LongBreak -> Lavender
     }
     Surface(
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton
+            ),
         shape = RoundedCornerShape(20.dp),
-        color = if (selected) color else Cream
+        color = if (selected) selectedColor else colorScheme.surface
     ) {
         Text(
             text = mode.label,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            color = Cocoa,
+            color = colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge
         )
     }
@@ -91,11 +100,13 @@ fun ModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 fun KuroPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Button(
         onClick = onClick,
         modifier = modifier.height(56.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Coral, contentColor = CardWhite)
+        colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary, contentColor = colorScheme.onPrimary)
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge)
     }
@@ -103,11 +114,13 @@ fun KuroPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
 
 @Composable
 fun TimerRing(timeText: String, progress: Float, modifier: Modifier = Modifier) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Box(modifier = modifier.size(230.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(230.dp)) {
             val stroke = Stroke(width = 18.dp.toPx(), cap = StrokeCap.Round)
             drawArc(
-                color = Blush,
+                color = colorScheme.onSurface.copy(alpha = 0.16f),
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -115,7 +128,7 @@ fun TimerRing(timeText: String, progress: Float, modifier: Modifier = Modifier) 
                 size = Size(size.width, size.height)
             )
             drawArc(
-                color = Coral,
+                color = colorScheme.primary,
                 startAngle = -90f,
                 sweepAngle = 360f * progress.coerceIn(0f, 1f),
                 useCenter = false,
@@ -124,8 +137,8 @@ fun TimerRing(timeText: String, progress: Float, modifier: Modifier = Modifier) 
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(timeText, style = MaterialTheme.typography.displaySmall, color = Cocoa)
-            Text("stay with kuro", style = MaterialTheme.typography.bodyMedium, color = CocoaSoft)
+            Text(timeText, style = MaterialTheme.typography.displaySmall, color = colorScheme.onBackground)
+            Text("stay with kuro", style = MaterialTheme.typography.bodyMedium, color = colorScheme.onSurface.copy(alpha = 0.72f))
         }
     }
 }
@@ -145,11 +158,13 @@ fun CatCompanion(modifier: Modifier = Modifier) {
 
 @Composable
 fun BottomTabBar(selectedTab: AppTab, onTabSelected: (AppTab) -> Unit) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-            .background(CardWhite)
+            .background(colorScheme.surface)
             .padding(horizontal = 10.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -158,14 +173,20 @@ fun BottomTabBar(selectedTab: AppTab, onTabSelected: (AppTab) -> Unit) {
             Column(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .clickable { onTabSelected(tab) }
-                    .background(if (selected) Blush else Color.Transparent)
+                    .selectable(
+                        selected = selected,
+                        onClick = { onTabSelected(tab) },
+                        role = Role.Tab
+                    )
+                    .heightIn(min = 48.dp)
+                    .widthIn(min = 48.dp)
+                    .background(if (selected) colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent)
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(tab.symbol, color = if (selected) Coral else CocoaSoft, fontWeight = FontWeight.Bold)
+                Text(tab.symbol, color = if (selected) colorScheme.primary else colorScheme.onSurface.copy(alpha = 0.72f), fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(2.dp))
-                Text(tab.label, color = Cocoa, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+                Text(tab.label, color = colorScheme.onSurface, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
             }
         }
     }
@@ -173,11 +194,13 @@ fun BottomTabBar(selectedTab: AppTab, onTabSelected: (AppTab) -> Unit) {
 
 @Composable
 fun DecorativeBackground(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier = modifier.background(Cream)) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    Box(modifier = modifier.background(colorScheme.background)) {
         Canvas(modifier = Modifier.matchParentSize()) {
-            drawCircle(Sky, radius = 120.dp.toPx(), center = Offset(size.width * 0.12f, size.height * 0.16f))
-            drawCircle(Mint, radius = 90.dp.toPx(), center = Offset(size.width * 0.92f, size.height * 0.28f))
-            drawCircle(Blush, radius = 110.dp.toPx(), center = Offset(size.width * 0.75f, size.height * 0.82f))
+            drawCircle(colorScheme.secondary.copy(alpha = 0.42f), radius = 120.dp.toPx(), center = Offset(size.width * 0.12f, size.height * 0.16f))
+            drawCircle(colorScheme.tertiary.copy(alpha = 0.38f), radius = 90.dp.toPx(), center = Offset(size.width * 0.92f, size.height * 0.28f))
+            drawCircle(colorScheme.primary.copy(alpha = 0.28f), radius = 110.dp.toPx(), center = Offset(size.width * 0.75f, size.height * 0.82f))
         }
         content()
     }
