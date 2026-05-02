@@ -157,11 +157,11 @@ fun CatCompanion(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun BottomTabBar(selectedTab: AppTab, onTabSelected: (AppTab) -> Unit) {
+fun BottomTabBar(selectedTab: AppTab, onTabSelected: (AppTab) -> Unit, modifier: Modifier = Modifier) {
     val colorScheme = MaterialTheme.colorScheme
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .background(colorScheme.surface)
