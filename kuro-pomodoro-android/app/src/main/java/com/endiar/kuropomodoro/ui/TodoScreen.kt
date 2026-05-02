@@ -43,6 +43,7 @@ import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.ui.components.KuroCard
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.components.SectionTitle
+import com.endiar.kuropomodoro.ui.theme.Cocoa
 
 @Composable
 fun TodoScreen(
@@ -148,7 +149,7 @@ private fun TodoListTab(name: String, selected: Boolean, onClick: () -> Unit) {
         Text(
             text = name,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            color = if (selected) colorScheme.onSecondary else colorScheme.onSurface,
+            color = if (selected) Cocoa else colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge
         )
     }
