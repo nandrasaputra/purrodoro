@@ -53,7 +53,7 @@ data class TimerSettings(
     }
 
     fun update(mode: TimerMode, minutes: Int): TimerSettings {
-        val safeMinutes = minutes.coerceAtLeast(1)
+        val safeMinutes = minutes.coerceIn(1, 180)
         return when (mode) {
             TimerMode.Focus -> copy(focusMinutes = safeMinutes)
             TimerMode.ShortBreak -> copy(shortBreakMinutes = safeMinutes)
