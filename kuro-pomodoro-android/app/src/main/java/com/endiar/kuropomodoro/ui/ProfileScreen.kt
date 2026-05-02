@@ -142,7 +142,7 @@ private fun LocalProfileCard() {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Saved on this device only. No account or cloud sync.",
+                    text = "Stored locally for this session. No account or cloud sync.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colorScheme.onSurface.copy(alpha = 0.72f)
                 )
@@ -235,7 +235,7 @@ private fun DarkModePreviewCard(checked: Boolean, onCheckedChange: (Boolean) -> 
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Try a nighttime palette without changing system settings.",
+                    text = "Mock local setting only. It does not change the app theme yet.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colorScheme.onSurface.copy(alpha = 0.72f)
                 )

@@ -31,4 +31,10 @@ class KuroModelsTest {
         assertFalse(task.completed)
         assertTrue(task.toggleCompleted().completed)
     }
+
+    @Test
+    fun timerSettingsUpdateClampsFocusDuration() {
+        assertEquals(180, TimerSettings().update(TimerMode.Focus, 500).focusMinutes)
+        assertEquals(1, TimerSettings().update(TimerMode.Focus, 0).focusMinutes)
+    }
 }
