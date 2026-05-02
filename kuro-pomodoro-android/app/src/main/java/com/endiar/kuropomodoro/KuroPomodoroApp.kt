@@ -119,7 +119,7 @@ fun KuroPomodoroApp() {
                         remainingSeconds = remainingSeconds,
                         totalSeconds = settings.secondsFor(timerMode),
                         isRunning = isRunning,
-                        completedSessions = completedSessions,
+                        completedSessionsToday = stamps[LocalDate.now()] ?: 0,
                         currentTask = todoLists.firstOrNull { it.id == selectedTodoListId }?.tasks?.firstOrNull { !it.completed },
                         onModeSelected = { selectedMode ->
                             timerMode = selectedMode
