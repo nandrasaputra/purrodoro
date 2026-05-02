@@ -92,7 +92,7 @@ fun ModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
         Text(
             text = mode.label,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            color = colorScheme.onSurface,
+            color = if (selected) Cocoa else colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge
         )
     }
