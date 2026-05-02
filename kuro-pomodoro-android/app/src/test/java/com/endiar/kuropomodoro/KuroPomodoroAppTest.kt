@@ -19,4 +19,18 @@ class KuroPomodoroAppTest {
 
         assertEquals(25 * 60, displayTotal)
     }
+
+    @Test
+    fun timerStartTotalKeepsPausedSessionDurationWhenResuming() {
+        val editedSettings = TimerSettings(focusMinutes = 50)
+
+        val activeTotal = timerStartTotalSeconds(
+            settings = editedSettings,
+            mode = TimerMode.Focus,
+            remainingSeconds = 24 * 60,
+            activeTotalSeconds = 25 * 60
+        )
+
+        assertEquals(25 * 60, activeTotal)
+    }
 }
