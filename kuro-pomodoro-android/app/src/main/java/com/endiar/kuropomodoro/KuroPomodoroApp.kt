@@ -32,6 +32,7 @@ import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.addFocusStamp
 import com.endiar.kuropomodoro.ui.CalendarScreen
+import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.TimerScreen
@@ -185,9 +186,18 @@ fun KuroPomodoroApp() {
                             }
                         }
                     )
-                    else -> Text(
-                        text = "${selectedTab.label} screen coming next",
-                        modifier = Modifier.padding(18.dp)
+                    AppTab.Profile -> ProfileScreen(
+                        settings = settings,
+                        darkModePreview = darkModePreview,
+                        onDarkModeChanged = { darkModePreview = it },
+                        onDurationChanged = { mode, minutes ->
+                            val updatedSettings = settings.update(mode, minutes)
+                            settings = updatedSettings
+                            if (mode == timerMode && !isRunning) {
+                                remainingSeconds = updatedSettings.secondsFor(mode)
+                            }
+                        },
+                        onMockFeature = { premiumSheetMessage = it }
                     )
                 }
             }
