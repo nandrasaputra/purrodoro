@@ -161,7 +161,12 @@ fun KuroPomodoroApp() {
                         },
                         onStartPause = {
                             if (!isRunning) {
-                                activeTotalSeconds = settings.secondsFor(timerMode)
+                                activeTotalSeconds = timerStartTotalSeconds(
+                                    settings = settings,
+                                    mode = timerMode,
+                                    remainingSeconds = remainingSeconds,
+                                    activeTotalSeconds = activeTotalSeconds
+                                )
                             }
                             isRunning = !isRunning
                         },
@@ -235,6 +240,16 @@ internal fun timerDisplayTotalSeconds(
     isRunning: Boolean,
     activeTotalSeconds: Int
 ): Int = if (isRunning) activeTotalSeconds else settings.secondsFor(mode)
+
+internal fun timerStartTotalSeconds(
+    settings: TimerSettings,
+    mode: TimerMode,
+    remainingSeconds: Int,
+    activeTotalSeconds: Int
+): Int {
+    val currentModeSeconds = settings.secondsFor(mode)
+    return if (remainingSeconds < activeTotalSeconds) activeTotalSeconds else currentModeSeconds
+}
 
 @Composable
 private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
