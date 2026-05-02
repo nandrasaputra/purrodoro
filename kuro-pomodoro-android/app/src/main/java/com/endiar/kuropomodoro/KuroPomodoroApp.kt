@@ -26,6 +26,7 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.addFocusStamp
+import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.TimerScreen
 import com.endiar.kuropomodoro.ui.components.BottomTabBar
 import com.endiar.kuropomodoro.ui.components.DecorativeBackground
@@ -57,6 +58,25 @@ fun KuroPomodoroApp() {
                 TodoListState(3, "Ideas", listOf(FocusTask(5, "Sketch cat animation", 15), FocusTask(6, "Plan next sprint", 25)))
             )
         )
+    }
+
+    val addTask: (String) -> Unit = { title ->
+        todoLists = todoLists.map { list ->
+            if (list.id == selectedTodoListId) {
+                list.copy(tasks = list.tasks + FocusTask(nextTaskId, title, 25))
+            } else {
+                list
+            }
+        }
+        nextTaskId += 1
+    }
+    val toggleTask: (Int) -> Unit = { taskId ->
+        todoLists = todoLists.map { list ->
+            list.copy(tasks = list.tasks.map { task -> if (task.id == taskId) task.toggleCompleted() else task })
+        }
+    }
+    val deleteTask: (Int) -> Unit = { taskId ->
+        todoLists = todoLists.map { list -> list.copy(tasks = list.tasks.filterNot { it.id == taskId }) }
     }
     var timerStartedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var timerStartedRemainingSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
@@ -131,6 +151,14 @@ fun KuroPomodoroApp() {
                             isRunning = false
                             remainingSeconds = settings.secondsFor(timerMode)
                         }
+                    )
+                    AppTab.Todo -> TodoScreen(
+                        todoLists = todoLists,
+                        selectedListId = selectedTodoListId,
+                        onListSelected = { selectedTodoListId = it },
+                        onAddTask = addTask,
+                        onToggleTask = toggleTask,
+                        onDeleteTask = deleteTask
                     )
                     else -> Text(
                         text = "${selectedTab.label} screen coming next",
