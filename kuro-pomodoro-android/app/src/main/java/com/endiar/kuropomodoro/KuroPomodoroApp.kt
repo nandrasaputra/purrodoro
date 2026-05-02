@@ -54,8 +54,6 @@ fun KuroPomodoroApp() {
     var isSoundPlaying by rememberSaveable { mutableStateOf(false) }
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var darkModePreview by rememberSaveable { mutableStateOf(false) }
-    var profileExpanded by rememberSaveable { mutableStateOf(false) }
-    var settingsExpanded by rememberSaveable { mutableStateOf(false) }
     var nextTaskId by rememberSaveable { mutableIntStateOf(7) }
     var selectedTodoListId by rememberSaveable { mutableIntStateOf(1) }
     var todoLists by rememberSaveable(stateSaver = TodoListsSaver) {
