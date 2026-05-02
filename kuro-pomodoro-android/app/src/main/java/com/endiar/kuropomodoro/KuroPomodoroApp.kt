@@ -3,9 +3,14 @@ package com.endiar.kuropomodoro
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +31,8 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.addFocusStamp
+import com.endiar.kuropomodoro.ui.CalendarScreen
+import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.TimerScreen
 import com.endiar.kuropomodoro.ui.components.BottomTabBar
@@ -160,17 +167,62 @@ fun KuroPomodoroApp() {
                         onToggleTask = toggleTask,
                         onDeleteTask = deleteTask
                     )
+                    AppTab.Calendar -> CalendarScreen(
+                        stamps = stamps,
+                        completedSessions = completedSessions
+                    )
+                    AppTab.Sounds -> SoundsScreen(
+                        sounds = sounds,
+                        selectedSoundId = selectedSoundId,
+                        isPlaying = isSoundPlaying,
+                        onSoundSelected = { sound ->
+                            if (sound.locked) {
+                                premiumSheetMessage = "${sound.name} is part of the simulated premium sound pack."
+                            } else {
+                                selectedSoundId = sound.id
+                                isSoundPlaying = true
+                                premiumSheetMessage = null
+                            }
+                        }
+                    )
                     else -> Text(
                         text = "${selectedTab.label} screen coming next",
                         modifier = Modifier.padding(18.dp)
                     )
                 }
             }
+            premiumSheetMessage?.let { message ->
+                PremiumMessage(
+                    message = message,
+                    onDismiss = { premiumSheetMessage = null },
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
+                )
+            }
             BottomTabBar(
                 selectedTab = selectedTab,
                 onTabSelected = { selectedTab = it },
                 modifier = Modifier.navigationBarsPadding()
             )
+        }
+    }
+}
+
+@Composable
+private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.54f)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                Text("Dismiss", style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }
