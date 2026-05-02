@@ -30,10 +30,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.endiar.kuropomodoro.ui.components.KuroCard
 import com.endiar.kuropomodoro.ui.components.SectionTitle
-import com.endiar.kuropomodoro.ui.theme.Peach
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
+import java.time.temporal.WeekFields
 import java.util.Locale
 
 @Composable
@@ -44,9 +45,12 @@ fun CalendarScreen(
 ) {
     val today = LocalDate.now()
     val month = remember(today) { YearMonth.from(today) }
-    val dates = remember(month) { monthCalendarCells(month) }
-    val monthLabel = month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
     val context = LocalContext.current
+    val locale = context.resources.configuration.locales[0] ?: Locale.getDefault()
+    val firstDayOfWeek = remember(locale) { WeekFields.of(locale).firstDayOfWeek }
+    val dates = remember(month, firstDayOfWeek) { monthCalendarCells(month, firstDayOfWeek) }
+    val weekDays = remember(firstDayOfWeek) { localizedWeekDays(firstDayOfWeek) }
+    val monthLabel = month.month.getDisplayName(TextStyle.FULL, locale)
 
     Column(
         modifier = modifier
@@ -78,7 +82,8 @@ fun CalendarScreen(
                 dates = dates,
                 stamps = stamps,
                 today = today,
-                locale = context.resources.configuration.locales[0]
+                locale = locale,
+                weekDays = weekDays
             )
         }
     }
@@ -89,15 +94,14 @@ private fun CalendarGrid(
     dates: List<LocalDate?>,
     stamps: Map<LocalDate, Int>,
     today: LocalDate,
-    locale: Locale
+    locale: Locale,
+    weekDays: List<DayOfWeek>
 ) {
-    val weekDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             weekDays.forEach { day ->
                 Text(
-                    text = day,
+                    text = day.getDisplayName(TextStyle.SHORT, locale),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
@@ -133,15 +137,20 @@ private fun CalendarDayCell(
     val colorScheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(18.dp)
     val hasStamp = count > 0
-    val background = when {
-        hasStamp -> Peach.copy(alpha = 0.78f)
-        isToday -> colorScheme.secondary.copy(alpha = 0.42f)
-        else -> colorScheme.surface.copy(alpha = 0.52f)
+    val containerColor = when {
+        hasStamp -> colorScheme.primaryContainer
+        isToday -> colorScheme.secondaryContainer
+        else -> colorScheme.surfaceVariant
+    }
+    val contentColor = when {
+        hasStamp -> colorScheme.onPrimaryContainer
+        isToday -> colorScheme.onSecondaryContainer
+        else -> colorScheme.onSurfaceVariant
     }
     val outline = if (hasStamp || isToday) {
-        colorScheme.primary.copy(alpha = 0.28f)
+        contentColor.copy(alpha = 0.32f)
     } else {
-        colorScheme.onSurface.copy(alpha = 0.12f)
+        colorScheme.outlineVariant
     }
     val label = when {
         date == null -> "Empty calendar cell"
@@ -153,7 +162,7 @@ private fun CalendarDayCell(
         modifier = modifier
             .aspectRatio(0.86f)
             .clip(shape)
-            .background(background)
+            .background(containerColor)
             .border(1.dp, outline, shape)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center
@@ -163,14 +172,14 @@ private fun CalendarDayCell(
                 Text(
                     text = date.dayOfMonth.toString(),
                     style = MaterialTheme.typography.labelLarge,
-                    color = colorScheme.onSurface,
+                    color = contentColor,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(3.dp))
                 Text(
                     text = if (hasStamp) "Paw x$count" else date.dayOfWeek.getDisplayName(TextStyle.NARROW, locale),
                     style = MaterialTheme.typography.labelSmall,
-                    color = colorScheme.onSurface.copy(alpha = if (hasStamp) 0.86f else 0.48f),
+                    color = contentColor.copy(alpha = if (hasStamp) 0.88f else 0.72f),
                     textAlign = TextAlign.Center
                 )
             }
@@ -178,11 +187,15 @@ private fun CalendarDayCell(
     }
 }
 
-private fun monthCalendarCells(month: YearMonth): List<LocalDate?> {
+private fun monthCalendarCells(month: YearMonth, firstDayOfWeek: DayOfWeek): List<LocalDate?> {
     val firstDay = month.atDay(1)
-    val leadingEmptyCells = firstDay.dayOfWeek.value - 1
+    val leadingEmptyCells = Math.floorMod(firstDay.dayOfWeek.value - firstDayOfWeek.value, 7)
     val days = (1..month.lengthOfMonth()).map { month.atDay(it) }
     val cells = List(leadingEmptyCells) { null } + days
     val trailingEmptyCells = (7 - cells.size % 7) % 7
     return cells + List(trailingEmptyCells) { null }
+}
+
+private fun localizedWeekDays(firstDayOfWeek: DayOfWeek): List<DayOfWeek> {
+    return (0 until 7).map { firstDayOfWeek.plus(it.toLong()) }
 }

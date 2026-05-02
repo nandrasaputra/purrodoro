@@ -212,13 +212,13 @@ private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Mod
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.54f)
+        color = MaterialTheme.colorScheme.tertiaryContainer
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
                 Text("Dismiss", style = MaterialTheme.typography.labelLarge)
