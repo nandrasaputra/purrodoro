@@ -26,6 +26,7 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.addFocusStamp
+import com.endiar.kuropomodoro.ui.TimerScreen
 import com.endiar.kuropomodoro.ui.components.BottomTabBar
 import com.endiar.kuropomodoro.ui.components.DecorativeBackground
 import java.time.LocalDate
@@ -111,8 +112,31 @@ fun KuroPomodoroApp() {
 
     DecorativeBackground(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.weight(1f).padding(18.dp), contentAlignment = Alignment.Center) {
-                Text("${selectedTab.label} screen coming next")
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                when (selectedTab) {
+                    AppTab.Timer -> TimerScreen(
+                        mode = timerMode,
+                        remainingSeconds = remainingSeconds,
+                        totalSeconds = settings.secondsFor(timerMode),
+                        isRunning = isRunning,
+                        completedSessions = completedSessions,
+                        currentTask = todoLists.firstOrNull { it.id == selectedTodoListId }?.tasks?.firstOrNull { !it.completed },
+                        onModeSelected = { selectedMode ->
+                            timerMode = selectedMode
+                            isRunning = false
+                            remainingSeconds = settings.secondsFor(selectedMode)
+                        },
+                        onStartPause = { isRunning = !isRunning },
+                        onReset = {
+                            isRunning = false
+                            remainingSeconds = settings.secondsFor(timerMode)
+                        }
+                    )
+                    else -> Text(
+                        text = "${selectedTab.label} screen coming next",
+                        modifier = Modifier.padding(18.dp)
+                    )
+                }
             }
             BottomTabBar(
                 selectedTab = selectedTab,
