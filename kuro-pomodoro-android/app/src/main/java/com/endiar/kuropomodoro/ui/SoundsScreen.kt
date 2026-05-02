@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.ui.components.KuroCard
 import com.endiar.kuropomodoro.ui.components.SectionTitle
-import com.endiar.kuropomodoro.ui.theme.Cocoa
 
 @Composable
 fun SoundsScreen(
@@ -74,32 +74,51 @@ private fun SoundOptionCard(
         selected -> "Selected"
         else -> "Unlocked"
     }
-
-    KuroCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .selectable(
+    val itemModifier = Modifier
+        .fillMaxWidth()
+        .heightIn(min = 64.dp)
+        .semantics {
+            contentDescription = "${sound.name}, $status. ${sound.description}"
+        }
+        .then(
+            if (sound.locked) {
+                Modifier.clickable(role = Role.Button, onClick = onClick)
+            } else {
+                Modifier.selectable(
                     selected = selected,
                     onClick = onClick,
                     role = Role.RadioButton
                 )
-                .semantics {
-                    contentDescription = "${sound.name}, $status. ${sound.description}"
-                },
+            }
+        )
+    val iconContainerColor = when {
+        sound.locked -> colorScheme.tertiaryContainer
+        selected -> colorScheme.primaryContainer
+        else -> colorScheme.secondaryContainer
+    }
+    val iconContentColor = when {
+        sound.locked -> colorScheme.onTertiaryContainer
+        selected -> colorScheme.onPrimaryContainer
+        else -> colorScheme.onSecondaryContainer
+    }
+    val statusContainerColor = if (sound.locked) colorScheme.tertiaryContainer else colorScheme.primaryContainer
+    val statusContentColor = if (sound.locked) colorScheme.onTertiaryContainer else colorScheme.onPrimaryContainer
+
+    KuroCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = itemModifier,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
                 shape = RoundedCornerShape(18.dp),
-                color = if (selected && !sound.locked) colorScheme.primary else colorScheme.secondary.copy(alpha = 0.52f)
+                color = iconContainerColor
             ) {
                 Text(
                     text = sound.symbol,
                     modifier = Modifier.padding(horizontal = 13.dp, vertical = 11.dp),
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (selected && !sound.locked) colorScheme.onPrimary else Cocoa,
+                    color = iconContentColor,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -121,13 +140,13 @@ private fun SoundOptionCard(
 
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = if (sound.locked) colorScheme.tertiary.copy(alpha = 0.44f) else colorScheme.primary.copy(alpha = 0.16f)
+                color = statusContainerColor
             ) {
                 Text(
                     text = status,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
                     style = MaterialTheme.typography.labelMedium,
-                    color = colorScheme.onSurface,
+                    color = statusContentColor,
                     fontWeight = FontWeight.SemiBold
                 )
             }
