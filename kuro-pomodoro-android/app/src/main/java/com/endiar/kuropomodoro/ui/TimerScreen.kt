@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +35,7 @@ fun TimerScreen(
     remainingSeconds: Int,
     totalSeconds: Int,
     isRunning: Boolean,
-    completedSessions: Int,
+    completedSessionsToday: Int,
     currentTask: FocusTask?,
     onModeSelected: (TimerMode) -> Unit,
     onStartPause: () -> Unit,
@@ -60,7 +61,10 @@ fun TimerScreen(
             subtitle = "A soft timer for one cozy session at a time"
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             TimerMode.entries.forEach { timerMode ->
                 ModeChip(
                     mode = timerMode,
@@ -82,7 +86,7 @@ fun TimerScreen(
                     progress = progress
                 )
                 Text(
-                    text = "$completedSessions focus sessions today",
+                    text = "$completedSessionsToday focus sessions today",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colorScheme.onSurface.copy(alpha = 0.72f)
                 )
