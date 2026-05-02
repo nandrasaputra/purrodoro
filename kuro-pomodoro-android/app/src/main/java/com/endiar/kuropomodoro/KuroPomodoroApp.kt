@@ -47,6 +47,7 @@ fun KuroPomodoroApp() {
     var timerMode by rememberSaveable(stateSaver = TimerModeSaver) { mutableStateOf(TimerMode.Focus) }
     var settings by rememberSaveable(stateSaver = TimerSettingsSaver) { mutableStateOf(TimerSettings()) }
     var remainingSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
+    var activeTotalSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
     var isRunning by rememberSaveable { mutableStateOf(false) }
     var completedSessions by rememberSaveable { mutableIntStateOf(0) }
     var stamps by rememberSaveable(stateSaver = StampsSaver) { mutableStateOf<Map<LocalDate, Int>>(emptyMap()) }
@@ -143,7 +144,12 @@ fun KuroPomodoroApp() {
                     AppTab.Timer -> TimerScreen(
                         mode = timerMode,
                         remainingSeconds = remainingSeconds,
-                        totalSeconds = settings.secondsFor(timerMode),
+                        totalSeconds = timerDisplayTotalSeconds(
+                            settings = settings,
+                            mode = timerMode,
+                            isRunning = isRunning,
+                            activeTotalSeconds = activeTotalSeconds
+                        ),
                         isRunning = isRunning,
                         completedSessionsToday = stamps[LocalDate.now()] ?: 0,
                         currentTask = todoLists.firstOrNull { it.id == selectedTodoListId }?.tasks?.firstOrNull { !it.completed },
@@ -151,11 +157,18 @@ fun KuroPomodoroApp() {
                             timerMode = selectedMode
                             isRunning = false
                             remainingSeconds = settings.secondsFor(selectedMode)
+                            activeTotalSeconds = settings.secondsFor(selectedMode)
                         },
-                        onStartPause = { isRunning = !isRunning },
+                        onStartPause = {
+                            if (!isRunning) {
+                                activeTotalSeconds = settings.secondsFor(timerMode)
+                            }
+                            isRunning = !isRunning
+                        },
                         onReset = {
                             isRunning = false
                             remainingSeconds = settings.secondsFor(timerMode)
+                            activeTotalSeconds = settings.secondsFor(timerMode)
                         }
                     )
                     AppTab.Todo -> TodoScreen(
@@ -193,6 +206,7 @@ fun KuroPomodoroApp() {
                             settings = updatedSettings
                             if (mode == timerMode && !isRunning) {
                                 remainingSeconds = updatedSettings.secondsFor(mode)
+                                activeTotalSeconds = updatedSettings.secondsFor(mode)
                             }
                         },
                         onMockFeature = { premiumSheetMessage = it }
@@ -214,6 +228,13 @@ fun KuroPomodoroApp() {
         }
     }
 }
+
+internal fun timerDisplayTotalSeconds(
+    settings: TimerSettings,
+    mode: TimerMode,
+    isRunning: Boolean,
+    activeTotalSeconds: Int
+): Int = if (isRunning) activeTotalSeconds else settings.secondsFor(mode)
 
 @Composable
 private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
