@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
@@ -27,10 +28,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.ui.components.KuroCard
@@ -49,6 +56,15 @@ fun TodoScreen(
 ) {
     val selectedList = todoLists.firstOrNull { it.id == selectedListId } ?: todoLists.firstOrNull()
     var newTaskTitle by rememberSaveable { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val addTaskIfValid = {
+        val title = newTaskTitle.trim()
+        if (title.isNotEmpty()) {
+            onAddTask(title)
+            newTaskTitle = ""
+            keyboardController?.hide()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -88,18 +104,14 @@ fun TodoScreen(
                 onValueChange = { newTaskTitle = it },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Add a focus task") },
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { addTaskIfValid() })
             )
             Spacer(Modifier.height(12.dp))
             KuroPrimaryButton(
                 text = "Add task",
-                onClick = {
-                    val title = newTaskTitle.trim()
-                    if (title.isNotEmpty()) {
-                        onAddTask(title)
-                        newTaskTitle = ""
-                    }
-                },
+                onClick = addTaskIfValid,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -136,7 +148,7 @@ private fun TodoListTab(name: String, selected: Boolean, onClick: () -> Unit) {
         Text(
             text = name,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            color = colorScheme.onSurface,
+            color = if (selected) colorScheme.onSecondary else colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge
         )
     }
@@ -148,13 +160,19 @@ private fun TaskRow(task: FocusTask, onToggleTask: (Int) -> Unit, onDeleteTask: 
 
     KuroCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = task.completed,
+                    role = Role.Checkbox,
+                    onValueChange = { onToggleTask(task.id) }
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Checkbox(
                 checked = task.completed,
-                onCheckedChange = { onToggleTask(task.id) }
+                onCheckedChange = null
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -170,7 +188,12 @@ private fun TaskRow(task: FocusTask, onToggleTask: (Int) -> Unit, onDeleteTask: 
                     color = colorScheme.onSurface.copy(alpha = 0.72f)
                 )
             }
-            TextButton(onClick = { onDeleteTask(task.id) }) {
+            TextButton(
+                onClick = { onDeleteTask(task.id) },
+                modifier = Modifier.semantics {
+                    contentDescription = "Delete ${task.title}"
+                }
+            ) {
                 Text("Delete", style = MaterialTheme.typography.labelLarge)
             }
         }
