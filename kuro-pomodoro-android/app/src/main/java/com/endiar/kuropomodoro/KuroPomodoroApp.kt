@@ -172,12 +172,6 @@ fun KuroPomodoroApp() {
                 isRunning = isRunning,
                 timerMode = timerMode,
                 remainingSeconds = remainingSeconds,
-                totalSeconds = timerDisplayTotalSeconds(
-                    settings = settings,
-                    mode = timerMode,
-                    isRunning = isRunning,
-                    activeTotalSeconds = activeTotalSeconds
-                ),
                 onStart = {
                     activeTotalSeconds = timerStartTotalSeconds(
                         settings = settings,
@@ -326,7 +320,6 @@ private fun DashboardOverlay(
     isRunning: Boolean,
     timerMode: TimerMode,
     remainingSeconds: Int,
-    totalSeconds: Int,
     onStart: () -> Unit,
     onPauseResume: () -> Unit,
     onEnd: () -> Unit,
@@ -344,7 +337,6 @@ private fun DashboardOverlay(
             Box(
                 modifier = Modifier
                     .width(240.dp)
-                    .wrapContentSize()
                     .background(color = glassColor, shape = panelShape)
                     .border(width = 1.5.dp, color = borderColor, shape = panelShape)
                     .padding(horizontal = 24.dp, vertical = 24.dp),
@@ -381,7 +373,6 @@ private fun DashboardOverlay(
             Column(
                 modifier = Modifier
                     .width(240.dp)
-                    .wrapContentSize()
                     .background(color = glassColor, shape = panelShape)
                     .border(width = 1.5.dp, color = borderColor, shape = panelShape)
                     .padding(horizontal = 24.dp, vertical = 24.dp),
