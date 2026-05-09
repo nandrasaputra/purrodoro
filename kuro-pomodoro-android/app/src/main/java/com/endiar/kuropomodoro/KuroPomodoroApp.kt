@@ -1,11 +1,20 @@
 package com.endiar.kuropomodoro
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,9 +32,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.AppTab
+import com.endiar.kuropomodoro.model.backgroundImageForTime
 import com.endiar.kuropomodoro.model.FocusTask
+import java.time.LocalTime
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
@@ -137,99 +153,153 @@ fun KuroPomodoroApp() {
         }
     }
 
-    DecorativeBackground(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                when (selectedTab) {
-                    AppTab.Timer -> TimerScreen(
+    if (selectedTab == AppTab.Timer) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(id = backgroundImageForTime(LocalTime.now())),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            // Dark scrim
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = if (isRunning) 0.28f else 0.35f))
+            )
+            // Glass overlay
+            DashboardOverlay(
+                isRunning = isRunning,
+                timerMode = timerMode,
+                remainingSeconds = remainingSeconds,
+                totalSeconds = timerDisplayTotalSeconds(
+                    settings = settings,
+                    mode = timerMode,
+                    isRunning = isRunning,
+                    activeTotalSeconds = activeTotalSeconds
+                ),
+                onStart = {
+                    activeTotalSeconds = timerStartTotalSeconds(
+                        settings = settings,
                         mode = timerMode,
                         remainingSeconds = remainingSeconds,
-                        totalSeconds = timerDisplayTotalSeconds(
+                        activeTotalSeconds = activeTotalSeconds
+                    )
+                    isRunning = true
+                },
+                onPauseResume = {
+                    if (!isRunning) {
+                        activeTotalSeconds = timerStartTotalSeconds(
                             settings = settings,
                             mode = timerMode,
-                            isRunning = isRunning,
+                            remainingSeconds = remainingSeconds,
                             activeTotalSeconds = activeTotalSeconds
-                        ),
-                        isRunning = isRunning,
-                        completedSessionsToday = stamps[LocalDate.now()] ?: 0,
-                        currentTask = todoLists.firstOrNull { it.id == selectedTodoListId }?.tasks?.firstOrNull { !it.completed },
-                        onModeSelected = { selectedMode ->
-                            timerMode = selectedMode
-                            isRunning = false
-                            remainingSeconds = settings.secondsFor(selectedMode)
-                            activeTotalSeconds = settings.secondsFor(selectedMode)
-                        },
-                        onStartPause = {
-                            if (!isRunning) {
-                                activeTotalSeconds = timerStartTotalSeconds(
-                                    settings = settings,
-                                    mode = timerMode,
-                                    remainingSeconds = remainingSeconds,
-                                    activeTotalSeconds = activeTotalSeconds
-                                )
+                        )
+                    }
+                    isRunning = !isRunning
+                },
+                onEnd = {
+                    isRunning = false
+                    remainingSeconds = settings.secondsFor(timerMode)
+                    activeTotalSeconds = settings.secondsFor(timerMode)
+                }
+            )
+        }
+    } else {
+        DecorativeBackground(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    when (selectedTab) {
+                        AppTab.Timer -> TimerScreen(
+                            mode = timerMode,
+                            remainingSeconds = remainingSeconds,
+                            totalSeconds = timerDisplayTotalSeconds(
+                                settings = settings,
+                                mode = timerMode,
+                                isRunning = isRunning,
+                                activeTotalSeconds = activeTotalSeconds
+                            ),
+                            isRunning = isRunning,
+                            completedSessionsToday = stamps[LocalDate.now()] ?: 0,
+                            currentTask = todoLists.firstOrNull { it.id == selectedTodoListId }?.tasks?.firstOrNull { !it.completed },
+                            onModeSelected = { selectedMode ->
+                                timerMode = selectedMode
+                                isRunning = false
+                                remainingSeconds = settings.secondsFor(selectedMode)
+                                activeTotalSeconds = settings.secondsFor(selectedMode)
+                            },
+                            onStartPause = {
+                                if (!isRunning) {
+                                    activeTotalSeconds = timerStartTotalSeconds(
+                                        settings = settings,
+                                        mode = timerMode,
+                                        remainingSeconds = remainingSeconds,
+                                        activeTotalSeconds = activeTotalSeconds
+                                    )
+                                }
+                                isRunning = !isRunning
+                            },
+                            onReset = {
+                                isRunning = false
+                                remainingSeconds = settings.secondsFor(timerMode)
+                                activeTotalSeconds = settings.secondsFor(timerMode)
                             }
-                            isRunning = !isRunning
-                        },
-                        onReset = {
-                            isRunning = false
-                            remainingSeconds = settings.secondsFor(timerMode)
-                            activeTotalSeconds = settings.secondsFor(timerMode)
-                        }
-                    )
-                    AppTab.Todo -> TodoScreen(
-                        todoLists = todoLists,
-                        selectedListId = selectedTodoListId,
-                        onListSelected = { selectedTodoListId = it },
-                        onAddTask = addTask,
-                        onToggleTask = toggleTask,
-                        onDeleteTask = deleteTask
-                    )
-                    AppTab.Calendar -> CalendarScreen(
-                        stamps = stamps,
-                        completedSessions = completedSessions
-                    )
-                    AppTab.Sounds -> SoundsScreen(
-                        sounds = sounds,
-                        selectedSoundId = selectedSoundId,
-                        isPlaying = isSoundPlaying,
-                        onSoundSelected = { sound ->
-                            if (sound.locked) {
-                                premiumSheetMessage = "${sound.name} is part of the simulated premium sound pack."
-                            } else {
-                                selectedSoundId = sound.id
-                                isSoundPlaying = true
-                                premiumSheetMessage = null
+                        )
+                        AppTab.Todo -> TodoScreen(
+                            todoLists = todoLists,
+                            selectedListId = selectedTodoListId,
+                            onListSelected = { selectedTodoListId = it },
+                            onAddTask = addTask,
+                            onToggleTask = toggleTask,
+                            onDeleteTask = deleteTask
+                        )
+                        AppTab.Calendar -> CalendarScreen(
+                            stamps = stamps,
+                            completedSessions = completedSessions
+                        )
+                        AppTab.Sounds -> SoundsScreen(
+                            sounds = sounds,
+                            selectedSoundId = selectedSoundId,
+                            isPlaying = isSoundPlaying,
+                            onSoundSelected = { sound ->
+                                if (sound.locked) {
+                                    premiumSheetMessage = "${sound.name} is part of the simulated premium sound pack."
+                                } else {
+                                    selectedSoundId = sound.id
+                                    isSoundPlaying = true
+                                    premiumSheetMessage = null
+                                }
                             }
-                        }
-                    )
-                    AppTab.Profile -> ProfileScreen(
-                        settings = settings,
-                        darkModePreview = darkModePreview,
-                        onDarkModeChanged = { darkModePreview = it },
-                        onDurationChanged = { mode, minutes ->
-                            val updatedSettings = settings.update(mode, minutes)
-                            settings = updatedSettings
-                            if (mode == timerMode && !isRunning) {
-                                remainingSeconds = updatedSettings.secondsFor(mode)
-                                activeTotalSeconds = updatedSettings.secondsFor(mode)
-                            }
-                        },
-                        onMockFeature = { premiumSheetMessage = it }
+                        )
+                        AppTab.Profile -> ProfileScreen(
+                            settings = settings,
+                            darkModePreview = darkModePreview,
+                            onDarkModeChanged = { darkModePreview = it },
+                            onDurationChanged = { mode, minutes ->
+                                val updatedSettings = settings.update(mode, minutes)
+                                settings = updatedSettings
+                                if (mode == timerMode && !isRunning) {
+                                    remainingSeconds = updatedSettings.secondsFor(mode)
+                                    activeTotalSeconds = updatedSettings.secondsFor(mode)
+                                }
+                            },
+                            onMockFeature = { premiumSheetMessage = it }
+                        )
+                    }
+                }
+                premiumSheetMessage?.let { message ->
+                    PremiumMessage(
+                        message = message,
+                        onDismiss = { premiumSheetMessage = null },
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
                     )
                 }
-            }
-            premiumSheetMessage?.let { message ->
-                PremiumMessage(
-                    message = message,
-                    onDismiss = { premiumSheetMessage = null },
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
+                BottomTabBar(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    modifier = Modifier.navigationBarsPadding()
                 )
             }
-            BottomTabBar(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-                modifier = Modifier.navigationBarsPadding()
-            )
         }
     }
 }
@@ -249,6 +319,131 @@ internal fun timerStartTotalSeconds(
 ): Int {
     val currentModeSeconds = settings.secondsFor(mode)
     return if (remainingSeconds < activeTotalSeconds) activeTotalSeconds else currentModeSeconds
+}
+
+@Composable
+private fun DashboardOverlay(
+    isRunning: Boolean,
+    timerMode: TimerMode,
+    remainingSeconds: Int,
+    totalSeconds: Int,
+    onStart: () -> Unit,
+    onPauseResume: () -> Unit,
+    onEnd: () -> Unit,
+) {
+    val glassColor = Color.White.copy(alpha = 0.15f)
+    val borderColor = Color.White.copy(alpha = 0.25f)
+    val panelShape = RoundedCornerShape(28.dp)
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        if (!isRunning) {
+            // Idle state: just the Start Focus button
+            Box(
+                modifier = Modifier
+                    .width(240.dp)
+                    .wrapContentSize()
+                    .background(color = glassColor, shape = panelShape)
+                    .border(width = 1.5.dp, color = borderColor, shape = panelShape)
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(160.dp)
+                        .height(44.dp)
+                        .background(
+                            color = Color(0xFFE19E29),
+                            shape = RoundedCornerShape(22.dp)
+                        )
+                        .clickable(onClick = onStart),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Start Focus",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        } else {
+            // Active state: mode label + timer + controls
+            val modeLabel = when (timerMode) {
+                TimerMode.Focus -> "FOCUS"
+                TimerMode.ShortBreak -> "SHORT BREAK"
+                TimerMode.LongBreak -> "LONG BREAK"
+            }
+            val timeText = "%02d:%02d".format(remainingSeconds / 60, remainingSeconds % 60)
+
+            Column(
+                modifier = Modifier
+                    .width(240.dp)
+                    .wrapContentSize()
+                    .background(color = glassColor, shape = panelShape)
+                    .border(width = 1.5.dp, color = borderColor, shape = panelShape)
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = modeLabel,
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 3.sp
+                )
+                Text(
+                    text = timeText,
+                    color = Color.White,
+                    fontSize = 56.sp,
+                    fontWeight = FontWeight.Light
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Pause / Resume
+                    Box(
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(42.dp)
+                            .border(
+                                width = 1.5.dp,
+                                color = Color.White.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(21.dp)
+                            )
+                            .clickable(onClick = onPauseResume),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (isRunning) "Pause" else "Resume",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    // End
+                    Box(
+                        modifier = Modifier
+                            .width(72.dp)
+                            .height(42.dp)
+                            .clickable(onClick = onEnd),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "End",
+                            color = Color.White.copy(alpha = 0.35f),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
