@@ -1,6 +1,8 @@
 package com.endiar.kuropomodoro.model
 
+import com.endiar.kuropomodoro.R
 import java.time.LocalDate
+import java.time.LocalTime
 
 enum class AppTab(val label: String, val symbol: String) {
     Timer("Focus", "Home"),
@@ -71,4 +73,27 @@ fun formatSeconds(totalSeconds: Int): String {
 
 fun addFocusStamp(stamps: Map<LocalDate, Int>, date: LocalDate): Map<LocalDate, Int> {
     return stamps + (date to ((stamps[date] ?: 0) + 1))
+}
+
+/**
+ * Maps a [LocalTime] to the corresponding cat background drawable resource.
+ *
+ * Ranges:
+ *  - Mid Night : 22:00 – 04:59
+ *  - Dawn      : 05:00 – 07:59
+ *  - Morning   : 08:00 – 10:59
+ *  - Day       : 11:00 – 16:59
+ *  - Evening   : 17:00 – 19:59
+ *  - Night     : 20:00 – 21:59
+ */
+fun backgroundImageForTime(time: LocalTime = LocalTime.now()): Int {
+    val hour = time.hour
+    return when {
+        hour >= 22 || hour < 5  -> R.drawable.cat_mid_night
+        hour < 8                -> R.drawable.cat_dawn
+        hour < 11               -> R.drawable.cat_morning
+        hour < 17               -> R.drawable.cat_day
+        hour < 20               -> R.drawable.cat_evening
+        else                    -> R.drawable.cat_night  // 20–21
+    }
 }
