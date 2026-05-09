@@ -161,12 +161,6 @@ fun KuroPomodoroApp() {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Dark scrim
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = if (isRunning) 0.28f else 0.35f))
-            )
             // Glass overlay
             DashboardOverlay(
                 isRunning = isRunning,
