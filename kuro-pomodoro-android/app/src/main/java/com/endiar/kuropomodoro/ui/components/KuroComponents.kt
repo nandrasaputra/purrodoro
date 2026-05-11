@@ -218,6 +218,7 @@ fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun DashboardDock(
     isRunning: Boolean,
+    selectedTab: AppTab? = null,
     onNavigate: (AppTab) -> Unit,
     onStartPause: () -> Unit,
     modifier: Modifier = Modifier
@@ -235,26 +236,41 @@ fun DashboardDock(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        DockTabItem(icon = "\u2611", label = "TODO") { onNavigate(AppTab.Todo) }
-        DockTabItem(icon = "\u229e", label = "RECORDS") { onNavigate(AppTab.Calendar) }
+        DockTabItem(
+            icon = "\u2611", label = "TODO",
+            active = selectedTab == AppTab.Todo
+        ) { onNavigate(AppTab.Todo) }
+        DockTabItem(
+            icon = "\u229e", label = "RECORDS",
+            active = selectedTab == AppTab.Calendar
+        ) { onNavigate(AppTab.Calendar) }
         DockHomeButton(isRunning = isRunning, onClick = onStartPause)
-        DockTabItem(icon = "\u266a", label = "SOUNDS") { onNavigate(AppTab.Sounds) }
-        DockTabItem(icon = "\u25cb", label = "ME") { onNavigate(AppTab.Profile) }
+        DockTabItem(
+            icon = "\u266a", label = "SOUNDS",
+            active = selectedTab == AppTab.Sounds
+        ) { onNavigate(AppTab.Sounds) }
+        DockTabItem(
+            icon = "\u25cb", label = "ME",
+            active = selectedTab == AppTab.Profile
+        ) { onNavigate(AppTab.Profile) }
     }
 }
 
 @Composable
-private fun DockTabItem(icon: String, label: String, onClick: () -> Unit) {
+private fun DockTabItem(icon: String, label: String, active: Boolean = false, onClick: () -> Unit) {
+    val iconColor = if (active) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.7f)
+    val bgColor = if (active) Color(0xFFFF8B6F).copy(alpha = 0.2f) else Color.Transparent
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(24.dp))
+            .background(bgColor)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        Text(icon, color = Color.White.copy(alpha = 0.7f), fontSize = 18.sp, fontWeight = FontWeight.Medium)
-        Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
+        Text(icon, color = iconColor, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = iconColor, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
     }
 }
 
