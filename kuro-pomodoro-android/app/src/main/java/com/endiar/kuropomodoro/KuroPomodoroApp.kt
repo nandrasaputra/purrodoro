@@ -4,17 +4,20 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -41,20 +46,23 @@ import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.backgroundImageForTime
 import com.endiar.kuropomodoro.model.FocusTask
-import java.time.LocalTime
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.addFocusStamp
+import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.TimerScreen
 import com.endiar.kuropomodoro.ui.components.BottomTabBar
+import com.endiar.kuropomodoro.ui.components.DashboardDock
+import com.endiar.kuropomodoro.ui.components.DashboardModeChip
 import com.endiar.kuropomodoro.ui.components.DecorativeBackground
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlinx.coroutines.delay
 
 @Composable
@@ -154,45 +162,29 @@ fun KuroPomodoroApp() {
     }
 
     if (selectedTab == AppTab.Timer) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Image(
-                painter = painterResource(id = backgroundImageForTime(LocalTime.now())),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-            // Glass overlay
-            DashboardOverlay(
-                isRunning = isRunning,
-                timerMode = timerMode,
-                remainingSeconds = remainingSeconds,
-                onStart = {
+        FocusDashboard(
+            timerMode = timerMode,
+            remainingSeconds = remainingSeconds,
+            isRunning = isRunning,
+            onModeSelected = { mode ->
+                timerMode = mode
+                isRunning = false
+                remainingSeconds = settings.secondsFor(mode)
+                activeTotalSeconds = settings.secondsFor(mode)
+            },
+            onStartPause = {
+                if (!isRunning) {
                     activeTotalSeconds = timerStartTotalSeconds(
                         settings = settings,
                         mode = timerMode,
                         remainingSeconds = remainingSeconds,
                         activeTotalSeconds = activeTotalSeconds
                     )
-                    isRunning = true
-                },
-                onPauseResume = {
-                    if (!isRunning) {
-                        activeTotalSeconds = timerStartTotalSeconds(
-                            settings = settings,
-                            mode = timerMode,
-                            remainingSeconds = remainingSeconds,
-                            activeTotalSeconds = activeTotalSeconds
-                        )
-                    }
-                    isRunning = !isRunning
-                },
-                onEnd = {
-                    isRunning = false
-                    remainingSeconds = settings.secondsFor(timerMode)
-                    activeTotalSeconds = settings.secondsFor(timerMode)
                 }
-            )
-        }
+                isRunning = !isRunning
+            },
+            onNavigate = { selectedTab = it }
+        )
     } else {
         DecorativeBackground(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -310,123 +302,108 @@ internal fun timerStartTotalSeconds(
 }
 
 @Composable
-private fun DashboardOverlay(
-    isRunning: Boolean,
+private fun FocusDashboard(
     timerMode: TimerMode,
     remainingSeconds: Int,
-    onStart: () -> Unit,
-    onPauseResume: () -> Unit,
-    onEnd: () -> Unit,
+    isRunning: Boolean,
+    onModeSelected: (TimerMode) -> Unit,
+    onStartPause: () -> Unit,
+    onNavigate: (AppTab) -> Unit,
 ) {
-    val glassColor = Color.White.copy(alpha = 0.15f)
-    val borderColor = Color.White.copy(alpha = 0.25f)
-    val panelShape = RoundedCornerShape(28.dp)
+    val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
+    val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!isRunning) {
-            // Idle state: just the Start Focus button
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = backgroundImageForTime(LocalTime.now())),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        // Top scrim
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .background(Brush.verticalGradient(listOf(Color(0xCC0F0A1A), Color.Transparent)))
+        )
+        // Bottom scrim
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .align(Alignment.BottomCenter)
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC0F0A1A))))
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(12.dp))
+            // Mode chips
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TimerMode.entries.forEach { mode ->
+                    DashboardModeChip(
+                        mode = mode,
+                        selected = mode == timerMode,
+                        onClick = { onModeSelected(mode) }
+                    )
+                }
+            }
+            Spacer(Modifier.height(28.dp))
+            // Timer
+            Text(
+                text = formatSeconds(remainingSeconds),
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 72.sp,
+                fontWeight = FontWeight.W200,
+                letterSpacing = (-1).sp
+            )
+            Spacer(Modifier.height(20.dp))
+            // Start / Pause button
             Box(
                 modifier = Modifier
-                    .width(240.dp)
-                    .background(color = glassColor, shape = panelShape)
-                    .border(width = 1.5.dp, color = borderColor, shape = panelShape)
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                    .width(200.dp)
+                    .height(56.dp)
+                    .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(buttonBg)
+                    .clickable(onClick = onStartPause),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(160.dp)
-                        .height(44.dp)
-                        .background(
-                            color = Color(0xFFE19E29),
-                            shape = RoundedCornerShape(22.dp)
-                        )
-                        .clickable(onClick = onStart),
-                    contentAlignment = Alignment.Center
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Start Focus",
-                        color = Color.White,
+                        text = if (isRunning) "\u23f8" else "\u25b6",
+                        color = buttonContentColor,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (isRunning) "Pause" else "Start Focus",
+                        color = buttonContentColor,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
-        } else {
-            // Active state: mode label + timer + controls
-            val modeLabel = when (timerMode) {
-                TimerMode.Focus -> "FOCUS"
-                TimerMode.ShortBreak -> "SHORT BREAK"
-                TimerMode.LongBreak -> "LONG BREAK"
-            }
-            val timeText = "%02d:%02d".format(remainingSeconds / 60, remainingSeconds % 60)
-
-            Column(
-                modifier = Modifier
-                    .width(240.dp)
-                    .background(color = glassColor, shape = panelShape)
-                    .border(width = 1.5.dp, color = borderColor, shape = panelShape)
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = modeLabel,
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 3.sp
-                )
-                Text(
-                    text = timeText,
-                    color = Color.White,
-                    fontSize = 56.sp,
-                    fontWeight = FontWeight.Light
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Pause / Resume
-                    Box(
-                        modifier = Modifier
-                            .width(120.dp)
-                            .height(42.dp)
-                            .border(
-                                width = 1.5.dp,
-                                color = Color.White.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(21.dp)
-                            )
-                            .clickable(onClick = onPauseResume),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (isRunning) "Pause" else "Resume",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    // End
-                    Box(
-                        modifier = Modifier
-                            .width(72.dp)
-                            .height(42.dp)
-                            .clickable(onClick = onEnd),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "End",
-                            color = Color.White.copy(alpha = 0.35f),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Normal
-                        )
-                    }
-                }
-            }
+            // Cat window — flexible space between button and dock
+            Spacer(Modifier.weight(1f))
+            DashboardDock(
+                isRunning = isRunning,
+                onNavigate = onNavigate,
+                onStartPause = onStartPause,
+                modifier = Modifier.navigationBarsPadding()
+            )
         }
     }
 }
