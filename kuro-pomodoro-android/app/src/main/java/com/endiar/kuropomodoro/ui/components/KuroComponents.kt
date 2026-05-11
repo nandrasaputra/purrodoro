@@ -231,7 +231,7 @@ fun DashboardDock(
             .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(36.dp))
             .clip(RoundedCornerShape(36.dp))
             .background(Color(0xFF15101F).copy(alpha = 0.65f))
-            .padding(8.dp),
+            .padding(horizontal = 4.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -249,7 +249,7 @@ private fun DockTabItem(icon: String, label: String, onClick: () -> Unit) {
         modifier = Modifier
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
@@ -267,7 +267,7 @@ private fun DockHomeButton(isRunning: Boolean, onClick: () -> Unit) {
             .clip(RoundedCornerShape(24.dp))
             .background(bgColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
