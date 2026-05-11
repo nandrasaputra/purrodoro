@@ -1,35 +1,39 @@
 package com.endiar.kuropomodoro.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.ui.components.KuroCard
-import com.endiar.kuropomodoro.ui.components.SectionTitle
+import com.endiar.kuropomodoro.ui.components.GlassCard
+import com.endiar.kuropomodoro.ui.components.MockBadge
 
 @Composable
 fun ProfileScreen(
@@ -44,250 +48,244 @@ fun ProfileScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(18.dp),
+            .padding(horizontal = 20.dp)
+            .padding(top = 8.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        SectionTitle(
-            title = "Kuro's room",
-            subtitle = "Local settings for your cozy focus companion"
+        Text(
+            text = "Me",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
         )
 
-        LocalProfileCard()
+        // Profile / avatar card
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Focus User",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Pomodoro in progress",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.55f)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFF8B6F)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "FU",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
 
-        KuroCard(modifier = Modifier.fillMaxWidth()) {
+        // Timer settings card
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Timer lengths",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
+                text = "TIMER SETTINGS",
+                fontSize = 13.sp,
+                color = Color.White.copy(alpha = 0.45f),
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.2.sp
             )
-            Spacer(Modifier.height(12.dp))
-            DurationControl(
-                mode = TimerMode.Focus,
+            Spacer(Modifier.height(8.dp))
+            DurationRow(
+                label = TimerMode.Focus.label,
                 minutes = settings.focusMinutes,
-                onDurationChanged = onDurationChanged
+                onMinus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes - 1).coerceIn(1, 60)) },
+                onPlus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes + 1).coerceIn(1, 60)) }
             )
-            DurationControl(
-                mode = TimerMode.ShortBreak,
+            Spacer(Modifier.height(8.dp))
+            DurationRow(
+                label = TimerMode.ShortBreak.label,
                 minutes = settings.shortBreakMinutes,
-                onDurationChanged = onDurationChanged
+                onMinus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes - 1).coerceIn(1, 60)) },
+                onPlus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes + 1).coerceIn(1, 60)) }
             )
-            DurationControl(
-                mode = TimerMode.LongBreak,
+            Spacer(Modifier.height(8.dp))
+            DurationRow(
+                label = TimerMode.LongBreak.label,
                 minutes = settings.longBreakMinutes,
-                onDurationChanged = onDurationChanged
+                onMinus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes - 1).coerceIn(1, 60)) },
+                onPlus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes + 1).coerceIn(1, 60)) }
             )
         }
 
-        DarkModePreviewCard(
-            checked = darkModePreview,
-            onCheckedChange = onDarkModeChanged
-        )
-
-        MockFeatureCard(
-            title = "Focus Together",
-            description = "Invite a friend into a shared quiet room.",
-            actionLabel = "Preview Focus Together",
-            onClick = { onMockFeature("Focus Together is a mock social focus room for this prototype.") }
-        )
-        MockFeatureCard(
-            title = "Reminders",
-            description = "Nudge your next session at the gentlest time.",
-            actionLabel = "Preview Reminders",
-            onClick = { onMockFeature("Reminders are mocked here; notifications are not scheduled yet.") }
-        )
-        MockFeatureCard(
-            title = "D-Day Tracker",
-            description = "Count down to exams, launches, and tiny victories.",
-            actionLabel = "Preview D-Day Tracker",
-            onClick = { onMockFeature("D-Day Tracker is a placeholder for future goal countdowns.") }
-        )
-        MockFeatureCard(
-            title = "Premium Pass",
-            description = "Unlock extra sounds, rooms, and cat outfits later.",
-            actionLabel = "Preview Premium Pass",
-            onClick = { onMockFeature("Premium Pass is simulated in this clone and does not start a purchase.") }
-        )
-    }
-}
-
-@Composable
-private fun LocalProfileCard() {
-    val colorScheme = MaterialTheme.colorScheme
-
-    KuroCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(22.dp),
-                color = colorScheme.primaryContainer
+        // Dark mode toggle card
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Ku",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold
+                    text = "Dark Mode Preview",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                DarkModeToggle(
+                    checked = darkModePreview,
+                    onCheckedChange = onDarkModeChanged
                 )
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Local Pomodoro Keeper",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Stored locally for this session. No account or cloud sync.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colorScheme.onSurface.copy(alpha = 0.72f)
-                )
-            }
+        }
+
+        // Mock features section
+        Text(
+            text = "FEATURES",
+            fontSize = 10.sp,
+            color = Color.White.copy(alpha = 0.30f),
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.5.sp
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MockFeatureSquare(
+                name = "Focus Together",
+                icon = "\uD83D\uDC65",
+                description = "Co-focus with friends",
+                onClick = { onMockFeature("Focus Together is a mock social focus room for this prototype.") },
+                modifier = Modifier.weight(1f)
+            )
+            MockFeatureSquare(
+                name = "Reminders",
+                icon = "\uD83D\uDD14",
+                description = "Smart break reminders",
+                onClick = { onMockFeature("Reminders are mocked here; notifications are not scheduled yet.") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MockFeatureSquare(
+                name = "D-Day Tracker",
+                icon = "\uD83D\uDCC5",
+                description = "Track important dates",
+                onClick = { onMockFeature("D-Day Tracker is a placeholder for future goal countdowns.") },
+                modifier = Modifier.weight(1f)
+            )
+            MockFeatureSquare(
+                name = "Premium Sounds",
+                icon = "\uD83C\uDFB5",
+                description = "Unlock all sound packs",
+                onClick = { onMockFeature("Premium Sounds is simulated in this clone and does not start a purchase.") },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
 @Composable
-private fun DurationControl(
-    mode: TimerMode,
+private fun DurationRow(
+    label: String,
     minutes: Int,
-    onDurationChanged: (TimerMode, Int) -> Unit
+    onMinus: () -> Unit,
+    onPlus: () -> Unit
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Text(label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StepperButton(label = "−", onClick = onMinus)
             Text(
-                text = mode.label,
-                style = MaterialTheme.typography.titleSmall,
-                color = colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold
+                text = "$minutes min",
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.widthIn(min = 54.dp),
+                textAlign = TextAlign.Center
             )
-            Text(
-                text = "$minutes minutes",
-                style = MaterialTheme.typography.bodyMedium,
-                color = colorScheme.onSurface.copy(alpha = 0.72f)
-            )
+            StepperButton(label = "+", onClick = onPlus)
         }
-        DurationStepButton(
-            label = "Decrease ${mode.label} duration",
-            text = "-",
-            enabled = minutes > 1,
-            onClick = { onDurationChanged(mode, minutes - 1) }
-        )
-        DurationStepButton(
-            label = "Increase ${mode.label} duration",
-            text = "+",
-            enabled = true,
-            onClick = { onDurationChanged(mode, minutes + 1) }
-        )
     }
 }
 
 @Composable
-private fun DurationStepButton(label: String, text: String, enabled: Boolean, onClick: () -> Unit) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.semantics { contentDescription = label }
+private fun StepperButton(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.10f))
+            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleLarge,
-            color = if (enabled) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-            },
-            fontWeight = FontWeight.Bold
+        Text(label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Light)
+    }
+}
+
+@Composable
+private fun DarkModeToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val thumbOffset = if (checked) Alignment.CenterEnd else Alignment.CenterStart
+    Box(
+        modifier = Modifier
+            .width(44.dp)
+            .height(24.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (checked) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.10f))
+            .border(
+                1.dp,
+                if (checked) Color.Transparent else Color.White.copy(alpha = 0.20f),
+                RoundedCornerShape(12.dp)
+            )
+            .clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 3.dp)
+                .size(18.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .align(thumbOffset)
         )
     }
 }
 
 @Composable
-private fun DarkModePreviewCard(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    val colorScheme = MaterialTheme.colorScheme
-
-    KuroCard(modifier = Modifier.fillMaxWidth()) {
+private fun MockFeatureSquare(
+    name: String,
+    icon: String,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(
+        modifier = modifier.clickable(role = Role.Button, onClickLabel = name, onClick = onClick)
+    ) {
+        Text(icon, fontSize = 24.sp)
+        Spacer(Modifier.height(8.dp))
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Dark mode preview",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Mock local setting only. It does not change the app theme yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colorScheme.onSurface.copy(alpha = 0.72f)
-                )
-            }
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                modifier = Modifier.semantics { contentDescription = "Dark mode preview" }
-            )
+            Text(name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            MockBadge()
         }
-    }
-}
-
-@Composable
-private fun MockFeatureCard(title: String, description: String, actionLabel: String, onClick: () -> Unit) {
-    val colorScheme = MaterialTheme.colorScheme
-
-    KuroCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .clickable(role = Role.Button, onClickLabel = actionLabel, onClick = onClick),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colorScheme.onSurface.copy(alpha = 0.72f)
-                )
-            }
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = colorScheme.tertiaryContainer
-            ) {
-                Text(
-                    text = "Mock",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colorScheme.onTertiaryContainer,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
+        Spacer(Modifier.height(2.dp))
+        Text(description, color = Color.White.copy(alpha = 0.50f), fontSize = 11.sp)
     }
 }
