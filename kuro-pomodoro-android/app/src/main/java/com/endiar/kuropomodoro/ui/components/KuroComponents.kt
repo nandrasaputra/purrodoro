@@ -367,3 +367,88 @@ fun CatBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() 
         content()
     }
 }
+
+// ── Glass primitives ─────────────────────────────────────────────────────────
+
+@Composable
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    active: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val fill = if (active) Color(0xFFFF8B6F).copy(alpha = 0.10f) else Color(0xFF0F0A1A).copy(alpha = 0.40f)
+    val border = if (active) Color(0xFFFF8B6F).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.10f)
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(fill)
+            .border(1.dp, border, RoundedCornerShape(22.dp))
+            .padding(16.dp),
+        content = content
+    )
+}
+
+@Composable
+fun GlassPill(text: String, selected: Boolean, onClick: () -> Unit) {
+    val fill = if (selected) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.08f)
+    val textColor = if (selected) Color.White else Color.White.copy(alpha = 0.55f)
+    val borderColor = if (selected) Color.Transparent else Color.White.copy(alpha = 0.15f)
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(fill)
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = text,
+            color = textColor,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+        )
+    }
+}
+
+enum class StatusPillKind { Playing, Selected, Locked, Unlocked }
+
+@Composable
+fun StatusPill(label: String, kind: StatusPillKind) {
+    val fill = when (kind) {
+        StatusPillKind.Playing  -> Color(0xFFFF8B6F)
+        StatusPillKind.Selected -> Color.White.copy(alpha = 0.10f)
+        StatusPillKind.Locked   -> Color(0xFF7B4FBF).copy(alpha = 0.25f)
+        StatusPillKind.Unlocked -> Color.White.copy(alpha = 0.10f)
+    }
+    val textColor = when (kind) {
+        StatusPillKind.Playing  -> Color.White
+        StatusPillKind.Selected -> Color.White.copy(alpha = 0.80f)
+        StatusPillKind.Locked   -> Color(0xFFD8C8FF)
+        StatusPillKind.Unlocked -> Color.White.copy(alpha = 0.55f)
+    }
+    val borderColor = when (kind) {
+        StatusPillKind.Locked   -> Color(0xFFD8C8FF).copy(alpha = 0.40f)
+        else                    -> Color.Transparent
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(fill)
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(text = label, color = textColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun MockBadge() {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFF7B4FBF).copy(alpha = 0.25f))
+            .padding(horizontal = 7.dp, vertical = 3.dp)
+    ) {
+        Text(text = "Mock", color = Color(0xFFD8C8FF), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+    }
+}
