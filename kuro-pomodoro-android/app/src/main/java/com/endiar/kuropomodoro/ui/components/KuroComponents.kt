@@ -1,16 +1,19 @@
 package com.endiar.kuropomodoro.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -31,9 +34,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
@@ -41,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.TimerMode
+import com.endiar.kuropomodoro.model.backgroundImageForTime
+import java.time.LocalTime
 import com.endiar.kuropomodoro.ui.theme.Cocoa
 import com.endiar.kuropomodoro.ui.theme.Coral
 import com.endiar.kuropomodoro.ui.theme.Lavender
@@ -319,6 +327,43 @@ fun DecorativeBackground(modifier: Modifier = Modifier, content: @Composable () 
             drawCircle(colorScheme.tertiary.copy(alpha = 0.38f), radius = 90.dp.toPx(), center = Offset(size.width * 0.92f, size.height * 0.28f))
             drawCircle(colorScheme.primary.copy(alpha = 0.28f), radius = 110.dp.toPx(), center = Offset(size.width * 0.75f, size.height * 0.82f))
         }
+        content()
+    }
+}
+
+@Composable
+fun CatBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    val darkBase = Color(0xFF0A0816)
+    Box(modifier = modifier.fillMaxSize().background(darkBase)) {
+        Image(
+            painter = painterResource(id = backgroundImageForTime(LocalTime.now())),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        // Top scrim — legibility for page title
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(darkBase.copy(alpha = 0.80f), Color.Transparent)
+                    )
+                )
+        )
+        // Bottom scrim — legibility for dock
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, darkBase.copy(alpha = 0.80f))
+                    )
+                )
+        )
         content()
     }
 }
