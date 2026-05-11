@@ -2,6 +2,8 @@ package com.endiar.kuropomodoro.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.ui.theme.Cocoa
@@ -189,6 +192,98 @@ fun BottomTabBar(selectedTab: AppTab, onTabSelected: (AppTab) -> Unit, modifier:
                 Text(tab.label, color = colorScheme.onSurface, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
             }
         }
+    }
+}
+
+@Composable
+fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
+    val bgColor = if (selected) Color.White.copy(alpha = 0.92f) else Color.White.copy(alpha = 0.15f)
+    val textColor = if (selected) Color(0xFF241E2B) else Color.White.copy(alpha = 0.85f)
+    Surface(
+        modifier = Modifier
+            .heightIn(min = 40.dp)
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
+        shape = RoundedCornerShape(20.dp),
+        color = bgColor
+    ) {
+        Text(
+            text = mode.label,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            color = textColor,
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}
+
+@Composable
+fun DashboardDock(
+    isRunning: Boolean,
+    onNavigate: (AppTab) -> Unit,
+    onStartPause: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .padding(horizontal = 21.dp)
+            .padding(bottom = 12.dp)
+            .fillMaxWidth()
+            .height(62.dp)
+            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(36.dp))
+            .clip(RoundedCornerShape(36.dp))
+            .background(Color(0xFF15101F).copy(alpha = 0.65f))
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        DockTabItem(icon = "\u2611", label = "TODO") { onNavigate(AppTab.Todo) }
+        DockTabItem(icon = "\u229e", label = "RECORDS") { onNavigate(AppTab.Calendar) }
+        DockHomeButton(isRunning = isRunning, onClick = onStartPause)
+        DockTabItem(icon = "\u266a", label = "SOUNDS") { onNavigate(AppTab.Sounds) }
+        DockTabItem(icon = "\u25cb", label = "ME") { onNavigate(AppTab.Profile) }
+    }
+}
+
+@Composable
+private fun DockTabItem(icon: String, label: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Text(icon, color = Color.White.copy(alpha = 0.7f), fontSize = 18.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
+    }
+}
+
+@Composable
+private fun DockHomeButton(isRunning: Boolean, onClick: () -> Unit) {
+    val bgColor = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
+    val contentColor = if (isRunning) Color(0xFF241E2B) else Color.White
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(bgColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Text(
+            text = if (isRunning) "\u23f8" else "\u25b6",
+            color = contentColor,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = if (isRunning) "PAUSE" else "START",
+            color = contentColor,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
+        )
     }
 }
 
