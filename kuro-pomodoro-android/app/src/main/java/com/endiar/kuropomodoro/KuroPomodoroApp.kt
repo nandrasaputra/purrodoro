@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,7 +62,6 @@ import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.TimerScreen
 import com.endiar.kuropomodoro.ui.components.BottomTabBar
 import com.endiar.kuropomodoro.ui.components.DashboardDock
-import com.endiar.kuropomodoro.ui.components.DashboardModeChip
 import com.endiar.kuropomodoro.ui.components.DecorativeBackground
 import java.time.LocalDate
 import java.time.LocalTime
@@ -312,6 +314,7 @@ private fun FocusDashboard(
 ) {
     val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
+    var showModeMenu by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -341,23 +344,16 @@ private fun FocusDashboard(
                 .statusBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(Modifier.height(40.dp))
+            // Active mode label
+            Text(
+                text = timerMode.label.uppercase(),
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 2.sp
+            )
             Spacer(Modifier.height(12.dp))
-            // Mode chips
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TimerMode.entries.forEach { mode ->
-                    DashboardModeChip(
-                        mode = mode,
-                        selected = mode == timerMode,
-                        onClick = { onModeSelected(mode) }
-                    )
-                }
-            }
-            Spacer(Modifier.height(28.dp))
             // Timer
             Text(
                 text = formatSeconds(remainingSeconds),
@@ -366,37 +362,85 @@ private fun FocusDashboard(
                 fontWeight = FontWeight.W200,
                 letterSpacing = (-1).sp
             )
-            Spacer(Modifier.height(20.dp))
-            // Start / Pause button
-            Box(
-                modifier = Modifier
-                    .width(200.dp)
-                    .height(56.dp)
-                    .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(buttonBg)
-                    .clickable(onClick = onStartPause),
-                contentAlignment = Alignment.Center
+            Spacer(Modifier.height(24.dp))
+            // Play/pause icon + mode context pill
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Orange icon-only circle button
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(buttonBg)
+                        .clickable(onClick = onStartPause),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (isRunning) "\u23f8" else "\u25b6",
                         color = buttonContentColor,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (isRunning) "Pause" else "Start Focus",
-                        color = buttonContentColor,
-                        fontSize = 16.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
+                // Glass context pill — shows mode label + chevron, opens mode picker
+                Box(modifier = Modifier.wrapContentSize(Alignment.TopCenter)) {
+                    Box(
+                        modifier = Modifier
+                            .height(56.dp)
+                            .border(1.5.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(28.dp))
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .clickable { showModeMenu = !showModeMenu }
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = timerMode.label,
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "\u25be",
+                                color = Color.White.copy(alpha = 0.55f),
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showModeMenu,
+                        onDismissRequest = { showModeMenu = false },
+                        containerColor = Color(0xFF1E1628)
+                    ) {
+                        TimerMode.entries.forEach { mode ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = mode.label,
+                                        color = if (mode == timerMode) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.85f),
+                                        fontWeight = if (mode == timerMode) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                },
+                                onClick = {
+                                    onModeSelected(mode)
+                                    showModeMenu = false
+                                },
+                                colors = MenuDefaults.itemColors(
+                                    textColor = Color.White.copy(alpha = 0.85f)
+                                )
+                            )
+                        }
+                    }
+                }
             }
-            // Cat window — flexible space between button and dock
+            // Cat window — flexible space between button row and dock
             Spacer(Modifier.weight(1f))
             DashboardDock(
                 isRunning = isRunning,
