@@ -230,8 +230,8 @@ fun DashboardDock(
     isRunning: Boolean,
     onNavigate: (AppTab) -> Unit,
     onStartPause: () -> Unit,
+    modifier: Modifier = Modifier,
     selectedTab: AppTab? = null,
-    modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
