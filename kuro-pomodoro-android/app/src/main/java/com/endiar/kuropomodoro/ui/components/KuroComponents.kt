@@ -47,6 +47,8 @@ import com.endiar.kuropomodoro.ui.theme.Lavender
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.Peach
 
+private val DockCoral = Color(0xFFFF8B6F)
+
 @Composable
 fun KuroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
@@ -218,9 +220,9 @@ fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun DashboardDock(
     isRunning: Boolean,
-    selectedTab: AppTab? = null,
     onNavigate: (AppTab) -> Unit,
     onStartPause: () -> Unit,
+    selectedTab: AppTab? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -237,20 +239,24 @@ fun DashboardDock(
         verticalAlignment = Alignment.CenterVertically
     ) {
         DockTabItem(
-            icon = "\u2611", label = "TODO",
+            icon = "\u2611",
+            label = "TODO",
             active = selectedTab == AppTab.Todo
         ) { onNavigate(AppTab.Todo) }
         DockTabItem(
-            icon = "\u229e", label = "RECORDS",
+            icon = "\u229e",
+            label = "RECORDS",
             active = selectedTab == AppTab.Calendar
         ) { onNavigate(AppTab.Calendar) }
         DockHomeButton(isRunning = isRunning, onClick = onStartPause)
         DockTabItem(
-            icon = "\u266a", label = "SOUNDS",
+            icon = "\u266a",
+            label = "SOUNDS",
             active = selectedTab == AppTab.Sounds
         ) { onNavigate(AppTab.Sounds) }
         DockTabItem(
-            icon = "\u25cb", label = "ME",
+            icon = "\u25cb",
+            label = "ME",
             active = selectedTab == AppTab.Profile
         ) { onNavigate(AppTab.Profile) }
     }
@@ -258,8 +264,8 @@ fun DashboardDock(
 
 @Composable
 private fun DockTabItem(icon: String, label: String, active: Boolean = false, onClick: () -> Unit) {
-    val iconColor = if (active) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.7f)
-    val bgColor = if (active) Color(0xFFFF8B6F).copy(alpha = 0.2f) else Color.Transparent
+    val iconColor = if (active) DockCoral else Color.White.copy(alpha = 0.7f)
+    val bgColor = if (active) DockCoral.copy(alpha = 0.2f) else Color.Transparent
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(24.dp))
@@ -276,7 +282,7 @@ private fun DockTabItem(icon: String, label: String, active: Boolean = false, on
 
 @Composable
 private fun DockHomeButton(isRunning: Boolean, onClick: () -> Unit) {
-    val bgColor = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
+    val bgColor = if (isRunning) Color.White.copy(alpha = 0.92f) else DockCoral
     val contentColor = if (isRunning) Color(0xFF241E2B) else Color.White
     Column(
         modifier = Modifier
