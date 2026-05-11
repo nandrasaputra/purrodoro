@@ -1,26 +1,28 @@
 package com.endiar.kuropomodoro.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,22 +30,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.TodoListState
-import com.endiar.kuropomodoro.ui.components.KuroCard
-import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
-import com.endiar.kuropomodoro.ui.components.SectionTitle
-import com.endiar.kuropomodoro.ui.theme.Cocoa
+import com.endiar.kuropomodoro.ui.components.GlassCard
+import com.endiar.kuropomodoro.ui.components.GlassPill
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun TodoScreen(
@@ -57,12 +61,17 @@ fun TodoScreen(
 ) {
     val selectedList = todoLists.firstOrNull { it.id == selectedListId } ?: todoLists.firstOrNull()
     var newTaskTitle by rememberSaveable { mutableStateOf("") }
+    var addingTask by rememberSaveable { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
-    val addTaskIfValid = {
+    val today = LocalDate.now()
+    val dateLabel = today.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))
+
+    val submitTask = {
         val title = newTaskTitle.trim()
         if (title.isNotEmpty()) {
             onAddTask(title)
             newTaskTitle = ""
+            addingTask = false
             keyboardController?.hide()
         }
     }
@@ -71,58 +80,134 @@ fun TodoScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(18.dp),
+            .padding(horizontal = 20.dp)
+            .padding(top = 8.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        SectionTitle(
-            title = "Todo nest",
-            subtitle = "Keep Kuro's next focus bites nearby"
-        )
+        // Header row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "To-Do",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = dateLabel,
+                    color = Color.White.copy(alpha = 0.55f),
+                    fontSize = 13.sp
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF8B6F))
+                    .clickable { addingTask = !addingTask },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "+", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
 
+        // List switcher
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             todoLists.forEach { list ->
-                TodoListTab(
-                    name = list.name,
+                GlassPill(
+                    text = list.name,
                     selected = list.id == selectedList?.id,
                     onClick = { onListSelected(list.id) }
                 )
             }
         }
 
-        KuroCard(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = selectedList?.name ?: "Tasks",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = newTaskTitle,
-                onValueChange = { newTaskTitle = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Add a focus task") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { addTaskIfValid() })
-            )
-            Spacer(Modifier.height(12.dp))
-            KuroPrimaryButton(
-                text = "Add task",
-                onClick = addTaskIfValid,
-                modifier = Modifier.fillMaxWidth()
-            )
+        // Inline add-task input (visible when + is tapped)
+        if (addingTask) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFF0F0A1A).copy(alpha = 0.40f))
+                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextField(
+                    value = newTaskTitle,
+                    onValueChange = { newTaskTitle = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            text = "Add a focus task…",
+                            color = Color.White.copy(alpha = 0.35f),
+                            fontSize = 14.sp
+                        )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submitTask() }),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color(0xFFFF8B6F),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFFF8B6F))
+                        .clickable { submitTask() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(text = "Add", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
         }
 
+        // Section label
+        Text(
+            text = "UPCOMING",
+            color = Color.White.copy(alpha = 0.30f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.5.sp
+        )
+
+        // Task list
         if (selectedList?.tasks.isNullOrEmpty()) {
-            EmptyTodoState()
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "No tasks yet",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Tap + to add your first focus task.",
+                    color = Color.White.copy(alpha = 0.55f),
+                    fontSize = 13.sp
+                )
+            }
         } else {
+            val firstActiveTask = selectedList!!.tasks.firstOrNull { !it.completed }
             selectedList.tasks.forEach { task ->
-                TaskRow(
+                TaskGlassRow(
                     task = task,
+                    active = task == firstActiveTask,
                     onToggleTask = onToggleTask,
                     onDeleteTask = onDeleteTask
                 )
@@ -132,89 +217,63 @@ fun TodoScreen(
 }
 
 @Composable
-private fun TodoListTab(name: String, selected: Boolean, onClick: () -> Unit) {
-    val colorScheme = MaterialTheme.colorScheme
-
-    Surface(
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .selectable(
-                selected = selected,
-                onClick = onClick,
-                role = Role.Tab
-            ),
-        shape = RoundedCornerShape(20.dp),
-        color = if (selected) colorScheme.secondary else colorScheme.surface
-    ) {
-        Text(
-            text = name,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            color = if (selected) Cocoa else colorScheme.onSurface,
-            style = MaterialTheme.typography.labelLarge
-        )
-    }
-}
-
-@Composable
-private fun TaskRow(task: FocusTask, onToggleTask: (Int) -> Unit, onDeleteTask: (Int) -> Unit) {
-    val colorScheme = MaterialTheme.colorScheme
-
-    KuroCard(modifier = Modifier.fillMaxWidth()) {
+private fun TaskGlassRow(
+    task: FocusTask,
+    active: Boolean,
+    onToggleTask: (Int) -> Unit,
+    onDeleteTask: (Int) -> Unit
+) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), active = active) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .toggleable(
-                    value = task.completed,
+                .clickable(
                     role = Role.Checkbox,
-                    onValueChange = { onToggleTask(task.id) }
-                ),
+                    onClickLabel = if (task.completed) "Unmark ${task.title}" else "Complete ${task.title}"
+                ) { onToggleTask(task.id) },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Checkbox(
-                checked = task.completed,
-                onCheckedChange = null
-            )
-            Column(modifier = Modifier.weight(1f)) {
+            // Circular checkbox
+            val checkFill = if (task.completed) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.10f)
+            val checkBorder = if (task.completed) Color.Transparent else Color.White.copy(alpha = 0.25f)
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(checkFill)
+                    .border(1.dp, checkBorder, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (task.completed) {
+                    Text(text = "✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = task.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colorScheme.onSurface,
+                    color = if (task.completed) Color.White.copy(alpha = 0.40f) else Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
                     textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None
                 )
-                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "${task.minutes} min focus buddy",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colorScheme.onSurface.copy(alpha = 0.72f)
+                    text = "${task.minutes} min",
+                    color = Color.White.copy(alpha = 0.45f),
+                    fontSize = 12.sp
                 )
             }
-            TextButton(
-                onClick = { onDeleteTask(task.id) },
-                modifier = Modifier.semantics {
-                    contentDescription = "Delete ${task.title}"
-                }
-            ) {
-                Text("Delete", style = MaterialTheme.typography.labelLarge)
-            }
+            Text(
+                text = "✕",
+                color = Color.White.copy(alpha = 0.30f),
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = "Delete ${task.title}"
+                    ) { onDeleteTask(task.id) }
+                    .semantics { contentDescription = "Delete ${task.title}" }
+            )
         }
-    }
-}
-
-@Composable
-private fun EmptyTodoState() {
-    KuroCard(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "No tasks yet",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Add one gentle task for Kuro to guard while you focus.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-        )
     }
 }
