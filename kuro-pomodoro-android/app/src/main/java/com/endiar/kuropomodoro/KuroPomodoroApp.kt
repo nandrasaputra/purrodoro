@@ -1,6 +1,5 @@
 package com.endiar.kuropomodoro
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,16 +38,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.AppTab
-import com.endiar.kuropomodoro.model.backgroundImageForTime
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
@@ -60,12 +55,9 @@ import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
-import com.endiar.kuropomodoro.ui.TimerScreen
-import com.endiar.kuropomodoro.ui.components.BottomTabBar
+import com.endiar.kuropomodoro.ui.components.CatBackdrop
 import com.endiar.kuropomodoro.ui.components.DashboardDock
-import com.endiar.kuropomodoro.ui.components.DecorativeBackground
 import java.time.LocalDate
-import java.time.LocalTime
 import kotlinx.coroutines.delay
 
 @Composable
@@ -194,130 +186,103 @@ fun KuroPomodoroApp() {
         }
     }
 
-    if (selectedTab == AppTab.Timer) {
-        FocusDashboard(
-            timerMode = timerMode,
-            remainingSeconds = remainingSeconds,
-            isRunning = isRunning,
-            onModeSelected = { mode ->
-                timerMode = mode
-                isRunning = false
-                remainingSeconds = settings.secondsFor(mode)
-                activeTotalSeconds = settings.secondsFor(mode)
-            },
-            onStartPause = {
-                if (!isRunning) {
-                    activeTotalSeconds = timerStartTotalSeconds(
-                        settings = settings,
-                        mode = timerMode,
+    CatBackdrop {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+            ) {
+                when (selectedTab) {
+                    AppTab.Timer -> FocusDashboard(
+                        timerMode = timerMode,
                         remainingSeconds = remainingSeconds,
-                        activeTotalSeconds = activeTotalSeconds
+                        isRunning = isRunning,
+                        onModeSelected = { mode ->
+                            timerMode = mode
+                            isRunning = false
+                            remainingSeconds = settings.secondsFor(mode)
+                            activeTotalSeconds = settings.secondsFor(mode)
+                        },
+                        onStartPause = {
+                            if (!isRunning) {
+                                activeTotalSeconds = timerStartTotalSeconds(
+                                    settings = settings,
+                                    mode = timerMode,
+                                    remainingSeconds = remainingSeconds,
+                                    activeTotalSeconds = activeTotalSeconds
+                                )
+                            }
+                            isRunning = !isRunning
+                        }
+                    )
+                    AppTab.Todo -> TodoScreen(
+                        todoLists = todoLists,
+                        selectedListId = selectedTodoListId,
+                        onListSelected = { selectedTodoListId = it },
+                        onAddTask = addTask,
+                        onToggleTask = toggleTask,
+                        onDeleteTask = deleteTask
+                    )
+                    AppTab.Calendar -> CalendarScreen(
+                        stamps = stamps,
+                        completedSessions = completedSessions
+                    )
+                    AppTab.Sounds -> SoundsScreen(
+                        sounds = sounds,
+                        selectedSoundId = selectedSoundId,
+                        isPlaying = isSoundPlaying,
+                        onSoundSelected = { sound ->
+                            if (sound.locked) {
+                                premiumSheetMessage = "${sound.name} is part of the simulated premium sound pack."
+                            } else {
+                                selectedSoundId = sound.id
+                                isSoundPlaying = true
+                                premiumSheetMessage = null
+                            }
+                        }
+                    )
+                    AppTab.Profile -> ProfileScreen(
+                        settings = settings,
+                        darkModePreview = darkModePreview,
+                        onDarkModeChanged = { darkModePreview = it },
+                        onDurationChanged = { mode, minutes ->
+                            val updatedSettings = settings.update(mode, minutes)
+                            settings = updatedSettings
+                            if (mode == timerMode && !isRunning) {
+                                remainingSeconds = updatedSettings.secondsFor(mode)
+                                activeTotalSeconds = updatedSettings.secondsFor(mode)
+                            }
+                        },
+                        onMockFeature = { premiumSheetMessage = it }
                     )
                 }
-                isRunning = !isRunning
-            },
-            onNavigate = { selectedTab = it }
-        )
-    } else {
-        DecorativeBackground(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    when (selectedTab) {
-                        AppTab.Timer -> TimerScreen(
-                            mode = timerMode,
-                            remainingSeconds = remainingSeconds,
-                            totalSeconds = timerDisplayTotalSeconds(
-                                settings = settings,
-                                mode = timerMode,
-                                isRunning = isRunning,
-                                activeTotalSeconds = activeTotalSeconds
-                            ),
-                            isRunning = isRunning,
-                            completedSessionsToday = stamps[LocalDate.now()] ?: 0,
-                            currentTask = todoLists.firstOrNull { it.id == selectedTodoListId }?.tasks?.firstOrNull { !it.completed },
-                            onModeSelected = { selectedMode ->
-                                timerMode = selectedMode
-                                isRunning = false
-                                remainingSeconds = settings.secondsFor(selectedMode)
-                                activeTotalSeconds = settings.secondsFor(selectedMode)
-                            },
-                            onStartPause = {
-                                if (!isRunning) {
-                                    activeTotalSeconds = timerStartTotalSeconds(
-                                        settings = settings,
-                                        mode = timerMode,
-                                        remainingSeconds = remainingSeconds,
-                                        activeTotalSeconds = activeTotalSeconds
-                                    )
-                                }
-                                isRunning = !isRunning
-                            },
-                            onReset = {
-                                isRunning = false
-                                remainingSeconds = settings.secondsFor(timerMode)
-                                activeTotalSeconds = settings.secondsFor(timerMode)
-                            }
-                        )
-
-                        AppTab.Todo -> TodoScreen(
-                            todoLists = todoLists,
-                            selectedListId = selectedTodoListId,
-                            onListSelected = { selectedTodoListId = it },
-                            onAddTask = addTask,
-                            onToggleTask = toggleTask,
-                            onDeleteTask = deleteTask
-                        )
-
-                        AppTab.Calendar -> CalendarScreen(
-                            stamps = stamps,
-                            completedSessions = completedSessions
-                        )
-
-                        AppTab.Sounds -> SoundsScreen(
-                            sounds = sounds,
-                            selectedSoundId = selectedSoundId,
-                            isPlaying = isSoundPlaying,
-                            onSoundSelected = { sound ->
-                                if (sound.locked) {
-                                    premiumSheetMessage =
-                                        "${sound.name} is part of the simulated premium sound pack."
-                                } else {
-                                    selectedSoundId = sound.id
-                                    isSoundPlaying = true
-                                    premiumSheetMessage = null
-                                }
-                            }
-                        )
-
-                        AppTab.Profile -> ProfileScreen(
-                            settings = settings,
-                            darkModePreview = darkModePreview,
-                            onDarkModeChanged = { darkModePreview = it },
-                            onDurationChanged = { mode, minutes ->
-                                val updatedSettings = settings.update(mode, minutes)
-                                settings = updatedSettings
-                                if (mode == timerMode && !isRunning) {
-                                    remainingSeconds = updatedSettings.secondsFor(mode)
-                                    activeTotalSeconds = updatedSettings.secondsFor(mode)
-                                }
-                            },
-                            onMockFeature = { premiumSheetMessage = it }
-                        )
-                    }
-                }
-                premiumSheetMessage?.let { message ->
-                    PremiumMessage(
-                        message = message,
-                        onDismiss = { premiumSheetMessage = null },
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
-                    )
-                }
-                BottomTabBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it },
-                    modifier = Modifier.navigationBarsPadding()
+            }
+            premiumSheetMessage?.let { message ->
+                PremiumMessage(
+                    message = message,
+                    onDismiss = { premiumSheetMessage = null },
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
                 )
             }
+            DashboardDock(
+                isRunning = isRunning,
+                onNavigate = { selectedTab = it },
+                onStartPause = {
+                    if (!isRunning) {
+                        activeTotalSeconds = timerStartTotalSeconds(
+                            settings = settings,
+                            mode = timerMode,
+                            remainingSeconds = remainingSeconds,
+                            activeTotalSeconds = activeTotalSeconds
+                        )
+                    }
+                    isRunning = !isRunning
+                },
+                selectedTab = if (selectedTab == AppTab.Timer) null else selectedTab,
+                modifier = Modifier.navigationBarsPadding()
+            )
         }
     }
 }
@@ -346,143 +311,113 @@ private fun FocusDashboard(
     isRunning: Boolean,
     onModeSelected: (TimerMode) -> Unit,
     onStartPause: () -> Unit,
-    onNavigate: (AppTab) -> Unit,
 ) {
     val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
     var showModeMenu by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = backgroundImageForTime(LocalTime.now())),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(40.dp))
+        Text(
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            text = formatSeconds(remainingSeconds),
+            color = Color.White.copy(alpha = 0.9f),
+            fontSize = 80.sp,
+            fontWeight = FontWeight.W400,
+            letterSpacing = (-1).sp
         )
-        // Top scrim
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .background(Brush.verticalGradient(listOf(Color(0xCC0F0A1A), Color.Transparent)))
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Spacer(Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Timer
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .border(
+                        1.5.dp,
+                        Color.White.copy(alpha = 0.35f),
+                        RoundedCornerShape(28.dp)
+                    )
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(buttonBg)
+                    .clickable(onClick = onStartPause),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = formatSeconds(remainingSeconds),
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 80.sp,
-                    fontWeight = FontWeight.W400,
-                    letterSpacing = (-1).sp
+                    text = if (isRunning) "\u23f8" else "\u25b6",
+                    color = buttonContentColor,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(16.dp))
-                // Play/pause icon + mode context pill
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(modifier = Modifier.wrapContentSize(Alignment.TopCenter)) {
+                Box(
+                    modifier = Modifier
+                        .height(56.dp)
+                        .border(
+                            1.5.dp,
+                            Color.White.copy(alpha = 0.25f),
+                            RoundedCornerShape(28.dp)
+                        )
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .clickable { showModeMenu = !showModeMenu }
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Orange icon-only circle button
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .border(
-                                1.5.dp,
-                                Color.White.copy(alpha = 0.35f),
-                                RoundedCornerShape(28.dp)
-                            )
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(buttonBg)
-                            .clickable(onClick = onStartPause),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (isRunning) "\u23f8" else "\u25b6",
-                            color = buttonContentColor,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
+                            text = timerMode.label,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "\u25be",
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 13.sp
                         )
                     }
-                    Spacer(Modifier.width(8.dp))
-                    // Glass context pill — shows mode label + chevron, opens mode picker
-                    Box(modifier = Modifier.wrapContentSize(Alignment.TopCenter)) {
-                        Box(
-                            modifier = Modifier
-                                .height(56.dp)
-                                .border(
-                                    1.5.dp,
-                                    Color.White.copy(alpha = 0.25f),
-                                    RoundedCornerShape(28.dp)
-                                )
-                                .clip(RoundedCornerShape(28.dp))
-                                .background(Color.White.copy(alpha = 0.12f))
-                                .clickable { showModeMenu = !showModeMenu }
-                                .padding(horizontal = 20.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                }
+                DropdownMenu(
+                    expanded = showModeMenu,
+                    onDismissRequest = { showModeMenu = false },
+                    containerColor = Color(0xFF1E1628)
+                ) {
+                    TimerMode.entries.forEach { mode ->
+                        DropdownMenuItem(
+                            text = {
                                 Text(
-                                    text = timerMode.label,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium
+                                    text = mode.label,
+                                    color = if (mode == timerMode) Color(0xFFFF8B6F) else Color.White.copy(
+                                        alpha = 0.85f
+                                    ),
+                                    fontWeight = if (mode == timerMode) FontWeight.SemiBold else FontWeight.Normal
                                 )
-                                Text(
-                                    text = "\u25be",
-                                    color = Color.White.copy(alpha = 0.55f),
-                                    fontSize = 13.sp
-                                )
-                            }
-                        }
-                        DropdownMenu(
-                            expanded = showModeMenu,
-                            onDismissRequest = { showModeMenu = false },
-                            containerColor = Color(0xFF1E1628)
-                        ) {
-                            TimerMode.entries.forEach { mode ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = mode.label,
-                                            color = if (mode == timerMode) Color(0xFFFF8B6F) else Color.White.copy(
-                                                alpha = 0.85f
-                                            ),
-                                            fontWeight = if (mode == timerMode) FontWeight.SemiBold else FontWeight.Normal
-                                        )
-                                    },
-                                    onClick = {
-                                        onModeSelected(mode)
-                                        showModeMenu = false
-                                    },
-                                    colors = MenuDefaults.itemColors(
-                                        textColor = Color.White.copy(alpha = 0.85f)
-                                    )
-                                )
-                            }
-                        }
+                            },
+                            onClick = {
+                                onModeSelected(mode)
+                                showModeMenu = false
+                            },
+                            colors = MenuDefaults.itemColors(
+                                textColor = Color.White.copy(alpha = 0.85f)
+                            )
+                        )
                     }
                 }
             }
-            // Cat window — flexible space between button row and dock
-            Spacer(Modifier.weight(1f))
-            DashboardDock(
-                isRunning = isRunning,
-                onNavigate = onNavigate,
-                onStartPause = onStartPause,
-                modifier = Modifier.navigationBarsPadding()
-            )
         }
+        Spacer(Modifier.weight(1f))
     }
 }
 
