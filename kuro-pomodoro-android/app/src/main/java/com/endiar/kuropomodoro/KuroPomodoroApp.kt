@@ -309,7 +309,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                 isRunning = isRunning,
                 isSoundPlaying = isSoundPlaying,
                 onNavigate = { selectedTab = it },
-                selectedTab = if (selectedTab == AppTab.Timer) null else selectedTab,
+                selectedTab = selectedTab,
                 glassTreatment = glassTreatment,
                 modifier = Modifier.navigationBarsPadding()
             )
