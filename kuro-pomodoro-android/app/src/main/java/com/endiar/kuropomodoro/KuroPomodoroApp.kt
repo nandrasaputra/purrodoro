@@ -303,18 +303,8 @@ fun KuroPomodoroApp(repo: AppRepository) {
             }
             DashboardDock(
                 isRunning = isRunning,
+                isSoundPlaying = isSoundPlaying,
                 onNavigate = { selectedTab = it },
-                onStartPause = {
-                    if (!isRunning) {
-                        activeTotalSeconds = timerStartTotalSeconds(
-                            settings = settings,
-                            mode = timerMode,
-                            remainingSeconds = remainingSeconds,
-                            activeTotalSeconds = activeTotalSeconds
-                        )
-                    }
-                    isRunning = !isRunning
-                },
                 selectedTab = if (selectedTab == AppTab.Timer) null else selectedTab,
                 glassTreatment = glassTreatment,
                 modifier = Modifier.navigationBarsPadding()
