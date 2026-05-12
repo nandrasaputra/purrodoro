@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.AppTab
+import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.backgroundImageForTime
 import java.time.LocalTime
@@ -56,6 +57,43 @@ import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.Peach
 
 private val DockCoral = Color(0xFFFF8B6F)
+private val LockedPurple = Color(0xFF7B4FBF)
+
+private data class GlassTokens(
+    val cardFill: Color,
+    val activeCardFill: Color,
+    val cardBorder: Color,
+    val pillFill: Color,
+    val pillBorder: Color,
+    val dockFill: Color,
+    val dockBorder: Color,
+    val scrimAlpha: Float
+)
+
+private fun glassTokens(treatment: GlassTreatment): GlassTokens {
+    return when (treatment) {
+        GlassTreatment.Clear -> GlassTokens(
+            cardFill = Color(0xFF0F0A1A).copy(alpha = 0.40f),
+            activeCardFill = DockCoral.copy(alpha = 0.10f),
+            cardBorder = Color.White.copy(alpha = 0.10f),
+            pillFill = Color.White.copy(alpha = 0.08f),
+            pillBorder = Color.White.copy(alpha = 0.15f),
+            dockFill = Color(0xFF15101F).copy(alpha = 0.65f),
+            dockBorder = Color.White.copy(alpha = 0.15f),
+            scrimAlpha = 0.80f
+        )
+        GlassTreatment.Readable -> GlassTokens(
+            cardFill = Color(0xFF0A0816).copy(alpha = 0.72f),
+            activeCardFill = Color(0xFF2B1720).copy(alpha = 0.80f),
+            cardBorder = Color.White.copy(alpha = 0.20f),
+            pillFill = Color(0xFF0A0816).copy(alpha = 0.60f),
+            pillBorder = Color.White.copy(alpha = 0.25f),
+            dockFill = Color(0xFF0A0816).copy(alpha = 0.85f),
+            dockBorder = Color.White.copy(alpha = 0.20f),
+            scrimAlpha = 0.90f
+        )
+    }
+}
 
 @Composable
 fun KuroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
@@ -232,16 +270,18 @@ fun DashboardDock(
     onStartPause: () -> Unit,
     modifier: Modifier = Modifier,
     selectedTab: AppTab? = null,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
 ) {
+    val tokens = glassTokens(glassTreatment)
     Row(
         modifier = modifier
             .padding(horizontal = 21.dp)
             .padding(bottom = 12.dp)
             .fillMaxWidth()
             .height(62.dp)
-            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(36.dp))
+            .border(1.dp, tokens.dockBorder, RoundedCornerShape(36.dp))
             .clip(RoundedCornerShape(36.dp))
-            .background(Color(0xFF15101F).copy(alpha = 0.65f))
+            .background(tokens.dockFill)
             .padding(horizontal = 4.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
@@ -332,27 +372,31 @@ fun DecorativeBackground(modifier: Modifier = Modifier, content: @Composable () 
 }
 
 @Composable
-fun CatBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+fun CatBackdrop(
+    modifier: Modifier = Modifier,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    time: LocalTime = LocalTime.now(),
+    content: @Composable BoxScope.() -> Unit
+) {
     val darkBase = Color(0xFF0A0816)
+    val tokens = glassTokens(glassTreatment)
     Box(modifier = modifier.fillMaxSize().background(darkBase)) {
         Image(
-            painter = painterResource(id = backgroundImageForTime(LocalTime.now())),
+            painter = painterResource(id = backgroundImageForTime(time)),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
-        // Top scrim — legibility for page title
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(240.dp)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(darkBase.copy(alpha = 0.80f), Color.Transparent)
+                        colors = listOf(darkBase.copy(alpha = tokens.scrimAlpha), Color.Transparent)
                     )
                 )
         )
-        // Bottom scrim — legibility for dock
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -360,7 +404,7 @@ fun CatBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() 
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, darkBase.copy(alpha = 0.80f))
+                        colors = listOf(Color.Transparent, darkBase.copy(alpha = tokens.scrimAlpha))
                     )
                 )
         )
@@ -374,10 +418,12 @@ fun CatBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() 
 fun GlassCard(
     modifier: Modifier = Modifier,
     active: Boolean = false,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val fill = if (active) Color(0xFFFF8B6F).copy(alpha = 0.10f) else Color(0xFF0F0A1A).copy(alpha = 0.40f)
-    val border = if (active) Color(0xFFFF8B6F).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.10f)
+    val tokens = glassTokens(glassTreatment)
+    val fill = if (active) tokens.activeCardFill else tokens.cardFill
+    val border = if (active) DockCoral.copy(alpha = 0.30f) else tokens.cardBorder
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
@@ -389,10 +435,16 @@ fun GlassCard(
 }
 
 @Composable
-fun GlassPill(text: String, selected: Boolean, onClick: () -> Unit) {
-    val fill = if (selected) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.08f)
-    val textColor = if (selected) Color.White else Color.White.copy(alpha = 0.55f)
-    val borderColor = if (selected) Color.Transparent else Color.White.copy(alpha = 0.15f)
+fun GlassPill(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
+) {
+    val tokens = glassTokens(glassTreatment)
+    val fill = if (selected) DockCoral else tokens.pillFill
+    val textColor = if (selected) Color.White else Color.White.copy(alpha = 0.72f)
+    val borderColor = if (selected) Color.Transparent else tokens.pillBorder
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
@@ -413,12 +465,17 @@ fun GlassPill(text: String, selected: Boolean, onClick: () -> Unit) {
 enum class StatusPillKind { Playing, Selected, Locked, Unlocked }
 
 @Composable
-fun StatusPill(label: String, kind: StatusPillKind) {
+fun StatusPill(
+    label: String,
+    kind: StatusPillKind,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
+) {
+    val tokens = glassTokens(glassTreatment)
     val fill = when (kind) {
-        StatusPillKind.Playing  -> Color(0xFFFF8B6F)
-        StatusPillKind.Selected -> Color.White.copy(alpha = 0.10f)
-        StatusPillKind.Locked   -> Color(0xFF7B4FBF).copy(alpha = 0.25f)
-        StatusPillKind.Unlocked -> Color.White.copy(alpha = 0.10f)
+        StatusPillKind.Playing  -> DockCoral
+        StatusPillKind.Selected -> tokens.pillFill
+        StatusPillKind.Locked   -> LockedPurple.copy(alpha = 0.25f)
+        StatusPillKind.Unlocked -> tokens.pillFill
     }
     val textColor = when (kind) {
         StatusPillKind.Playing  -> Color.White
@@ -446,7 +503,7 @@ fun MockBadge() {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF7B4FBF).copy(alpha = 0.25f))
+            .background(LockedPurple.copy(alpha = 0.25f))
             .padding(horizontal = 7.dp, vertical = 3.dp)
     ) {
         Text(text = "Mock", color = Color(0xFFD8C8FF), fontSize = 9.sp, fontWeight = FontWeight.Bold)
