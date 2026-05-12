@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.model.GlassReadabilityMode
+import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.MockBadge
 
@@ -39,7 +41,10 @@ import com.endiar.kuropomodoro.ui.components.MockBadge
 fun ProfileScreen(
     settings: TimerSettings,
     darkModePreview: Boolean,
+    glassReadabilityMode: GlassReadabilityMode,
+    glassTreatment: GlassTreatment,
     onDarkModeChanged: (Boolean) -> Unit,
+    onGlassReadabilityModeChanged: (GlassReadabilityMode) -> Unit,
     onDurationChanged: (TimerMode, Int) -> Unit,
     onMockFeature: (String) -> Unit,
     modifier: Modifier = Modifier

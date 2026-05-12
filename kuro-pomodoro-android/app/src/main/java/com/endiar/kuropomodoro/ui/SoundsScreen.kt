@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.SoundOption
+import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.MockBadge
 import com.endiar.kuropomodoro.ui.components.StatusPill
@@ -30,7 +31,8 @@ fun SoundsScreen(
     selectedSoundId: Int,
     isPlaying: Boolean,
     onSoundSelected: (SoundOption) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
     Column(
         modifier = modifier

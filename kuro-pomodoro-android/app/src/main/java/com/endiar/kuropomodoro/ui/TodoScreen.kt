@@ -45,6 +45,7 @@ import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.GlassPill
+import com.endiar.kuropomodoro.model.GlassTreatment
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -57,7 +58,8 @@ fun TodoScreen(
     onAddTask: (String) -> Unit,
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
     val selectedList = todoLists.firstOrNull { it.id == selectedListId } ?: todoLists.firstOrNull()
     var newTaskTitle by rememberSaveable { mutableStateOf("") }
