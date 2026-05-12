@@ -1,5 +1,6 @@
 package com.endiar.kuropomodoro.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,12 +26,15 @@ import com.endiar.kuropomodoro.ui.components.MockBadge
 import com.endiar.kuropomodoro.ui.components.StatusPill
 import com.endiar.kuropomodoro.ui.components.StatusPillKind
 
+private val PlayingTint = Color(0xFFFF8B6F).copy(alpha = 0.15f)
+
 @Composable
 fun SoundsScreen(
     sounds: List<SoundOption>,
     selectedSoundId: Int,
-    isPlaying: Boolean,
+    playingSoundId: Int?,
     onSoundSelected: (SoundOption) -> Unit,
+    onToggleSound: (SoundOption) -> Unit,
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
@@ -51,26 +55,34 @@ fun SoundsScreen(
 
         sounds.forEach { sound ->
             val isSelected = sound.id == selectedSoundId
+            val isPlaying = sound.id == playingSoundId
             val pillKind = when {
-                isSelected && isPlaying -> StatusPillKind.Playing
-                isSelected             -> StatusPillKind.Selected
-                sound.locked           -> StatusPillKind.Locked
-                else                   -> StatusPillKind.Unlocked
+                isPlaying    -> StatusPillKind.Playing
+                isSelected   -> StatusPillKind.Selected
+                sound.locked -> StatusPillKind.Locked
+                else         -> StatusPillKind.Unlocked
             }
             val pillLabel = when {
-                isSelected && isPlaying -> "Playing"
-                isSelected             -> "Selected"
-                sound.locked           -> "Premium"
-                else                   -> "Tap to play"
+                isPlaying    -> "Playing"
+                isSelected   -> "Selected"
+                sound.locked -> "Premium"
+                else         -> "Tap to play"
             }
 
             GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(if (isPlaying) PlayingTint else Color.Transparent)
                     .clickable(
                         role = Role.Button,
-                        onClickLabel = if (sound.locked) "Unlock ${sound.name}" else "Play ${sound.name}"
-                    ) { onSoundSelected(sound) },
+                        onClickLabel = when {
+                            sound.locked -> "Unlock ${sound.name}"
+                            isPlaying    -> "Stop ${sound.name}"
+                            else         -> "Play ${sound.name}"
+                        }
+                    ) {
+                        if (isPlaying) onToggleSound(sound) else onSoundSelected(sound)
+                    },
                 active = isSelected,
                 glassTreatment = glassTreatment
             ) {
