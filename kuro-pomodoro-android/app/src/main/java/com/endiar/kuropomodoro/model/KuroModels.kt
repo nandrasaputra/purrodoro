@@ -64,6 +64,37 @@ data class TimerSettings(
     }
 }
 
+enum class GlassReadabilityMode(val label: String) {
+    Adaptive("Adaptive"),
+    Clear("Clear"),
+    Readable("Readable")
+}
+
+enum class GlassTreatment {
+    Clear,
+    Readable
+}
+
+fun glassTreatmentFor(
+    mode: GlassReadabilityMode,
+    time: LocalTime = LocalTime.now()
+): GlassTreatment {
+    return when (mode) {
+        GlassReadabilityMode.Clear -> GlassTreatment.Clear
+        GlassReadabilityMode.Readable -> GlassTreatment.Readable
+        GlassReadabilityMode.Adaptive -> if (isBrightBackgroundTime(time)) {
+            GlassTreatment.Readable
+        } else {
+            GlassTreatment.Clear
+        }
+    }
+}
+
+private fun isBrightBackgroundTime(time: LocalTime): Boolean {
+    val hour = time.hour
+    return hour in 5..16
+}
+
 fun formatSeconds(totalSeconds: Int): String {
     val safeSeconds = totalSeconds.coerceAtLeast(0)
     val minutes = safeSeconds / 60
