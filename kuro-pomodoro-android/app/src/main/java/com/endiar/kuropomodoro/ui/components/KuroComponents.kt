@@ -272,7 +272,7 @@ fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PulseWrapper(active: Boolean, content: @Composable () -> Unit) {
+private fun PulseWrapper(active: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val scale by animateFloatAsState(
         targetValue = if (active) 1.15f else 1.0f,
         animationSpec = if (active) {
@@ -286,7 +286,7 @@ private fun PulseWrapper(active: Boolean, content: @Composable () -> Unit) {
         label = "pulseScale"
     )
     Box(
-        modifier = Modifier.graphicsLayer {
+        modifier = modifier.graphicsLayer {
             scaleX = scale
             scaleY = scale
         },
@@ -316,7 +316,7 @@ fun DashboardDock(
             .clip(RoundedCornerShape(36.dp))
             .background(tokens.dockFill)
             .padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
         DockTabItem(
@@ -364,9 +364,9 @@ private fun DockTabItem(
     val iconColor = if (active) DockCoral else Color.White.copy(alpha = 0.7f)
     val bgColor = if (active) DockCoral.copy(alpha = 0.2f) else Color.Transparent
     val shouldPulse = active && isSoundPlaying
-    PulseWrapper(active = shouldPulse) {
+    PulseWrapper(active = shouldPulse, modifier = modifier) {
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
                 .background(bgColor)
                 .clickable(onClick = onClick)
@@ -385,9 +385,9 @@ private fun DockHomeButton(isRunning: Boolean, modifier: Modifier = Modifier, on
     val icon = if (isRunning) "\u25b6" else "\u2302"
     val bgColor = DockCoral
     val contentColor = Color.White
-    PulseWrapper(active = isRunning) {
+    PulseWrapper(active = isRunning, modifier = modifier) {
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
                 .background(bgColor)
                 .clickable(onClick = onClick)
