@@ -26,7 +26,7 @@ data class FocusTask(
     val minutes: Int,
     val completed: Boolean = false,
     val plannedSessions: Int = 1,
-    val pomodorosDone: Int = 0
+    val completedSessions: Int = 0
 ) {
     fun toggleCompleted(): FocusTask = copy(completed = !completed)
 }
