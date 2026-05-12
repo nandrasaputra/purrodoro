@@ -25,17 +25,22 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -243,6 +248,7 @@ fun TodoScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskGlassRow(
     task: FocusTask,
@@ -252,59 +258,118 @@ private fun TaskGlassRow(
     onFocusTask: (FocusTask) -> Unit,
     glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), active = active, glassTreatment = glassTreatment) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    role = Role.Checkbox,
-                    onClickLabel = if (task.completed) "Unmark ${task.title}" else "Complete ${task.title}"
-                ) { onToggleTask(task.id) },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Circular checkbox
-            val checkFill = if (task.completed) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.10f)
-            val checkBorder = if (task.completed) Color.Transparent else Color.White.copy(alpha = 0.25f)
+    val scope = rememberCoroutineScope()
+    var resetDismiss: (suspend () -> Unit)? = null
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    scope.launch { resetDismiss?.invoke() }
+                    onFocusTask(task)
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onDeleteTask(task.id)
+                    true
+                }
+                SwipeToDismissBoxValue.Settled -> false
+            }
+        },
+        positionalThreshold = { totalDistance -> totalDistance * 0.40f }
+    )
+    resetDismiss = { dismissState.reset() }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val isLeading = direction == SwipeToDismissBoxValue.StartToEnd
+            val isTrailing = direction == SwipeToDismissBoxValue.EndToStart
             Box(
                 modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(checkFill)
-                    .border(1.dp, checkBorder, CircleShape),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        when {
+                            isLeading -> Color(0xFFFF8B6F)
+                            isTrailing -> Color(0xFFE53935)
+                            else -> Color.Transparent
+                        }
+                    )
+                    .padding(horizontal = 24.dp),
+                contentAlignment = if (isLeading) Alignment.CenterStart else Alignment.CenterEnd
             ) {
-                if (task.completed) {
-                    Text(text = "✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                when {
+                    isLeading -> Text(
+                        text = "▶  Focus with Kuro",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    isTrailing -> Text(
+                        text = "✕",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = task.title,
-                    color = if (task.completed) Color.White.copy(alpha = 0.40f) else Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None
-                )
-                Text(
-                    text = "${task.minutes} min",
-                    color = Color.White.copy(alpha = 0.45f),
-                    fontSize = 12.sp
-                )
+        },
+        content = {
+            GlassCard(modifier = Modifier.fillMaxWidth(), active = active, glassTreatment = glassTreatment) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            role = Role.Checkbox,
+                            onClickLabel = if (task.completed) "Unmark ${task.title}" else "Complete ${task.title}"
+                        ) { onToggleTask(task.id) },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val checkFill = if (task.completed) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.10f)
+                    val checkBorder = if (task.completed) Color.Transparent else Color.White.copy(alpha = 0.25f)
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(checkFill)
+                            .border(1.dp, checkBorder, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (task.completed) {
+                            Text(text = "✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = task.title,
+                            color = if (task.completed) Color.White.copy(alpha = 0.40f) else Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None
+                        )
+                        Text(
+                            text = "${task.minutes} min",
+                            color = Color.White.copy(alpha = 0.45f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    Text(
+                        text = "✕",
+                        color = Color.White.copy(alpha = 0.30f),
+                        fontSize = 14.sp,
+                        modifier = Modifier
+                            .clickable(
+                                role = Role.Button,
+                                onClickLabel = "Delete ${task.title}"
+                            ) { onDeleteTask(task.id) }
+                            .semantics { contentDescription = "Delete ${task.title}" }
+                    )
+                }
             }
-            Text(
-                text = "✕",
-                color = Color.White.copy(alpha = 0.30f),
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .clickable(
-                        role = Role.Button,
-                        onClickLabel = "Delete ${task.title}"
-                    ) { onDeleteTask(task.id) }
-                    .semantics { contentDescription = "Delete ${task.title}" }
-            )
         }
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
