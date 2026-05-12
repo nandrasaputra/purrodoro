@@ -491,12 +491,12 @@ private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(
     restore = { list ->
         if (list[0] == null) null
         else FocusTask(
-            id = list[0] as Int,
+            id = (list[0] as Number).toInt(),
             title = list[1] as String,
-            minutes = list[2] as Int,
+            minutes = (list[2] as Number).toInt(),
             completed = list[3] as Boolean,
-            plannedSessions = list[4] as Int,
-            completedSessions = list[5] as Int
+            plannedSessions = (list[4] as Number).toInt(),
+            completedSessions = (list[5] as Number).toInt()
         )
     }
 )
