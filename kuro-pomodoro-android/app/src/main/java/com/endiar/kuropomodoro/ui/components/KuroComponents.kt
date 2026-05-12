@@ -46,6 +46,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerMode
@@ -261,6 +269,26 @@ fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
             color = textColor,
             style = MaterialTheme.typography.labelLarge
         )
+    }
+}
+
+@Composable
+private fun PulseWrapper(active: Boolean, content: @Composable () -> Unit) {
+    val transition = rememberInfiniteTransition(label = "pulse")
+    val scale by transition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = if (active) 1.15f else 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    Box(
+        modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale },
+        contentAlignment = Alignment.Center
+    ) {
+        content()
     }
 }
 
