@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.ui.theme.KuroPomodoroTheme
 
 class MainActivity : ComponentActivity() {
@@ -12,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             KuroPomodoroTheme {
-                KuroPomodoroApp()
+                KuroPomodoroApp(repo = AppRepository.get(this))
             }
         }
     }
