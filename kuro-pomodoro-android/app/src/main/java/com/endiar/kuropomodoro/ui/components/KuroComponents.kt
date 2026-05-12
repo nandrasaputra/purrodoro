@@ -46,13 +46,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerMode
@@ -272,31 +279,6 @@ fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PulseWrapper(active: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val scale by animateFloatAsState(
-        targetValue = if (active) 1.15f else 1.0f,
-        animationSpec = if (active) {
-            infiniteRepeatable(
-                animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            )
-        } else {
-            tween(durationMillis = 0)
-        },
-        label = "pulseScale"
-    )
-    Box(
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        },
-        contentAlignment = Alignment.Center
-    ) {
-        content()
-    }
-}
-
-@Composable
 fun DashboardDock(
     isRunning: Boolean,
     isSoundPlaying: Boolean,
@@ -320,31 +302,31 @@ fun DashboardDock(
         verticalAlignment = Alignment.CenterVertically
     ) {
         DockTabItem(
-            icon = "\u2611",
+            icon = Icons.Default.List,
             label = "TODO",
             active = selectedTab == AppTab.Todo,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Todo) }
         DockTabItem(
-            icon = "\u229e",
+            icon = Icons.Default.DateRange,
             label = "RECORDS",
             active = selectedTab == AppTab.Calendar,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Calendar) }
-        DockHomeButton(
-            isRunning = isRunning,
-            modifier = Modifier.weight(1f),
-            onClick = { onNavigate(AppTab.Timer) }
-        )
         DockTabItem(
-            icon = if (isSoundPlaying) "\u266b" else "\u266a",
+            icon = if (isRunning) Icons.Default.PlayArrow else Icons.Default.Home,
+            label = "HOME",
+            active = selectedTab == AppTab.Timer,
+            modifier = Modifier.weight(1f)
+        ) { onNavigate(AppTab.Timer) }
+        DockTabItem(
+            icon = Icons.Default.Notifications,
             label = "SOUNDS",
             active = selectedTab == AppTab.Sounds,
-            isSoundPlaying = isSoundPlaying,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Sounds) }
         DockTabItem(
-            icon = "\u25cb",
+            icon = Icons.Default.Person,
             label = "ME",
             active = selectedTab == AppTab.Profile,
             modifier = Modifier.weight(1f)
@@ -354,17 +336,19 @@ fun DashboardDock(
 
 @Composable
 private fun DockTabItem(
-    icon: String,
+    icon: ImageVector,
     label: String,
     active: Boolean = false,
-    isSoundPlaying: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val iconColor = if (active) DockCoral else Color.White.copy(alpha = 0.7f)
     val bgColor = if (active) DockCoral.copy(alpha = 0.2f) else Color.Transparent
-    val shouldPulse = active && isSoundPlaying
-    PulseWrapper(active = shouldPulse, modifier = modifier) {
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
@@ -374,40 +358,13 @@ private fun DockTabItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Text(icon, color = iconColor, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = iconColor,
+                modifier = Modifier.size(20.dp)
+            )
             Text(label, color = iconColor, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
-        }
-    }
-}
-
-@Composable
-private fun DockHomeButton(isRunning: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val icon = if (isRunning) "\u25b6" else "\u2302"
-    val bgColor = DockCoral
-    val contentColor = Color.White
-    PulseWrapper(active = isRunning, modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
-                .background(bgColor)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 20.dp, vertical = 7.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Text(
-                text = icon,
-                color = contentColor,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "HOME",
-                color = contentColor,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
-            )
         }
     }
 }
