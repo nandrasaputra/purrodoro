@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.ui.components.GlassCard
+import com.endiar.kuropomodoro.model.GlassTreatment
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -37,7 +38,8 @@ import java.util.Locale
 fun CalendarScreen(
     stamps: Map<LocalDate, Int>,
     completedSessions: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
     val today = LocalDate.now()
     val yearMonth = YearMonth.of(today.year, today.month)

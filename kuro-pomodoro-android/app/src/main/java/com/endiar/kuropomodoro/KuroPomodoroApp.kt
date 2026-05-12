@@ -45,12 +45,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.GlassReadabilityMode
+import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.addFocusStamp
 import com.endiar.kuropomodoro.model.formatSeconds
+import com.endiar.kuropomodoro.model.glassTreatmentFor
 import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
@@ -58,6 +61,7 @@ import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.components.CatBackdrop
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlinx.coroutines.delay
 
 @Composable
@@ -78,6 +82,9 @@ fun KuroPomodoroApp() {
     var isSoundPlaying by rememberSaveable { mutableStateOf(false) }
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var darkModePreview by rememberSaveable { mutableStateOf(false) }
+    var glassReadabilityMode by rememberSaveable(stateSaver = GlassReadabilityModeSaver) {
+        mutableStateOf(GlassReadabilityMode.Adaptive)
+    }
     var nextTaskId by rememberSaveable { mutableIntStateOf(7) }
     var selectedTodoListId by rememberSaveable { mutableIntStateOf(1) }
     var todoLists by rememberSaveable(stateSaver = TodoListsSaver) {
@@ -186,7 +193,10 @@ fun KuroPomodoroApp() {
         }
     }
 
-    CatBackdrop {
+    val backdropTime = LocalTime.now()
+    val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
+
+    CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
@@ -223,11 +233,13 @@ fun KuroPomodoroApp() {
                         onListSelected = { selectedTodoListId = it },
                         onAddTask = addTask,
                         onToggleTask = toggleTask,
-                        onDeleteTask = deleteTask
+                        onDeleteTask = deleteTask,
+                        glassTreatment = glassTreatment
                     )
                     AppTab.Calendar -> CalendarScreen(
                         stamps = stamps,
-                        completedSessions = completedSessions
+                        completedSessions = completedSessions,
+                        glassTreatment = glassTreatment
                     )
                     AppTab.Sounds -> SoundsScreen(
                         sounds = sounds,
@@ -241,12 +253,16 @@ fun KuroPomodoroApp() {
                                 isSoundPlaying = true
                                 premiumSheetMessage = null
                             }
-                        }
+                        },
+                        glassTreatment = glassTreatment
                     )
                     AppTab.Profile -> ProfileScreen(
                         settings = settings,
                         darkModePreview = darkModePreview,
+                        glassReadabilityMode = glassReadabilityMode,
+                        glassTreatment = glassTreatment,
                         onDarkModeChanged = { darkModePreview = it },
+                        onGlassReadabilityModeChanged = { glassReadabilityMode = it },
                         onDurationChanged = { mode, minutes ->
                             val updatedSettings = settings.update(mode, minutes)
                             settings = updatedSettings
@@ -281,6 +297,7 @@ fun KuroPomodoroApp() {
                     isRunning = !isRunning
                 },
                 selectedTab = if (selectedTab == AppTab.Timer) null else selectedTab,
+                glassTreatment = glassTreatment,
                 modifier = Modifier.navigationBarsPadding()
             )
         }
@@ -449,6 +466,11 @@ private val AppTabSaver = Saver<AppTab, String>(
 private val TimerModeSaver = Saver<TimerMode, String>(
     save = { it.name },
     restore = { TimerMode.valueOf(it) }
+)
+
+private val GlassReadabilityModeSaver: Saver<GlassReadabilityMode, String> = Saver(
+    save = { it.name },
+    restore = { GlassReadabilityMode.valueOf(it) }
 )
 
 private val TimerSettingsSaver = listSaver<TimerSettings, Int>(
