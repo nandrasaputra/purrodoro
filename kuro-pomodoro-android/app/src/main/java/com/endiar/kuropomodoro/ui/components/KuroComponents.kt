@@ -48,9 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.graphicsLayer
@@ -274,18 +273,23 @@ fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun PulseWrapper(active: Boolean, content: @Composable () -> Unit) {
-    val transition = rememberInfiniteTransition(label = "pulse")
-    val scale by transition.animateFloat(
-        initialValue = 1.0f,
+    val scale by animateFloatAsState(
         targetValue = if (active) 1.15f else 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        animationSpec = if (active) {
+            infiniteRepeatable(
+                animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        } else {
+            tween(durationMillis = 0)
+        },
         label = "pulseScale"
     )
     Box(
-        modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale },
+        modifier = Modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
         contentAlignment = Alignment.Center
     ) {
         content()
