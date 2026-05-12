@@ -200,6 +200,27 @@ fun KuroPomodoroApp(repo: AppRepository) {
                 val nextMode = if (timerMode == TimerMode.Focus) {
                     persistCompletedSessions(completedSessions + 1)
                     persistStamps(addFocusStamp(stamps, LocalDate.now()))
+
+                    // Session tracking for active task
+                    val currentTask = activeTask
+                    if (currentTask != null) {
+                        val updatedTask = currentTask.copy(
+                            completedSessions = currentTask.completedSessions + 1
+                        )
+                        activeTask = updatedTask
+                        if (updatedTask.completedSessions >= updatedTask.plannedSessions) {
+                            // All planned sessions done — mark task complete and return to Todo
+                            persistTodoLists(todoLists.map { list ->
+                                list.copy(tasks = list.tasks.map { t ->
+                                    if (t.id == updatedTask.id) t.copy(completed = true) else t
+                                })
+                            })
+                            activeTask = null
+                            isFocusMode = false
+                            selectedTab = AppTab.Todo
+                        }
+                    }
+
                     TimerMode.ShortBreak
                 } else {
                     timerMode
@@ -231,6 +252,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         timerMode = timerMode,
                         remainingSeconds = remainingSeconds,
                         isRunning = isRunning,
+                        activeTask = activeTask,
                         onModeSelected = { mode ->
                             timerMode = mode
                             isRunning = false
@@ -247,7 +269,8 @@ fun KuroPomodoroApp(repo: AppRepository) {
                                 )
                             }
                             isRunning = !isRunning
-                        }
+                        },
+                        onBackToFocusMode = { isFocusMode = true }
                     )
                     AppTab.Todo -> TodoScreen(
                         todoLists = todoLists,
@@ -305,6 +328,14 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         onMockFeature = { premiumSheetMessage = it }
                     )
                 }
+                // Focus Mode fullscreen overlay
+                if (isFocusMode && isRunning) {
+                    FocusModeScreen(
+                        task = activeTask,
+                        remainingSeconds = remainingSeconds,
+                        onTap = { isFocusMode = false }
+                    )
+                }
             }
             premiumSheetMessage?.let { message ->
                 PremiumMessage(
@@ -347,8 +378,10 @@ private fun FocusDashboard(
     timerMode: TimerMode,
     remainingSeconds: Int,
     isRunning: Boolean,
+    activeTask: FocusTask?,
     onModeSelected: (TimerMode) -> Unit,
     onStartPause: () -> Unit,
+    onBackToFocusMode: () -> Unit,
 ) {
     val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
@@ -359,6 +392,25 @@ private fun FocusDashboard(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(40.dp))
+        if (isRunning && activeTask != null) {
+            Text(
+                text = activeTask.title,
+                color = Color.White.copy(alpha = 0.70f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = "${activeTask.completedSessions + 1} / ${activeTask.plannedSessions}",
+                color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+        }
         Text(
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
@@ -456,6 +508,79 @@ private fun FocusDashboard(
             }
         }
         Spacer(Modifier.weight(1f))
+        if (isRunning && activeTask != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFFFF8B6F).copy(alpha = 0.18f))
+                    .border(1.dp, Color(0xFFFF8B6F).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+                    .clickable(onClick = onBackToFocusMode)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "↗  back to focus mode",
+                    color = Color(0xFFFF8B6F),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun FocusModeScreen(
+    task: FocusTask?,
+    remainingSeconds: Int,
+    onTap: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0D0819))
+            .clickable(onClick = onTap),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "FOCUS",
+                color = Color.White.copy(alpha = 0.40f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 2.sp
+            )
+            Text(
+                text = formatSeconds(remainingSeconds),
+                color = Color.White.copy(alpha = 0.95f),
+                fontSize = 96.sp,
+                fontWeight = FontWeight.W200,
+                letterSpacing = (-2).sp
+            )
+            if (task != null) {
+                Text(
+                    text = task.title,
+                    color = Color.White.copy(alpha = 0.60f),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "${task.completedSessions + 1} / ${task.plannedSessions}",
+                    color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(Modifier.height(40.dp))
+            Text(
+                text = "tap anywhere to show controls",
+                color = Color.White.copy(alpha = 0.22f),
+                fontSize = 12.sp
+            )
+        }
     }
 }
 
