@@ -118,7 +118,8 @@ fun KuroPomodoroApp(repo: AppRepository) {
     var remainingSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
     var activeTotalSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
     var isRunning by rememberSaveable { mutableStateOf(false) }
-    var isSoundPlaying by rememberSaveable { mutableStateOf(false) }
+    var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
+    val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
@@ -263,15 +264,18 @@ fun KuroPomodoroApp(repo: AppRepository) {
                     AppTab.Sounds -> SoundsScreen(
                         sounds = sounds,
                         selectedSoundId = selectedSoundId,
-                        isPlaying = isSoundPlaying,
+                        playingSoundId = playingSoundId,
                         onSoundSelected = { sound ->
                             if (sound.locked) {
                                 premiumSheetMessage = "${sound.name} is part of the simulated premium sound pack."
                             } else {
                                 persistSelectedSoundId(sound.id)
-                                isSoundPlaying = true
+                                playingSoundId = sound.id
                                 premiumSheetMessage = null
                             }
+                        },
+                        onToggleSound = { sound ->
+                            playingSoundId = if (playingSoundId == sound.id) null else sound.id
                         },
                         glassTreatment = glassTreatment
                     )
