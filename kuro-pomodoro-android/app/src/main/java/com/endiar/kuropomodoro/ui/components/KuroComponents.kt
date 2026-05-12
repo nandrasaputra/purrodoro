@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -495,6 +496,26 @@ fun StatusPill(
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Text(text = label, color = textColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun StepperButton(
+    label: String,
+    onClick: () -> Unit,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
+) {
+    val tokens = glassTokens(glassTreatment)
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(tokens.pillFill)
+            .border(1.dp, tokens.pillBorder, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Light)
     }
 }
 

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,12 +75,12 @@ fun CalendarScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            StatChip(label = "Today", value = "${todayMinutes}m", modifier = Modifier.weight(1f))
-            StatChip(label = "Week", value = "${weekSessions * 25}m", modifier = Modifier.weight(1f))
-            StatChip(label = "Streak", value = "${streak}d", modifier = Modifier.weight(1f))
+            StatChip(label = "Today", value = "${todayMinutes}m", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
+            StatChip(label = "Week", value = "${weekSessions * 25}m", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
+            StatChip(label = "Streak", value = "${streak}d", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
         }
 
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
             val monthLabel = today.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
             Text(
                 text = "$monthLabel ${today.year}",
@@ -140,18 +139,19 @@ fun CalendarScreen(
 }
 
 @Composable
-private fun StatChip(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF0F0A1A).copy(alpha = 0.40f))
-            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-            .padding(vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+private fun StatChip(label: String, value: String, modifier: Modifier = Modifier, glassTreatment: GlassTreatment = GlassTreatment.Clear) {
+    GlassCard(
+        modifier = modifier,
+        glassTreatment = glassTreatment
     ) {
-        Text(text = value, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text(text = label, color = Color.White.copy(alpha = 0.50f), fontSize = 11.sp)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(text = value, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(text = label, color = Color.White.copy(alpha = 0.50f), fontSize = 11.sp)
+        }
     }
 }
 

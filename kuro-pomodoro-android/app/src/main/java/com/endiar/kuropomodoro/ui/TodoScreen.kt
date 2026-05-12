@@ -126,7 +126,8 @@ fun TodoScreen(
                 GlassPill(
                     text = list.name,
                     selected = list.id == selectedList?.id,
-                    onClick = { onListSelected(list.id) }
+                    onClick = { onListSelected(list.id) },
+                    glassTreatment = glassTreatment
                 )
             }
         }
@@ -190,7 +191,7 @@ fun TodoScreen(
 
         // Task list
         if (selectedList?.tasks.isNullOrEmpty()) {
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
                 Text(
                     text = "No tasks yet",
                     color = Color.White,
@@ -211,7 +212,8 @@ fun TodoScreen(
                     task = task,
                     active = task == firstActiveTask,
                     onToggleTask = onToggleTask,
-                    onDeleteTask = onDeleteTask
+                    onDeleteTask = onDeleteTask,
+                    glassTreatment = glassTreatment
                 )
             }
         }
@@ -223,9 +225,10 @@ private fun TaskGlassRow(
     task: FocusTask,
     active: Boolean,
     onToggleTask: (Int) -> Unit,
-    onDeleteTask: (Int) -> Unit
+    onDeleteTask: (Int) -> Unit,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), active = active) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), active = active, glassTreatment = glassTreatment) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
