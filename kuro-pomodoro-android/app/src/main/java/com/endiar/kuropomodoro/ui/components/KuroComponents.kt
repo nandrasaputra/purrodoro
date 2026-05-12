@@ -299,8 +299,8 @@ private fun PulseWrapper(active: Boolean, content: @Composable () -> Unit) {
 @Composable
 fun DashboardDock(
     isRunning: Boolean,
+    isSoundPlaying: Boolean,
     onNavigate: (AppTab) -> Unit,
-    onStartPause: () -> Unit,
     modifier: Modifier = Modifier,
     selectedTab: AppTab? = null,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
@@ -316,77 +316,99 @@ fun DashboardDock(
             .clip(RoundedCornerShape(36.dp))
             .background(tokens.dockFill)
             .padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
         DockTabItem(
             icon = "\u2611",
             label = "TODO",
-            active = selectedTab == AppTab.Todo
+            active = selectedTab == AppTab.Todo,
+            modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Todo) }
         DockTabItem(
             icon = "\u229e",
             label = "RECORDS",
-            active = selectedTab == AppTab.Calendar
+            active = selectedTab == AppTab.Calendar,
+            modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Calendar) }
-        DockHomeButton(isRunning = isRunning, onClick = onStartPause)
+        DockHomeButton(
+            isRunning = isRunning,
+            modifier = Modifier.weight(1f),
+            onClick = { onNavigate(AppTab.Timer) }
+        )
         DockTabItem(
-            icon = "\u266a",
+            icon = if (isSoundPlaying) "\u266b" else "\u266a",
             label = "SOUNDS",
-            active = selectedTab == AppTab.Sounds
+            active = selectedTab == AppTab.Sounds,
+            isSoundPlaying = isSoundPlaying,
+            modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Sounds) }
         DockTabItem(
             icon = "\u25cb",
             label = "ME",
-            active = selectedTab == AppTab.Profile
+            active = selectedTab == AppTab.Profile,
+            modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Profile) }
     }
 }
 
 @Composable
-private fun DockTabItem(icon: String, label: String, active: Boolean = false, onClick: () -> Unit) {
+private fun DockTabItem(
+    icon: String,
+    label: String,
+    active: Boolean = false,
+    isSoundPlaying: Boolean = false,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     val iconColor = if (active) DockCoral else Color.White.copy(alpha = 0.7f)
     val bgColor = if (active) DockCoral.copy(alpha = 0.2f) else Color.Transparent
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(bgColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        Text(icon, color = iconColor, fontSize = 18.sp, fontWeight = FontWeight.Medium)
-        Text(label, color = iconColor, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
+    val shouldPulse = active && isSoundPlaying
+    PulseWrapper(active = shouldPulse) {
+        Column(
+            modifier = modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(bgColor)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(icon, color = iconColor, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+            Text(label, color = iconColor, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
+        }
     }
 }
 
 @Composable
-private fun DockHomeButton(isRunning: Boolean, onClick: () -> Unit) {
-    val bgColor = if (isRunning) Color.White.copy(alpha = 0.92f) else DockCoral
-    val contentColor = if (isRunning) Color(0xFF241E2B) else Color.White
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(bgColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 7.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        Text(
-            text = if (isRunning) "\u23f8" else "\u25b6",
-            color = contentColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = if (isRunning) "PAUSE" else "START",
-            color = contentColor,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp
-        )
+private fun DockHomeButton(isRunning: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val icon = if (isRunning) "\u25b6" else "\u2302"
+    val bgColor = DockCoral
+    val contentColor = Color.White
+    PulseWrapper(active = isRunning) {
+        Column(
+            modifier = modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(bgColor)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 20.dp, vertical = 7.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = icon,
+                color = contentColor,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "HOME",
+                color = contentColor,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+        }
     }
 }
 
