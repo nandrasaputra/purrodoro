@@ -121,6 +121,8 @@ fun KuroPomodoroApp(repo: AppRepository) {
     var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
     val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) { mutableStateOf<FocusTask?>(null) }
+    var isFocusMode by rememberSaveable { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -479,4 +481,22 @@ private val AppTabSaver = Saver<AppTab, String>(
 private val TimerModeSaver = Saver<TimerMode, String>(
     save = { it.name },
     restore = { TimerMode.valueOf(it) }
+)
+
+private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(
+    save = { task ->
+        if (task == null) listOf(null)
+        else listOf(task.id, task.title, task.minutes, task.completed, task.plannedSessions, task.completedSessions)
+    },
+    restore = { list ->
+        if (list[0] == null) null
+        else FocusTask(
+            id = list[0] as Int,
+            title = list[1] as String,
+            minutes = list[2] as Int,
+            completed = list[3] as Boolean,
+            plannedSessions = list[4] as Int,
+            completedSessions = list[5] as Int
+        )
+    }
 )
