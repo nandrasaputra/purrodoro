@@ -31,8 +31,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +43,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.endiar.kuropomodoro.data.AppRepository
+import com.endiar.kuropomodoro.data.AppState
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
@@ -63,76 +66,92 @@ import com.endiar.kuropomodoro.ui.components.DashboardDock
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
-fun KuroPomodoroApp() {
-    var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
-    var timerMode by rememberSaveable(stateSaver = TimerModeSaver) { mutableStateOf(TimerMode.Focus) }
-    var settings by rememberSaveable(stateSaver = TimerSettingsSaver) { mutableStateOf(TimerSettings()) }
-    var remainingSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
-    var activeTotalSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
-    var isRunning by rememberSaveable { mutableStateOf(false) }
-    var completedSessions by rememberSaveable { mutableIntStateOf(0) }
-    var stamps by rememberSaveable(stateSaver = StampsSaver) {
-        mutableStateOf<Map<LocalDate, Int>>(
-            emptyMap()
-        )
-    }
-    var selectedSoundId by rememberSaveable { mutableIntStateOf(1) }
-    var isSoundPlaying by rememberSaveable { mutableStateOf(false) }
-    var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    var darkModePreview by rememberSaveable { mutableStateOf(false) }
-    var glassReadabilityMode by rememberSaveable(stateSaver = GlassReadabilityModeSaver) {
-        mutableStateOf(GlassReadabilityMode.Adaptive)
-    }
-    var nextTaskId by rememberSaveable { mutableIntStateOf(7) }
-    var selectedTodoListId by rememberSaveable { mutableIntStateOf(1) }
-    var todoLists by rememberSaveable(stateSaver = TodoListsSaver) {
-        mutableStateOf(
-            listOf(
-                TodoListState(
-                    1,
-                    "Study",
-                    listOf(
-                        FocusTask(1, "Review Compose layout", 25),
-                        FocusTask(2, "Read chapter notes", 20)
-                    )
-                ),
-                TodoListState(
-                    2,
-                    "Home",
-                    listOf(FocusTask(3, "Clean desk", 10), FocusTask(4, "Water plants", 5))
-                ),
-                TodoListState(
-                    3,
-                    "Ideas",
-                    listOf(
-                        FocusTask(5, "Sketch cat animation", 15),
-                        FocusTask(6, "Plan next sprint", 25)
-                    )
+fun KuroPomodoroApp(repo: AppRepository) {
+    val appState by repo.appState.collectAsStateWithLifecycle(
+        initialValue = AppState(
+            darkModePreview = false,
+            glassReadabilityMode = GlassReadabilityMode.Adaptive,
+            selectedSoundId = 1,
+            completedSessions = 0,
+            settings = TimerSettings(),
+            nextTaskId = 7,
+            selectedTodoListId = 1,
+            stamps = emptyMap(),
+            todoLists = listOf(
+            TodoListState(
+                1, "Study", listOf(
+                    FocusTask(1, "Review Compose layout", 25),
+                    FocusTask(2, "Read chapter notes", 20)
+                )
+            ),
+            TodoListState(
+                2, "Home", listOf(
+                    FocusTask(3, "Clean desk", 10),
+                    FocusTask(4, "Water plants", 5)
+                )
+            ),
+            TodoListState(
+                3, "Ideas", listOf(
+                    FocusTask(5, "Sketch cat animation", 15),
+                    FocusTask(6, "Plan next sprint", 25)
                 )
             )
         )
-    }
+        )
+    )
+
+    var settings by remember(appState.settings) { mutableStateOf(appState.settings) }
+    var completedSessions by remember(appState.completedSessions) { mutableIntStateOf(appState.completedSessions) }
+    var stamps by remember(appState.stamps) { mutableStateOf(appState.stamps) }
+    var selectedSoundId by remember(appState.selectedSoundId) { mutableIntStateOf(appState.selectedSoundId) }
+    var darkModePreview by remember(appState.darkModePreview) { mutableStateOf(appState.darkModePreview) }
+    var glassReadabilityMode by remember(appState.glassReadabilityMode) { mutableStateOf(appState.glassReadabilityMode) }
+    var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
+    var selectedTodoListId by remember(appState.selectedTodoListId) { mutableIntStateOf(appState.selectedTodoListId) }
+    var todoLists by remember(appState.todoLists) { mutableStateOf(appState.todoLists) }
+
+    var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
+    var timerMode by rememberSaveable(stateSaver = TimerModeSaver) { mutableStateOf(TimerMode.Focus) }
+    var remainingSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
+    var activeTotalSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
+    var isRunning by rememberSaveable { mutableStateOf(false) }
+    var isSoundPlaying by rememberSaveable { mutableStateOf(false) }
+    var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val scope = rememberCoroutineScope()
+
+    fun persistSettings(v: TimerSettings) { settings = v; scope.launch { repo.setSettings(v) } }
+    fun persistCompletedSessions(v: Int) { completedSessions = v; scope.launch { repo.setCompletedSessions(v) } }
+    fun persistStamps(v: Map<LocalDate, Int>) { stamps = v; scope.launch { repo.setStamps(v) } }
+    fun persistSelectedSoundId(v: Int) { selectedSoundId = v; scope.launch { repo.setSelectedSoundId(v) } }
+    fun persistDarkModePreview(v: Boolean) { darkModePreview = v; scope.launch { repo.setDarkModePreview(v) } }
+    fun persistGlassReadabilityMode(v: GlassReadabilityMode) { glassReadabilityMode = v; scope.launch { repo.setGlassReadabilityMode(v) } }
+    fun persistNextTaskId(v: Int) { nextTaskId = v; scope.launch { repo.setNextTaskId(v) } }
+    fun persistSelectedTodoListId(v: Int) { selectedTodoListId = v; scope.launch { repo.setSelectedTodoListId(v) } }
+    fun persistTodoLists(v: List<TodoListState>) { todoLists = v; scope.launch { repo.setTodoLists(v) } }
 
     val addTask: (String) -> Unit = { title ->
-        todoLists = todoLists.map { list ->
+        persistTodoLists(todoLists.map { list ->
             if (list.id == selectedTodoListId) {
                 list.copy(tasks = list.tasks + FocusTask(nextTaskId, title, 25))
             } else {
                 list
             }
-        }
-        nextTaskId += 1
+        })
+        persistNextTaskId(nextTaskId + 1)
     }
     val toggleTask: (Int) -> Unit = { taskId ->
-        todoLists = todoLists.map { list ->
+        persistTodoLists(todoLists.map { list ->
             list.copy(tasks = list.tasks.map { task -> if (task.id == taskId) task.toggleCompleted() else task })
-        }
+        })
     }
     val deleteTask: (Int) -> Unit = { taskId ->
-        todoLists =
+        persistTodoLists(
             todoLists.map { list -> list.copy(tasks = list.tasks.filterNot { it.id == taskId }) }
+        )
     }
     var timerStartedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var timerStartedRemainingSeconds by rememberSaveable {
@@ -176,8 +195,8 @@ fun KuroPomodoroApp() {
             if (updatedRemainingSeconds == 0) {
                 isRunning = false
                 val nextMode = if (timerMode == TimerMode.Focus) {
-                    completedSessions += 1
-                    stamps = addFocusStamp(stamps, LocalDate.now())
+                    persistCompletedSessions(completedSessions + 1)
+                    persistStamps(addFocusStamp(stamps, LocalDate.now()))
                     TimerMode.ShortBreak
                 } else {
                     timerMode
@@ -230,7 +249,7 @@ fun KuroPomodoroApp() {
                     AppTab.Todo -> TodoScreen(
                         todoLists = todoLists,
                         selectedListId = selectedTodoListId,
-                        onListSelected = { selectedTodoListId = it },
+                        onListSelected = { persistSelectedTodoListId(it) },
                         onAddTask = addTask,
                         onToggleTask = toggleTask,
                         onDeleteTask = deleteTask,
@@ -249,7 +268,7 @@ fun KuroPomodoroApp() {
                             if (sound.locked) {
                                 premiumSheetMessage = "${sound.name} is part of the simulated premium sound pack."
                             } else {
-                                selectedSoundId = sound.id
+                                persistSelectedSoundId(sound.id)
                                 isSoundPlaying = true
                                 premiumSheetMessage = null
                             }
@@ -261,11 +280,11 @@ fun KuroPomodoroApp() {
                         darkModePreview = darkModePreview,
                         glassReadabilityMode = glassReadabilityMode,
                         glassTreatment = glassTreatment,
-                        onDarkModeChanged = { darkModePreview = it },
-                        onGlassReadabilityModeChanged = { glassReadabilityMode = it },
+                        onDarkModeChanged = { persistDarkModePreview(it) },
+                        onGlassReadabilityModeChanged = { persistGlassReadabilityMode(it) },
                         onDurationChanged = { mode, minutes ->
                             val updatedSettings = settings.update(mode, minutes)
-                            settings = updatedSettings
+                            persistSettings(updatedSettings)
                             if (mode == timerMode && !isRunning) {
                                 remainingSeconds = updatedSettings.secondsFor(mode)
                                 activeTotalSeconds = updatedSettings.secondsFor(mode)
@@ -466,62 +485,4 @@ private val AppTabSaver = Saver<AppTab, String>(
 private val TimerModeSaver = Saver<TimerMode, String>(
     save = { it.name },
     restore = { TimerMode.valueOf(it) }
-)
-
-private val GlassReadabilityModeSaver: Saver<GlassReadabilityMode, String> = Saver(
-    save = { it.name },
-    restore = { GlassReadabilityMode.valueOf(it) }
-)
-
-private val TimerSettingsSaver = listSaver<TimerSettings, Int>(
-    save = { listOf(it.focusMinutes, it.shortBreakMinutes, it.longBreakMinutes) },
-    restore = {
-        TimerSettings(
-            focusMinutes = it[0],
-            shortBreakMinutes = it[1],
-            longBreakMinutes = it[2]
-        )
-    }
-)
-
-private val StampsSaver = listSaver<Map<LocalDate, Int>, Any>(
-    save = { stamps -> stamps.entries.flatMap { listOf(it.key.toString(), it.value) } },
-    restore = { saved ->
-        saved.chunked(2).associate { (date, count) ->
-            LocalDate.parse(date as String) to count as Int
-        }
-    }
-)
-
-private val TodoListsSaver = listSaver<List<TodoListState>, Any>(
-    save = { lists ->
-        lists.flatMap { list ->
-            listOf(list.id, list.name, list.tasks.size) + list.tasks.flatMap { task ->
-                listOf(task.id, task.title, task.minutes, task.completed)
-            }
-        }
-    },
-    restore = { saved ->
-        buildList {
-            var index = 0
-            while (index < saved.size) {
-                val listId = saved[index++] as Int
-                val name = saved[index++] as String
-                val taskCount = saved[index++] as Int
-                val tasks = buildList {
-                    repeat(taskCount) {
-                        add(
-                            FocusTask(
-                                id = saved[index++] as Int,
-                                title = saved[index++] as String,
-                                minutes = saved[index++] as Int,
-                                completed = saved[index++] as Boolean
-                            )
-                        )
-                    }
-                }
-                add(TodoListState(listId, name, tasks))
-            }
-        }
-    }
 )
