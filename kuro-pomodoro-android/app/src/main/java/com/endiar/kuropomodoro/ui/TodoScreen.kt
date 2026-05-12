@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -314,7 +315,7 @@ private fun PreSessionSheet(
     onStartFocus: (FocusTask) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var sessionCount by remember { mutableIntStateOf(1) }
+    var sessionCount by rememberSaveable { mutableIntStateOf(1) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -355,11 +356,15 @@ private fun PreSessionSheet(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.12f))
-                        .clickable { if (sessionCount > 1) sessionCount-- },
+                        .background(
+                            if (sessionCount <= 1) Color.White.copy(alpha = 0.05f)
+                            else Color.White.copy(alpha = 0.12f)
+                        )
+                        .clickable { if (sessionCount > 1) sessionCount-- }
+                        .semantics { role = Role.Button; contentDescription = "Decrease sessions" },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "−", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "−", color = if (sessionCount <= 1) Color.White.copy(alpha = 0.30f) else Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 }
                 Text(
                     text = sessionCount.toString(),
@@ -371,11 +376,15 @@ private fun PreSessionSheet(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.12f))
-                        .clickable { if (sessionCount < 8) sessionCount++ },
+                        .background(
+                            if (sessionCount >= 8) Color.White.copy(alpha = 0.05f)
+                            else Color.White.copy(alpha = 0.12f)
+                        )
+                        .clickable { if (sessionCount < 8) sessionCount++ }
+                        .semantics { role = Role.Button; contentDescription = "Increase sessions" },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "+", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "+", color = if (sessionCount >= 8) Color.White.copy(alpha = 0.30f) else Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 }
             }
             // Start Focus button
