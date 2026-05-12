@@ -71,7 +71,8 @@ fun SoundsScreen(
                         role = Role.Button,
                         onClickLabel = if (sound.locked) "Unlock ${sound.name}" else "Play ${sound.name}"
                     ) { onSoundSelected(sound) },
-                active = isSelected
+                active = isSelected,
+                glassTreatment = glassTreatment
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -106,7 +107,7 @@ fun SoundsScreen(
                             )
                         }
                     }
-                    StatusPill(label = pillLabel, kind = pillKind)
+                    StatusPill(label = pillLabel, kind = pillKind, glassTreatment = glassTreatment)
                 }
             }
         }

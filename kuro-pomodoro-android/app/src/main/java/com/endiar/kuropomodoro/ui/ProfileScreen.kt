@@ -35,7 +35,9 @@ import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.ui.components.GlassCard
+import com.endiar.kuropomodoro.ui.components.GlassPill
 import com.endiar.kuropomodoro.ui.components.MockBadge
+import com.endiar.kuropomodoro.ui.components.StepperButton
 
 @Composable
 fun ProfileScreen(
@@ -65,7 +67,7 @@ fun ProfileScreen(
         )
 
         // Profile / avatar card
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -102,7 +104,7 @@ fun ProfileScreen(
         }
 
         // Timer settings card
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
             Text(
                 text = "TIMER SETTINGS",
                 fontSize = 13.sp,
@@ -115,26 +117,29 @@ fun ProfileScreen(
                 label = TimerMode.Focus.label,
                 minutes = settings.focusMinutes,
                 onMinus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes - 1).coerceIn(1, 60)) },
-                onPlus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes + 1).coerceIn(1, 60)) }
+                onPlus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes + 1).coerceIn(1, 60)) },
+                glassTreatment = glassTreatment
             )
             Spacer(Modifier.height(8.dp))
             DurationRow(
                 label = TimerMode.ShortBreak.label,
                 minutes = settings.shortBreakMinutes,
                 onMinus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes - 1).coerceIn(1, 60)) },
-                onPlus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes + 1).coerceIn(1, 60)) }
+                onPlus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes + 1).coerceIn(1, 60)) },
+                glassTreatment = glassTreatment
             )
             Spacer(Modifier.height(8.dp))
             DurationRow(
                 label = TimerMode.LongBreak.label,
                 minutes = settings.longBreakMinutes,
                 onMinus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes - 1).coerceIn(1, 60)) },
-                onPlus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes + 1).coerceIn(1, 60)) }
+                onPlus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes + 1).coerceIn(1, 60)) },
+                glassTreatment = glassTreatment
             )
         }
 
         // Dark mode toggle card
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -154,6 +159,36 @@ fun ProfileScreen(
         }
 
         // Mock features section
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glassTreatment = glassTreatment
+        ) {
+            Text(
+                text = "Glass readability",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Improve panel contrast on bright backgrounds.",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.55f)
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GlassReadabilityMode.values().toList().forEach { mode ->
+                    GlassPill(
+                        text = mode.label,
+                        selected = mode == glassReadabilityMode,
+                        onClick = { onGlassReadabilityModeChanged(mode) },
+                        glassTreatment = glassTreatment
+                    )
+                }
+            }
+        }
+
+        // Mock features section label
         Text(
             text = "FEATURES",
             fontSize = 10.sp,
@@ -167,14 +202,16 @@ fun ProfileScreen(
                 icon = "\uD83D\uDC65",
                 description = "Co-focus with friends",
                 onClick = { onMockFeature("Focus Together is a mock social focus room for this prototype.") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                glassTreatment = glassTreatment
             )
             MockFeatureSquare(
                 name = "Reminders",
                 icon = "\uD83D\uDD14",
                 description = "Smart break reminders",
                 onClick = { onMockFeature("Reminders are mocked here; notifications are not scheduled yet.") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                glassTreatment = glassTreatment
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -183,14 +220,16 @@ fun ProfileScreen(
                 icon = "\uD83D\uDCC5",
                 description = "Track important dates",
                 onClick = { onMockFeature("D-Day Tracker is a placeholder for future goal countdowns.") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                glassTreatment = glassTreatment
             )
             MockFeatureSquare(
                 name = "Premium Sounds",
                 icon = "\uD83C\uDFB5",
                 description = "Unlock all sound packs",
                 onClick = { onMockFeature("Premium Sounds is simulated in this clone and does not start a purchase.") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                glassTreatment = glassTreatment
             )
         }
     }
@@ -201,7 +240,8 @@ private fun DurationRow(
     label: String,
     minutes: Int,
     onMinus: () -> Unit,
-    onPlus: () -> Unit
+    onPlus: () -> Unit,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -213,7 +253,7 @@ private fun DurationRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            StepperButton(label = "−", onClick = onMinus)
+            StepperButton(label = "−", onClick = onMinus, glassTreatment = glassTreatment)
             Text(
                 text = "$minutes min",
                 color = Color.White,
@@ -222,23 +262,8 @@ private fun DurationRow(
                 modifier = Modifier.widthIn(min = 54.dp),
                 textAlign = TextAlign.Center
             )
-            StepperButton(label = "+", onClick = onPlus)
+            StepperButton(label = "+", onClick = onPlus, glassTreatment = glassTreatment)
         }
-    }
-}
-
-@Composable
-private fun StepperButton(label: String, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.10f))
-            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Light)
     }
 }
 
@@ -276,10 +301,12 @@ private fun MockFeatureSquare(
     icon: String,
     description: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
     GlassCard(
-        modifier = modifier.clickable(role = Role.Button, onClickLabel = name, onClick = onClick)
+        modifier = modifier.clickable(role = Role.Button, onClickLabel = name, onClick = onClick),
+        glassTreatment = glassTreatment
     ) {
         Text(icon, fontSize = 24.sp)
         Spacer(Modifier.height(8.dp))
