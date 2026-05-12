@@ -256,6 +256,12 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         onAddTask = addTask,
                         onToggleTask = toggleTask,
                         onDeleteTask = deleteTask,
+                        onFocusTask = { task ->
+                            activeTask = task
+                            isFocusMode = true
+                            selectedTab = AppTab.Timer
+                            isRunning = true
+                        },
                         glassTreatment = glassTreatment
                     )
                     AppTab.Calendar -> CalendarScreen(

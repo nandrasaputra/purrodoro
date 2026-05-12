@@ -58,6 +58,7 @@ fun TodoScreen(
     onAddTask: (String) -> Unit,
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
+    onFocusTask: (FocusTask) -> Unit,
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
@@ -213,6 +214,7 @@ fun TodoScreen(
                     active = task == firstActiveTask,
                     onToggleTask = onToggleTask,
                     onDeleteTask = onDeleteTask,
+                    onFocusTask = onFocusTask,
                     glassTreatment = glassTreatment
                 )
             }
@@ -226,6 +228,7 @@ private fun TaskGlassRow(
     active: Boolean,
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
+    onFocusTask: (FocusTask) -> Unit,
     glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
     GlassCard(modifier = Modifier.fillMaxWidth(), active = active, glassTreatment = glassTreatment) {
