@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.GlassPill
@@ -73,6 +74,7 @@ fun TodoScreen(
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
     onFocusTask: (FocusTask) -> Unit,
+    settings: TimerSettings = TimerSettings(),
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear
 ) {
@@ -229,7 +231,7 @@ fun TodoScreen(
                     active = task == firstActiveTask,
                     onToggleTask = onToggleTask,
                     onDeleteTask = onDeleteTask,
-                    onFocusTask = { focusSheetTask = it },
+                    onFocusTask = { if (!task.completed) focusSheetTask = it },
                     glassTreatment = glassTreatment
                 )
             }
@@ -239,6 +241,7 @@ fun TodoScreen(
     focusSheetTask?.let { task ->
         PreSessionSheet(
             task = task,
+            focusMinutes = settings.focusMinutes,
             onDismiss = { focusSheetTask = null },
             onStartFocus = { updatedTask ->
                 focusSheetTask = null
@@ -376,11 +379,13 @@ private fun TaskGlassRow(
 @Composable
 private fun PreSessionSheet(
     task: FocusTask,
+    focusMinutes: Int,
     onDismiss: () -> Unit,
     onStartFocus: (FocusTask) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sessionCount by rememberSaveable { mutableIntStateOf(1) }
+    var showDetail by rememberSaveable { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -407,51 +412,113 @@ private fun PreSessionSheet(
             )
             // Heading
             Text(
-                text = "How many sessions?",
+                text = "Start focus session",
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
-            // Stepper
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
+
+            // Summary line: "1 session · 25 min each"
+            Text(
+                text = if (sessionCount == 1) "1 session · $focusMinutes min"
+                       else "$sessionCount sessions · $focusMinutes min each",
+                color = Color(0xFFFF8B6F).copy(alpha = 0.85f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+
+            // Show detail toggle
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .clickable { showDetail = !showDetail }
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (sessionCount <= 1) Color.White.copy(alpha = 0.05f)
-                            else Color.White.copy(alpha = 0.12f)
-                        )
-                        .clickable { if (sessionCount > 1) sessionCount-- }
-                        .semantics { role = Role.Button; contentDescription = "Decrease sessions" },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "−", color = if (sessionCount <= 1) Color.White.copy(alpha = 0.30f) else Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                }
                 Text(
-                    text = sessionCount.toString(),
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
+                    text = if (showDetail) "Hide detail ▲" else "Show detail ▼",
+                    color = Color.White.copy(alpha = 0.55f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
                 )
-                Box(
+            }
+
+            // Detail panel: session count stepper
+            if (showDetail) {
+                Column(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (sessionCount >= 8) Color.White.copy(alpha = 0.05f)
-                            else Color.White.copy(alpha = 0.12f)
-                        )
-                        .clickable { if (sessionCount < 8) sessionCount++ }
-                        .semantics { role = Role.Button; contentDescription = "Increase sessions" },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.06f))
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(text = "+", color = if (sessionCount >= 8) Color.White.copy(alpha = 0.30f) else Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Sessions",
+                        color = Color.White.copy(alpha = 0.45f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (sessionCount <= 1) Color.White.copy(alpha = 0.05f)
+                                    else Color.White.copy(alpha = 0.12f)
+                                )
+                                .clickable { if (sessionCount > 1) sessionCount-- }
+                                .semantics { role = Role.Button; contentDescription = "Decrease sessions" },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "−",
+                                color = if (sessionCount <= 1) Color.White.copy(alpha = 0.30f) else Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            text = sessionCount.toString(),
+                            color = Color.White,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (sessionCount >= 8) Color.White.copy(alpha = 0.05f)
+                                    else Color.White.copy(alpha = 0.12f)
+                                )
+                                .clickable { if (sessionCount < 8) sessionCount++ }
+                                .semantics { role = Role.Button; contentDescription = "Increase sessions" },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "+",
+                                color = if (sessionCount >= 8) Color.White.copy(alpha = 0.30f) else Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Duration per session comes from your Focus preference ($focusMinutes min)",
+                        color = Color.White.copy(alpha = 0.30f),
+                        fontSize = 11.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
                 }
             }
+
             // Start Focus button
             Box(
                 modifier = Modifier
