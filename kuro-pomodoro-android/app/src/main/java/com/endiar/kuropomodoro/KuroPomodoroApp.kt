@@ -285,6 +285,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                             selectedTab = AppTab.Timer
                             isRunning = true
                         },
+                        settings = settings,
                         glassTreatment = glassTreatment
                     )
                     AppTab.Calendar -> CalendarScreen(
@@ -333,6 +334,8 @@ fun KuroPomodoroApp(repo: AppRepository) {
                     FocusModeScreen(
                         task = activeTask,
                         remainingSeconds = remainingSeconds,
+                        glassTreatment = glassTreatment,
+                        backdropTime = backdropTime,
                         onTap = { isFocusMode = false }
                     )
                 }
@@ -344,14 +347,16 @@ fun KuroPomodoroApp(repo: AppRepository) {
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
                 )
             }
-            DashboardDock(
-                isRunning = isRunning,
-                isSoundPlaying = isSoundPlaying,
-                onNavigate = { selectedTab = it },
-                selectedTab = selectedTab,
-                glassTreatment = glassTreatment,
-                modifier = Modifier.navigationBarsPadding()
-            )
+            if (!(isFocusMode && isRunning)) {
+                DashboardDock(
+                    isRunning = isRunning,
+                    isSoundPlaying = isSoundPlaying,
+                    onNavigate = { selectedTab = it },
+                    selectedTab = selectedTab,
+                    glassTreatment = glassTreatment,
+                    modifier = Modifier.navigationBarsPadding()
+                )
+            }
         }
     }
 }
@@ -533,53 +538,58 @@ private fun FocusDashboard(
 private fun FocusModeScreen(
     task: FocusTask?,
     remainingSeconds: Int,
+    glassTreatment: GlassTreatment,
+    backdropTime: LocalTime,
     onTap: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0D0819))
-            .clickable(onClick = onTap),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+    CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(onClick = onTap)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "FOCUS",
-                color = Color.White.copy(alpha = 0.40f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 2.sp
-            )
-            Text(
-                text = formatSeconds(remainingSeconds),
-                color = Color.White.copy(alpha = 0.95f),
-                fontSize = 96.sp,
-                fontWeight = FontWeight.W200,
-                letterSpacing = (-2).sp
-            )
-            if (task != null) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 Text(
-                    text = task.title,
-                    color = Color.White.copy(alpha = 0.60f),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
+                    text = "FOCUS",
+                    color = Color.White.copy(alpha = 0.40f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 2.sp
                 )
                 Text(
-                    text = "${task.completedSessions + 1} / ${task.plannedSessions}",
-                    color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
+                    text = formatSeconds(remainingSeconds),
+                    color = Color.White.copy(alpha = 0.95f),
+                    fontSize = 96.sp,
+                    fontWeight = FontWeight.W200,
+                    letterSpacing = (-2).sp
+                )
+                if (task != null) {
+                    Text(
+                        text = task.title,
+                        color = Color.White.copy(alpha = 0.60f),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${task.completedSessions + 1} / ${task.plannedSessions}",
+                        color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(Modifier.height(40.dp))
+                Text(
+                    text = "tap anywhere to show controls",
+                    color = Color.White.copy(alpha = 0.22f),
+                    fontSize = 12.sp
                 )
             }
-            Spacer(Modifier.height(40.dp))
-            Text(
-                text = "tap anywhere to show controls",
-                color = Color.White.copy(alpha = 0.22f),
-                fontSize = 12.sp
-            )
         }
     }
 }
