@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
-import com.endiar.kuropomodoro.model.addFocusStamp
+// addFocusStamp removed — use inline stamp increment instead
 import kotlinx.coroutines.launch
 
 class DebugActivity : ComponentActivity() {
@@ -249,7 +249,7 @@ private fun DebugScreen(
                         scope.launch {
                             var updatedStamps = appState.stamps
                             repeat(injectionCount) {
-                                updatedStamps = addFocusStamp(updatedStamps, java.time.LocalDate.now())
+                                updatedStamps = updatedStamps + (java.time.LocalDate.now() to (updatedStamps[java.time.LocalDate.now()] ?: 0) + 1)
                             }
                             appRepo.setStamps(updatedStamps)
                             appRepo.setCompletedSessions(appState.completedSessions + injectionCount)

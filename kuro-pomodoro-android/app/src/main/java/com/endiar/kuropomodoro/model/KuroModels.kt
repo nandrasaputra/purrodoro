@@ -112,6 +112,23 @@ fun buildCycle(settings: TimerSettings): List<TimerSessionItem> {
     return items
 }
 
+/** Builds a fresh [TimerSession] from [settings] at the start of a new cycle. */
+fun buildSession(settings: TimerSettings): TimerSession {
+    val items = buildCycle(settings)
+    return TimerSession(
+        items = items,
+        currentIndex = 0,
+        remainingSeconds = items.first().type.let { t ->
+            when (t) {
+                is SessionItemType.Focus -> t.seconds
+                is SessionItemType.ShortBreak -> t.seconds
+                is SessionItemType.LongBreak -> t.seconds
+            }
+        },
+        timerState = TimerState.Idle
+    )
+}
+
 enum class GlassReadabilityMode(val label: String) {
     Adaptive("Adaptive"),
     Clear("Clear"),
