@@ -65,9 +65,18 @@ class TimerAlarmReceiver : BroadcastReceiver() {
 
                 if (advanced.session.timerState == TimerState.Playing && !TimerService.isRunning) {
                     // Auto-advance into next segment but service was killed — restart it.
-                    val resumeIntent = Intent(appCtx, TimerService::class.java)
-                        .setAction(TimerService.ACTION_ALARM_FIRED)
-                    appCtx.startForegroundService(resumeIntent)
+                    // Some OEMs / strict Doze policies can throw
+                    // ForegroundServiceStartNotAllowedException (API 31+) even with an
+                    // exact-alarm exemption; if that happens the completion notification
+                    // we just posted is the user's cue to reopen the app.
+                    try {
+                        val resumeIntent = Intent(appCtx, TimerService::class.java)
+                            .setAction(TimerService.ACTION_ALARM_FIRED)
+                        appCtx.startForegroundService(resumeIntent)
+                    } catch (_: RuntimeException) {
+                        // Service stays dead; runtimeSnapshot already reflects the new
+                        // Playing state, so reconciliation will pick this up on next open.
+                    }
                 }
             } finally {
                 pendingResult.finish()

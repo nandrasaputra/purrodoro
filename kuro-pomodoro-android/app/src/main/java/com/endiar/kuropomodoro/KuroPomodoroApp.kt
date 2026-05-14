@@ -229,25 +229,25 @@ fun KuroPomodoroApp(
                         activeTask = activeTask,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
-                        onSkip = { timerConnection.controller?.skip() },
+                        onSkip = { timerConnection.controller.skip() },
                         onStartPause = {
                             when {
                                 !isStarted -> {
                                     requestNotificationPermission()
                                     isFocusMode = true
-                                    timerConnection.start(settings, activeTask)
+                                    timerConnection.controller.start(settings, activeTask)
                                 }
                                 isRunning -> {
                                     isFocusMode = false
-                                    timerConnection.controller?.pause()
+                                    timerConnection.controller.pause()
                                 }
                                 else -> {
-                                    timerConnection.controller?.resume()
+                                    timerConnection.controller.resume()
                                 }
                             }
                         },
                         onStop = {
-                            timerConnection.controller?.stop()
+                            timerConnection.controller.stop()
                             isFocusMode = false
                             activeTask = null
                         },
@@ -266,7 +266,7 @@ fun KuroPomodoroApp(
                             isFocusMode = true
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
-                            timerConnection.start(settings, task)
+                            timerConnection.controller.start(settings, task)
                         },
                         settings = settings,
                         glassTreatment = glassTreatment
