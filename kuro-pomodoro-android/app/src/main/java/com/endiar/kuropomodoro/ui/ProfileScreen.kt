@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,14 +46,16 @@ fun ProfileScreen(
     onDurationChanged: (TimerMode, Int) -> Unit,
     onCycleSizeChanged: (Int) -> Unit,
     onMockFeature: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
-            .padding(top = 8.dp, bottom = 100.dp),
+            .padding(top = 8.dp, bottom = 100.dp)
+            .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(

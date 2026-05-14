@@ -80,7 +80,6 @@ private fun DebugScreen(
     val isPremiumOverride by debugRepo.isPremiumOverride.collectAsStateWithLifecycle()
     val appState by appRepo.appState.collectAsStateWithLifecycle(
         initialValue = com.endiar.kuropomodoro.data.AppState(
-            darkModePreview = false,
             glassReadabilityMode = com.endiar.kuropomodoro.model.GlassReadabilityMode.Adaptive,
             selectedSoundId = 1,
             completedSessions = 0,

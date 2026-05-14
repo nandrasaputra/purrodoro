@@ -7,6 +7,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -76,7 +77,8 @@ fun TodoScreen(
     onFocusTask: (FocusTask) -> Unit,
     settings: TimerSettings = TimerSettings(),
     modifier: Modifier = Modifier,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val selectedList = todoLists.firstOrNull { it.id == selectedListId } ?: todoLists.firstOrNull()
     var newTaskTitle by rememberSaveable { mutableStateOf("") }
@@ -101,7 +103,8 @@ fun TodoScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
-            .padding(top = 8.dp, bottom = 100.dp),
+            .padding(top = 8.dp, bottom = 100.dp)
+            .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header row
