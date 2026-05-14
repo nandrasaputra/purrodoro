@@ -370,6 +370,7 @@ class TimerService : Service() {
             TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
             TimerNotification.buildCompletionNotification(applicationContext, TimerNotification.CompletionKind.Cycle)
         )
+        scope.launch { repo.setPendingCycleCompletionAck(true) }
         _state.value = resetState
         cancelAlarm()
         stopForeground(STOP_FOREGROUND_REMOVE)
