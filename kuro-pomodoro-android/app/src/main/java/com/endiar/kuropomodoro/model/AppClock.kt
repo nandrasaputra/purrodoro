@@ -9,7 +9,6 @@ import java.time.LocalTime
  */
 interface ClockDebugSource {
     val clockOverride: StateFlow<LocalTime?>
-    val speedUpTimer: StateFlow<Boolean>
 }
 
 /**
@@ -20,15 +19,9 @@ interface ClockDebugSource {
  * In debug builds, DebugRepository sets source so clock overrides take effect.
  */
 object AppClock {
-    private const val NORMAL_TICK_MS = 250L
-    private const val FAST_TICK_MS = 25L
-
     var source: ClockDebugSource? = null
         internal set
 
     fun now(): LocalTime =
         source?.clockOverride?.value ?: LocalTime.now()
-
-    fun tickIntervalMs(): Long =
-        if (source?.speedUpTimer?.value == true) FAST_TICK_MS else NORMAL_TICK_MS
 }

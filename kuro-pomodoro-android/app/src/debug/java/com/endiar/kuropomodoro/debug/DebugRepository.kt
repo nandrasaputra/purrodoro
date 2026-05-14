@@ -1,7 +1,6 @@
 package com.endiar.kuropomodoro.debug
 
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -19,7 +18,6 @@ import java.time.format.DateTimeFormatter
 private val Context.debugDataStore by preferencesDataStore(name = "kuro_debug_prefs")
 
 private val KEY_CLOCK_OVERRIDE = stringPreferencesKey("clock_override")
-private val KEY_SPEED_UP = booleanPreferencesKey("speed_up_timer")
 private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
 
 class DebugRepository(private val context: Context? = null) : ClockDebugSource {
@@ -27,16 +25,13 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override val clockOverride = MutableStateFlow<LocalTime?>(null)
-    override val speedUpTimer = MutableStateFlow(false)
 
     init {
         if (context != null) {
-            // Load persisted values synchronously so AppClock reflects them immediately
             val prefs = runBlocking { context.debugDataStore.data.first() }
             clockOverride.value = prefs[KEY_CLOCK_OVERRIDE]
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { runCatching { LocalTime.parse(it, TIME_FORMAT) }.getOrNull() }
-            speedUpTimer.value = prefs[KEY_SPEED_UP] ?: false
         }
     }
 
@@ -46,17 +41,6 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource {
             scope.launch {
                 ctx.debugDataStore.edit { prefs ->
                     prefs[KEY_CLOCK_OVERRIDE] = time?.format(TIME_FORMAT) ?: ""
-                }
-            }
-        }
-    }
-
-    fun setSpeedUpTimer(enabled: Boolean) {
-        speedUpTimer.value = enabled
-        context?.let { ctx ->
-            scope.launch {
-                ctx.debugDataStore.edit { prefs ->
-                    prefs[KEY_SPEED_UP] = enabled
                 }
             }
         }
