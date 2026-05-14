@@ -62,6 +62,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_FOCUS_MIN = intPreferencesKey("focus_minutes")
         private val KEY_SHORT_MIN = intPreferencesKey("short_break_minutes")
         private val KEY_LONG_MIN = intPreferencesKey("long_break_minutes")
+        private val KEY_CYCLE_SIZE = intPreferencesKey("focus_sessions_per_cycle")
         private val KEY_NEXT_TASK_ID = intPreferencesKey("next_task_id")
         private val KEY_SELECTED_LIST = intPreferencesKey("selected_todo_list_id")
         private val KEY_STAMPS = stringPreferencesKey("stamps_json")
@@ -90,7 +91,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             settings = TimerSettings(
                 focusMinutes = prefs[KEY_FOCUS_MIN] ?: 25,
                 shortBreakMinutes = prefs[KEY_SHORT_MIN] ?: 5,
-                longBreakMinutes = prefs[KEY_LONG_MIN] ?: 15
+                longBreakMinutes = prefs[KEY_LONG_MIN] ?: 15,
+                focusSessionsPerCycle = prefs[KEY_CYCLE_SIZE] ?: 4
             ),
             nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 7,
             selectedTodoListId = prefs[KEY_SELECTED_LIST] ?: 1,
@@ -108,6 +110,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         prefs[KEY_FOCUS_MIN] = value.focusMinutes
         prefs[KEY_SHORT_MIN] = value.shortBreakMinutes
         prefs[KEY_LONG_MIN] = value.longBreakMinutes
+        prefs[KEY_CYCLE_SIZE] = value.focusSessionsPerCycle
     }
     suspend fun setNextTaskId(value: Int) = dataStore.edit { it[KEY_NEXT_TASK_ID] = value }
     suspend fun setSelectedTodoListId(value: Int) = dataStore.edit { it[KEY_SELECTED_LIST] = value }
