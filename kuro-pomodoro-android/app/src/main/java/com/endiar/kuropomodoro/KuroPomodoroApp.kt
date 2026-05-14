@@ -53,6 +53,7 @@ import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.model.AppClock
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.addFocusStamp
 import com.endiar.kuropomodoro.model.formatSeconds
@@ -209,11 +210,11 @@ fun KuroPomodoroApp(repo: AppRepository) {
                 break
             }
 
-            delay(250)
+            delay(AppClock.tickIntervalMs())
         }
     }
 
-    val backdropTime = LocalTime.now()
+    val backdropTime = AppClock.now()
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
     CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
