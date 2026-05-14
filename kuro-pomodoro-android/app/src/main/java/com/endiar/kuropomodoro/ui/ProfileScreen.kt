@@ -48,6 +48,7 @@ fun ProfileScreen(
     onDarkModeChanged: (Boolean) -> Unit,
     onGlassReadabilityModeChanged: (GlassReadabilityMode) -> Unit,
     onDurationChanged: (TimerMode, Int) -> Unit,
+    onCycleSizeChanged: (Int) -> Unit,
     onMockFeature: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -134,6 +135,15 @@ fun ProfileScreen(
                 minutes = settings.longBreakMinutes,
                 onMinus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes - 1).coerceIn(1, 60)) },
                 onPlus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes + 1).coerceIn(1, 60)) },
+                glassTreatment = glassTreatment
+            )
+            Spacer(Modifier.height(8.dp))
+            DurationRow(
+                label = "Focus sessions / cycle",
+                minutes = settings.focusSessionsPerCycle,
+                unit = "sessions",
+                onMinus = { onCycleSizeChanged((settings.focusSessionsPerCycle - 1).coerceIn(1, 10)) },
+                onPlus = { onCycleSizeChanged((settings.focusSessionsPerCycle + 1).coerceIn(1, 10)) },
                 glassTreatment = glassTreatment
             )
         }
@@ -239,6 +249,7 @@ fun ProfileScreen(
 private fun DurationRow(
     label: String,
     minutes: Int,
+    unit: String = "min",
     onMinus: () -> Unit,
     onPlus: () -> Unit,
     glassTreatment: GlassTreatment = GlassTreatment.Clear
@@ -255,7 +266,7 @@ private fun DurationRow(
         ) {
             StepperButton(label = "−", onClick = onMinus, glassTreatment = glassTreatment)
             Text(
-                text = "$minutes min",
+                text = "$minutes $unit",
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
