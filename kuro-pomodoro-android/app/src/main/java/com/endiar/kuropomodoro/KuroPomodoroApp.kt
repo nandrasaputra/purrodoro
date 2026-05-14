@@ -19,10 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -378,13 +375,6 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
                         onSkip = onSkip,
-                        onModeSelected = { mode ->
-                            timerMode = mode
-                            isRunning = false
-                            isStarted = false
-                            remainingSeconds = settings.secondsFor(mode)
-                            activeTotalSeconds = settings.secondsFor(mode)
-                        },
                         onStartPause = {
                             if (!isRunning) {
                                 activeTotalSeconds = timerStartTotalSeconds(
@@ -552,7 +542,6 @@ private fun FocusDashboard(
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
     onSkip: () -> Unit,
-    onModeSelected: (TimerMode) -> Unit,
     onStartPause: () -> Unit,
     onStop: () -> Unit,
     onExitFocusMode: () -> Unit,
@@ -621,7 +610,6 @@ private fun FocusDashboard(
 
     val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
-    var showModeMenu by remember { mutableStateOf(false) }
     var showStopConfirmDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -810,86 +798,23 @@ private fun FocusDashboard(
                     }
                 }
             } else {
-                // Idle state: play button + mode selector
+                // Idle state: Focus Now pill CTA
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .border(
-                            1.5.dp,
-                            Color.White.copy(alpha = 0.35f),
-                            RoundedCornerShape(28.dp)
-                        )
+                        .fillMaxWidth()
+                        .padding(horizontal = 48.dp)
+                        .height(56.dp)
                         .clip(RoundedCornerShape(28.dp))
-                        .background(buttonBg)
+                        .background(Color(0xFFFF8B6F))
                         .clickable(onClick = onStartPause),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "\u25b6",
-                        color = buttonContentColor,
-                        fontSize = 20.sp,
+                        text = "Focus Now",
+                        color = Color.White,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
-                }
-                Spacer(Modifier.width(8.dp))
-                Box(modifier = Modifier.wrapContentSize(Alignment.TopCenter)) {
-                    Box(
-                        modifier = Modifier
-                            .height(56.dp)
-                            .border(
-                                1.5.dp,
-                                Color.White.copy(alpha = 0.25f),
-                                RoundedCornerShape(28.dp)
-                            )
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(Color.White.copy(alpha = 0.12f))
-                            .clickable { showModeMenu = !showModeMenu }
-                            .padding(horizontal = 20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = timerMode.label,
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "\u25be",
-                                color = Color.White.copy(alpha = 0.55f),
-                                fontSize = 13.sp
-                            )
-                        }
-                    }
-                    DropdownMenu(
-                        expanded = showModeMenu,
-                        onDismissRequest = { showModeMenu = false },
-                        containerColor = Color(0xFF1E1628)
-                    ) {
-                        TimerMode.entries.forEach { mode ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = mode.label,
-                                        color = if (mode == timerMode) Color(0xFFFF8B6F) else Color.White.copy(
-                                            alpha = 0.85f
-                                        ),
-                                        fontWeight = if (mode == timerMode) FontWeight.SemiBold else FontWeight.Normal
-                                    )
-                                },
-                                onClick = {
-                                    onModeSelected(mode)
-                                    showModeMenu = false
-                                },
-                                colors = MenuDefaults.itemColors(
-                                    textColor = Color.White.copy(alpha = 0.85f)
-                                )
-                            )
-                        }
-                    }
                 }
             }
         }
