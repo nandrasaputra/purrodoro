@@ -112,6 +112,34 @@ fun buildCycle(settings: TimerSettings): List<TimerSessionItem> {
     return items
 }
 
+/** The inputs needed to render cycle progress dots in the UI. */
+data class CycleDotsState(
+    val totalFocusSessions: Int,
+    val completedFocusSessions: Int,
+    val isCurrentlyFocus: Boolean
+)
+
+/**
+ * Derives [CycleDotsState] from the active cycle items and index.
+ *
+ * Falls back to [settings.focusSessionsPerCycle] when [cycleItems] is empty (idle state),
+ * so the dots are always visible regardless of timer state.
+ */
+fun cycleDotsState(
+    cycleItems: List<TimerSessionItem>,
+    cycleIndex: Int,
+    settings: TimerSettings
+): CycleDotsState {
+    val focusItemIndices = cycleItems.mapIndexedNotNull { i, item ->
+        if (item.type is SessionItemType.Focus) i else null
+    }
+    val totalFocusSessions = if (focusItemIndices.isNotEmpty()) focusItemIndices.size
+                             else settings.focusSessionsPerCycle
+    val completedFocusSessions = focusItemIndices.count { it < cycleIndex }
+    val isCurrentlyFocus = cycleItems.getOrNull(cycleIndex)?.type is SessionItemType.Focus
+    return CycleDotsState(totalFocusSessions, completedFocusSessions, isCurrentlyFocus)
+}
+
 /** Builds a fresh [TimerSession] from [settings] at the start of a new cycle. */
 fun buildSession(settings: TimerSettings): TimerSession {
     val items = buildCycle(settings)
