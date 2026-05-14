@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
+import com.endiar.kuropomodoro.model.SessionRecord
+import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TodoListState
 import kotlinx.coroutines.flow.Flow
@@ -28,7 +30,8 @@ data class AppState(
     val selectedTodoListId: Int,
     val stamps: Map<LocalDate, Int>,
     val todoLists: List<TodoListState>,
-    val isPremium: Boolean = false
+    val isPremium: Boolean = false,
+    val sessionRecords: List<SessionRecord> = emptyList()
 )
 
 private val SEED_TODO_LISTS = listOf(
@@ -68,6 +71,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_STAMPS = stringPreferencesKey("stamps_json")
         private val KEY_TODOS = stringPreferencesKey("todo_lists_json")
         private val KEY_IS_PREMIUM = booleanPreferencesKey("is_premium")
+        private val KEY_SESSION_RECORDS = stringPreferencesKey("session_records_json")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -98,7 +102,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             selectedTodoListId = prefs[KEY_SELECTED_LIST] ?: 1,
             stamps = decodeStamps(prefs[KEY_STAMPS] ?: ""),
             todoLists = decodeTodoLists(prefs[KEY_TODOS] ?: ""),
-            isPremium = prefs[KEY_IS_PREMIUM] ?: false
+            isPremium = prefs[KEY_IS_PREMIUM] ?: false,
+            sessionRecords = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: ""),
         )
     }
 
@@ -117,6 +122,11 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setStamps(value: Map<LocalDate, Int>) = dataStore.edit { it[KEY_STAMPS] = encodeStamps(value) }
     suspend fun setTodoLists(value: List<TodoListState>) = dataStore.edit { it[KEY_TODOS] = encodeTodoLists(value) }
     suspend fun setIsPremium(value: Boolean) = dataStore.edit { it[KEY_IS_PREMIUM] = value }
+
+    suspend fun appendSessionRecord(record: SessionRecord) = dataStore.edit { prefs ->
+        val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
+        prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing + record)
+    }
 }
 
 // --- Encoding helpers ---
@@ -165,4 +175,37 @@ internal fun decodeTodoLists(raw: String): List<TodoListState> {
             TodoListState(listId, name, tasks)
         }
     }.getOrElse { SEED_TODO_LISTS }
+}
+
+internal fun encodeSessionRecords(records: List<SessionRecord>): String =
+    records.joinToString("\n") { r ->
+        val taskEncoded = if (r.taskName != null) URLEncoder.encode(r.taskName, "UTF-8") else ""
+        listOf(
+            r.id, r.startedAt, r.endedAt,
+            r.focusMinutes, r.shortBreakMinutes, r.longBreakMinutes,
+            r.completedFocusCount, r.totalFocusCount,
+            r.status.name, taskEncoded
+        ).joinToString("|")
+    }
+
+internal fun decodeSessionRecords(raw: String): List<SessionRecord> {
+    if (raw.isBlank()) return emptyList()
+    return runCatching {
+        raw.split("\n").mapNotNull { line ->
+            val p = line.split("|")
+            if (p.size < 10) return@mapNotNull null
+            SessionRecord(
+                id = p[0].toLong(),
+                startedAt = p[1].toLong(),
+                endedAt = p[2].toLong(),
+                focusMinutes = p[3].toInt(),
+                shortBreakMinutes = p[4].toInt(),
+                longBreakMinutes = p[5].toInt(),
+                completedFocusCount = p[6].toInt(),
+                totalFocusCount = p[7].toInt(),
+                status = SessionStatus.valueOf(p[8]),
+                taskName = if (p[9].isBlank()) null else URLDecoder.decode(p[9], "UTF-8")
+            )
+        }
+    }.getOrElse { emptyList() }
 }
