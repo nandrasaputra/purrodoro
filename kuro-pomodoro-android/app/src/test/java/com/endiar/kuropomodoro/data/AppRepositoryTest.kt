@@ -31,7 +31,6 @@ class AppRepositoryTest {
     fun `default AppState has expected values`() = runTest {
         val repo = makeRepo()
         val state = repo.appState.first()
-        assertEquals(false, state.darkModePreview)
         assertEquals(GlassReadabilityMode.Adaptive, state.glassReadabilityMode)
         assertEquals(1, state.selectedSoundId)
         assertEquals(0, state.completedSessions)
@@ -40,13 +39,6 @@ class AppRepositoryTest {
         assertEquals(1, state.selectedTodoListId)
         assertEquals(emptyMap<LocalDate, Int>(), state.stamps)
         assertEquals(3, state.todoLists.size) // seed data
-    }
-
-    @Test
-    fun `setDarkModePreview persists true`() = runTest {
-        val repo = makeRepo()
-        repo.setDarkModePreview(true)
-        assertEquals(true, repo.appState.first().darkModePreview)
     }
 
     @Test

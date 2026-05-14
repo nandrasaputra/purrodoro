@@ -26,7 +26,6 @@ import java.net.URLEncoder
 import java.time.LocalDate
 
 data class AppState(
-    val darkModePreview: Boolean,
     val glassReadabilityMode: GlassReadabilityMode,
     val selectedSoundId: Int,
     val completedSessions: Int,
@@ -63,7 +62,6 @@ private val SEED_TODO_LISTS = listOf(
 class AppRepository(private val dataStore: DataStore<Preferences>) {
 
     companion object {
-        private val KEY_DARK_MODE = booleanPreferencesKey("dark_mode_preview")
         private val KEY_GLASS_MODE = stringPreferencesKey("glass_readability_mode")
         private val KEY_SOUND_ID = intPreferencesKey("selected_sound_id")
         private val KEY_COMPLETED = intPreferencesKey("completed_sessions")
@@ -96,7 +94,6 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
 
     val appState: Flow<AppState> = dataStore.data.map { prefs ->
         AppState(
-            darkModePreview = prefs[KEY_DARK_MODE] ?: false,
             glassReadabilityMode = prefs[KEY_GLASS_MODE]
                 ?.let { runCatching { GlassReadabilityMode.valueOf(it) }.getOrNull() }
                 ?: GlassReadabilityMode.Adaptive,
@@ -117,7 +114,6 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         )
     }
 
-    suspend fun setDarkModePreview(value: Boolean) = dataStore.edit { it[KEY_DARK_MODE] = value }
     suspend fun setGlassReadabilityMode(value: GlassReadabilityMode) = dataStore.edit { it[KEY_GLASS_MODE] = value.name }
     suspend fun setSelectedSoundId(value: Int) = dataStore.edit { it[KEY_SOUND_ID] = value }
     suspend fun setCompletedSessions(value: Int) = dataStore.edit { it[KEY_COMPLETED] = value }

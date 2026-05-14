@@ -80,7 +80,6 @@ fun KuroPomodoroApp(
 ) {
     val appState by repo.appState.collectAsStateWithLifecycle(
         initialValue = AppState(
-            darkModePreview = false,
             glassReadabilityMode = GlassReadabilityMode.Adaptive,
             selectedSoundId = 1,
             completedSessions = 0,
@@ -117,7 +116,6 @@ fun KuroPomodoroApp(
     var completedSessions by remember(appState.completedSessions) { mutableIntStateOf(appState.completedSessions) }
     var stamps by remember(appState.stamps) { mutableStateOf(appState.stamps) }
     var selectedSoundId by remember(appState.selectedSoundId) { mutableIntStateOf(appState.selectedSoundId) }
-    var darkModePreview by remember(appState.darkModePreview) { mutableStateOf(appState.darkModePreview) }
     var glassReadabilityMode by remember(appState.glassReadabilityMode) { mutableStateOf(appState.glassReadabilityMode) }
     var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
     var selectedTodoListId by remember(appState.selectedTodoListId) { mutableIntStateOf(appState.selectedTodoListId) }
@@ -139,7 +137,6 @@ fun KuroPomodoroApp(
     fun persistCompletedSessions(v: Int) { completedSessions = v; scope.launch { repo.setCompletedSessions(v) } }
     fun persistStamps(v: Map<LocalDate, Int>) { stamps = v; scope.launch { repo.setStamps(v) } }
     fun persistSelectedSoundId(v: Int) { selectedSoundId = v; scope.launch { repo.setSelectedSoundId(v) } }
-    fun persistDarkModePreview(v: Boolean) { darkModePreview = v; scope.launch { repo.setDarkModePreview(v) } }
     fun persistGlassReadabilityMode(v: GlassReadabilityMode) { glassReadabilityMode = v; scope.launch { repo.setGlassReadabilityMode(v) } }
     fun persistNextTaskId(v: Int) { nextTaskId = v; scope.launch { repo.setNextTaskId(v) } }
     fun persistSelectedTodoListId(v: Int) { selectedTodoListId = v; scope.launch { repo.setSelectedTodoListId(v) } }
@@ -297,10 +294,8 @@ fun KuroPomodoroApp(
                     )
                     AppTab.Profile -> ProfileScreen(
                         settings = settings,
-                        darkModePreview = darkModePreview,
                         glassReadabilityMode = glassReadabilityMode,
                         glassTreatment = glassTreatment,
-                        onDarkModeChanged = { persistDarkModePreview(it) },
                         onGlassReadabilityModeChanged = { persistGlassReadabilityMode(it) },
                         onDurationChanged = { mode, minutes ->
                             val updatedSettings = settings.update(mode, minutes)
