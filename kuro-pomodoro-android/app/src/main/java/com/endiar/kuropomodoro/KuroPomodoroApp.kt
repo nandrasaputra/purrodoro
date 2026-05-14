@@ -252,6 +252,8 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         timerMode = timerMode,
                         remainingSeconds = remainingSeconds,
                         isRunning = isRunning,
+                        isStarted = remainingSeconds < settings.secondsFor(timerMode),
+                        isFocusMode = isFocusMode,
                         activeTask = activeTask,
                         onModeSelected = { mode ->
                             timerMode = mode
@@ -267,10 +269,23 @@ fun KuroPomodoroApp(repo: AppRepository) {
                                     remainingSeconds = remainingSeconds,
                                     activeTotalSeconds = activeTotalSeconds
                                 )
+                                isFocusMode = true
+                            } else {
+                                isFocusMode = false
                             }
                             isRunning = !isRunning
                         },
-                        onBackToFocusMode = { isFocusMode = true }
+                        onStop = {
+                            isRunning = false
+                            isFocusMode = false
+                            activeTask = null
+                            remainingSeconds = settings.secondsFor(timerMode)
+                            activeTotalSeconds = settings.secondsFor(timerMode)
+                            timerStartedAtMillis = null
+                            timerStartedRemainingSeconds = settings.secondsFor(timerMode)
+                        },
+                        onExitFocusMode = { isFocusMode = false },
+                        onEnterFocusMode = { isFocusMode = true }
                     )
                     AppTab.Todo -> TodoScreen(
                         todoLists = todoLists,
@@ -329,16 +344,6 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         onMockFeature = { premiumSheetMessage = it }
                     )
                 }
-                // Focus Mode fullscreen overlay
-                if (isFocusMode && isRunning) {
-                    FocusModeScreen(
-                        task = activeTask,
-                        remainingSeconds = remainingSeconds,
-                        glassTreatment = glassTreatment,
-                        backdropTime = backdropTime,
-                        onTap = { isFocusMode = false }
-                    )
-                }
             }
             premiumSheetMessage?.let { message ->
                 PremiumMessage(
@@ -383,11 +388,68 @@ private fun FocusDashboard(
     timerMode: TimerMode,
     remainingSeconds: Int,
     isRunning: Boolean,
+    isStarted: Boolean,
+    isFocusMode: Boolean,
     activeTask: FocusTask?,
     onModeSelected: (TimerMode) -> Unit,
     onStartPause: () -> Unit,
-    onBackToFocusMode: () -> Unit,
+    onStop: () -> Unit,
+    onExitFocusMode: () -> Unit,
+    onEnterFocusMode: () -> Unit = {},
 ) {
+    if (isFocusMode && isRunning) {
+        // Minimal focus view — same screen, just controls hidden; tap anywhere to reveal
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(onClick = onExitFocusMode),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "FOCUS",
+                    color = Color.White.copy(alpha = 0.40f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 2.sp
+                )
+                Text(
+                    text = formatSeconds(remainingSeconds),
+                    color = Color.White.copy(alpha = 0.95f),
+                    fontSize = 96.sp,
+                    fontWeight = FontWeight.W200,
+                    letterSpacing = (-2).sp
+                )
+                if (activeTask != null) {
+                    Text(
+                        text = activeTask.title,
+                        color = Color.White.copy(alpha = 0.60f),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = "${activeTask.completedSessions + 1} / ${activeTask.plannedSessions}",
+                        color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(Modifier.height(40.dp))
+                Text(
+                    text = "tap anywhere to show controls",
+                    color = Color.White.copy(alpha = 0.22f),
+                    fontSize = 12.sp
+                )
+            }
+        }
+        return
+    }
+
     val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
     var showModeMenu by remember { mutableStateOf(false) }
@@ -425,171 +487,191 @@ private fun FocusDashboard(
             fontWeight = FontWeight.W400,
             letterSpacing = (-1).sp
         )
+        if (isStarted && !isRunning) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                text = "${timerMode.label} · paused",
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.5.sp
+            )
+        }
         Spacer(Modifier.height(24.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .border(
-                        1.5.dp,
-                        Color.White.copy(alpha = 0.35f),
-                        RoundedCornerShape(28.dp)
-                    )
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(buttonBg)
-                    .clickable(onClick = onStartPause),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (isRunning) "\u23f8" else "\u25b6",
-                    color = buttonContentColor,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Box(modifier = Modifier.wrapContentSize(Alignment.TopCenter)) {
+            if (isRunning) {
+                // Running state: pause button only
                 Box(
                     modifier = Modifier
-                        .height(56.dp)
+                        .size(56.dp)
                         .border(
                             1.5.dp,
-                            Color.White.copy(alpha = 0.25f),
+                            Color.White.copy(alpha = 0.35f),
                             RoundedCornerShape(28.dp)
                         )
                         .clip(RoundedCornerShape(28.dp))
-                        .background(Color.White.copy(alpha = 0.12f))
-                        .clickable { showModeMenu = !showModeMenu }
-                        .padding(horizontal = 20.dp),
+                        .background(buttonBg)
+                        .clickable(onClick = onStartPause),
                     contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = timerMode.label,
-                            color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "\u25be",
-                            color = Color.White.copy(alpha = 0.55f),
-                            fontSize = 13.sp
-                        )
-                    }
+                    Text(
+                        text = "\u23f8",
+                        color = buttonContentColor,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                DropdownMenu(
-                    expanded = showModeMenu,
-                    onDismissRequest = { showModeMenu = false },
-                    containerColor = Color(0xFF1E1628)
-                ) {
-                    TimerMode.entries.forEach { mode ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = mode.label,
-                                    color = if (mode == timerMode) Color(0xFFFF8B6F) else Color.White.copy(
-                                        alpha = 0.85f
-                                    ),
-                                    fontWeight = if (mode == timerMode) FontWeight.SemiBold else FontWeight.Normal
-                                )
-                            },
-                            onClick = {
-                                onModeSelected(mode)
-                                showModeMenu = false
-                            },
-                            colors = MenuDefaults.itemColors(
-                                textColor = Color.White.copy(alpha = 0.85f)
-                            )
+            } else if (isStarted) {
+                // Paused state: resume + stop buttons
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .border(
+                            1.5.dp,
+                            Color.White.copy(alpha = 0.35f),
+                            RoundedCornerShape(28.dp)
                         )
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(buttonBg)
+                        .clickable(onClick = onStartPause),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "\u25b6",
+                        color = buttonContentColor,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .border(
+                            1.5.dp,
+                            Color.White.copy(alpha = 0.20f),
+                            RoundedCornerShape(28.dp)
+                        )
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .clickable(onClick = onStop),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "\u25a0",
+                        color = Color.White.copy(alpha = 0.60f),
+                        fontSize = 18.sp
+                    )
+                }
+            } else {
+                // Idle state: play button + mode selector
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .border(
+                            1.5.dp,
+                            Color.White.copy(alpha = 0.35f),
+                            RoundedCornerShape(28.dp)
+                        )
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(buttonBg)
+                        .clickable(onClick = onStartPause),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "\u25b6",
+                        color = buttonContentColor,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Box(modifier = Modifier.wrapContentSize(Alignment.TopCenter)) {
+                    Box(
+                        modifier = Modifier
+                            .height(56.dp)
+                            .border(
+                                1.5.dp,
+                                Color.White.copy(alpha = 0.25f),
+                                RoundedCornerShape(28.dp)
+                            )
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .clickable { showModeMenu = !showModeMenu }
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = timerMode.label,
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "\u25be",
+                                color = Color.White.copy(alpha = 0.55f),
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showModeMenu,
+                        onDismissRequest = { showModeMenu = false },
+                        containerColor = Color(0xFF1E1628)
+                    ) {
+                        TimerMode.entries.forEach { mode ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = mode.label,
+                                        color = if (mode == timerMode) Color(0xFFFF8B6F) else Color.White.copy(
+                                            alpha = 0.85f
+                                        ),
+                                        fontWeight = if (mode == timerMode) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                },
+                                onClick = {
+                                    onModeSelected(mode)
+                                    showModeMenu = false
+                                },
+                                colors = MenuDefaults.itemColors(
+                                    textColor = Color.White.copy(alpha = 0.85f)
+                                )
+                            )
+                        }
                     }
                 }
             }
         }
         Spacer(Modifier.weight(1f))
-        if (isRunning && activeTask != null) {
+        // "Enter focus mode" chip — visible whenever running
+        if (isRunning) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color(0xFFFF8B6F).copy(alpha = 0.18f))
                     .border(1.dp, Color(0xFFFF8B6F).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
-                    .clickable(onClick = onBackToFocusMode)
+                    .clickable(onClick = onEnterFocusMode)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "↗  back to focus mode",
+                    text = "↗  enter focus mode",
                     color = Color(0xFFFF8B6F),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
             Spacer(Modifier.height(24.dp))
-        }
-    }
-}
-
-@Composable
-private fun FocusModeScreen(
-    task: FocusTask?,
-    remainingSeconds: Int,
-    glassTreatment: GlassTreatment,
-    backdropTime: LocalTime,
-    onTap: () -> Unit
-) {
-    CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(onClick = onTap)
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "FOCUS",
-                    color = Color.White.copy(alpha = 0.40f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 2.sp
-                )
-                Text(
-                    text = formatSeconds(remainingSeconds),
-                    color = Color.White.copy(alpha = 0.95f),
-                    fontSize = 96.sp,
-                    fontWeight = FontWeight.W200,
-                    letterSpacing = (-2).sp
-                )
-                if (task != null) {
-                    Text(
-                        text = task.title,
-                        color = Color.White.copy(alpha = 0.60f),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "${task.completedSessions + 1} / ${task.plannedSessions}",
-                        color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Spacer(Modifier.height(40.dp))
-                Text(
-                    text = "tap anywhere to show controls",
-                    color = Color.White.copy(alpha = 0.22f),
-                    fontSize = 12.sp
-                )
-            }
         }
     }
 }
