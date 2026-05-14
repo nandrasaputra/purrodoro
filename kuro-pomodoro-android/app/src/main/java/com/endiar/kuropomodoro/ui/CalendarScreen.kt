@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,7 +48,8 @@ fun CalendarScreen(
     completedSessions: Int,
     sessionRecords: List<SessionRecord> = emptyList(),
     modifier: Modifier = Modifier,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
@@ -71,7 +73,8 @@ fun CalendarScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
-            .padding(top = 8.dp, bottom = 100.dp),
+            .padding(top = 8.dp, bottom = 100.dp)
+            .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
