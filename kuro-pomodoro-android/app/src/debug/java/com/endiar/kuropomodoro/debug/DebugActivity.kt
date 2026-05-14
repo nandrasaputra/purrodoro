@@ -145,7 +145,6 @@ private fun DebugScreen(
                     color = if (clockOverride != null) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
-                Spacer(Modifier.height(4.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
                         "08:00" to java.time.LocalTime.of(8, 0),
@@ -228,8 +227,6 @@ private fun DebugScreen(
                         }
                     )
                 }
-
-                HorizontalDivider()
 
                 // placeholder for Task 3
                 Spacer(Modifier.height(32.dp))
