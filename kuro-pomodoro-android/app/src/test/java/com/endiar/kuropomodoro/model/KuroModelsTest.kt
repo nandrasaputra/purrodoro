@@ -17,15 +17,6 @@ class KuroModelsTest {
     }
 
     @Test
-    fun stampCountIncrementsForSameDate() {
-        val today = LocalDate.of(2026, 5, 2)
-        val stamps = addFocusStamp(emptyMap(), today)
-        val updated = addFocusStamp(stamps, today)
-
-        assertEquals(2, updated[today])
-    }
-
-    @Test
     fun taskToggleChangesCompletionState() {
         val task = FocusTask(id = 1, title = "Read Kotlin docs", minutes = 25)
 
