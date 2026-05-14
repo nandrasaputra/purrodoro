@@ -27,7 +27,8 @@ data class AppState(
     val nextTaskId: Int,
     val selectedTodoListId: Int,
     val stamps: Map<LocalDate, Int>,
-    val todoLists: List<TodoListState>
+    val todoLists: List<TodoListState>,
+    val isPremium: Boolean = false
 )
 
 private val SEED_TODO_LISTS = listOf(
@@ -65,6 +66,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_SELECTED_LIST = intPreferencesKey("selected_todo_list_id")
         private val KEY_STAMPS = stringPreferencesKey("stamps_json")
         private val KEY_TODOS = stringPreferencesKey("todo_lists_json")
+        private val KEY_IS_PREMIUM = booleanPreferencesKey("is_premium")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -93,7 +95,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 7,
             selectedTodoListId = prefs[KEY_SELECTED_LIST] ?: 1,
             stamps = decodeStamps(prefs[KEY_STAMPS] ?: ""),
-            todoLists = decodeTodoLists(prefs[KEY_TODOS] ?: "")
+            todoLists = decodeTodoLists(prefs[KEY_TODOS] ?: ""),
+            isPremium = prefs[KEY_IS_PREMIUM] ?: false
         )
     }
 
@@ -110,6 +113,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setSelectedTodoListId(value: Int) = dataStore.edit { it[KEY_SELECTED_LIST] = value }
     suspend fun setStamps(value: Map<LocalDate, Int>) = dataStore.edit { it[KEY_STAMPS] = encodeStamps(value) }
     suspend fun setTodoLists(value: List<TodoListState>) = dataStore.edit { it[KEY_TODOS] = encodeTodoLists(value) }
+    suspend fun setIsPremium(value: Boolean) = dataStore.edit { it[KEY_IS_PREMIUM] = value }
 }
 
 // --- Encoding helpers ---
