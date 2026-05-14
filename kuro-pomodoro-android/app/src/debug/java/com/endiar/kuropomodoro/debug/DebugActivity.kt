@@ -229,6 +229,116 @@ private fun DebugScreen(
                 }
 
                 // placeholder for Task 3
+                HorizontalDivider()
+
+                // --- Session Injection ---
+                SectionTitle("SESSION INJECTION")
+                var injectionCount by remember { mutableIntStateOf(1) }
+
+                Text(
+                    "Date: ${java.time.LocalDate.now()} (today)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedButton(onClick = { if (injectionCount > 1) injectionCount-- }) { Text("−") }
+                    Text("$injectionCount", style = MaterialTheme.typography.titleMedium)
+                    OutlinedButton(onClick = { if (injectionCount < 10) injectionCount++ }) { Text("+") }
+                }
+                Button(
+                    onClick = {
+                        scope.launch {
+                            var updatedStamps = appState.stamps
+                            repeat(injectionCount) {
+                                updatedStamps = addFocusStamp(updatedStamps, java.time.LocalDate.now())
+                            }
+                            appRepo.setStamps(updatedStamps)
+                            appRepo.setCompletedSessions(appState.completedSessions + injectionCount)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Add $injectionCount Session${if (injectionCount > 1) "s" else ""}")
+                }
+
+                HorizontalDivider()
+
+                // --- Process ---
+                SectionTitle("PROCESS")
+                Button(
+                    onClick = onRestartApp,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                ) {
+                    Text("Restart App")
+                }
+                Text(
+                    "Overrides are saved to DataStore — app will relaunch with settings applied.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+
+                HorizontalDivider()
+
+                // --- Danger Zone ---
+                Spacer(Modifier.height(16.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        SectionTitle("DANGER ZONE", color = MaterialTheme.colorScheme.error)
+                        var resetConfirming by remember { mutableStateOf(false) }
+                        Button(
+                            onClick = {
+                                if (!resetConfirming) {
+                                    resetConfirming = true
+                                } else {
+                                    scope.launch {
+                                        appRepo.setStamps(emptyMap())
+                                        appRepo.setCompletedSessions(0)
+                                        appRepo.setTodoLists(emptyList())
+                                    }
+                                    resetConfirming = false
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (resetConfirming) MaterialTheme.colorScheme.error
+                                                 else MaterialTheme.colorScheme.errorContainer,
+                                contentColor = if (resetConfirming) MaterialTheme.colorScheme.onError
+                                               else MaterialTheme.colorScheme.onErrorContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                if (resetConfirming) "Are you sure? Tap again to confirm"
+                                else "Reset All Data"
+                            )
+                        }
+                        if (resetConfirming) {
+                            TextButton(onClick = { resetConfirming = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                        Text(
+                            "Wipes stamps, sessions, and todos back to seed state.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(32.dp))
             }
         }
