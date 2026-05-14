@@ -57,6 +57,7 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.kuropomodoro.model.cycleDotsState
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.model.glassTreatmentFor
@@ -226,6 +227,7 @@ fun KuroPomodoroApp(
                         activeTask = activeTask,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
+                        timerSettings = settings,
                         onSkip = { timerConnection.controller.skip() },
                         onStartPause = {
                             when {
@@ -341,6 +343,7 @@ private fun FocusDashboard(
     activeTask: FocusTask?,
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
+    timerSettings: TimerSettings,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
     onStop: () -> Unit,
@@ -399,12 +402,10 @@ private fun FocusDashboard(
         return
     }
 
-    val focusItemIndices = cycleItems.mapIndexedNotNull { i, item ->
-        if (item.type is SessionItemType.Focus) i else null
-    }
-    val totalFocusSessions = focusItemIndices.size
-    val completedFocusSessions = focusItemIndices.count { it < cycleIndex }
-    val isCurrentlyFocus = cycleItems.getOrNull(cycleIndex)?.type is SessionItemType.Focus
+    val dots = cycleDotsState(cycleItems, cycleIndex, timerSettings)
+    val totalFocusSessions = dots.totalFocusSessions
+    val completedFocusSessions = dots.completedFocusSessions
+    val isCurrentlyFocus = dots.isCurrentlyFocus
 
     val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White

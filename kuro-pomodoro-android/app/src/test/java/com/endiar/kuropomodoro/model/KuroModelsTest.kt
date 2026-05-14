@@ -75,6 +75,26 @@ class KuroModelsTest {
     }
 
     @Test
+    fun cycleDotsStateShowsAllDotsInIdleStateUsingSettings() {
+        val settings = TimerSettings(focusSessionsPerCycle = 4)
+        val state = cycleDotsState(cycleItems = emptyList(), cycleIndex = 0, settings = settings)
+        assertEquals(4, state.totalFocusSessions)
+        assertEquals(0, state.completedFocusSessions)
+        assertEquals(false, state.isCurrentlyFocus)
+    }
+
+    @Test
+    fun cycleDotsStateShowsProgressDuringActiveSession() {
+        val settings = TimerSettings(focusSessionsPerCycle = 4)
+        val items = buildCycle(settings)
+        // cycleIndex=2 means we are on the 2nd focus session (index 0=Focus, 1=ShortBreak, 2=Focus)
+        val state = cycleDotsState(cycleItems = items, cycleIndex = 2, settings = settings)
+        assertEquals(4, state.totalFocusSessions)
+        assertEquals(1, state.completedFocusSessions) // index 0 (Focus) is behind us
+        assertEquals(true, state.isCurrentlyFocus)
+    }
+
+    @Test
     fun adaptiveGlassReadabilityBoundaryHours() {
         assertEquals(
             GlassTreatment.Clear,
