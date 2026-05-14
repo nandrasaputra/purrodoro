@@ -143,6 +143,9 @@ class TimerReconcilerTest {
         assertEquals(1, result.closedRecords.size)
         assertEquals(SessionStatus.Completed, result.closedRecords[0].status)
         assertEquals(2, result.closedRecords[0].completedFocusCount)
+        // Verify endedAt is the cycle's actual end moment (not `now`):
+        //   startMillis + (25 + 5 + 25 + 15) * 60_000 = startMillis + 70 min in millis
+        assertEquals(startMillis + 70 * 60 * 1000L, result.closedRecords[0].endedAt)
     }
 
     @Test
@@ -155,6 +158,63 @@ class TimerReconcilerTest {
         }
         val result = TimerReconciler.reconcile(snapshot, now = 999_999_999L, noAutoSettings)
         assertEquals(snapshot, result.state)
+        assertTrue(result.stampsToIncrement.isEmpty())
+        assertTrue(result.closedRecords.isEmpty())
+    }
+
+    @Test
+    fun exactly_at_endsAt_treats_segment_as_completed() {
+        val startMillis = 1_700_000_000_000L
+        val snapshot = playingSnapshot(startMillis, noAutoSettings)
+        val now = snapshot.endsAtMillis!! // exactly at the boundary
+
+        val result = TimerReconciler.reconcile(snapshot, now, noAutoSettings)
+
+        assertEquals(1, result.state.session.currentIndex)
+        assertEquals(TimerState.Paused, result.state.session.timerState)
+        assertEquals(1, result.stampsToIncrement.size)
+    }
+
+    @Test
+    fun mid_cycle_restore_from_break_advances_correctly() {
+        // Snapshot was at second Focus (index 2) when last running, with auto-advance on.
+        val startMillis = 1_700_000_000_000L
+        val items = buildCycle(autoSettings)
+        val secondFocusSeconds = items[2].type.let {
+            when (it) {
+                is SessionItemType.Focus -> it.seconds
+                is SessionItemType.ShortBreak -> it.seconds
+                is SessionItemType.LongBreak -> it.seconds
+            }
+        }
+        val snapshot = TimerRuntimeState(
+            session = TimerSession(
+                items = items,
+                currentIndex = 2, // second Focus
+                remainingSeconds = secondFocusSeconds,
+                timerState = TimerState.Playing
+            ),
+            endsAtMillis = startMillis + secondFocusSeconds * 1000L,
+            activeTask = null,
+            openRecord = null
+        )
+        // Now is 1 minute into the LongBreak segment (Focus#2 done, plus 1 of 15 LongBreak minutes)
+        val now = startMillis + (25 + 1) * 60 * 1000L
+
+        val result = TimerReconciler.reconcile(snapshot, now, autoSettings)
+
+        assertEquals(3, result.state.session.currentIndex) // LongBreak
+        assertEquals(TimerState.Playing, result.state.session.timerState)
+        assertEquals(1, result.stampsToIncrement.size) // the second Focus that just completed
+    }
+
+    @Test
+    fun playing_with_null_endsAtMillis_is_treated_as_unchanged() {
+        // Malformed snapshot — invariant says Playing implies endsAtMillis != null.
+        // Reconciler should defensively return the snapshot unchanged rather than NPE.
+        val malformed = playingSnapshot(0L, noAutoSettings).copy(endsAtMillis = null)
+        val result = TimerReconciler.reconcile(malformed, now = 999_999_999_999L, noAutoSettings)
+        assertEquals(malformed, result.state)
         assertTrue(result.stampsToIncrement.isEmpty())
         assertTrue(result.closedRecords.isEmpty())
     }

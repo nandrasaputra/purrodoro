@@ -6,6 +6,7 @@ import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.model.TimerRuntimeState
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.kuropomodoro.model.seconds
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -21,6 +22,10 @@ object TimerReconciler {
     /**
      * Replay segment completions against the wall clock to produce the correct
      * [TimerRuntimeState] for "right now". Pure function — no Android dependencies.
+     *
+     * Related: [com.endiar.kuropomodoro.model.reduce] handles event-driven transitions
+     * (Start, Pause, Resume, Skip, Stop, TimerComplete). This reconciler is the
+     * wall-clock replay variant used when the service was killed and the app reopens.
      */
     fun reconcile(
         snapshot: TimerRuntimeState,
@@ -106,11 +111,5 @@ object TimerReconciler {
             stampsToIncrement = stamps,
             closedRecords = closed
         )
-    }
-
-    private fun SessionItemType.seconds(): Int = when (this) {
-        is SessionItemType.Focus -> seconds
-        is SessionItemType.ShortBreak -> seconds
-        is SessionItemType.LongBreak -> seconds
     }
 }

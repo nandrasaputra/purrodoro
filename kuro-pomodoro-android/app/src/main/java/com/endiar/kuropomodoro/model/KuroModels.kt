@@ -219,3 +219,10 @@ fun backgroundImageForTime(time: LocalTime = LocalTime.now()): Int {
         else                    -> R.drawable.cat_night  // 20–21
     }
 }
+
+/** Returns the segment duration in seconds, regardless of variant. */
+fun SessionItemType.seconds(): Int = when (this) {
+    is SessionItemType.Focus -> seconds
+    is SessionItemType.ShortBreak -> seconds
+    is SessionItemType.LongBreak -> seconds
+}
