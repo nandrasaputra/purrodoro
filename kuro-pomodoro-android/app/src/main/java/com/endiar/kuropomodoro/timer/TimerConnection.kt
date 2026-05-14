@@ -122,6 +122,15 @@ class TimerConnection(private val context: Context) {
             controllerRef = null
             serviceJob?.cancel()
             serviceJob = null
+            // Re-sync to the persisted snapshot. When the service stops after a
+            // cycle completion (natural or skip-to-end), it leaves a stale
+            // resetState in our flow; without this resync the snapshot collector
+            // wouldn't re-emit (snapshot was already cleared while controllerRef
+            // was still non-null), and the UI would keep showing the first dot
+            // as "current". See finishCycleAndStop in TimerService.
+            scope.launch {
+                _state.value = AppRepository.get(context).runtimeSnapshot.first()
+            }
         }
     }
 
