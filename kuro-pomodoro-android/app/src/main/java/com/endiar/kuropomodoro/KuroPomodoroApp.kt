@@ -127,6 +127,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
     var remainingSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
     var activeTotalSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
     var isRunning by rememberSaveable { mutableStateOf(false) }
+    var isStarted by rememberSaveable { mutableStateOf(false) }
     var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
     val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
@@ -265,6 +266,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
 
             if (updatedRemainingSeconds == 0) {
                 isRunning = false
+                isStarted = false
 
                 // Stamps and task tracking on Focus completion
                 val currentItem = cycleItems.getOrNull(cycleIndex)
@@ -344,7 +346,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         timerMode = timerMode,
                         remainingSeconds = remainingSeconds,
                         isRunning = isRunning,
-                        isStarted = remainingSeconds < settings.secondsFor(timerMode),
+                        isStarted = isStarted,
                         isFocusMode = isFocusMode,
                         activeTask = activeTask,
                         cycleItems = cycleItems,
@@ -353,6 +355,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         onModeSelected = { mode ->
                             timerMode = mode
                             isRunning = false
+                            isStarted = false
                             remainingSeconds = settings.secondsFor(mode)
                             activeTotalSeconds = settings.secondsFor(mode)
                         },
@@ -365,6 +368,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                                     activeTotalSeconds = activeTotalSeconds
                                 )
                                 isFocusMode = true
+                                isStarted = true
                             } else {
                                 isFocusMode = false
                             }
@@ -372,6 +376,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         },
                         onStop = {
                             isRunning = false
+                            isStarted = false
                             isFocusMode = false
                             activeTask = null
                             remainingSeconds = settings.secondsFor(timerMode)
@@ -394,6 +399,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                             isFocusMode = true
                             selectedTab = AppTab.Timer
                             isRunning = true
+                            isStarted = true
                         },
                         settings = settings,
                         glassTreatment = glassTreatment
