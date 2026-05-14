@@ -13,20 +13,28 @@ import com.endiar.kuropomodoro.model.TimerState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * UI-side helper that binds to [TimerService] and exposes its state as a [StateFlow].
+ * UI-side helper that talks to [TimerService].
  *
- * - When the service is running and bound, [state] mirrors the service's internal flow.
- * - When the service is not running, [state] emits the persisted runtime snapshot from
- *   the repository (so the UI can show a paused/reconciled state without the service alive).
+ * Two responsibilities:
+ *  - Expose the service's runtime state as a [StateFlow], falling back to the persisted
+ *    snapshot when the service is not bound.
+ *  - Provide a [controller] that the UI can call. The controller is **never null** and
+ *    never silently drops actions:
+ *      - Non-start actions (pause/resume/stop/skip) are dispatched via
+ *        `startForegroundService` so they work whether the service is bound or not.
+ *      - `start()` carries typed parameters that can't fit in an intent without serialization,
+ *        so when the service isn't bound yet we buffer the call and flush it in
+ *        [ServiceConnection.onServiceConnected].
  *
  * Reconciliation of a stale Playing snapshot (app killed mid-session) happens in [bind].
  */
@@ -36,7 +44,61 @@ class TimerConnection(private val context: Context) {
     val state: StateFlow<TimerRuntimeState?> = _state.asStateFlow()
 
     private var controllerRef: TimerController? = null
-    val controller: TimerController? get() = controllerRef ?: FallbackController
+    private var pendingStart: Pair<TimerSettings, FocusTask?>? = null
+
+    /**
+     * Public controller. Always non-null; routes through the binder when available,
+     * falls back to an intent dispatch otherwise.
+     */
+    val controller: TimerController = object : TimerController {
+        override fun start(settings: TimerSettings, task: FocusTask?) {
+            val bound = controllerRef
+            if (bound != null) {
+                bound.start(settings, task)
+                return
+            }
+            pendingStart = settings to task
+            val intent = Intent(context, TimerService::class.java)
+                .setAction(TimerService.ACTION_START)
+            safeStartForegroundService(intent)
+            tryBind(intent)
+        }
+        override fun pause()  = dispatchAction(TimerService.ACTION_PAUSE)  { it.pause() }
+        override fun resume() = dispatchAction(TimerService.ACTION_RESUME) { it.resume() }
+        override fun stop()   = dispatchAction(TimerService.ACTION_STOP)   { it.stop() }
+        override fun skip()   = dispatchAction(TimerService.ACTION_SKIP)   { it.skip() }
+    }
+
+    private inline fun dispatchAction(
+        intentAction: String,
+        crossinline directCall: (TimerController) -> Unit
+    ) {
+        controllerRef?.let { bound ->
+            directCall(bound)
+            return
+        }
+        val intent = Intent(context, TimerService::class.java).setAction(intentAction)
+        safeStartForegroundService(intent)
+        tryBind(intent)
+    }
+
+    private fun safeStartForegroundService(intent: Intent) {
+        try {
+            context.startForegroundService(intent)
+        } catch (_: RuntimeException) {
+            // ForegroundServiceStartNotAllowedException (API 31+) or OEM-specific blocks.
+            // The user's tap can't promote a background service right now; we'll resync
+            // state from the repository once the service is reachable again.
+        }
+    }
+
+    private fun tryBind(intent: Intent) {
+        try {
+            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        } catch (_: SecurityException) {
+            // Defensive: should not happen for our own service.
+        }
+    }
 
     private var serviceJob: Job? = null
     private var snapshotJob: Job? = null
@@ -49,6 +111,11 @@ class TimerConnection(private val context: Context) {
             serviceJob?.cancel()
             serviceJob = scope.launch {
                 lb.state.collectLatest { _state.value = it }
+            }
+            // Flush a buffered start() if one was queued before the binder arrived.
+            pendingStart?.let { (settings, task) ->
+                lb.controller.start(settings, task)
+                pendingStart = null
             }
         }
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -66,23 +133,31 @@ class TimerConnection(private val context: Context) {
 
             // When the service is not running, check if we have a stale Playing snapshot
             // (e.g. app was killed mid-session). Reconcile against the wall clock.
+            //
+            // Wrap the read + reconcile + writes in NonCancellable so that a fast
+            // onStop() cannot tear us apart between writing stamps and clearing the
+            // Playing snapshot, which would cause double-stamping on the next bind().
             if (!TimerService.isRunning) {
                 val snapshot = repo.runtimeSnapshot.first()
                 if (snapshot != null && snapshot.session.timerState == TimerState.Playing) {
                     val settings = repo.appState.first().settings
                     val now = System.currentTimeMillis()
-                    val result = TimerReconciler.reconcile(snapshot, now, settings)
+                    withContext(NonCancellable) {
+                        val result = TimerReconciler.reconcile(snapshot, now, settings)
 
-                    result.stampsToIncrement.forEach { date -> repo.incrementStampFor(date) }
-                    result.closedRecords.forEach { repo.appendSessionRecord(it) }
-                    repo.setRuntimeSnapshot(
-                        if (result.state.session.timerState == TimerState.Idle) null else result.state
-                    )
+                        // Clear/replace the Playing snapshot FIRST so an interrupted
+                        // run cannot replay the same reconciliation.
+                        repo.setRuntimeSnapshot(
+                            if (result.state.session.timerState == TimerState.Idle) null else result.state
+                        )
+                        result.stampsToIncrement.forEach { date -> repo.incrementStampFor(date) }
+                        result.closedRecords.forEach { repo.appendSessionRecord(it) }
 
-                    if (result.state.session.timerState == TimerState.Playing) {
-                        val intent = Intent(context, TimerService::class.java)
-                            .setAction(TimerService.ACTION_ALARM_FIRED)
-                        context.startForegroundService(intent)
+                        if (result.state.session.timerState == TimerState.Playing) {
+                            val intent = Intent(context, TimerService::class.java)
+                                .setAction(TimerService.ACTION_ALARM_FIRED)
+                            safeStartForegroundService(intent)
+                        }
                     }
                 }
             }
@@ -94,7 +169,7 @@ class TimerConnection(private val context: Context) {
         }
         if (TimerService.isRunning) {
             val intent = Intent(context, TimerService::class.java)
-            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            tryBind(intent)
         }
     }
 
@@ -107,37 +182,5 @@ class TimerConnection(private val context: Context) {
         controllerRef = null
         serviceJob?.cancel()
         serviceJob = null
-    }
-
-    /**
-     * Start a new cycle. Bootstraps the service if not running, then binds.
-     */
-    fun start(settings: TimerSettings, task: FocusTask?) {
-        if (!TimerService.isRunning) {
-            val intent = Intent(context, TimerService::class.java)
-                .setAction(TimerService.ACTION_START)
-            context.startForegroundService(intent)
-            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-            // Defer the start call until the binder arrives
-            scope.launch {
-                var attempts = 0
-                while (controllerRef == null && attempts < 20) {
-                    delay(100)
-                    attempts++
-                }
-                controllerRef?.start(settings, task)
-            }
-        } else {
-            controllerRef?.start(settings, task)
-        }
-    }
-
-    /** No-op fallback used when the service isn't bound yet. */
-    private object FallbackController : TimerController {
-        override fun start(settings: TimerSettings, task: FocusTask?) {}
-        override fun pause()  {}
-        override fun resume() {}
-        override fun stop()   {}
-        override fun skip()   {}
     }
 }
