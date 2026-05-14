@@ -182,6 +182,21 @@ fun addUnfinishedStamp(stamps: Map<LocalDate, FocusStamp>, date: LocalDate): Map
     return stamps + (date to existing.copy(unfinished = existing.unfinished + 1))
 }
 
+enum class SessionStatus { Completed, Partial }
+
+data class SessionRecord(
+    val id: Long,
+    val startedAt: Long,
+    val endedAt: Long,
+    val focusMinutes: Int,
+    val shortBreakMinutes: Int,
+    val longBreakMinutes: Int,
+    val completedFocusCount: Int,
+    val totalFocusCount: Int,
+    val status: SessionStatus,
+    val taskName: String?
+)
+
 /**
  * Maps a [LocalTime] to the corresponding cat background drawable resource.
  *
