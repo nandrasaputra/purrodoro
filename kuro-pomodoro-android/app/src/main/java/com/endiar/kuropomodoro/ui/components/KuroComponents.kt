@@ -541,3 +541,60 @@ fun MockBadge() {
         Text(text = "Mock", color = Color(0xFFD8C8FF), fontSize = 9.sp, fontWeight = FontWeight.Bold)
     }
 }
+
+/**
+ * A row of dots showing focus session progress within a Pomodoro cycle.
+ *
+ * @param totalFocusSessions  Total focus sessions in this cycle (= focusSessionsPerCycle)
+ * @param completedFocusSessions  Number of focus sessions already completed this cycle
+ * @param isCurrentlyFocus  True if the timer is currently on a Focus session (highlights current dot)
+ */
+@Composable
+fun CycleDotsRow(
+    totalFocusSessions: Int,
+    completedFocusSessions: Int,
+    isCurrentlyFocus: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val peach = Color(0xFFFF8B6F)
+    val peachMuted = Color(0xFFFF8B6F).copy(alpha = 0.25f)
+    val currentDotSize = 12.dp
+    val dotSize = 10.dp
+    val strokeWidth = 1.5.dp
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(totalFocusSessions) { index ->
+            val isCompleted = index < completedFocusSessions
+            val isCurrent = isCurrentlyFocus && index == completedFocusSessions
+            val size = if (isCurrent) currentDotSize else dotSize
+
+            Canvas(modifier = Modifier.size(size)) {
+                val radius = this.size.minDimension / 2f
+                when {
+                    isCompleted -> {
+                        // Filled peach dot
+                        drawCircle(color = peach, radius = radius)
+                    }
+                    isCurrent -> {
+                        // Filled peach dot (slightly larger, acts as highlight)
+                        drawCircle(color = peach, radius = radius)
+                    }
+                    else -> {
+                        // Outline dot
+                        drawCircle(
+                            color = peachMuted,
+                            radius = radius - strokeWidth.toPx() / 2,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = strokeWidth.toPx()
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
