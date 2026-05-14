@@ -103,9 +103,3 @@ fun reduce(
         )
     }
 }
-
-private fun SessionItemType.seconds(): Int = when (this) {
-    is SessionItemType.Focus -> seconds
-    is SessionItemType.ShortBreak -> seconds
-    is SessionItemType.LongBreak -> seconds
-}
