@@ -175,6 +175,7 @@ class TimerService : Service() {
             return
         }
         cancelAlarm()
+        stopTicking()
         val now = System.currentTimeMillis()
         val nextIndex = current.session.currentIndex + 1
         if (nextIndex >= current.session.items.size) {
@@ -184,18 +185,19 @@ class TimerService : Service() {
             stopSelf()
             return
         }
+        // Skip is an explicit user action — advance the cycle but leave the next
+        // segment paused, regardless of autoStartNextSession. Matches both the
+        // legacy in-Compose behavior and TimerSessionReducer's Skip handler.
         val nextSeconds = current.session.items[nextIndex].type.seconds()
         val updated = current.copy(
             session = current.session.copy(
                 currentIndex = nextIndex,
                 remainingSeconds = nextSeconds,
-                timerState = TimerState.Playing
+                timerState = TimerState.Paused
             ),
-            endsAtMillis = now + nextSeconds * 1000L
+            endsAtMillis = null
         )
         updateState(updated)
-        scheduleAlarm(updated)
-        startTicking()
     }
 
     private suspend fun doStop() {
