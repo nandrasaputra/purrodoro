@@ -33,12 +33,14 @@
 
 ---
 
-## Task 1: Lock down `TimerSessionReducer` behavior with unit tests
+## Task 1: ~~Lock down `TimerSessionReducer` behavior with unit tests~~ — **ALREADY SATISFIED**
+
+> **Status (2026-05-14, post-baseline-review):** Pre-existing `TimerSessionReducerTest.kt` already comprehensively covers the reducer with 19 tests, including all behaviors this task intended to lock down. The plan's exploration was stale — it assumed the test directory was empty. **Skip this task.** No code action; mark complete in the task tracker.
 
 The reducer already exists in `model/TimerSessionReducer.kt` but is not called anywhere. Before wiring it in, write tests so refactors don't silently change behavior.
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/model/TimerSessionReducerTest.kt`
+- ~~Create: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/model/TimerSessionReducerTest.kt`~~ — already exists.
 
 - [ ] **Step 1: Create the test file with all behavior cases**
 
@@ -2202,7 +2204,23 @@ onFocusTask = { task ->
 },
 ```
 
-- [ ] **Step 9: Build to verify**
+- [ ] **Step 9: Delete obsolete tests in `KuroPomodoroAppTest.kt`**
+
+The pre-existing test file `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/KuroPomodoroAppTest.kt` tests two internal helpers (`timerDisplayTotalSeconds`, `timerStartTotalSeconds`) that this task removed from `KuroPomodoroApp.kt`. With those helpers gone, the tests no longer compile. Replace the entire file contents with:
+
+```kotlin
+package com.endiar.kuropomodoro
+
+// Tests removed: timerDisplayTotalSeconds and timerStartTotalSeconds were internal helpers
+// for the inline timer math removed during the migration to TimerService.
+// New unit coverage for the service-driven path lives in:
+//   - timer/TimerReconcilerTest.kt
+//   - model/TimerSessionReducerTest.kt
+```
+
+If you prefer to delete the file outright instead, that's equivalent — both options are acceptable. Keeping the file with a comment makes the rationale discoverable; deletion makes the test directory cleaner.
+
+- [ ] **Step 10: Build to verify**
 
 ```bash
 cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -30
@@ -2210,7 +2228,7 @@ cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -30
 
 Expected: `BUILD SUCCESSFUL`. If you hit errors about removed savers or unused imports, delete those imports (`AppTabSaver`/`TimerModeSaver` may still be used — keep them).
 
-- [ ] **Step 10: Commit Task 11 + Task 12 together**
+- [ ] **Step 11: Commit Task 11 + Task 12 together**
 
 ```bash
 git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/MainActivity.kt \
