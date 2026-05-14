@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -563,6 +564,7 @@ private fun FocusDashboard(
     val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
     var showModeMenu by remember { mutableStateOf(false) }
+    var showStopConfirmDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -708,7 +710,15 @@ private fun FocusDashboard(
                         )
                         .clip(RoundedCornerShape(28.dp))
                         .background(Color.White.copy(alpha = 0.08f))
-                        .clickable(onClick = onStop),
+                        .clickable {
+                            val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
+                            val isOnFocus = currentItemType is SessionItemType.Focus
+                            if (isOnFocus) {
+                                showStopConfirmDialog = true
+                            } else {
+                                onStop()
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -824,6 +834,46 @@ private fun FocusDashboard(
                     }
                 }
             }
+        }
+        if (showStopConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showStopConfirmDialog = false },
+                title = {
+                    Text(
+                        text = "Taking a break?",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Your focus time so far will still be counted.",
+                        color = Color.White.copy(alpha = 0.75f)
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showStopConfirmDialog = false
+                        onStop()
+                    }) {
+                        Text(
+                            text = "Stop for now",
+                            color = Color(0xFFFF8B6F),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showStopConfirmDialog = false }) {
+                        Text(
+                            text = "Stay focused",
+                            color = Color.White.copy(alpha = 0.70f)
+                        )
+                    }
+                },
+                containerColor = Color(0xFF2A2035),
+                shape = RoundedCornerShape(20.dp)
+            )
         }
         Spacer(Modifier.weight(1f))
         // "Enter focus mode" chip — visible whenever running
