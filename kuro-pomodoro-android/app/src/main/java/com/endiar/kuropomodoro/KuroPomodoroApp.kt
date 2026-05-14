@@ -53,6 +53,8 @@ import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.model.AppClock
+import com.endiar.kuropomodoro.model.PremiumOverride
 import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.addFocusStamp
 import com.endiar.kuropomodoro.model.formatSeconds
@@ -112,6 +114,9 @@ fun KuroPomodoroApp(repo: AppRepository) {
     var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
     var selectedTodoListId by remember(appState.selectedTodoListId) { mutableIntStateOf(appState.selectedTodoListId) }
     var todoLists by remember(appState.todoLists) { mutableStateOf(appState.todoLists) }
+
+    // isPremium: debug override takes precedence over persisted value
+    val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
     var timerMode by rememberSaveable(stateSaver = TimerModeSaver) { mutableStateOf(TimerMode.Focus) }
@@ -236,7 +241,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
         }
     }
 
-    val backdropTime = LocalTime.now()
+    val backdropTime = AppClock.now()
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
     CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
@@ -313,7 +318,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         selectedSoundId = selectedSoundId,
                         playingSoundId = playingSoundId,
                         onSoundSelected = { sound ->
-                            if (sound.locked) {
+                            if (sound.locked && !isPremium) {
                                 premiumSheetMessage = "${sound.name} is part of the simulated premium sound pack."
                             } else {
                                 persistSelectedSoundId(sound.id)
