@@ -93,8 +93,8 @@ private fun glassTokens(treatment: GlassTreatment): GlassTokens {
             cardBorder = Color.White.copy(alpha = 0.10f),
             pillFill = Color.White.copy(alpha = 0.08f),
             pillBorder = Color.White.copy(alpha = 0.15f),
-            dockFill = Color(0xFF15101F).copy(alpha = 0.65f),
-            dockBorder = Color.White.copy(alpha = 0.15f),
+            dockFill = Color(0xFF15101F).copy(alpha = 0.92f),
+            dockBorder = Color.White.copy(alpha = 0.18f),
             scrimAlpha = 0.80f
         )
         GlassTreatment.Readable -> GlassTokens(
@@ -103,8 +103,8 @@ private fun glassTokens(treatment: GlassTreatment): GlassTokens {
             cardBorder = Color.White.copy(alpha = 0.20f),
             pillFill = Color(0xFF0A0816).copy(alpha = 0.60f),
             pillBorder = Color.White.copy(alpha = 0.25f),
-            dockFill = Color(0xFF0A0816).copy(alpha = 0.85f),
-            dockBorder = Color.White.copy(alpha = 0.20f),
+            dockFill = Color(0xFF0A0816).copy(alpha = 0.95f),
+            dockBorder = Color.White.copy(alpha = 0.22f),
             scrimAlpha = 0.90f
         )
     }
