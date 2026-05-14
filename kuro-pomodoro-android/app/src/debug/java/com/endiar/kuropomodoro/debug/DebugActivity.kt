@@ -19,7 +19,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -64,7 +63,6 @@ private fun DebugScreen(
     onClose: () -> Unit
 ) {
     val clockOverride by debugRepo.clockOverride.collectAsStateWithLifecycle()
-    val speedUpTimer by debugRepo.speedUpTimer.collectAsStateWithLifecycle()
     val appState by appRepo.appState.collectAsStateWithLifecycle(
         initialValue = com.endiar.kuropomodoro.data.AppState(
             darkModePreview = false,
@@ -127,29 +125,6 @@ private fun DebugScreen(
                 enabled = clockOverride != null
             ) {
                 Text("Clear override")
-            }
-
-            HorizontalDivider()
-
-            // --- Timer Speed-Up ---
-            SectionTitle("TIMER")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Speed up timer", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        "25 min → ~150 seconds",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-                Switch(
-                    checked = speedUpTimer,
-                    onCheckedChange = { debugRepo.setSpeedUpTimer(it) }
-                )
             }
 
             HorizontalDivider()

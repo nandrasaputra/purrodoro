@@ -14,12 +14,6 @@ class DebugRepositoryTest {
     }
 
     @Test
-    fun initialStateHasSpeedUpDisabled() {
-        val repo = DebugRepository()
-        assertEquals(false, repo.speedUpTimer.value)
-    }
-
-    @Test
     fun setClockOverrideUpdatesFlow() {
         val repo = DebugRepository()
         val time = LocalTime.of(22, 0)
@@ -33,13 +27,6 @@ class DebugRepositoryTest {
         repo.setClockOverride(LocalTime.of(8, 0))
         repo.setClockOverride(null)
         assertNull(repo.clockOverride.value)
-    }
-
-    @Test
-    fun setSpeedUpTimerUpdatesFlow() {
-        val repo = DebugRepository()
-        repo.setSpeedUpTimer(true)
-        assertEquals(true, repo.speedUpTimer.value)
     }
 
     @Test

@@ -1,7 +1,6 @@
 package com.endiar.kuropomodoro.model
 
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -39,27 +38,8 @@ class AppClockTest {
         assert(!result.isBefore(before) && !result.isAfter(after))
     }
 
-    @Test
-    fun tickIntervalMsReturns250WhenSourceIsNull() {
-        AppClock.source = null
-        assertEquals(250L, AppClock.tickIntervalMs())
-    }
-
-    @Test
-    fun tickIntervalMsReturns250WhenSpeedUpIsFalse() {
-        AppClock.source = fakeSource()
-        assertEquals(250L, AppClock.tickIntervalMs())
-    }
-
-    @Test
-    fun tickIntervalMsReturns25WhenSpeedUpIsTrue() {
-        AppClock.source = fakeSource(speedUp = true)
-        assertEquals(25L, AppClock.tickIntervalMs())
-    }
-
-    private fun fakeSource(time: LocalTime? = null, speedUp: Boolean = false): ClockDebugSource =
+    private fun fakeSource(time: LocalTime? = null): ClockDebugSource =
         object : ClockDebugSource {
             override val clockOverride = MutableStateFlow(time)
-            override val speedUpTimer = MutableStateFlow(speedUp)
         }
 }

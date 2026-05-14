@@ -210,7 +210,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                 break
             }
 
-            delay(AppClock.tickIntervalMs())
+            delay(250)
         }
     }
 
