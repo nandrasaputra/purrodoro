@@ -111,12 +111,12 @@ Open `TimerService.kt`, find `private fun finishCycleAndStop(resetState: TimerRu
 Replace the body of `finishCycleAndStop` with:
 
 ```kotlin
-private fun finishCycleAndStop(resetState: TimerRuntimeState) {
+private suspend fun finishCycleAndStop(resetState: TimerRuntimeState) {
     NotificationManagerCompat.from(applicationContext).notify(
         TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
         TimerNotification.buildCompletionNotification(applicationContext, TimerNotification.CompletionKind.Cycle)
     )
-    serviceScope.launch { repo.setPendingCycleCompletionAck(true) }
+    repo.setPendingCycleCompletionAck(true)
     _state.value = resetState
     cancelAlarm()
     stopForeground(STOP_FOREGROUND_REMOVE)
@@ -124,7 +124,7 @@ private fun finishCycleAndStop(resetState: TimerRuntimeState) {
 }
 ```
 
-Verify `serviceScope` and `repo` are already in scope by skimming the rest of the class — they are used elsewhere (e.g. `serviceScope.launch { repo.setRuntimeSnapshot(...) }`). If the imports for `kotlinx.coroutines.launch` are missing, add `import kotlinx.coroutines.launch`.
+Note: the function must be `suspend` and the write must be **awaited** (not fire-and-forget on `scope.launch { ... }`). A launched child coroutine would be cancelled by `serviceJob.cancel()` in `onDestroy()` after `stopSelf()`, killing the DataStore write before it reaches disk. Both call sites (`doSkip` line 186 — already `suspend` — and the tick block line 260 — inside `scope.launch`) are already in suspend/coroutine contexts, so changing the signature requires no caller changes.
 
 - [ ] **Step 3: Build to verify it compiles**
 
