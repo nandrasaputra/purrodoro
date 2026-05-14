@@ -17,7 +17,6 @@ import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.model.TimerRuntimeState
 import com.endiar.kuropomodoro.model.TimerSession
-import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.buildCycle
@@ -179,10 +178,12 @@ class TimerService : Service() {
         val now = System.currentTimeMillis()
         val nextIndex = current.session.currentIndex + 1
         if (nextIndex >= current.session.items.size) {
+            // User skipped the final break — semantically the cycle is complete.
+            // Mirror the natural end-of-cycle path (see startTicking) so behavior
+            // is identical regardless of how the cycle ended.
             closeOpenRecord(SessionStatus.Completed, now)
-            updateState(idleState(current.session.items))
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            repo.setRuntimeSnapshot(null)
+            finishCycleAndStop(buildResetState(current))
             return
         }
         // Skip is an explicit user action — advance the cycle but leave the next
@@ -253,12 +254,19 @@ class TimerService : Service() {
                     val settings = repo.appState.first().settings
                     val next = TimerStateMachine.applyTimerComplete(current, settings, now, repo)
 
+                    if (next.session.timerState == TimerState.Idle) {
+                        // End of cycle — applyTimerComplete already closed the record
+                        // and cleared the snapshot. Mirror skip-to-end-of-cycle path.
+                        finishCycleAndStop(next)
+                        return@launch
+                    }
+
                     val completedType = current.session.items
                         .getOrNull(current.session.currentIndex)?.type
-                    val kind = when {
-                        next.session.timerState == TimerState.Idle -> TimerNotification.CompletionKind.Cycle
-                        completedType is SessionItemType.Focus -> TimerNotification.CompletionKind.Focus
-                        else -> TimerNotification.CompletionKind.Break
+                    val kind = if (completedType is SessionItemType.Focus) {
+                        TimerNotification.CompletionKind.Focus
+                    } else {
+                        TimerNotification.CompletionKind.Break
                     }
                     NotificationManagerCompat.from(applicationContext).notify(
                         TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
@@ -332,14 +340,40 @@ class TimerService : Service() {
         }
     }
 
-    private fun idleState(items: List<TimerSessionItem>): TimerRuntimeState {
-        val firstSeconds = items.firstOrNull()?.type?.seconds() ?: 0
-        return TimerRuntimeState(
-            session = TimerSession(items, 0, firstSeconds, TimerState.Idle),
+    /**
+     * Build the post-cycle Idle state: same items, currentIndex reset to 0, openRecord cleared.
+     * Mirrors TimerStateMachine.applyTimerComplete's resetState so the UI sees an
+     * identical post-cycle layout regardless of whether the cycle ended naturally
+     * or via a user skip on the final break.
+     */
+    private fun buildResetState(current: TimerRuntimeState): TimerRuntimeState {
+        val items = current.session.items
+        return current.copy(
+            session = current.session.copy(
+                currentIndex = 0,
+                remainingSeconds = items.firstOrNull()?.type?.seconds() ?: 0,
+                timerState = TimerState.Idle
+            ),
             endsAtMillis = null,
-            activeTask = null,
             openRecord = null
         )
+    }
+
+    /**
+     * Shared end-of-cycle completion: fire the Cycle notification, publish the
+     * reset state to UI subscribers, and tear down the foreground service.
+     * Caller is responsible for closing any open SessionRecord and clearing the
+     * persisted runtime snapshot before invoking this.
+     */
+    private fun finishCycleAndStop(resetState: TimerRuntimeState) {
+        NotificationManagerCompat.from(applicationContext).notify(
+            TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
+            TimerNotification.buildCompletionNotification(applicationContext, TimerNotification.CompletionKind.Cycle)
+        )
+        _state.value = resetState
+        cancelAlarm()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     companion object {
