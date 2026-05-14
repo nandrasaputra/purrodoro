@@ -12,7 +12,7 @@ import com.endiar.kuropomodoro.model.AppClock
 class KuroDebugApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        val debugRepo = DebugRepository.init()
+        val debugRepo = DebugRepository.init(this)
         AppClock.source = debugRepo
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
