@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,8 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -71,6 +71,7 @@ class DebugActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DebugScreen(
     debugRepo: DebugRepository,
@@ -172,7 +173,7 @@ private fun StatusBanner(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (clockOverride != null) {
                         Text(
-                            "🕗 ${clockOverride.toString().substring(0, 5)}",
+                            "🕗 ${clockOverride.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -192,7 +193,7 @@ private fun StatusBanner(
 }
 
 @Composable
-private fun SectionTitle(text: String, color: androidx.compose.ui.graphics.Color = Color.Unspecified) {
+private fun SectionTitle(text: String, color: Color = Color.Unspecified) {
     Text(
         text = text,
         fontSize = 11.sp,
@@ -201,5 +202,4 @@ private fun SectionTitle(text: String, color: androidx.compose.ui.graphics.Color
         color = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else color
     )
 }
-
 
