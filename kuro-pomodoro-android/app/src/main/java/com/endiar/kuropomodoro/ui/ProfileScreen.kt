@@ -1,7 +1,6 @@
 package com.endiar.kuropomodoro.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,11 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,10 +39,8 @@ import com.endiar.kuropomodoro.ui.components.StepperButton
 @Composable
 fun ProfileScreen(
     settings: TimerSettings,
-    darkModePreview: Boolean,
     glassReadabilityMode: GlassReadabilityMode,
     glassTreatment: GlassTreatment,
-    onDarkModeChanged: (Boolean) -> Unit,
     onGlassReadabilityModeChanged: (GlassReadabilityMode) -> Unit,
     onDurationChanged: (TimerMode, Int) -> Unit,
     onCycleSizeChanged: (Int) -> Unit,
@@ -146,26 +141,6 @@ fun ProfileScreen(
                 onPlus = { onCycleSizeChanged((settings.focusSessionsPerCycle + 1).coerceIn(1, 10)) },
                 glassTreatment = glassTreatment
             )
-        }
-
-        // Dark mode toggle card
-        GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Dark Mode Preview",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-                DarkModeToggle(
-                    checked = darkModePreview,
-                    onCheckedChange = onDarkModeChanged
-                )
-            }
         }
 
         // Mock features section
@@ -275,34 +250,6 @@ private fun DurationRow(
             )
             StepperButton(label = "+", onClick = onPlus, glassTreatment = glassTreatment)
         }
-    }
-}
-
-@Composable
-private fun DarkModeToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    val thumbOffset = if (checked) Alignment.CenterEnd else Alignment.CenterStart
-    Box(
-        modifier = Modifier
-            .width(44.dp)
-            .height(24.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (checked) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.10f))
-            .border(
-                1.dp,
-                if (checked) Color.Transparent else Color.White.copy(alpha = 0.20f),
-                RoundedCornerShape(12.dp)
-            )
-            .clickable { onCheckedChange(!checked) },
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 3.dp)
-                .size(18.dp)
-                .clip(CircleShape)
-                .background(Color.White)
-                .align(thumbOffset)
-        )
     }
 }
 
