@@ -10,9 +10,14 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
+import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
+import com.endiar.kuropomodoro.model.TimerRuntimeState
+import com.endiar.kuropomodoro.model.TimerSession
+import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.TodoListState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -72,6 +77,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_TODOS = stringPreferencesKey("todo_lists_json")
         private val KEY_IS_PREMIUM = booleanPreferencesKey("is_premium")
         private val KEY_SESSION_RECORDS = stringPreferencesKey("session_records_json")
+        private val KEY_RUNTIME_SNAPSHOT = stringPreferencesKey("timer_runtime_snapshot")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -82,6 +88,10 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: AppRepository(context.applicationContext.dataStore).also { INSTANCE = it }
             }
+    }
+
+    val runtimeSnapshot: Flow<TimerRuntimeState?> = dataStore.data.map { prefs ->
+        decodeRuntimeSnapshot(prefs[KEY_RUNTIME_SNAPSHOT] ?: "")
     }
 
     val appState: Flow<AppState> = dataStore.data.map { prefs ->
@@ -126,6 +136,20 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun appendSessionRecord(record: SessionRecord) = dataStore.edit { prefs ->
         val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
         prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing + record)
+    }
+
+    suspend fun setRuntimeSnapshot(snapshot: TimerRuntimeState?) = dataStore.edit { prefs ->
+        if (snapshot == null) {
+            prefs.remove(KEY_RUNTIME_SNAPSHOT)
+        } else {
+            prefs[KEY_RUNTIME_SNAPSHOT] = encodeRuntimeSnapshot(snapshot)
+        }
+    }
+
+    suspend fun incrementStampFor(date: LocalDate) = dataStore.edit { prefs ->
+        val existing = decodeStamps(prefs[KEY_STAMPS] ?: "")
+        val updated = existing + (date to (existing[date] ?: 0) + 1)
+        prefs[KEY_STAMPS] = encodeStamps(updated)
     }
 }
 
@@ -208,4 +232,99 @@ internal fun decodeSessionRecords(raw: String): List<SessionRecord> {
             )
         }
     }.getOrElse { emptyList() }
+}
+
+// --- Runtime snapshot encoding ---
+// Schema (single line, pipe-separated, 7 fields):
+// <timerState>|<currentIndex>|<remainingSeconds>|<endsAtMillisOrEmpty>|<itemsCsv>|<taskOrEmpty>|<openRecordOrEmpty>
+//
+// itemsCsv: comma-separated, each token is "F:<sec>", "S:<sec>", or "L:<sec>"
+// taskOrEmpty: "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>"
+// openRecordOrEmpty: fields joined by ";" to avoid conflict with the outer "|" separator
+
+internal fun encodeRuntimeSnapshot(state: TimerRuntimeState): String {
+    val itemsCsv = state.session.items.joinToString(",") { item ->
+        when (val t = item.type) {
+            is SessionItemType.Focus -> "F:${t.seconds}"
+            is SessionItemType.ShortBreak -> "S:${t.seconds}"
+            is SessionItemType.LongBreak -> "L:${t.seconds}"
+        }
+    }
+    val taskField = state.activeTask?.let { t ->
+        val encodedTitle = URLEncoder.encode(t.title, "UTF-8")
+        "${t.id}:$encodedTitle:${t.minutes}:${t.completed}:${t.plannedSessions}:${t.completedSessions}"
+    } ?: ""
+    val recordField = state.openRecord?.let { r ->
+        val encodedTask = if (r.taskName != null) URLEncoder.encode(r.taskName, "UTF-8") else ""
+        listOf(
+            r.id, r.startedAt, r.endedAt,
+            r.focusMinutes, r.shortBreakMinutes, r.longBreakMinutes,
+            r.completedFocusCount, r.totalFocusCount,
+            r.status.name, encodedTask
+        ).joinToString(";")
+    } ?: ""
+    return listOf(
+        state.session.timerState.name,
+        state.session.currentIndex,
+        state.session.remainingSeconds,
+        state.endsAtMillis ?: "",
+        itemsCsv,
+        taskField,
+        recordField
+    ).joinToString("|")
+}
+
+internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
+    if (raw.isBlank()) return null
+    return runCatching {
+        val parts = raw.split("|", limit = 7)
+        val timerState = TimerState.valueOf(parts[0])
+        val currentIndex = parts[1].toInt()
+        val remainingSeconds = parts[2].toInt()
+        val endsAtMillis = parts[3].takeIf { it.isNotBlank() }?.toLong()
+        val items = parts[4].split(",").map { token ->
+            val (tag, sec) = token.split(":")
+            val seconds = sec.toInt()
+            TimerSessionItem(
+                when (tag) {
+                    "S" -> SessionItemType.ShortBreak(seconds)
+                    "L" -> SessionItemType.LongBreak(seconds)
+                    else -> SessionItemType.Focus(seconds)
+                }
+            )
+        }
+        val task = parts.getOrNull(5)?.takeIf { it.isNotBlank() }?.let { t ->
+            val tp = t.split(":", limit = 6)
+            FocusTask(
+                id = tp[0].toInt(),
+                title = URLDecoder.decode(tp[1], "UTF-8"),
+                minutes = tp[2].toInt(),
+                completed = tp[3].toBoolean(),
+                plannedSessions = tp[4].toInt(),
+                completedSessions = tp[5].toInt()
+            )
+        }
+        val record = parts.getOrNull(6)?.takeIf { it.isNotBlank() }?.let { r ->
+            val rp = r.split(";")
+            if (rp.size < 10) return@let null
+            SessionRecord(
+                id = rp[0].toLong(),
+                startedAt = rp[1].toLong(),
+                endedAt = rp[2].toLong(),
+                focusMinutes = rp[3].toInt(),
+                shortBreakMinutes = rp[4].toInt(),
+                longBreakMinutes = rp[5].toInt(),
+                completedFocusCount = rp[6].toInt(),
+                totalFocusCount = rp[7].toInt(),
+                status = SessionStatus.valueOf(rp[8]),
+                taskName = if (rp[9].isBlank()) null else URLDecoder.decode(rp[9], "UTF-8")
+            )
+        }
+        TimerRuntimeState(
+            session = TimerSession(items, currentIndex, remainingSeconds, timerState),
+            endsAtMillis = endsAtMillis,
+            activeTask = task,
+            openRecord = record
+        )
+    }.getOrNull()
 }
