@@ -148,4 +148,19 @@ class AppRepositoryTest {
         val decoded = decodeTodoLists(encodeTodoLists(lists))
         assertEquals("Work|Home", decoded[0].name)
     }
+
+    @Test
+    fun `pendingCycleCompletionAck defaults to false`() = runTest {
+        val repo = makeRepo()
+        assertEquals(false, repo.pendingCycleCompletionAckFlow.first())
+    }
+
+    @Test
+    fun `setPendingCycleCompletionAck true then false persists`() = runTest {
+        val repo = makeRepo()
+        repo.setPendingCycleCompletionAck(true)
+        assertEquals(true, repo.pendingCycleCompletionAckFlow.first())
+        repo.setPendingCycleCompletionAck(false)
+        assertEquals(false, repo.pendingCycleCompletionAckFlow.first())
+    }
 }

@@ -76,6 +76,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_IS_PREMIUM = booleanPreferencesKey("is_premium")
         private val KEY_SESSION_RECORDS = stringPreferencesKey("session_records_json")
         private val KEY_RUNTIME_SNAPSHOT = stringPreferencesKey("timer_runtime_snapshot")
+        private val KEY_PENDING_CYCLE_ACK = booleanPreferencesKey("pending_cycle_completion_ack")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -90,6 +91,10 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
 
     val runtimeSnapshot: Flow<TimerRuntimeState?> = dataStore.data.map { prefs ->
         decodeRuntimeSnapshot(prefs[KEY_RUNTIME_SNAPSHOT] ?: "")
+    }
+
+    val pendingCycleCompletionAckFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_PENDING_CYCLE_ACK] ?: false
     }
 
     val appState: Flow<AppState> = dataStore.data.map { prefs ->
@@ -128,6 +133,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setStamps(value: Map<LocalDate, Int>) = dataStore.edit { it[KEY_STAMPS] = encodeStamps(value) }
     suspend fun setTodoLists(value: List<TodoListState>) = dataStore.edit { it[KEY_TODOS] = encodeTodoLists(value) }
     suspend fun setIsPremium(value: Boolean) = dataStore.edit { it[KEY_IS_PREMIUM] = value }
+    suspend fun setPendingCycleCompletionAck(value: Boolean) =
+        dataStore.edit { it[KEY_PENDING_CYCLE_ACK] = value }
 
     suspend fun appendSessionRecord(record: SessionRecord) = dataStore.edit { prefs ->
         val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
