@@ -15,12 +15,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -49,7 +57,14 @@ class DebugActivity : ComponentActivity() {
                 DebugScreen(
                     debugRepo = DebugRepository.instance,
                     appRepo = AppRepository.get(this),
-                    onClose = { finish() }
+                    onClose = { finish() },
+                    onRestartApp = {
+                        // Kill and relaunch the process so all in-memory state is re-read from DataStore
+                        val intent = packageManager.getLaunchIntentForPackage(packageName)
+                        intent?.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        android.os.Process.killProcess(android.os.Process.myPid())
+                    }
                 )
             }
         }
@@ -60,9 +75,11 @@ class DebugActivity : ComponentActivity() {
 private fun DebugScreen(
     debugRepo: DebugRepository,
     appRepo: AppRepository,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onRestartApp: () -> Unit
 ) {
     val clockOverride by debugRepo.clockOverride.collectAsStateWithLifecycle()
+    val isPremiumOverride by debugRepo.isPremiumOverride.collectAsStateWithLifecycle()
     val appState by appRepo.appState.collectAsStateWithLifecycle(
         initialValue = com.endiar.kuropomodoro.data.AppState(
             darkModePreview = false,
@@ -78,18 +95,21 @@ private fun DebugScreen(
     )
     val scope = rememberCoroutineScope()
 
-    Scaffold { padding ->
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Header
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -97,120 +117,76 @@ private fun DebugScreen(
                 TextButton(onClick = onClose) { Text("Close") }
             }
 
-            HorizontalDivider()
-
-            // --- Clock Override ---
-            SectionTitle("CLOCK OVERRIDE")
-            Text(
-                text = if (clockOverride != null) "Active: ${clockOverride}" else "Using real time",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (clockOverride != null) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            // Sticky status banner
+            StatusBanner(
+                clockOverride = clockOverride,
+                isPremiumOverride = isPremiumOverride,
+                onRestart = onRestartApp
             )
-            Spacer(Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(
-                    "08:00" to LocalTime.of(8, 0),
-                    "12:00" to LocalTime.of(12, 0),
-                    "17:00" to LocalTime.of(17, 0),
-                    "22:00" to LocalTime.of(22, 0)
-                ).forEach { (label, time) ->
-                    OutlinedButton(onClick = { debugRepo.setClockOverride(time) }) {
-                        Text(label)
-                    }
-                }
-            }
-            TextButton(
-                onClick = { debugRepo.setClockOverride(null) },
-                enabled = clockOverride != null
-            ) {
-                Text("Clear override")
-            }
 
             HorizontalDivider()
 
-            // --- Session Injection ---
-            SectionTitle("SESSION INJECTION")
-            var injectionCount by remember { mutableIntStateOf(1) }
-            var injectionDate by remember { mutableStateOf(LocalDate.now()) }
-
-            Text(
-                "Date: $injectionDate (today)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Spacer(Modifier.height(4.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            // Scrollable content
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                OutlinedButton(
-                    onClick = { if (injectionCount > 1) injectionCount-- }
-                ) { Text("−") }
-                Text("$injectionCount", style = MaterialTheme.typography.titleMedium)
-                OutlinedButton(
-                    onClick = { if (injectionCount < 10) injectionCount++ }
-                ) { Text("+") }
+                // sections go here (Tasks 2-6)
+                Spacer(Modifier.height(32.dp))
             }
-            Button(
-                onClick = {
-                    scope.launch {
-                        var updatedStamps = appState.stamps
-                        repeat(injectionCount) {
-                            updatedStamps = addFocusStamp(updatedStamps, injectionDate)
-                        }
-                        appRepo.setStamps(updatedStamps)
-                        appRepo.setCompletedSessions(appState.completedSessions + injectionCount)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Add $injectionCount Session${if (injectionCount > 1) "s" else ""}")
-            }
+        }
+    }
+}
 
-            HorizontalDivider()
-
-            // --- Danger Zone ---
-            SectionTitle("DANGER ZONE", color = MaterialTheme.colorScheme.error)
-            var resetConfirming by remember { mutableStateOf(false) }
-            Button(
-                onClick = {
-                    if (!resetConfirming) {
-                        resetConfirming = true
-                    } else {
-                        scope.launch {
-                            appRepo.setStamps(emptyMap())
-                            appRepo.setCompletedSessions(0)
-                            appRepo.setTodoLists(emptyList())
-                        }
-                        resetConfirming = false
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (resetConfirming) MaterialTheme.colorScheme.error
-                                     else MaterialTheme.colorScheme.errorContainer,
-                    contentColor = if (resetConfirming) MaterialTheme.colorScheme.onError
-                                   else MaterialTheme.colorScheme.onErrorContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+@Composable
+private fun StatusBanner(
+    clockOverride: java.time.LocalTime?,
+    isPremiumOverride: Boolean,
+    onRestart: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val hasOverride = clockOverride != null || isPremiumOverride
+            if (!hasOverride) {
                 Text(
-                    if (resetConfirming) "Are you sure? Tap again to confirm"
-                    else "Reset All Data"
+                    "No overrides active",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
                 )
-            }
-            if (resetConfirming) {
-                TextButton(onClick = { resetConfirming = false }) {
-                    Text("Cancel")
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (clockOverride != null) {
+                        Text(
+                            "🕗 ${clockOverride.toString().substring(0, 5)}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    if (isPremiumOverride) {
+                        Text(
+                            "★ Premium",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                 }
             }
-            Text(
-                "Wipes stamps, sessions, and todos back to seed state.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-
-            Spacer(Modifier.height(32.dp))
+            TextButton(onClick = onRestart) { Text("Restart ↺") }
         }
     }
 }
@@ -225,3 +201,5 @@ private fun SectionTitle(text: String, color: androidx.compose.ui.graphics.Color
         color = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else color
     )
 }
+
+
