@@ -365,12 +365,12 @@ class TimerService : Service() {
      * Caller is responsible for closing any open SessionRecord and clearing the
      * persisted runtime snapshot before invoking this.
      */
-    private fun finishCycleAndStop(resetState: TimerRuntimeState) {
+    private suspend fun finishCycleAndStop(resetState: TimerRuntimeState) {
         NotificationManagerCompat.from(applicationContext).notify(
             TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
             TimerNotification.buildCompletionNotification(applicationContext, TimerNotification.CompletionKind.Cycle)
         )
-        scope.launch { repo.setPendingCycleCompletionAck(true) }
+        repo.setPendingCycleCompletionAck(true)
         _state.value = resetState
         cancelAlarm()
         stopForeground(STOP_FOREGROUND_REMOVE)
