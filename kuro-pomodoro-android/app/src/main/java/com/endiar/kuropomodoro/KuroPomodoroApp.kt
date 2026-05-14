@@ -52,6 +52,8 @@ import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.SessionItemType
+import com.endiar.kuropomodoro.model.SessionRecord
+import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
@@ -118,6 +120,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
     var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
     var selectedTodoListId by remember(appState.selectedTodoListId) { mutableIntStateOf(appState.selectedTodoListId) }
     var todoLists by remember(appState.todoLists) { mutableStateOf(appState.todoLists) }
+    var sessionRecords by remember(appState.sessionRecords) { mutableStateOf(appState.sessionRecords) }
 
     // isPremium: debug override takes precedence over persisted value
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
@@ -133,6 +136,9 @@ fun KuroPomodoroApp(repo: AppRepository) {
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) { mutableStateOf<FocusTask?>(null) }
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
+
+    // In-progress session record; null when no cycle is active
+    var openRecord by remember { mutableStateOf<SessionRecord?>(null) }
 
     // Cycle state: items list and current position
     var cycleItems by rememberSaveable(
@@ -172,6 +178,9 @@ fun KuroPomodoroApp(repo: AppRepository) {
     fun persistNextTaskId(v: Int) { nextTaskId = v; scope.launch { repo.setNextTaskId(v) } }
     fun persistSelectedTodoListId(v: Int) { selectedTodoListId = v; scope.launch { repo.setSelectedTodoListId(v) } }
     fun persistTodoLists(v: List<TodoListState>) { todoLists = v; scope.launch { repo.setTodoLists(v) } }
+    fun persistSessionRecord(record: SessionRecord) {
+        scope.launch { repo.appendSessionRecord(record) }
+    }
 
     var timerStartedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var timerStartedRemainingSeconds by rememberSaveable {
@@ -292,6 +301,11 @@ fun KuroPomodoroApp(repo: AppRepository) {
                             selectedTab = AppTab.Todo
                         }
                     }
+
+                    // Increment completed focus count on natural Focus completion
+                    openRecord = openRecord?.copy(
+                        completedFocusCount = (openRecord?.completedFocusCount ?: 0) + 1
+                    )
                 }
 
                 // Advance cycle
@@ -300,6 +314,18 @@ fun KuroPomodoroApp(repo: AppRepository) {
                     // Full cycle complete — reset
                     cycleItems = buildCycle(settings)
                     cycleIndex = 0
+
+                    // Full cycle complete — close record as Completed
+                    openRecord?.let { rec ->
+                        persistSessionRecord(
+                            rec.copy(
+                                endedAt = System.currentTimeMillis(),
+                                status = SessionStatus.Completed,
+                                taskName = activeTask?.title
+                            )
+                        )
+                        openRecord = null
+                    }
                 } else {
                     cycleIndex = nextIndex
                 }
@@ -369,12 +395,37 @@ fun KuroPomodoroApp(repo: AppRepository) {
                                 )
                                 isFocusMode = true
                                 isStarted = true
+                                if (openRecord == null) {
+                                    val totalFocus = cycleItems.count { it.type is SessionItemType.Focus }
+                                    openRecord = SessionRecord(
+                                        id = System.currentTimeMillis(),
+                                        startedAt = System.currentTimeMillis(),
+                                        endedAt = 0L,
+                                        focusMinutes = settings.focusMinutes,
+                                        shortBreakMinutes = settings.shortBreakMinutes,
+                                        longBreakMinutes = settings.longBreakMinutes,
+                                        completedFocusCount = 0,
+                                        totalFocusCount = totalFocus,
+                                        status = SessionStatus.Partial,
+                                        taskName = activeTask?.title
+                                    )
+                                }
                             } else {
                                 isFocusMode = false
                             }
                             isRunning = !isRunning
                         },
                         onStop = {
+                            openRecord?.let { rec ->
+                                persistSessionRecord(
+                                    rec.copy(
+                                        endedAt = System.currentTimeMillis(),
+                                        status = SessionStatus.Partial,
+                                        taskName = activeTask?.title
+                                    )
+                                )
+                                openRecord = null
+                            }
                             isRunning = false
                             isStarted = false
                             isFocusMode = false
@@ -407,6 +458,7 @@ fun KuroPomodoroApp(repo: AppRepository) {
                     AppTab.Calendar -> CalendarScreen(
                         stamps = stamps,
                         completedSessions = completedSessions,
+                        sessionRecords = sessionRecords,
                         glassTreatment = glassTreatment
                     )
                     AppTab.Sounds -> SoundsScreen(
