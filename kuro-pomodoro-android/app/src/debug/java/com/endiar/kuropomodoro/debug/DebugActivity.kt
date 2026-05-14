@@ -48,8 +48,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.model.addFocusStamp
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.LocalTime
 
 class DebugActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
