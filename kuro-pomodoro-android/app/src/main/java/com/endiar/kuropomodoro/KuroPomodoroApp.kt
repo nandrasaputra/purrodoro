@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,37 +45,39 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.data.AppState
+import com.endiar.kuropomodoro.model.AppClock
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.GlassTreatment
+import com.endiar.kuropomodoro.model.PremiumOverride
 import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.AppClock
-import com.endiar.kuropomodoro.model.PremiumOverride
+import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.TodoListState
-import com.endiar.kuropomodoro.model.buildCycle
 import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.model.glassTreatmentFor
-import com.endiar.kuropomodoro.ui.components.CycleDotsRow
+import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.components.CatBackdrop
+import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import java.time.LocalDate
-import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun KuroPomodoroApp(repo: AppRepository) {
+fun KuroPomodoroApp(
+    repo: AppRepository,
+    timerConnection: TimerConnection,
+    requestNotificationPermission: () -> Unit
+) {
     val appState by repo.appState.collectAsStateWithLifecycle(
         initialValue = AppState(
             darkModePreview = false,
@@ -86,27 +89,29 @@ fun KuroPomodoroApp(repo: AppRepository) {
             selectedTodoListId = 1,
             stamps = emptyMap(),
             todoLists = listOf(
-            TodoListState(
-                1, "Study", listOf(
-                    FocusTask(1, "Review Compose layout", 25),
-                    FocusTask(2, "Read chapter notes", 20)
-                )
-            ),
-            TodoListState(
-                2, "Home", listOf(
-                    FocusTask(3, "Clean desk", 10),
-                    FocusTask(4, "Water plants", 5)
-                )
-            ),
-            TodoListState(
-                3, "Ideas", listOf(
-                    FocusTask(5, "Sketch cat animation", 15),
-                    FocusTask(6, "Plan next sprint", 25)
+                TodoListState(
+                    1, "Study", listOf(
+                        FocusTask(1, "Review Compose layout", 25),
+                        FocusTask(2, "Read chapter notes", 20)
+                    )
+                ),
+                TodoListState(
+                    2, "Home", listOf(
+                        FocusTask(3, "Clean desk", 10),
+                        FocusTask(4, "Water plants", 5)
+                    )
+                ),
+                TodoListState(
+                    3, "Ideas", listOf(
+                        FocusTask(5, "Sketch cat animation", 15),
+                        FocusTask(6, "Plan next sprint", 25)
+                    )
                 )
             )
         )
-        )
     )
+
+    val runtimeState by timerConnection.state.collectAsStateWithLifecycle(initialValue = null)
 
     var settings by remember(appState.settings) { mutableStateOf(appState.settings) }
     var completedSessions by remember(appState.completedSessions) { mutableIntStateOf(appState.completedSessions) }
@@ -119,50 +124,14 @@ fun KuroPomodoroApp(repo: AppRepository) {
     var todoLists by remember(appState.todoLists) { mutableStateOf(appState.todoLists) }
     var sessionRecords by remember(appState.sessionRecords) { mutableStateOf(appState.sessionRecords) }
 
-    // isPremium: debug override takes precedence over persisted value
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
-    var timerMode by rememberSaveable(stateSaver = TimerModeSaver) { mutableStateOf(TimerMode.Focus) }
-    var remainingSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
-    var activeTotalSeconds by rememberSaveable { mutableIntStateOf(settings.secondsFor(timerMode)) }
-    var isRunning by rememberSaveable { mutableStateOf(false) }
-    var isStarted by rememberSaveable { mutableStateOf(false) }
     var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
     val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) { mutableStateOf<FocusTask?>(null) }
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
-
-    // In-progress session record; null when no cycle is active
-    var openRecord by remember { mutableStateOf<SessionRecord?>(null) }
-
-    // Cycle state: items list and current position
-    var cycleItems by rememberSaveable(
-        stateSaver = Saver(
-            save = { items: List<TimerSessionItem> ->
-                items.map { item ->
-                    when (val t = item.type) {
-                        is SessionItemType.Focus -> "F:${t.seconds}"
-                        is SessionItemType.ShortBreak -> "S:${t.seconds}"
-                        is SessionItemType.LongBreak -> "L:${t.seconds}"
-                    }
-                }
-            },
-            restore = { saved: List<String> ->
-                saved.map { s ->
-                    val (tag, sec) = s.split(":")
-                    val seconds = sec.toInt()
-                    TimerSessionItem(when (tag) {
-                        "S" -> SessionItemType.ShortBreak(seconds)
-                        "L" -> SessionItemType.LongBreak(seconds)
-                        else -> SessionItemType.Focus(seconds)
-                    })
-                }
-            }
-        )
-    ) { mutableStateOf(buildCycle(settings)) }
-    var cycleIndex by rememberSaveable { mutableIntStateOf(0) }
 
     val scope = rememberCoroutineScope()
 
@@ -175,49 +144,6 @@ fun KuroPomodoroApp(repo: AppRepository) {
     fun persistNextTaskId(v: Int) { nextTaskId = v; scope.launch { repo.setNextTaskId(v) } }
     fun persistSelectedTodoListId(v: Int) { selectedTodoListId = v; scope.launch { repo.setSelectedTodoListId(v) } }
     fun persistTodoLists(v: List<TodoListState>) { todoLists = v; scope.launch { repo.setTodoLists(v) } }
-    fun persistSessionRecord(record: SessionRecord) {
-        scope.launch { repo.appendSessionRecord(record) }
-    }
-
-    var timerStartedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
-    var timerStartedRemainingSeconds by rememberSaveable {
-        mutableIntStateOf(
-            settings.secondsFor(
-                timerMode
-            )
-        )
-    }
-
-    val onSkip: () -> Unit = {
-        val currentItem = cycleItems.getOrNull(cycleIndex)
-        // Skip is only valid during breaks
-        if (currentItem?.type is SessionItemType.ShortBreak || currentItem?.type is SessionItemType.LongBreak) {
-            isRunning = false
-            val nextIndex = cycleIndex + 1
-            if (nextIndex >= cycleItems.size) {
-                // Skipping last item (LongBreak) resets cycle
-                cycleItems = buildCycle(settings)
-                cycleIndex = 0
-            } else {
-                cycleIndex = nextIndex
-            }
-            val nextItem = cycleItems[cycleIndex]
-            val nextSeconds = when (val t = nextItem.type) {
-                is SessionItemType.Focus -> t.seconds
-                is SessionItemType.ShortBreak -> t.seconds
-                is SessionItemType.LongBreak -> t.seconds
-            }
-            remainingSeconds = nextSeconds
-            activeTotalSeconds = nextSeconds
-            timerMode = when (cycleItems[cycleIndex].type) {
-                is SessionItemType.Focus -> TimerMode.Focus
-                is SessionItemType.ShortBreak -> TimerMode.ShortBreak
-                is SessionItemType.LongBreak -> TimerMode.LongBreak
-            }
-            timerStartedAtMillis = null
-            timerStartedRemainingSeconds = remainingSeconds
-        }
-    }
 
     val addTask: (String) -> Unit = { title ->
         persistTodoLists(todoLists.map { list ->
@@ -249,109 +175,38 @@ fun KuroPomodoroApp(repo: AppRepository) {
         )
     }
 
-    LaunchedEffect(isRunning, timerMode, settings) {
-        if (!isRunning) {
-            timerStartedAtMillis = null
-            timerStartedRemainingSeconds = remainingSeconds
-            return@LaunchedEffect
-        }
+    // --- Derive timer state from the service ---
+    val isRunning = runtimeState?.session?.timerState == TimerState.Playing
+    val isStarted = runtimeState != null && runtimeState?.session?.timerState != TimerState.Idle
 
-        if (timerStartedAtMillis == null) {
-            timerStartedAtMillis = System.currentTimeMillis()
-            timerStartedRemainingSeconds = remainingSeconds
-        }
-
+    // Drive recomposition every 250ms while playing so the displayed countdown ticks.
+    var tickNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(isRunning) {
         while (isRunning) {
-            val startedAtMillis = timerStartedAtMillis ?: System.currentTimeMillis().also {
-                timerStartedAtMillis = it
-            }
-            val elapsedSeconds = ((System.currentTimeMillis() - startedAtMillis) / 1000).toInt()
-            val updatedRemainingSeconds =
-                (timerStartedRemainingSeconds - elapsedSeconds).coerceAtLeast(0)
-            remainingSeconds = updatedRemainingSeconds
-
-            if (updatedRemainingSeconds == 0) {
-                isRunning = false
-                isStarted = false
-
-                // Stamps and task tracking on Focus completion
-                val currentItem = cycleItems.getOrNull(cycleIndex)
-                if (currentItem?.type is SessionItemType.Focus) {
-                    persistCompletedSessions(completedSessions + 1)
-                    persistStamps(stamps + (LocalDate.now() to (stamps[LocalDate.now()] ?: 0) + 1))
-
-                    val currentTask = activeTask
-                    if (currentTask != null) {
-                        val updatedTask = currentTask.copy(
-                            completedSessions = currentTask.completedSessions + 1
-                        )
-                        activeTask = updatedTask
-                        if (updatedTask.completedSessions >= updatedTask.plannedSessions) {
-                            // All planned sessions done — mark task complete and return to Todo
-                            persistTodoLists(todoLists.map { list ->
-                                list.copy(tasks = list.tasks.map { t ->
-                                    if (t.id == updatedTask.id) t.copy(completed = true) else t
-                                })
-                            })
-                            activeTask = null
-                            isFocusMode = false
-                            selectedTab = AppTab.Todo
-                        }
-                    }
-
-                    // Increment completed focus count on natural Focus completion
-                    openRecord = openRecord?.copy(
-                        completedFocusCount = (openRecord?.completedFocusCount ?: 0) + 1
-                    )
-                }
-
-                // Advance cycle
-                val nextIndex = cycleIndex + 1
-                if (nextIndex >= cycleItems.size) {
-                    // Full cycle complete — reset
-                    cycleItems = buildCycle(settings)
-                    cycleIndex = 0
-
-                    // Full cycle complete — close record as Completed
-                    openRecord?.let { rec ->
-                        persistSessionRecord(
-                            rec.copy(
-                                endedAt = System.currentTimeMillis(),
-                                status = SessionStatus.Completed,
-                                taskName = activeTask?.title
-                            )
-                        )
-                        openRecord = null
-                    }
-                } else {
-                    cycleIndex = nextIndex
-                }
-
-                val nextItem = cycleItems[cycleIndex]
-                val nextSeconds = when (val t = nextItem.type) {
-                    is SessionItemType.Focus -> t.seconds
-                    is SessionItemType.ShortBreak -> t.seconds
-                    is SessionItemType.LongBreak -> t.seconds
-                }
-                remainingSeconds = nextSeconds
-                activeTotalSeconds = nextSeconds
-                timerMode = when (cycleItems[cycleIndex].type) {
-                    is SessionItemType.Focus -> TimerMode.Focus
-                    is SessionItemType.ShortBreak -> TimerMode.ShortBreak
-                    is SessionItemType.LongBreak -> TimerMode.LongBreak
-                }
-                timerStartedAtMillis = null
-                timerStartedRemainingSeconds = remainingSeconds
-
-                if (settings.autoStartNextSession) {
-                    isRunning = true
-                }
-                break
-            }
-
-            delay(250)
+            tickNow = System.currentTimeMillis()
+            delay(250L)
         }
     }
+    val now = tickNow
+
+    val remainingSeconds = runtimeState?.let { rt ->
+        if (rt.session.timerState == TimerState.Playing && rt.endsAtMillis != null) {
+            ((rt.endsAtMillis - now) / 1000L).toInt().coerceAtLeast(0)
+        } else {
+            rt.session.remainingSeconds
+        }
+    } ?: settings.secondsFor(TimerMode.Focus)
+
+    val currentItemType = runtimeState?.session?.items
+        ?.getOrNull(runtimeState?.session?.currentIndex ?: 0)?.type
+    val timerMode = when (currentItemType) {
+        is SessionItemType.Focus -> TimerMode.Focus
+        is SessionItemType.ShortBreak -> TimerMode.ShortBreak
+        is SessionItemType.LongBreak -> TimerMode.LongBreak
+        null -> TimerMode.Focus
+    }
+    val cycleItems: List<TimerSessionItem> = runtimeState?.session?.items ?: emptyList()
+    val cycleIndex = runtimeState?.session?.currentIndex ?: 0
 
     val backdropTime = AppClock.now()
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
@@ -374,56 +229,27 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         activeTask = activeTask,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
-                        onSkip = onSkip,
+                        onSkip = { timerConnection.controller?.skip() },
                         onStartPause = {
-                            if (!isRunning) {
-                                activeTotalSeconds = timerStartTotalSeconds(
-                                    settings = settings,
-                                    mode = timerMode,
-                                    remainingSeconds = remainingSeconds,
-                                    activeTotalSeconds = activeTotalSeconds
-                                )
-                                isFocusMode = true
-                                isStarted = true
-                                if (openRecord == null) {
-                                    val totalFocus = cycleItems.count { it.type is SessionItemType.Focus }
-                                    openRecord = SessionRecord(
-                                        id = System.currentTimeMillis(),
-                                        startedAt = System.currentTimeMillis(),
-                                        endedAt = 0L,
-                                        focusMinutes = settings.focusMinutes,
-                                        shortBreakMinutes = settings.shortBreakMinutes,
-                                        longBreakMinutes = settings.longBreakMinutes,
-                                        completedFocusCount = 0,
-                                        totalFocusCount = totalFocus,
-                                        status = SessionStatus.Partial,
-                                        taskName = activeTask?.title
-                                    )
+                            when {
+                                !isStarted -> {
+                                    requestNotificationPermission()
+                                    isFocusMode = true
+                                    timerConnection.start(settings, activeTask)
                                 }
-                            } else {
-                                isFocusMode = false
+                                isRunning -> {
+                                    isFocusMode = false
+                                    timerConnection.controller?.pause()
+                                }
+                                else -> {
+                                    timerConnection.controller?.resume()
+                                }
                             }
-                            isRunning = !isRunning
                         },
                         onStop = {
-                            openRecord?.let { rec ->
-                                persistSessionRecord(
-                                    rec.copy(
-                                        endedAt = System.currentTimeMillis(),
-                                        status = SessionStatus.Partial,
-                                        taskName = activeTask?.title
-                                    )
-                                )
-                                openRecord = null
-                            }
-                            isRunning = false
-                            isStarted = false
+                            timerConnection.controller?.stop()
                             isFocusMode = false
                             activeTask = null
-                            remainingSeconds = settings.secondsFor(timerMode)
-                            activeTotalSeconds = settings.secondsFor(timerMode)
-                            timerStartedAtMillis = null
-                            timerStartedRemainingSeconds = settings.secondsFor(timerMode)
                         },
                         onExitFocusMode = { isFocusMode = false },
                         onEnterFocusMode = { isFocusMode = true }
@@ -439,8 +265,8 @@ fun KuroPomodoroApp(repo: AppRepository) {
                             activeTask = task
                             isFocusMode = true
                             selectedTab = AppTab.Timer
-                            isRunning = true
-                            isStarted = true
+                            requestNotificationPermission()
+                            timerConnection.start(settings, task)
                         },
                         settings = settings,
                         glassTreatment = glassTreatment
@@ -479,15 +305,11 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         onDurationChanged = { mode, minutes ->
                             val updatedSettings = settings.update(mode, minutes)
                             persistSettings(updatedSettings)
-                            if (mode == timerMode && !isRunning) {
-                                remainingSeconds = updatedSettings.secondsFor(mode)
-                                activeTotalSeconds = updatedSettings.secondsFor(mode)
-                            }
+                            // Service rebuilds state on next start; no inline bump needed.
                         },
                         onCycleSizeChanged = { n ->
                             val updatedSettings = settings.updateCycleSize(n)
                             persistSettings(updatedSettings)
-                            // Rebuild cycle on next start (don't interrupt current cycle)
                         },
                         onMockFeature = { premiumSheetMessage = it }
                     )
@@ -514,23 +336,6 @@ fun KuroPomodoroApp(repo: AppRepository) {
     }
 }
 
-internal fun timerDisplayTotalSeconds(
-    settings: TimerSettings,
-    mode: TimerMode,
-    isRunning: Boolean,
-    activeTotalSeconds: Int
-): Int = if (isRunning) activeTotalSeconds else settings.secondsFor(mode)
-
-internal fun timerStartTotalSeconds(
-    settings: TimerSettings,
-    mode: TimerMode,
-    remainingSeconds: Int,
-    activeTotalSeconds: Int
-): Int {
-    val currentModeSeconds = settings.secondsFor(mode)
-    return if (remainingSeconds < activeTotalSeconds) activeTotalSeconds else currentModeSeconds
-}
-
 @Composable
 private fun FocusDashboard(
     timerMode: TimerMode,
@@ -548,7 +353,6 @@ private fun FocusDashboard(
     onEnterFocusMode: () -> Unit = {},
 ) {
     if (isFocusMode && isRunning) {
-        // Minimal focus view — same screen, just controls hidden; tap anywhere to reveal
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -600,7 +404,6 @@ private fun FocusDashboard(
         return
     }
 
-    // Cycle dot computation
     val focusItemIndices = cycleItems.mapIndexedNotNull { i, item ->
         if (item.type is SessionItemType.Focus) i else null
     }
@@ -641,7 +444,9 @@ private fun FocusDashboard(
             totalFocusSessions = totalFocusSessions,
             completedFocusSessions = completedFocusSessions,
             isCurrentlyFocus = isCurrentlyFocus,
-            modifier = Modifier.fillMaxWidth().wrapContentSize(Alignment.Center)
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentSize(Alignment.Center)
         )
         Spacer(Modifier.height(4.dp))
         Text(
@@ -675,15 +480,10 @@ private fun FocusDashboard(
                 val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
                 val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
                         currentItemType is SessionItemType.LongBreak
-                // Running state: pause button only (+ skip during breaks)
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .border(
-                            1.5.dp,
-                            Color.White.copy(alpha = 0.35f),
-                            RoundedCornerShape(28.dp)
-                        )
+                        .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
                         .clip(RoundedCornerShape(28.dp))
                         .background(buttonBg)
                         .clickable(onClick = onStartPause),
@@ -701,11 +501,7 @@ private fun FocusDashboard(
                     Box(
                         modifier = Modifier
                             .height(56.dp)
-                            .border(
-                                1.5.dp,
-                                Color.White.copy(alpha = 0.20f),
-                                RoundedCornerShape(28.dp)
-                            )
+                            .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
                             .clip(RoundedCornerShape(28.dp))
                             .background(Color.White.copy(alpha = 0.08f))
                             .clickable(onClick = onSkip)
@@ -724,15 +520,10 @@ private fun FocusDashboard(
                 val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
                 val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
                         currentItemType is SessionItemType.LongBreak
-                // Paused state: resume + stop buttons (+ skip during breaks)
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .border(
-                            1.5.dp,
-                            Color.White.copy(alpha = 0.35f),
-                            RoundedCornerShape(28.dp)
-                        )
+                        .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
                         .clip(RoundedCornerShape(28.dp))
                         .background(buttonBg)
                         .clickable(onClick = onStartPause),
@@ -749,17 +540,12 @@ private fun FocusDashboard(
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .border(
-                            1.5.dp,
-                            Color.White.copy(alpha = 0.20f),
-                            RoundedCornerShape(28.dp)
-                        )
+                        .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
                         .clip(RoundedCornerShape(28.dp))
                         .background(Color.White.copy(alpha = 0.08f))
                         .clickable {
-                            val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
-                            val isOnFocus = currentItemType is SessionItemType.Focus
-                            if (isOnFocus) {
+                            val currentItemType2 = cycleItems.getOrNull(cycleIndex)?.type
+                            if (currentItemType2 is SessionItemType.Focus) {
                                 showStopConfirmDialog = true
                             } else {
                                 onStop()
@@ -778,11 +564,7 @@ private fun FocusDashboard(
                     Box(
                         modifier = Modifier
                             .height(56.dp)
-                            .border(
-                                1.5.dp,
-                                Color.White.copy(alpha = 0.20f),
-                                RoundedCornerShape(28.dp)
-                            )
+                            .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
                             .clip(RoundedCornerShape(28.dp))
                             .background(Color.White.copy(alpha = 0.08f))
                             .clickable(onClick = onSkip)
@@ -798,7 +580,6 @@ private fun FocusDashboard(
                     }
                 }
             } else {
-                // Idle state: Focus Now pill CTA
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -859,7 +640,6 @@ private fun FocusDashboard(
             )
         }
         Spacer(Modifier.weight(1f))
-        // "Enter focus mode" chip — visible whenever running
         if (isRunning) {
             Box(
                 modifier = Modifier
@@ -904,11 +684,6 @@ private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Mod
 private val AppTabSaver = Saver<AppTab, String>(
     save = { it.name },
     restore = { AppTab.valueOf(it) }
-)
-
-private val TimerModeSaver = Saver<TimerMode, String>(
-    save = { it.name },
-    restore = { TimerMode.valueOf(it) }
 )
 
 private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(
