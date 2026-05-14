@@ -5,8 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,7 +69,6 @@ class DebugActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DebugScreen(
     debugRepo: DebugRepository,
@@ -143,13 +140,14 @@ private fun DebugScreen(
                     color = if (clockOverride != null) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
-                        "08:00" to java.time.LocalTime.of(8, 0),
-                        "12:00" to java.time.LocalTime.of(12, 0),
-                        "17:00" to java.time.LocalTime.of(17, 0),
-                        "22:00" to java.time.LocalTime.of(22, 0)
-                    ).forEach { (label, time) ->
+                val clockPresets = listOf(
+                    "08:00" to java.time.LocalTime.of(8, 0),
+                    "12:00" to java.time.LocalTime.of(12, 0),
+                    "17:00" to java.time.LocalTime.of(17, 0),
+                    "22:00" to java.time.LocalTime.of(22, 0)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    clockPresets.forEach { (label, time) ->
                         OutlinedButton(onClick = {
                             debugRepo.setClockOverride(time)
                             scope.launch {
