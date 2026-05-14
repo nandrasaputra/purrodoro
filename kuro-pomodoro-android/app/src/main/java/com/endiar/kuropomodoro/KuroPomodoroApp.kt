@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.data.AppState
@@ -67,6 +68,7 @@ import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.model.glassTreatmentFor
 import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.ui.CalendarScreen
+import com.endiar.kuropomodoro.ui.CycleCompletionCopy
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
@@ -116,6 +118,12 @@ fun KuroPomodoroApp(
     )
 
     val runtimeState by timerConnection.state.collectAsStateWithLifecycle(initialValue = null)
+
+    val pendingCycleAck by repo.pendingCycleCompletionAckFlow
+        .collectAsStateWithLifecycle(initialValue = false)
+    val cycleCompletionVariant = remember(pendingCycleAck) {
+        if (pendingCycleAck) CycleCompletionCopy.variants.random() else null
+    }
 
     var settings by remember(appState.settings) { mutableStateOf(appState.settings) }
     var completedSessions by remember(appState.completedSessions) { mutableIntStateOf(appState.completedSessions) }
@@ -347,6 +355,42 @@ fun KuroPomodoroApp(
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .onSizeChanged { dockHeightPx = it.height }
+                )
+            }
+
+            if (pendingCycleAck && cycleCompletionVariant != null) {
+                AlertDialog(
+                    onDismissRequest = { /* non-cancelable */ },
+                    title = {
+                        Text(
+                            text = cycleCompletionVariant.title,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = cycleCompletionVariant.body,
+                            color = Color.White.copy(alpha = 0.75f)
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            scope.launch { repo.setPendingCycleCompletionAck(false) }
+                        }) {
+                            Text(
+                                text = CycleCompletionCopy.buttonLabel,
+                                color = Color(0xFFFF8B6F),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    },
+                    properties = DialogProperties(
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false
+                    ),
+                    containerColor = Color(0xFF2A2035),
+                    shape = RoundedCornerShape(20.dp)
                 )
             }
         }
