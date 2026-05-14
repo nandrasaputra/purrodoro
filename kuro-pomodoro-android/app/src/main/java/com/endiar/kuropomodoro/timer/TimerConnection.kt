@@ -9,6 +9,7 @@ import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.TimerRuntimeState
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.model.TimerState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -60,7 +62,33 @@ class TimerConnection(private val context: Context) {
         TimerNotification.ensureChannels(context)
         snapshotJob?.cancel()
         snapshotJob = scope.launch {
-            AppRepository.get(context).runtimeSnapshot.collectLatest { snapshot ->
+            val repo = AppRepository.get(context)
+
+            // When the service is not running, check if we have a stale Playing snapshot
+            // (e.g. app was killed mid-session). Reconcile against the wall clock.
+            if (!TimerService.isRunning) {
+                val snapshot = repo.runtimeSnapshot.first()
+                if (snapshot != null && snapshot.session.timerState == TimerState.Playing) {
+                    val settings = repo.appState.first().settings
+                    val now = System.currentTimeMillis()
+                    val result = TimerReconciler.reconcile(snapshot, now, settings)
+
+                    result.stampsToIncrement.forEach { date -> repo.incrementStampFor(date) }
+                    result.closedRecords.forEach { repo.appendSessionRecord(it) }
+                    repo.setRuntimeSnapshot(
+                        if (result.state.session.timerState == TimerState.Idle) null else result.state
+                    )
+
+                    if (result.state.session.timerState == TimerState.Playing) {
+                        val intent = Intent(context, TimerService::class.java)
+                            .setAction(TimerService.ACTION_ALARM_FIRED)
+                        context.startForegroundService(intent)
+                    }
+                }
+            }
+
+            // Subscribe to persisted snapshot so UI reflects state when service is not bound.
+            repo.runtimeSnapshot.collectLatest { snapshot ->
                 if (controllerRef == null) _state.value = snapshot
             }
         }
