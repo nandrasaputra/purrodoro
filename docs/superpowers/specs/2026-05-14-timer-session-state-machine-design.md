@@ -90,9 +90,9 @@ LongBreak(longBreakSeconds)
 | `Playing` | timer hits 0 | `Paused` (next item) | auto-start if configured; record stamp |
 | `Playing` | Skip | `Paused` (next item) | auto-start if configured; record stamp if Focus |
 | `Paused` | Skip | `Paused` (next item) | record stamp if Focus |
-| `Playing` | Stop | `Idle` | currentIndex = 0; record stamp if mid-Focus |
-| `Paused` | Stop | `Idle` | currentIndex = 0; record stamp if mid-Focus |
-| `Playing` | timer hits 0 on last item | `Idle` | cycle complete; record completed stamp |
+| `Playing` | Stop | `Idle` | currentIndex = 0, remainingSeconds = items[0].seconds; record stamp if mid-Focus |
+| `Paused` | Stop | `Idle` | currentIndex = 0, remainingSeconds = items[0].seconds; record stamp if mid-Focus |
+| `Playing` | timer hits 0 on last item | `Idle` | cycle complete; currentIndex = 0, remainingSeconds = items[0].seconds; primary button shows "Start" for new cycle |
 
 ### Stamp side effects
 
@@ -101,7 +101,7 @@ LongBreak(longBreakSeconds)
 | Focus timer hits 0 naturally | `completed += 1` |
 | Stop mid-Focus (remainingSeconds > 0) | `unfinished += 1` |
 | Skip mid-Focus (remainingSeconds > 0) | `unfinished += 1` |
-| Skip Focus that already hit 0 | already recorded, no duplicate |
+| Skip Focus that already hit 0 | already recorded when it hit 0 — no duplicate |
 | Stop or Skip mid-Break | no stamp |
 | Cycle fully completes | completed stamp already recorded when Focus hit 0 |
 
