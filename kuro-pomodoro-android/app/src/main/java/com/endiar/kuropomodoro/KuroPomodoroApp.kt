@@ -50,15 +50,18 @@ import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.GlassTreatment
+import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.model.TimerMode
+import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.AppClock
 import com.endiar.kuropomodoro.model.PremiumOverride
 import com.endiar.kuropomodoro.model.TodoListState
-import com.endiar.kuropomodoro.model.addFocusStamp
+import com.endiar.kuropomodoro.model.buildCycle
 import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.model.glassTreatmentFor
+import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
@@ -129,6 +132,33 @@ fun KuroPomodoroApp(repo: AppRepository) {
     var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) { mutableStateOf<FocusTask?>(null) }
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
 
+    // Cycle state: items list and current position
+    var cycleItems by rememberSaveable(
+        stateSaver = Saver(
+            save = { items: List<TimerSessionItem> ->
+                items.map { item ->
+                    when (val t = item.type) {
+                        is SessionItemType.Focus -> "F:${t.seconds}"
+                        is SessionItemType.ShortBreak -> "S:${t.seconds}"
+                        is SessionItemType.LongBreak -> "L:${t.seconds}"
+                    }
+                }
+            },
+            restore = { saved: List<String> ->
+                saved.map { s ->
+                    val (tag, sec) = s.split(":")
+                    val seconds = sec.toInt()
+                    TimerSessionItem(when (tag) {
+                        "S" -> SessionItemType.ShortBreak(seconds)
+                        "L" -> SessionItemType.LongBreak(seconds)
+                        else -> SessionItemType.Focus(seconds)
+                    })
+                }
+            }
+        )
+    ) { mutableStateOf(buildCycle(settings)) }
+    var cycleIndex by rememberSaveable { mutableIntStateOf(0) }
+
     val scope = rememberCoroutineScope()
 
     fun persistSettings(v: TimerSettings) { settings = v; scope.launch { repo.setSettings(v) } }
@@ -140,6 +170,46 @@ fun KuroPomodoroApp(repo: AppRepository) {
     fun persistNextTaskId(v: Int) { nextTaskId = v; scope.launch { repo.setNextTaskId(v) } }
     fun persistSelectedTodoListId(v: Int) { selectedTodoListId = v; scope.launch { repo.setSelectedTodoListId(v) } }
     fun persistTodoLists(v: List<TodoListState>) { todoLists = v; scope.launch { repo.setTodoLists(v) } }
+
+    var timerStartedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
+    var timerStartedRemainingSeconds by rememberSaveable {
+        mutableIntStateOf(
+            settings.secondsFor(
+                timerMode
+            )
+        )
+    }
+
+    val onSkip: () -> Unit = {
+        val currentItem = cycleItems.getOrNull(cycleIndex)
+        // Skip is only valid during breaks
+        if (currentItem?.type is SessionItemType.ShortBreak || currentItem?.type is SessionItemType.LongBreak) {
+            isRunning = false
+            val nextIndex = cycleIndex + 1
+            if (nextIndex >= cycleItems.size) {
+                // Skipping last item (LongBreak) resets cycle
+                cycleItems = buildCycle(settings)
+                cycleIndex = 0
+            } else {
+                cycleIndex = nextIndex
+            }
+            val nextItem = cycleItems[cycleIndex]
+            val nextSeconds = when (val t = nextItem.type) {
+                is SessionItemType.Focus -> t.seconds
+                is SessionItemType.ShortBreak -> t.seconds
+                is SessionItemType.LongBreak -> t.seconds
+            }
+            remainingSeconds = nextSeconds
+            activeTotalSeconds = nextSeconds
+            timerMode = when (cycleItems[cycleIndex].type) {
+                is SessionItemType.Focus -> TimerMode.Focus
+                is SessionItemType.ShortBreak -> TimerMode.ShortBreak
+                is SessionItemType.LongBreak -> TimerMode.LongBreak
+            }
+            timerStartedAtMillis = null
+            timerStartedRemainingSeconds = remainingSeconds
+        }
+    }
 
     val addTask: (String) -> Unit = { title ->
         persistTodoLists(todoLists.map { list ->
@@ -159,14 +229,6 @@ fun KuroPomodoroApp(repo: AppRepository) {
     val deleteTask: (Int) -> Unit = { taskId ->
         persistTodoLists(
             todoLists.map { list -> list.copy(tasks = list.tasks.filterNot { it.id == taskId }) }
-        )
-    }
-    var timerStartedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
-    var timerStartedRemainingSeconds by rememberSaveable {
-        mutableIntStateOf(
-            settings.secondsFor(
-                timerMode
-            )
         )
     }
     val sounds = remember {
@@ -202,11 +264,13 @@ fun KuroPomodoroApp(repo: AppRepository) {
 
             if (updatedRemainingSeconds == 0) {
                 isRunning = false
-                val nextMode = if (timerMode == TimerMode.Focus) {
-                    persistCompletedSessions(completedSessions + 1)
-                    persistStamps(addFocusStamp(stamps, LocalDate.now()))
 
-                    // Session tracking for active task
+                // Stamps and task tracking on Focus completion
+                val currentItem = cycleItems.getOrNull(cycleIndex)
+                if (currentItem?.type is SessionItemType.Focus) {
+                    persistCompletedSessions(completedSessions + 1)
+                    persistStamps(stamps + (LocalDate.now() to (stamps[LocalDate.now()] ?: 0) + 1))
+
                     val currentTask = activeTask
                     if (currentTask != null) {
                         val updatedTask = currentTask.copy(
@@ -225,15 +289,37 @@ fun KuroPomodoroApp(repo: AppRepository) {
                             selectedTab = AppTab.Todo
                         }
                     }
-
-                    TimerMode.ShortBreak
-                } else {
-                    timerMode
                 }
-                timerMode = nextMode
-                remainingSeconds = settings.secondsFor(nextMode)
+
+                // Advance cycle
+                val nextIndex = cycleIndex + 1
+                if (nextIndex >= cycleItems.size) {
+                    // Full cycle complete — reset
+                    cycleItems = buildCycle(settings)
+                    cycleIndex = 0
+                } else {
+                    cycleIndex = nextIndex
+                }
+
+                val nextItem = cycleItems[cycleIndex]
+                val nextSeconds = when (val t = nextItem.type) {
+                    is SessionItemType.Focus -> t.seconds
+                    is SessionItemType.ShortBreak -> t.seconds
+                    is SessionItemType.LongBreak -> t.seconds
+                }
+                remainingSeconds = nextSeconds
+                activeTotalSeconds = nextSeconds
+                timerMode = when (cycleItems[cycleIndex].type) {
+                    is SessionItemType.Focus -> TimerMode.Focus
+                    is SessionItemType.ShortBreak -> TimerMode.ShortBreak
+                    is SessionItemType.LongBreak -> TimerMode.LongBreak
+                }
                 timerStartedAtMillis = null
                 timerStartedRemainingSeconds = remainingSeconds
+
+                if (settings.autoStartNextSession) {
+                    isRunning = true
+                }
                 break
             }
 
@@ -260,6 +346,9 @@ fun KuroPomodoroApp(repo: AppRepository) {
                         isStarted = remainingSeconds < settings.secondsFor(timerMode),
                         isFocusMode = isFocusMode,
                         activeTask = activeTask,
+                        cycleItems = cycleItems,
+                        cycleIndex = cycleIndex,
+                        onSkip = onSkip,
                         onModeSelected = { mode ->
                             timerMode = mode
                             isRunning = false
@@ -346,6 +435,11 @@ fun KuroPomodoroApp(repo: AppRepository) {
                                 activeTotalSeconds = updatedSettings.secondsFor(mode)
                             }
                         },
+                        onCycleSizeChanged = { n ->
+                            val updatedSettings = settings.updateCycleSize(n)
+                            persistSettings(updatedSettings)
+                            // Rebuild cycle on next start (don't interrupt current cycle)
+                        },
                         onMockFeature = { premiumSheetMessage = it }
                     )
                 }
@@ -396,6 +490,9 @@ private fun FocusDashboard(
     isStarted: Boolean,
     isFocusMode: Boolean,
     activeTask: FocusTask?,
+    cycleItems: List<TimerSessionItem>,
+    cycleIndex: Int,
+    onSkip: () -> Unit,
     onModeSelected: (TimerMode) -> Unit,
     onStartPause: () -> Unit,
     onStop: () -> Unit,
@@ -455,6 +552,14 @@ private fun FocusDashboard(
         return
     }
 
+    // Cycle dot computation
+    val focusItemIndices = cycleItems.mapIndexedNotNull { i, item ->
+        if (item.type is SessionItemType.Focus) i else null
+    }
+    val totalFocusSessions = focusItemIndices.size
+    val completedFocusSessions = focusItemIndices.count { it < cycleIndex }
+    val isCurrentlyFocus = cycleItems.getOrNull(cycleIndex)?.type is SessionItemType.Focus
+
     val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
     var showModeMenu by remember { mutableStateOf(false) }
@@ -483,6 +588,14 @@ private fun FocusDashboard(
             )
             Spacer(Modifier.height(8.dp))
         }
+        Spacer(Modifier.height(8.dp))
+        CycleDotsRow(
+            totalFocusSessions = totalFocusSessions,
+            completedFocusSessions = completedFocusSessions,
+            isCurrentlyFocus = isCurrentlyFocus,
+            modifier = Modifier.fillMaxWidth().wrapContentSize(Alignment.Center)
+        )
+        Spacer(Modifier.height(4.dp))
         Text(
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
@@ -511,7 +624,10 @@ private fun FocusDashboard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (isRunning) {
-                // Running state: pause button only
+                val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
+                val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
+                        currentItemType is SessionItemType.LongBreak
+                // Running state: pause button only (+ skip during breaks)
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -532,8 +648,35 @@ private fun FocusDashboard(
                         fontWeight = FontWeight.Bold
                     )
                 }
+                if (isOnBreak) {
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .height(56.dp)
+                            .border(
+                                1.5.dp,
+                                Color.White.copy(alpha = 0.20f),
+                                RoundedCornerShape(28.dp)
+                            )
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .clickable(onClick = onSkip)
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Skip",
+                            color = Color.White.copy(alpha = 0.60f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             } else if (isStarted) {
-                // Paused state: resume + stop buttons
+                val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
+                val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
+                        currentItemType is SessionItemType.LongBreak
+                // Paused state: resume + stop buttons (+ skip during breaks)
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -573,6 +716,30 @@ private fun FocusDashboard(
                         color = Color.White.copy(alpha = 0.60f),
                         fontSize = 18.sp
                     )
+                }
+                if (isOnBreak) {
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .height(56.dp)
+                            .border(
+                                1.5.dp,
+                                Color.White.copy(alpha = 0.20f),
+                                RoundedCornerShape(28.dp)
+                            )
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .clickable(onClick = onSkip)
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Skip",
+                            color = Color.White.copy(alpha = 0.60f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             } else {
                 // Idle state: play button + mode selector
