@@ -20,6 +20,27 @@ enum class TimerMode(val label: String, val defaultSeconds: Int, val accentName:
     fun formatDuration(): String = formatSeconds(defaultSeconds)
 }
 
+sealed class SessionItemType {
+    data class Focus(val seconds: Int) : SessionItemType()
+    data class ShortBreak(val seconds: Int) : SessionItemType()
+    data class LongBreak(val seconds: Int) : SessionItemType()
+}
+
+data class TimerSessionItem(val type: SessionItemType)
+
+enum class TimerState { Idle, Playing, Paused }
+
+data class TimerSession(
+    val items: List<TimerSessionItem>,
+    val currentIndex: Int,
+    val remainingSeconds: Int,
+    val timerState: TimerState
+) {
+    val isActive: Boolean get() = timerState != TimerState.Idle
+    val isComplete: Boolean get() = currentIndex >= items.size
+    val currentItem: TimerSessionItem? get() = items.getOrNull(currentIndex)
+}
+
 data class FocusTask(
     val id: Int,
     val title: String,
@@ -48,7 +69,8 @@ data class SoundOption(
 data class TimerSettings(
     val focusMinutes: Int = 25,
     val shortBreakMinutes: Int = 5,
-    val longBreakMinutes: Int = 15
+    val longBreakMinutes: Int = 15,
+    val autoStartNextSession: Boolean = false
 ) {
     fun secondsFor(mode: TimerMode): Int = when (mode) {
         TimerMode.Focus -> focusMinutes * 60
@@ -104,8 +126,19 @@ fun formatSeconds(totalSeconds: Int): String {
     return "%02d:%02d".format(minutes, seconds)
 }
 
-fun addFocusStamp(stamps: Map<LocalDate, Int>, date: LocalDate): Map<LocalDate, Int> {
-    return stamps + (date to ((stamps[date] ?: 0) + 1))
+data class FocusStamp(
+    val completed: Int = 0,
+    val unfinished: Int = 0
+)
+
+fun addCompletedStamp(stamps: Map<LocalDate, FocusStamp>, date: LocalDate): Map<LocalDate, FocusStamp> {
+    val existing = stamps[date] ?: FocusStamp()
+    return stamps + (date to existing.copy(completed = existing.completed + 1))
+}
+
+fun addUnfinishedStamp(stamps: Map<LocalDate, FocusStamp>, date: LocalDate): Map<LocalDate, FocusStamp> {
+    val existing = stamps[date] ?: FocusStamp()
+    return stamps + (date to existing.copy(unfinished = existing.unfinished + 1))
 }
 
 /**
