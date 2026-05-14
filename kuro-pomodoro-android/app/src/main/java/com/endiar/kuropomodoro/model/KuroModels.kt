@@ -70,7 +70,8 @@ data class TimerSettings(
     val focusMinutes: Int = 25,
     val shortBreakMinutes: Int = 5,
     val longBreakMinutes: Int = 15,
-    val autoStartNextSession: Boolean = false
+    val autoStartNextSession: Boolean = false,
+    val focusSessionsPerCycle: Int = 4
 ) {
     fun secondsFor(mode: TimerMode): Int = when (mode) {
         TimerMode.Focus -> focusMinutes * 60
@@ -86,6 +87,29 @@ data class TimerSettings(
             TimerMode.LongBreak -> copy(longBreakMinutes = safeMinutes)
         }
     }
+
+    fun updateCycleSize(n: Int): TimerSettings = copy(focusSessionsPerCycle = n.coerceIn(1, 10))
+}
+
+/**
+ * Builds the full Pomodoro cycle item list from settings.
+ *
+ * Pattern for N = focusSessionsPerCycle:
+ *   (Focus + ShortBreak) × (N-1), then Focus + LongBreak
+ *
+ * Example for N=4:
+ *   [Focus, ShortBreak, Focus, ShortBreak, Focus, ShortBreak, Focus, LongBreak]
+ */
+fun buildCycle(settings: TimerSettings): List<TimerSessionItem> {
+    val items = mutableListOf<TimerSessionItem>()
+    val n = settings.focusSessionsPerCycle.coerceAtLeast(1)
+    repeat(n - 1) {
+        items += TimerSessionItem(SessionItemType.Focus(settings.focusMinutes * 60))
+        items += TimerSessionItem(SessionItemType.ShortBreak(settings.shortBreakMinutes * 60))
+    }
+    items += TimerSessionItem(SessionItemType.Focus(settings.focusMinutes * 60))
+    items += TimerSessionItem(SessionItemType.LongBreak(settings.longBreakMinutes * 60))
+    return items
 }
 
 enum class GlassReadabilityMode(val label: String) {
