@@ -23,8 +23,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -135,7 +137,101 @@ private fun DebugScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // sections go here (Tasks 2-6)
+                // --- Clock Override ---
+                SectionTitle("CLOCK OVERRIDE")
+                Text(
+                    text = if (clockOverride != null) "Active: $clockOverride" else "Using real time",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (clockOverride != null) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Spacer(Modifier.height(4.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "08:00" to java.time.LocalTime.of(8, 0),
+                        "12:00" to java.time.LocalTime.of(12, 0),
+                        "17:00" to java.time.LocalTime.of(17, 0),
+                        "22:00" to java.time.LocalTime.of(22, 0)
+                    ).forEach { (label, time) ->
+                        OutlinedButton(onClick = {
+                            debugRepo.setClockOverride(time)
+                            scope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Clock set to $label",
+                                    actionLabel = "Restart",
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    onRestartApp()
+                                }
+                            }
+                        }) {
+                            Text(label)
+                        }
+                    }
+                }
+                TextButton(
+                    onClick = {
+                        debugRepo.setClockOverride(null)
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Clock cleared",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    },
+                    enabled = clockOverride != null
+                ) {
+                    Text("Clear override")
+                }
+
+                HorizontalDivider()
+
+                // --- Premium Override ---
+                SectionTitle("PREMIUM OVERRIDE")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = if (isPremiumOverride) "Premium: ON (override)" else "Premium: OFF (default)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isPremiumOverride) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                        val datastoreLabel = if (appState.isPremium) "premium" else "free"
+                        val overrideLabel = if (isPremiumOverride) "ON" else "OFF"
+                        Text(
+                            text = "DataStore: $datastoreLabel · Override: $overrideLabel",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                    Switch(
+                        checked = isPremiumOverride,
+                        onCheckedChange = { newValue ->
+                            debugRepo.setIsPremiumOverride(newValue)
+                            scope.launch {
+                                val message = if (newValue) "Premium override ON" else "Premium override OFF"
+                                val actionLabel = if (newValue) "Restart" else null
+                                val result = snackbarHostState.showSnackbar(
+                                    message = message,
+                                    actionLabel = actionLabel,
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    onRestartApp()
+                                }
+                            }
+                        }
+                    )
+                }
+
+                HorizontalDivider()
+
+                // placeholder for Task 3
                 Spacer(Modifier.height(32.dp))
             }
         }
