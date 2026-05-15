@@ -383,7 +383,18 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
     val badgeBg = if (record.status == SessionStatus.Completed) Color(0x334CAF50) else Color(0x33FF8B6F)
 
     GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
-        // Header row: time range + badge
+        // Hero line: accomplishment first
+        val cycleCount = record.completedFocusCount
+        val totalMinutes = cycleCount * record.focusMinutes
+        val cycleWord = if (cycleCount == 1) "cycle" else "cycles"
+        Text(
+            text = "$cycleCount $cycleWord · $totalMinutes min",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(2.dp))
+        // Secondary row: time range + badge
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -391,9 +402,8 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
         ) {
             Text(
                 text = "$startTime – $endTime",
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = 12.sp
             )
             Box(
                 modifier = Modifier
@@ -401,26 +411,16 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
                     .background(badgeBg)
                     .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
-                Text(text = badgeText, color = badgeColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = badgeText, color = badgeColor, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         Spacer(Modifier.height(4.dp))
-        // Focus dots + count
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            com.endiar.kuropomodoro.ui.components.CycleDotsRow(
-                totalFocusSessions = record.totalFocusCount,
-                completedFocusSessions = record.completedFocusCount,
-                isCurrentlyFocus = false
-            )
-            Text(
-                text = "${record.completedFocusCount} / ${record.totalFocusCount} focus · ${record.focusMinutes} min each",
-                color = Color.White.copy(alpha = 0.75f),
-                fontSize = 12.sp
-            )
-        }
+        // Cycle dots — visual detail only, no redundant text
+        com.endiar.kuropomodoro.ui.components.CycleDotsRow(
+            totalFocusSessions = record.totalFocusCount,
+            completedFocusSessions = record.completedFocusCount,
+            isCurrentlyFocus = false
+        )
         // Break line — only show if there were breaks in this cycle
         val hadShortBreaks = record.completedFocusCount > 1 || record.status == SessionStatus.Completed
         val hadLongBreak = record.status == SessionStatus.Completed
