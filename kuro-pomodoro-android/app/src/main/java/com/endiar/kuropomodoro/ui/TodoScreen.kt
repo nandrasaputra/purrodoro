@@ -145,23 +145,11 @@ fun TodoScreen(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = dateLabel,
-                        color = Color.White.copy(alpha = 0.55f),
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        text = if (isEditMode) "Done" else "Edit",
-                        color = Color(0xFFFF8B6F),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { isEditMode = !isEditMode }
-                    )
-                }
+                Text(
+                    text = dateLabel,
+                    color = Color.White.copy(alpha = 0.55f),
+                    fontSize = 13.sp
+                )
             }
             Box(
                 modifier = Modifier
@@ -177,49 +165,71 @@ fun TodoScreen(
 
         // ── Filter pill row ──────────────────────────────────────────────
         Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            CategoryPill(
-                label = "All",
-                selected = selectedCategoryId == null,
-                isEditMode = false,
-                onClick = { onCategorySelected(null) },
-                glassTreatment = glassTreatment
-            )
-            categories.forEach { category ->
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 CategoryPill(
-                    label = category.name,
-                    selected = category.id == selectedCategoryId,
-                    isEditMode = isEditMode,
-                    onClick = {
-                        if (isEditMode) {
-                            renameCategoryTarget = category
-                        } else {
-                            onCategorySelected(category.id)
-                        }
-                    },
-                    onDelete = { deleteCategoryTarget = category },
+                    label = "All",
+                    selected = selectedCategoryId == null,
+                    isEditMode = false,
+                    onClick = { onCategorySelected(null) },
                     glassTreatment = glassTreatment
                 )
-            }
-            if (isEditMode) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .border(1.dp, Color(0xFFFF8B6F).copy(alpha = 0.50f), RoundedCornerShape(20.dp))
-                        .clickable { addCategorySheetVisible = true }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "+ New",
-                        color = Color(0xFFFF8B6F),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
+                categories.forEach { category ->
+                    CategoryPill(
+                        label = category.name,
+                        selected = category.id == selectedCategoryId,
+                        isEditMode = isEditMode,
+                        onClick = {
+                            if (isEditMode) {
+                                renameCategoryTarget = category
+                            } else {
+                                onCategorySelected(category.id)
+                            }
+                        },
+                        onDelete = { deleteCategoryTarget = category },
+                        glassTreatment = glassTreatment
                     )
                 }
+                if (isEditMode) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .border(1.dp, Color(0xFFFF8B6F).copy(alpha = 0.50f), RoundedCornerShape(20.dp))
+                            .clickable { addCategorySheetVisible = true }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "+ New",
+                            color = Color(0xFFFF8B6F),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
+            Spacer(Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(20.dp)
+                    .background(Color.White.copy(alpha = 0.18f))
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = if (isEditMode) "Done" else "Edit",
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.clickable { isEditMode = !isEditMode }
+            )
         }
 
         // ── Inline add-task input ────────────────────────────────────────
