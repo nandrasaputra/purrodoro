@@ -349,14 +349,16 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
 // --- Task encoding ---
 // Each task: "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>:<categoryIdOrEmpty>"
 internal fun encodeTasks(tasks: List<FocusTask>): String =
-    tasks.joinToString("\n") { t ->
+    if (tasks.isEmpty()) "[]"
+    else tasks.joinToString("\n") { t ->
         val encodedTitle = URLEncoder.encode(t.title, "UTF-8")
         val catField = t.categoryId?.toString() ?: ""
         "${t.id}:$encodedTitle:${t.minutes}:${t.completed}:${t.plannedSessions}:${t.completedSessions}:$catField"
     }
 
 internal fun decodeTasks(raw: String): List<FocusTask> {
-    if (raw.isBlank()) return SEED_TASKS
+    if (raw.isBlank()) return SEED_TASKS   // key absent → first run, seed
+    if (raw == "[]") return emptyList()    // explicitly empty
     return runCatching {
         raw.split("\n").map { line ->
             val p = line.split(":", limit = 7)
@@ -376,12 +378,14 @@ internal fun decodeTasks(raw: String): List<FocusTask> {
 // --- Category encoding ---
 // Each category: "<id>:<urlName>"
 internal fun encodeCategories(categories: List<Category>): String =
-    categories.joinToString("\n") { c ->
+    if (categories.isEmpty()) "[]"
+    else categories.joinToString("\n") { c ->
         "${c.id}:${URLEncoder.encode(c.name, "UTF-8")}"
     }
 
 internal fun decodeCategories(raw: String): List<Category> {
-    if (raw.isBlank()) return SEED_CATEGORIES
+    if (raw.isBlank()) return SEED_CATEGORIES   // key absent → first run, seed
+    if (raw == "[]") return emptyList()         // explicitly empty
     return runCatching {
         raw.split("\n").map { line ->
             val p = line.split(":", limit = 2)
