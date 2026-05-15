@@ -56,7 +56,7 @@ object TimerNotification {
         val total = state.session.items.getOrNull(state.session.currentIndex)?.type?.seconds() ?: 1
 
         val builder = NotificationCompat.Builder(context, CHANNEL_RUNNING)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.mipmap.ic_launcher_monochrome)
             .setContentTitle(title)
             .setContentText(subtitle)
             .setOngoing(true)
@@ -93,7 +93,7 @@ object TimerNotification {
             CompletionKind.Cycle -> "Cycle complete" to "Nice work — your Pomodoro cycle is done"
         }
         return NotificationCompat.Builder(context, CHANNEL_COMPLETION)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.mipmap.ic_launcher_monochrome)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
