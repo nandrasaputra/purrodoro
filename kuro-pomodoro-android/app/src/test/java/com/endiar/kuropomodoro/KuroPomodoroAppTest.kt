@@ -4,5 +4,5 @@ package com.endiar.kuropomodoro
 // for the inline timer math removed during the migration to TimerService.
 // New unit coverage for the service-driven path lives in:
 //   - timer/TimerReconcilerTest.kt
-//   - model/TimerSessionReducerTest.kt
+//   - model/KuroModelsTest.kt
 //   - data/AppRepositoryRuntimeSnapshotTest.kt
