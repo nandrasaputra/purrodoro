@@ -19,7 +19,6 @@ import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.Category
-import com.endiar.kuropomodoro.model.TodoListState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.net.URLDecoder
@@ -32,36 +31,13 @@ data class AppState(
     val completedSessions: Int,
     val settings: TimerSettings,
     val nextTaskId: Int,
-    val selectedTodoListId: Int,         // kept for backwards compat, unused after migration
     val stamps: Map<LocalDate, Int>,
-    val todoLists: List<TodoListState>,  // kept for backwards compat, unused after migration
     val isPremium: Boolean = false,
     val sessionRecords: List<SessionRecord> = emptyList(),
     val tasks: List<FocusTask> = emptyList(),
     val categories: List<Category> = emptyList(),
     val nextCategoryId: Int = 4,
     val selectedCategoryId: Int? = null
-)
-
-private val SEED_TODO_LISTS = listOf(
-    TodoListState(
-        1, "Study", listOf(
-            FocusTask(1, "Review Compose layout", 25),
-            FocusTask(2, "Read chapter notes", 20)
-        )
-    ),
-    TodoListState(
-        2, "Home", listOf(
-            FocusTask(3, "Clean desk", 10),
-            FocusTask(4, "Water plants", 5)
-        )
-    ),
-    TodoListState(
-        3, "Ideas", listOf(
-            FocusTask(5, "Sketch cat animation", 15),
-            FocusTask(6, "Plan next sprint", 25)
-        )
-    )
 )
 
 private val SEED_CATEGORIES = listOf(
@@ -90,9 +66,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_LONG_MIN = intPreferencesKey("long_break_minutes")
         private val KEY_CYCLE_SIZE = intPreferencesKey("focus_sessions_per_cycle")
         private val KEY_NEXT_TASK_ID = intPreferencesKey("next_task_id")
-        private val KEY_SELECTED_LIST = intPreferencesKey("selected_todo_list_id")
         private val KEY_STAMPS = stringPreferencesKey("stamps_json")
-        private val KEY_TODOS = stringPreferencesKey("todo_lists_json")
         private val KEY_IS_PREMIUM = booleanPreferencesKey("is_premium")
         private val KEY_SESSION_RECORDS = stringPreferencesKey("session_records_json")
         private val KEY_RUNTIME_SNAPSHOT = stringPreferencesKey("timer_runtime_snapshot")
@@ -135,9 +109,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
                 focusSessionsPerCycle = prefs[KEY_CYCLE_SIZE] ?: 4
             ),
             nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 7,
-            selectedTodoListId = prefs[KEY_SELECTED_LIST] ?: 1,
             stamps = decodeStamps(prefs[KEY_STAMPS] ?: ""),
-            todoLists = decodeTodoLists(prefs[KEY_TODOS] ?: ""),
             isPremium = prefs[KEY_IS_PREMIUM] ?: false,
             sessionRecords = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: ""),
             tasks = decodeTasks(prefs[KEY_TASKS] ?: ""),
@@ -159,9 +131,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         prefs[KEY_CYCLE_SIZE] = value.focusSessionsPerCycle
     }
     suspend fun setNextTaskId(value: Int) = dataStore.edit { it[KEY_NEXT_TASK_ID] = value }
-    suspend fun setSelectedTodoListId(value: Int) = dataStore.edit { it[KEY_SELECTED_LIST] = value }
     suspend fun setStamps(value: Map<LocalDate, Int>) = dataStore.edit { it[KEY_STAMPS] = encodeStamps(value) }
-    suspend fun setTodoLists(value: List<TodoListState>) = dataStore.edit { it[KEY_TODOS] = encodeTodoLists(value) }
     suspend fun setIsPremium(value: Boolean) = dataStore.edit { it[KEY_IS_PREMIUM] = value }
     suspend fun setPendingCycleCompletionAck(value: Boolean) =
         dataStore.edit { it[KEY_PENDING_CYCLE_ACK] = value }
@@ -246,39 +216,6 @@ internal fun decodeStamps(raw: String): Map<LocalDate, Int> {
             LocalDate.parse(date) to count.toInt()
         }
     }.getOrElse { emptyMap() }
-}
-
-internal fun encodeTodoLists(lists: List<TodoListState>): String =
-    lists.joinToString("\n") { list ->
-        val encodedName = URLEncoder.encode(list.name, "UTF-8")
-        val tasksStr = list.tasks.joinToString(";") { t ->
-            val encodedTitle = URLEncoder.encode(t.title, "UTF-8")
-            "${t.id}:$encodedTitle:${t.minutes}:${t.completed}"
-        }
-        "${list.id}|$encodedName|$tasksStr"
-    }
-
-internal fun decodeTodoLists(raw: String): List<TodoListState> {
-    if (raw.isBlank()) return SEED_TODO_LISTS
-    return runCatching {
-        raw.split("\n").map { line ->
-            val parts = line.split("|", limit = 3)
-            val listId = parts[0].toInt()
-            val name = URLDecoder.decode(parts[1], "UTF-8")
-            val tasksRaw = parts.getOrElse(2) { "" }
-            val tasks = if (tasksRaw.isBlank()) emptyList()
-            else tasksRaw.split(";").map { t ->
-                val tp = t.split(":", limit = 4)
-                FocusTask(
-                    id = tp[0].toInt(),
-                    title = URLDecoder.decode(tp[1], "UTF-8"),
-                    minutes = tp[2].toInt(),
-                    completed = tp[3].toBoolean()
-                )
-            }
-            TodoListState(listId, name, tasks)
-        }
-    }.getOrElse { SEED_TODO_LISTS }
 }
 
 internal fun encodeSessionRecords(records: List<SessionRecord>): String =

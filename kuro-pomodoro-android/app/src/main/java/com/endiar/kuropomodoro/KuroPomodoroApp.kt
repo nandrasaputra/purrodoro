@@ -52,6 +52,7 @@ import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.data.AppState
 import com.endiar.kuropomodoro.model.AppClock
 import com.endiar.kuropomodoro.model.AppTab
+import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.GlassTreatment
@@ -63,7 +64,6 @@ import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.cycleDotsState
-import com.endiar.kuropomodoro.model.TodoListState
 import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.model.glassTreatmentFor
 import com.endiar.kuropomodoro.timer.TimerConnection
@@ -92,28 +92,22 @@ fun KuroPomodoroApp(
             completedSessions = 0,
             settings = TimerSettings(),
             nextTaskId = 7,
-            selectedTodoListId = 1,
             stamps = emptyMap(),
-            todoLists = listOf(
-                TodoListState(
-                    1, "Study", listOf(
-                        FocusTask(1, "Review Compose layout", 25),
-                        FocusTask(2, "Read chapter notes", 20)
-                    )
-                ),
-                TodoListState(
-                    2, "Home", listOf(
-                        FocusTask(3, "Clean desk", 10),
-                        FocusTask(4, "Water plants", 5)
-                    )
-                ),
-                TodoListState(
-                    3, "Ideas", listOf(
-                        FocusTask(5, "Sketch cat animation", 15),
-                        FocusTask(6, "Plan next sprint", 25)
-                    )
-                )
-            )
+            tasks = listOf(
+                FocusTask(1, "Review Compose layout", 25, categoryId = 1),
+                FocusTask(2, "Read chapter notes", 20, categoryId = 1),
+                FocusTask(3, "Clean desk", 10, categoryId = 2),
+                FocusTask(4, "Water plants", 5, categoryId = 2),
+                FocusTask(5, "Sketch cat animation", 15, categoryId = 3),
+                FocusTask(6, "Plan next sprint", 25, categoryId = 3)
+            ),
+            categories = listOf(
+                Category(1, "Study"),
+                Category(2, "Home"),
+                Category(3, "Ideas")
+            ),
+            nextCategoryId = 4,
+            selectedCategoryId = null
         )
     )
 
@@ -131,9 +125,11 @@ fun KuroPomodoroApp(
     var selectedSoundId by remember(appState.selectedSoundId) { mutableIntStateOf(appState.selectedSoundId) }
     var glassReadabilityMode by remember(appState.glassReadabilityMode) { mutableStateOf(appState.glassReadabilityMode) }
     var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
-    var selectedTodoListId by remember(appState.selectedTodoListId) { mutableIntStateOf(appState.selectedTodoListId) }
-    var todoLists by remember(appState.todoLists) { mutableStateOf(appState.todoLists) }
     var sessionRecords by remember(appState.sessionRecords) { mutableStateOf(appState.sessionRecords) }
+    var tasks by remember(appState.tasks) { mutableStateOf(appState.tasks) }
+    var categories by remember(appState.categories) { mutableStateOf(appState.categories) }
+    var nextCategoryId by remember(appState.nextCategoryId) { mutableIntStateOf(appState.nextCategoryId) }
+    var selectedCategoryId by remember(appState.selectedCategoryId) { mutableStateOf(appState.selectedCategoryId) }
 
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 
@@ -152,28 +148,28 @@ fun KuroPomodoroApp(
     fun persistSelectedSoundId(v: Int) { selectedSoundId = v; scope.launch { repo.setSelectedSoundId(v) } }
     fun persistGlassReadabilityMode(v: GlassReadabilityMode) { glassReadabilityMode = v; scope.launch { repo.setGlassReadabilityMode(v) } }
     fun persistNextTaskId(v: Int) { nextTaskId = v; scope.launch { repo.setNextTaskId(v) } }
-    fun persistSelectedTodoListId(v: Int) { selectedTodoListId = v; scope.launch { repo.setSelectedTodoListId(v) } }
-    fun persistTodoLists(v: List<TodoListState>) { todoLists = v; scope.launch { repo.setTodoLists(v) } }
+    fun persistTasks(v: List<FocusTask>) { tasks = v; scope.launch { repo.setTasks(v) } }
+    fun persistSelectedCategoryId(v: Int?) { selectedCategoryId = v; scope.launch { repo.setSelectedCategoryId(v) } }
 
-    val addTask: (String) -> Unit = { title ->
-        persistTodoLists(todoLists.map { list ->
-            if (list.id == selectedTodoListId) {
-                list.copy(tasks = list.tasks + FocusTask(nextTaskId, title, settings.focusMinutes))
-            } else {
-                list
-            }
-        })
+    val addTask: (String, Int?) -> Unit = { title, categoryId ->
+        val newTask = FocusTask(nextTaskId, title, settings.focusMinutes, categoryId = categoryId)
+        persistTasks(tasks + newTask)
         persistNextTaskId(nextTaskId + 1)
     }
     val toggleTask: (Int) -> Unit = { taskId ->
-        persistTodoLists(todoLists.map { list ->
-            list.copy(tasks = list.tasks.map { task -> if (task.id == taskId) task.toggleCompleted() else task })
-        })
+        persistTasks(tasks.map { if (it.id == taskId) it.toggleCompleted() else it })
     }
     val deleteTask: (Int) -> Unit = { taskId ->
-        persistTodoLists(
-            todoLists.map { list -> list.copy(tasks = list.tasks.filterNot { it.id == taskId }) }
-        )
+        persistTasks(tasks.filterNot { it.id == taskId })
+    }
+    val updateTask: (FocusTask) -> Unit = { updated ->
+        persistTasks(tasks.map { if (it.id == updated.id) updated else it })
+    }
+    val deleteAllCompleted: (Int?) -> Unit = { filterCategoryId ->
+        val toDelete: (FocusTask) -> Boolean = { task ->
+            task.completed && (filterCategoryId == null || task.categoryId == filterCategoryId)
+        }
+        persistTasks(tasks.filterNot(toDelete))
     }
     val sounds = remember {
         listOf(
@@ -272,12 +268,18 @@ fun KuroPomodoroApp(
                         onEnterFocusMode = { isFocusMode = true }
                     )
                     AppTab.Todo -> TodoScreen(
-                        todoLists = todoLists,
-                        selectedListId = selectedTodoListId,
-                        onListSelected = { persistSelectedTodoListId(it) },
+                        tasks = tasks,
+                        categories = categories,
+                        selectedCategoryId = selectedCategoryId,
+                        onCategorySelected = { persistSelectedCategoryId(it) },
                         onAddTask = addTask,
                         onToggleTask = toggleTask,
                         onDeleteTask = deleteTask,
+                        onUpdateTask = updateTask,
+                        onDeleteAllCompleted = deleteAllCompleted,
+                        onAddCategory = { name -> scope.launch { repo.addCategory(name) } },
+                        onRenameCategory = { id, name -> scope.launch { repo.renameCategory(id, name) } },
+                        onDeleteCategory = { id -> scope.launch { repo.deleteCategory(id) } },
                         onFocusTask = { task ->
                             activeTask = task
                             isFocusMode = true

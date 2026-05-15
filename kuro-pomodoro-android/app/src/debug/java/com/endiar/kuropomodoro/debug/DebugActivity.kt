@@ -85,9 +85,7 @@ private fun DebugScreen(
             completedSessions = 0,
             settings = com.endiar.kuropomodoro.model.TimerSettings(),
             nextTaskId = 7,
-            selectedTodoListId = 1,
-            stamps = emptyMap(),
-            todoLists = emptyList()
+            stamps = emptyMap()
         )
     )
     val scope = rememberCoroutineScope()
@@ -303,7 +301,6 @@ private fun DebugScreen(
                                     scope.launch {
                                         appRepo.setStamps(emptyMap())
                                         appRepo.setCompletedSessions(0)
-                                        appRepo.setTodoLists(emptyList())
                                     }
                                     resetConfirming = false
                                 }
