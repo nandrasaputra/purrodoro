@@ -91,22 +91,11 @@ fun KuroPomodoroApp(
             selectedSoundId = 1,
             completedSessions = 0,
             settings = TimerSettings(),
-            nextTaskId = 7,
+            nextTaskId = 1,
             stamps = emptyMap(),
-            tasks = listOf(
-                FocusTask(1, "Review Compose layout", 25, categoryId = 1),
-                FocusTask(2, "Read chapter notes", 20, categoryId = 1),
-                FocusTask(3, "Clean desk", 10, categoryId = 2),
-                FocusTask(4, "Water plants", 5, categoryId = 2),
-                FocusTask(5, "Sketch cat animation", 15, categoryId = 3),
-                FocusTask(6, "Plan next sprint", 25, categoryId = 3)
-            ),
-            categories = listOf(
-                Category(1, "Study"),
-                Category(2, "Home"),
-                Category(3, "Ideas")
-            ),
-            nextCategoryId = 4,
+            tasks = listOf(),
+            categories = listOf(),
+            nextCategoryId = 1,
             selectedCategoryId = null
         )
     )
@@ -137,19 +126,46 @@ fun KuroPomodoroApp(
     var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
     val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) { mutableStateOf<FocusTask?>(null) }
+    var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) {
+        mutableStateOf<FocusTask?>(
+            null
+        )
+    }
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
-    fun persistSettings(v: TimerSettings) { settings = v; scope.launch { repo.setSettings(v) } }
-    fun persistCompletedSessions(v: Int) { completedSessions = v; scope.launch { repo.setCompletedSessions(v) } }
-    fun persistStamps(v: Map<LocalDate, Int>) { stamps = v; scope.launch { repo.setStamps(v) } }
-    fun persistSelectedSoundId(v: Int) { selectedSoundId = v; scope.launch { repo.setSelectedSoundId(v) } }
-    fun persistGlassReadabilityMode(v: GlassReadabilityMode) { glassReadabilityMode = v; scope.launch { repo.setGlassReadabilityMode(v) } }
-    fun persistNextTaskId(v: Int) { nextTaskId = v; scope.launch { repo.setNextTaskId(v) } }
-    fun persistTasks(v: List<FocusTask>) { tasks = v; scope.launch { repo.setTasks(v) } }
-    fun persistSelectedCategoryId(v: Int?) { selectedCategoryId = v; scope.launch { repo.setSelectedCategoryId(v) } }
+    fun persistSettings(v: TimerSettings) {
+        settings = v; scope.launch { repo.setSettings(v) }
+    }
+
+    fun persistCompletedSessions(v: Int) {
+        completedSessions = v; scope.launch { repo.setCompletedSessions(v) }
+    }
+
+    fun persistStamps(v: Map<LocalDate, Int>) {
+        stamps = v; scope.launch { repo.setStamps(v) }
+    }
+
+    fun persistSelectedSoundId(v: Int) {
+        selectedSoundId = v; scope.launch { repo.setSelectedSoundId(v) }
+    }
+
+    fun persistGlassReadabilityMode(v: GlassReadabilityMode) {
+        glassReadabilityMode = v; scope.launch { repo.setGlassReadabilityMode(v) }
+    }
+
+    fun persistNextTaskId(v: Int) {
+        nextTaskId = v; scope.launch { repo.setNextTaskId(v) }
+    }
+
+    fun persistTasks(v: List<FocusTask>) {
+        tasks = v; scope.launch { repo.setTasks(v) }
+    }
+
+    fun persistSelectedCategoryId(v: Int?) {
+        selectedCategoryId = v; scope.launch { repo.setSelectedCategoryId(v) }
+    }
 
     val addTask: (String, Int?) -> Unit = { title, categoryId ->
         val newTask = FocusTask(nextTaskId, title, settings.focusMinutes, categoryId = categoryId)
@@ -250,10 +266,12 @@ fun KuroPomodoroApp(
                                     isFocusMode = true
                                     timerConnection.controller.start(settings, activeTask)
                                 }
+
                                 isRunning -> {
                                     isFocusMode = false
                                     timerConnection.controller.pause()
                                 }
+
                                 else -> {
                                     timerConnection.controller.resume()
                                 }
@@ -267,6 +285,7 @@ fun KuroPomodoroApp(
                         onExitFocusMode = { isFocusMode = false },
                         onEnterFocusMode = { isFocusMode = true }
                     )
+
                     AppTab.Todo -> TodoScreen(
                         tasks = tasks,
                         categories = categories,
@@ -278,7 +297,14 @@ fun KuroPomodoroApp(
                         onUpdateTask = updateTask,
                         onDeleteAllCompleted = deleteAllCompleted,
                         onAddCategory = { name -> scope.launch { repo.addCategory(name) } },
-                        onRenameCategory = { id, name -> scope.launch { repo.renameCategory(id, name) } },
+                        onRenameCategory = { id, name ->
+                            scope.launch {
+                                repo.renameCategory(
+                                    id,
+                                    name
+                                )
+                            }
+                        },
                         onDeleteCategory = { id -> scope.launch { repo.deleteCategory(id) } },
                         onFocusTask = { task ->
                             activeTask = task
@@ -291,6 +317,7 @@ fun KuroPomodoroApp(
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding
                     )
+
                     AppTab.Calendar -> CalendarScreen(
                         stamps = stamps,
                         completedSessions = completedSessions,
@@ -298,13 +325,15 @@ fun KuroPomodoroApp(
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding
                     )
+
                     AppTab.Sounds -> SoundsScreen(
                         sounds = sounds,
                         selectedSoundId = selectedSoundId,
                         playingSoundId = playingSoundId,
                         onSoundSelected = { sound ->
                             if (sound.locked && !isPremium) {
-                                premiumSheetMessage = "${sound.name} is part of the simulated premium sound pack."
+                                premiumSheetMessage =
+                                    "${sound.name} is part of the simulated premium sound pack."
                             } else {
                                 persistSelectedSoundId(sound.id)
                                 playingSoundId = sound.id
@@ -317,6 +346,7 @@ fun KuroPomodoroApp(
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding
                     )
+
                     AppTab.Profile -> ProfileScreen(
                         settings = settings,
                         glassReadabilityMode = glassReadabilityMode,
@@ -567,7 +597,11 @@ private fun FocusDashboard(
                     Box(
                         modifier = Modifier
                             .height(56.dp)
-                            .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
+                            .border(
+                                1.5.dp,
+                                Color.White.copy(alpha = 0.20f),
+                                RoundedCornerShape(28.dp)
+                            )
                             .clip(RoundedCornerShape(28.dp))
                             .background(Color.White.copy(alpha = 0.08f))
                             .clickable(onClick = onSkip)
@@ -630,7 +664,11 @@ private fun FocusDashboard(
                     Box(
                         modifier = Modifier
                             .height(56.dp)
-                            .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
+                            .border(
+                                1.5.dp,
+                                Color.White.copy(alpha = 0.20f),
+                                RoundedCornerShape(28.dp)
+                            )
                             .clip(RoundedCornerShape(28.dp))
                             .background(Color.White.copy(alpha = 0.08f))
                             .clickable(onClick = onSkip)
@@ -755,7 +793,14 @@ private val AppTabSaver = Saver<AppTab, String>(
 private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(
     save = { task ->
         if (task == null) listOf(null)
-        else listOf(task.id, task.title, task.minutes, task.completed, task.plannedSessions, task.completedSessions)
+        else listOf(
+            task.id,
+            task.title,
+            task.minutes,
+            task.completed,
+            task.plannedSessions,
+            task.completedSessions
+        )
     },
     restore = { list ->
         if (list[0] == null) null
