@@ -55,12 +55,6 @@ data class FocusTask(
 
 data class Category(val id: Int, val name: String)
 
-data class TodoListState(
-    val id: Int,
-    val name: String,
-    val tasks: List<FocusTask>
-)
-
 data class SoundOption(
     val id: Int,
     val name: String,
