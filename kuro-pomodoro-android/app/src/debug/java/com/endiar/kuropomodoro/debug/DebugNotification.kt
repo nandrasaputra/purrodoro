@@ -33,7 +33,7 @@ fun postDevNotification(context: Context) {
     )
 
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setSmallIcon(R.mipmap.ic_launcher_foreground)
         .setContentTitle("Kuro Dev Tools")
         .setContentText("Tap to open debug panel")
         .setContentIntent(pendingIntent)
