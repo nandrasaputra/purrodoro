@@ -215,6 +215,17 @@ fun CalendarScreen(
                     }
                     .sumOf { r -> r.completedFocusCount * r.focusMinutes }
             }
+        val monthCycles = (1..displayMonth.lengthOfMonth())
+            .map { displayMonth.atDay(it) }
+            .sumOf { d ->
+                sessionRecords
+                    .filter { r ->
+                        java.time.Instant.ofEpochMilli(r.startedAt)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate() == d
+                    }
+                    .sumOf { r -> r.completedFocusCount }
+            }
         val monthName = displayMonth.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
         Spacer(Modifier.height(12.dp))
         Box(
@@ -231,7 +242,7 @@ fun CalendarScreen(
             fontWeight = FontWeight.Medium
         )
         Text(
-            text = "$completedSessions cycles all-time",
+            text = "$monthCycles cycles",
             color = Color.White.copy(alpha = 0.40f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
