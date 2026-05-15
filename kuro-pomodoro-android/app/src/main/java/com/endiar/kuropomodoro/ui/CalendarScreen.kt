@@ -59,15 +59,25 @@ fun CalendarScreen(
     val daysInMonth = yearMonth.lengthOfMonth()
     val startOffset = (firstDay.dayOfWeek.value % 7)
 
-    val todaySessions = stamps[today] ?: 0
-    val todayMinutes = todaySessions * 25
+    // Minutes from actual SessionRecords (accurate even with custom durations)
+    fun minutesForDate(date: LocalDate): Int =
+        sessionRecords
+            .filter { r ->
+                java.time.Instant.ofEpochMilli(r.startedAt)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate() == date
+            }
+            .sumOf { r -> r.completedFocusCount * r.focusMinutes }
+
+    val selectedMinutes = minutesForDate(selectedDate)
+    val todayMinutes = minutesForDate(today)
 
     val weekStart = today.with(DayOfWeek.MONDAY)
-    val weekSessions = (0..6)
+    val weekMinutes = (0..6)
         .map { weekStart.plusDays(it.toLong()) }
-        .sumOf { stamps[it] ?: 0 }
+        .sumOf { minutesForDate(it) }
 
-    val streak = calculateStreak(stamps, today)
+    val streak = com.endiar.kuropomodoro.model.calculateStreak(stamps, today)
 
     Column(
         modifier = modifier
@@ -89,8 +99,14 @@ fun CalendarScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            StatChip(label = "Today", value = "${todayMinutes}m", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
-            StatChip(label = "Week", value = "${weekSessions * 25}m", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
+            val isToday = selectedDate == today
+            StatChip(
+                label = if (isToday) "Today" else selectedDate.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()) + " ${selectedDate.dayOfMonth}",
+                value = "${selectedMinutes}m",
+                modifier = Modifier.weight(1f),
+                glassTreatment = glassTreatment
+            )
+            StatChip(label = "Week", value = "${weekMinutes}m", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
             StatChip(label = "Streak", value = "${streak}d", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
         }
 
@@ -369,15 +385,3 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
     }
 }
 
-private fun calculateStreak(stamps: Map<LocalDate, Int>, today: LocalDate): Int {
-    var streak = 0
-    var date = today
-    while (true) {
-        val sessions = stamps[date] ?: 0
-        if (sessions > 0) {
-            streak++
-            date = date.minusDays(1)
-        } else break
-    }
-    return streak
-}
