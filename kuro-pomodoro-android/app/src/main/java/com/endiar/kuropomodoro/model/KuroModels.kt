@@ -229,7 +229,9 @@ data class SessionRecord(
     val completedFocusCount: Int,
     val totalFocusCount: Int,
     val status: SessionStatus,
-    val taskName: String?
+    val taskName: String?,
+    val completedShortBreakCount: Int = 0,
+    val completedLongBreakCount: Int = 0
 )
 
 /**

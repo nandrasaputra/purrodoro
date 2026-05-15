@@ -41,14 +41,26 @@ object TimerStateMachine {
         val currentItem = snapshot.session.items[snapshot.session.currentIndex]
         var openRecord = snapshot.openRecord
 
-        if (currentItem.type is SessionItemType.Focus) {
-            val date = Instant.ofEpochMilli(snapshot.endsAtMillis ?: now)
-                .atZone(zone).toLocalDate()
-            repo.incrementStampFor(date)
-            openRecord = openRecord?.copy(
-                completedFocusCount = openRecord.completedFocusCount + 1
-            )
-            snapshot.activeTask?.let { repo.incrementTaskCompletedSessions(it.id) }
+        when (currentItem.type) {
+            is SessionItemType.Focus -> {
+                val date = Instant.ofEpochMilli(snapshot.endsAtMillis ?: now)
+                    .atZone(zone).toLocalDate()
+                repo.incrementStampFor(date)
+                openRecord = openRecord?.copy(
+                    completedFocusCount = openRecord.completedFocusCount + 1
+                )
+                snapshot.activeTask?.let { repo.incrementTaskCompletedSessions(it.id) }
+            }
+            is SessionItemType.ShortBreak -> {
+                openRecord = openRecord?.copy(
+                    completedShortBreakCount = openRecord.completedShortBreakCount + 1
+                )
+            }
+            is SessionItemType.LongBreak -> {
+                openRecord = openRecord?.copy(
+                    completedLongBreakCount = openRecord.completedLongBreakCount + 1
+                )
+            }
         }
 
         val nextIndex = snapshot.session.currentIndex + 1
