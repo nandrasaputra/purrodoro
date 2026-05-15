@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,20 +54,31 @@ fun CalendarScreen(
 ) {
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
-    val yearMonth = YearMonth.of(today.year, today.month)
+    var displayMonth by remember { mutableStateOf(YearMonth.of(today.year, today.month)) }
+    val yearMonth = displayMonth
     val firstDay = yearMonth.atDay(1)
     val daysInMonth = yearMonth.lengthOfMonth()
     val startOffset = (firstDay.dayOfWeek.value % 7)
 
-    val todaySessions = stamps[today] ?: 0
-    val todayMinutes = todaySessions * 25
+    // Minutes from actual SessionRecords (accurate even with custom durations)
+    fun minutesForDate(date: LocalDate): Int =
+        sessionRecords
+            .filter { r ->
+                java.time.Instant.ofEpochMilli(r.startedAt)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate() == date
+            }
+            .sumOf { r -> r.completedFocusCount * r.focusMinutes }
+
+    val selectedMinutes = minutesForDate(selectedDate)
+    val todayMinutes = minutesForDate(today)
 
     val weekStart = today.with(DayOfWeek.MONDAY)
-    val weekSessions = (0..6)
+    val weekMinutes = (0..6)
         .map { weekStart.plusDays(it.toLong()) }
-        .sumOf { stamps[it] ?: 0 }
+        .sumOf { minutesForDate(it) }
 
-    val streak = calculateStreak(stamps, today)
+    val streak = com.endiar.kuropomodoro.model.calculateStreak(stamps, today)
 
     Column(
         modifier = modifier
@@ -77,30 +89,78 @@ fun CalendarScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Records",
-            color = Color.White,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "Records",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "your focus history with kuro 🐱",
+                color = Color.White.copy(alpha = 0.50f),
+                fontSize = 13.sp
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            StatChip(label = "Today", value = "${todayMinutes}m", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
-            StatChip(label = "Week", value = "${weekSessions * 25}m", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
-            StatChip(label = "Streak", value = "${streak}d", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
+            val isToday = selectedDate == today
+            val todayLabel = if (isToday) "today" else selectedDate.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()).lowercase() + " ${selectedDate.dayOfMonth}"
+            InlineStatItem(label = todayLabel, value = "${selectedMinutes}m")
+            Box(Modifier.width(1.dp).height(14.dp).background(Color.White.copy(alpha = 0.20f)))
+            InlineStatItem(label = "this week", value = "${weekMinutes}m")
+            Box(Modifier.width(1.dp).height(14.dp).background(Color.White.copy(alpha = 0.20f)))
+            val streakLabel = if (streak > 0) "🔥 ${streak}d streak" else "no streak yet"
+            val streakAlpha = if (streak > 0) 1f else 0.35f
+            InlineStatItem(label = streakLabel, value = "${streak}d", valueAlpha = streakAlpha)
         }
 
         GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
-            val monthLabel = today.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-            Text(
-                text = "$monthLabel ${today.year}",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            val monthLabel = displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.10f))
+                        .clickable { displayMonth = displayMonth.minusMonths(1) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("‹", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Light)
+                }
+                Text(
+                    text = "$monthLabel ${displayMonth.year}",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                val isCurrentMonth = displayMonth == YearMonth.of(today.year, today.month)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isCurrentMonth) Color.White.copy(alpha = 0.04f) else Color.White.copy(alpha = 0.10f))
+                        .clickable(enabled = !isCurrentMonth) {
+                            displayMonth = displayMonth.plusMonths(1)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "›",
+                        color = if (isCurrentMonth) Color.White.copy(alpha = 0.25f) else Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Light
+                    )
+                }
+            }
             Spacer(Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -142,14 +202,52 @@ fun CalendarScreen(
                 }
                 if (row < rows - 1) Spacer(Modifier.height(4.dp))
             }
-        }
 
+        // Calendar footer
+        val monthMinutes = (1..displayMonth.lengthOfMonth())
+            .map { displayMonth.atDay(it) }
+            .sumOf { d ->
+                sessionRecords
+                    .filter { r ->
+                        java.time.Instant.ofEpochMilli(r.startedAt)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate() == d
+                    }
+                    .sumOf { r -> r.completedFocusCount * r.focusMinutes }
+            }
+        val monthCycles = (1..displayMonth.lengthOfMonth())
+            .map { displayMonth.atDay(it) }
+            .sumOf { d ->
+                sessionRecords
+                    .filter { r ->
+                        java.time.Instant.ofEpochMilli(r.startedAt)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate() == d
+                    }
+                    .sumOf { r -> r.completedFocusCount }
+            }
+        val monthName = displayMonth.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+        Spacer(Modifier.height(12.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color.White.copy(alpha = 0.10f))
+        )
+        Spacer(Modifier.height(10.dp))
         Text(
-            text = "Total sessions: $completedSessions",
-            color = Color.White.copy(alpha = 0.45f),
+            text = "$monthName ${displayMonth.year} · ${monthMinutes} min with kuro",
+            color = Color.White.copy(alpha = 0.50f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
         )
+        Text(
+            text = "$monthCycles cycles",
+            color = Color.White.copy(alpha = 0.40f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium
+        )
+    }
 
         SessionSection(
             date = selectedDate,
@@ -160,19 +258,26 @@ fun CalendarScreen(
 }
 
 @Composable
-private fun StatChip(label: String, value: String, modifier: Modifier = Modifier, glassTreatment: GlassTreatment = GlassTreatment.Clear) {
-    GlassCard(
-        modifier = modifier,
-        glassTreatment = glassTreatment
+private fun InlineStatItem(
+    label: String,
+    value: String,
+    valueAlpha: Float = 1f
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(text = value, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(text = label, color = Color.White.copy(alpha = 0.50f), fontSize = 11.sp)
-        }
+        Text(
+            text = label,
+            color = Color.White.copy(alpha = 0.50f),
+            fontSize = 11.sp
+        )
+        Text(
+            text = value,
+            color = Color.White.copy(alpha = valueAlpha),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -202,7 +307,7 @@ private fun DayCell(
     }
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(36.dp)
             .clip(CircleShape)
             .background(bg)
             .border(1.dp, border, CircleShape)
@@ -233,28 +338,41 @@ private fun SessionSection(
         }
         .sortedByDescending { it.startedAt }
 
-    val dateLabel = if (date == LocalDate.now()) {
-        val monthLabel = date.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        "Today · $monthLabel ${date.dayOfMonth}"
-    } else {
-        val monthLabel = date.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        "$monthLabel ${date.dayOfMonth}, ${date.year}"
+    val dayName = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()).lowercase()
+    val monthLabel = date.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    val fullDate = "$monthLabel ${date.dayOfMonth}, ${date.year}"
+
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = "$dayName,",
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = fullDate,
+            color = Color.White.copy(alpha = 0.50f),
+            fontSize = 13.sp
+        )
     }
 
-    Text(
-        text = dateLabel,
-        color = Color.White.copy(alpha = 0.60f),
-        fontSize = 13.sp,
-        fontWeight = FontWeight.SemiBold
-    )
-
     if (dateRecords.isEmpty()) {
-        Text(
-            text = "No sessions on this day",
-            color = Color.White.copy(alpha = 0.35f),
-            fontSize = 13.sp,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
+        val isToday = date == LocalDate.now()
+        Column(
+            modifier = Modifier.padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = if (isToday) "kuro hasn't seen you today yet 🐱" else "nothing here",
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = 14.sp
+            )
+            Text(
+                text = if (isToday) "start a session to begin your streak" else "kuro was probably napping 🐱",
+                color = Color.White.copy(alpha = 0.35f),
+                fontSize = 13.sp
+            )
+        }
     } else {
         dateRecords.forEach { record ->
             SessionCard(record = record, glassTreatment = glassTreatment)
@@ -275,13 +393,19 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
     val badgeColor = if (record.status == SessionStatus.Completed) Color(0xFF4CAF50) else Color(0xFFFF8B6F)
     val badgeBg = if (record.status == SessionStatus.Completed) Color(0x334CAF50) else Color(0x33FF8B6F)
 
-    val dots = buildString {
-        repeat(record.completedFocusCount) { append("● ") }
-        repeat(record.totalFocusCount - record.completedFocusCount) { append("○ ") }
-    }.trimEnd()
-
     GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
-        // Header row: time range + badge
+        // Hero line: accomplishment first
+        val cycleCount = record.completedFocusCount
+        val totalMinutes = cycleCount * record.focusMinutes
+        val cycleWord = if (cycleCount == 1) "cycle" else "cycles"
+        Text(
+            text = "$cycleCount $cycleWord · $totalMinutes min",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(2.dp))
+        // Secondary row: time range + badge
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -289,9 +413,8 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
         ) {
             Text(
                 text = "$startTime – $endTime",
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = 12.sp
             )
             Box(
                 modifier = Modifier
@@ -299,22 +422,30 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
                     .background(badgeBg)
                     .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
-                Text(text = badgeText, color = badgeColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = badgeText, color = badgeColor, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         Spacer(Modifier.height(4.dp))
-        // Focus dots + count
-        Text(
-            text = "$dots  ${record.completedFocusCount} / ${record.totalFocusCount} focus · ${record.focusMinutes} min each",
-            color = Color.White.copy(alpha = 0.75f),
-            fontSize = 12.sp
+        // Cycle dots — visual detail only, no redundant text
+        com.endiar.kuropomodoro.ui.components.CycleDotsRow(
+            totalFocusSessions = record.totalFocusCount,
+            completedFocusSessions = record.completedFocusCount,
+            isCurrentlyFocus = false
         )
-        // Break line
-        Text(
-            text = "Break · ${record.shortBreakMinutes} min short + ${record.longBreakMinutes} min long",
-            color = Color.White.copy(alpha = 0.55f),
-            fontSize = 12.sp
-        )
+        // Break line — only show if there were breaks in this cycle
+        val hadShortBreaks = record.completedFocusCount > 1 || record.status == SessionStatus.Completed
+        val hadLongBreak = record.status == SessionStatus.Completed
+        if (hadShortBreaks || hadLongBreak) {
+            val breakText = when {
+                hadLongBreak -> "Break · ${record.shortBreakMinutes} min short + ${record.longBreakMinutes} min long"
+                else -> "Short break · ${record.shortBreakMinutes} min"
+            }
+            Text(
+                text = breakText,
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = 12.sp
+            )
+        }
         // Optional task chip
         if (record.taskName != null) {
             Spacer(Modifier.height(2.dp))
@@ -334,15 +465,3 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
     }
 }
 
-private fun calculateStreak(stamps: Map<LocalDate, Int>, today: LocalDate): Int {
-    var streak = 0
-    var date = today
-    while (true) {
-        val sessions = stamps[date] ?: 0
-        if (sessions > 0) {
-            streak++
-            date = date.minusDays(1)
-        } else break
-    }
-    return streak
-}
