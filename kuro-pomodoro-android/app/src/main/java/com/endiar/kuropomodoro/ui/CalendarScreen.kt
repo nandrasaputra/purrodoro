@@ -88,12 +88,19 @@ fun CalendarScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Records",
-            color = Color.White,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "Records",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "your focus history with kuro 🐱",
+                color = Color.White.copy(alpha = 0.50f),
+                fontSize = 13.sp
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
