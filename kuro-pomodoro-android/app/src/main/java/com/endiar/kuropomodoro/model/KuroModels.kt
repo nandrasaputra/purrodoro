@@ -47,10 +47,13 @@ data class FocusTask(
     val minutes: Int,
     val completed: Boolean = false,
     val plannedSessions: Int = 1,
-    val completedSessions: Int = 0
+    val completedSessions: Int = 0,
+    val categoryId: Int? = null
 ) {
     fun toggleCompleted(): FocusTask = copy(completed = !completed)
 }
+
+data class Category(val id: Int, val name: String)
 
 data class TodoListState(
     val id: Int,
