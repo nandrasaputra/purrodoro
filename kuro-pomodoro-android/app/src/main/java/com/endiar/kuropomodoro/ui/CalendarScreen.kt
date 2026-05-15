@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -104,17 +105,18 @@ fun CalendarScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             val isToday = selectedDate == today
-            StatChip(
-                label = if (isToday) "Today" else selectedDate.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()) + " ${selectedDate.dayOfMonth}",
-                value = "${selectedMinutes}m",
-                modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment
-            )
-            StatChip(label = "Week", value = "${weekMinutes}m", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
-            StatChip(label = "Streak", value = "${streak}d", modifier = Modifier.weight(1f), glassTreatment = glassTreatment)
+            val todayLabel = if (isToday) "today" else selectedDate.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()).lowercase() + " ${selectedDate.dayOfMonth}"
+            InlineStatItem(label = todayLabel, value = "${selectedMinutes}m")
+            Box(Modifier.width(1.dp).height(14.dp).background(Color.White.copy(alpha = 0.20f)))
+            InlineStatItem(label = "this week", value = "${weekMinutes}m")
+            Box(Modifier.width(1.dp).height(14.dp).background(Color.White.copy(alpha = 0.20f)))
+            val streakLabel = if (streak > 0) "🔥 ${streak}d streak" else "no streak yet"
+            val streakAlpha = if (streak > 0) 1f else 0.35f
+            InlineStatItem(label = streakLabel, value = "${streak}d", valueAlpha = streakAlpha)
         }
 
         GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
@@ -238,19 +240,26 @@ fun CalendarScreen(
 }
 
 @Composable
-private fun StatChip(label: String, value: String, modifier: Modifier = Modifier, glassTreatment: GlassTreatment = GlassTreatment.Clear) {
-    GlassCard(
-        modifier = modifier,
-        glassTreatment = glassTreatment
+private fun InlineStatItem(
+    label: String,
+    value: String,
+    valueAlpha: Float = 1f
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(text = value, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(text = label, color = Color.White.copy(alpha = 0.50f), fontSize = 11.sp)
-        }
+        Text(
+            text = label,
+            color = Color.White.copy(alpha = 0.50f),
+            fontSize = 11.sp
+        )
+        Text(
+            text = value,
+            color = Color.White.copy(alpha = valueAlpha),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
