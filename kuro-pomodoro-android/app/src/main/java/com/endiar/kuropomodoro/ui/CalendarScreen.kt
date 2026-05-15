@@ -202,9 +202,8 @@ fun CalendarScreen(
                 }
                 if (row < rows - 1) Spacer(Modifier.height(4.dp))
             }
-        }
 
-        // Month aggregate
+        // Calendar footer
         val monthMinutes = (1..displayMonth.lengthOfMonth())
             .map { displayMonth.atDay(it) }
             .sumOf { d ->
@@ -217,19 +216,27 @@ fun CalendarScreen(
                     .sumOf { r -> r.completedFocusCount * r.focusMinutes }
             }
         val monthName = displayMonth.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+        Spacer(Modifier.height(12.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color.White.copy(alpha = 0.10f))
+        )
+        Spacer(Modifier.height(10.dp))
         Text(
-            text = "$monthName ${displayMonth.year} · ${monthMinutes} min focused",
-            color = Color.White.copy(alpha = 0.45f),
+            text = "$monthName ${displayMonth.year} · ${monthMinutes} min with kuro",
+            color = Color.White.copy(alpha = 0.50f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
         )
-
         Text(
-            text = "$completedSessions completed cycles all-time",
-            color = Color.White.copy(alpha = 0.45f),
+            text = "$completedSessions cycles all-time",
+            color = Color.White.copy(alpha = 0.40f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
         )
+    }
 
         SessionSection(
             date = selectedDate,
@@ -289,7 +296,7 @@ private fun DayCell(
     }
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(36.dp)
             .clip(CircleShape)
             .background(bg)
             .border(1.dp, border, CircleShape)
