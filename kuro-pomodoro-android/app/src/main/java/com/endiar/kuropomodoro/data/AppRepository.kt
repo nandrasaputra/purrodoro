@@ -18,6 +18,7 @@ import com.endiar.kuropomodoro.model.TimerSession
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.TodoListState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -31,11 +32,15 @@ data class AppState(
     val completedSessions: Int,
     val settings: TimerSettings,
     val nextTaskId: Int,
-    val selectedTodoListId: Int,
+    val selectedTodoListId: Int,         // kept for backwards compat, unused after migration
     val stamps: Map<LocalDate, Int>,
-    val todoLists: List<TodoListState>,
+    val todoLists: List<TodoListState>,  // kept for backwards compat, unused after migration
     val isPremium: Boolean = false,
-    val sessionRecords: List<SessionRecord> = emptyList()
+    val sessionRecords: List<SessionRecord> = emptyList(),
+    val tasks: List<FocusTask> = emptyList(),
+    val categories: List<Category> = emptyList(),
+    val nextCategoryId: Int = 4,
+    val selectedCategoryId: Int? = null
 )
 
 private val SEED_TODO_LISTS = listOf(
@@ -59,6 +64,21 @@ private val SEED_TODO_LISTS = listOf(
     )
 )
 
+private val SEED_CATEGORIES = listOf(
+    Category(1, "Study"),
+    Category(2, "Home"),
+    Category(3, "Ideas")
+)
+
+private val SEED_TASKS = listOf(
+    FocusTask(1, "Review Compose layout", 25, categoryId = 1),
+    FocusTask(2, "Read chapter notes", 20, categoryId = 1),
+    FocusTask(3, "Clean desk", 10, categoryId = 2),
+    FocusTask(4, "Water plants", 5, categoryId = 2),
+    FocusTask(5, "Sketch cat animation", 15, categoryId = 3),
+    FocusTask(6, "Plan next sprint", 25, categoryId = 3)
+)
+
 class AppRepository(private val dataStore: DataStore<Preferences>) {
 
     companion object {
@@ -77,6 +97,10 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_SESSION_RECORDS = stringPreferencesKey("session_records_json")
         private val KEY_RUNTIME_SNAPSHOT = stringPreferencesKey("timer_runtime_snapshot")
         private val KEY_PENDING_CYCLE_ACK = booleanPreferencesKey("pending_cycle_completion_ack")
+        private val KEY_TASKS = stringPreferencesKey("tasks_json")
+        private val KEY_CATEGORIES = stringPreferencesKey("categories_json")
+        private val KEY_NEXT_CATEGORY_ID = intPreferencesKey("next_category_id")
+        private val KEY_SELECTED_CATEGORY_ID = stringPreferencesKey("selected_category_id")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -116,6 +140,12 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             todoLists = decodeTodoLists(prefs[KEY_TODOS] ?: ""),
             isPremium = prefs[KEY_IS_PREMIUM] ?: false,
             sessionRecords = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: ""),
+            tasks = decodeTasks(prefs[KEY_TASKS] ?: ""),
+            categories = decodeCategories(prefs[KEY_CATEGORIES] ?: ""),
+            nextCategoryId = prefs[KEY_NEXT_CATEGORY_ID] ?: 4,
+            selectedCategoryId = prefs[KEY_SELECTED_CATEGORY_ID]
+                ?.takeIf { it.isNotBlank() }
+                ?.toIntOrNull()
         )
     }
 
@@ -153,6 +183,53 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         val existing = decodeStamps(prefs[KEY_STAMPS] ?: "")
         val updated = existing + (date to (existing[date] ?: 0) + 1)
         prefs[KEY_STAMPS] = encodeStamps(updated)
+    }
+
+    suspend fun setTasks(value: List<FocusTask>) =
+        dataStore.edit { it[KEY_TASKS] = encodeTasks(value) }
+
+    suspend fun setCategories(value: List<Category>) =
+        dataStore.edit { it[KEY_CATEGORIES] = encodeCategories(value) }
+
+    suspend fun setNextCategoryId(value: Int) =
+        dataStore.edit { it[KEY_NEXT_CATEGORY_ID] = value }
+
+    suspend fun setSelectedCategoryId(value: Int?) =
+        dataStore.edit {
+            if (value == null) it.remove(KEY_SELECTED_CATEGORY_ID)
+            else it[KEY_SELECTED_CATEGORY_ID] = value.toString()
+        }
+
+    suspend fun addCategory(name: String) = dataStore.edit { prefs ->
+        val nextId = prefs[KEY_NEXT_CATEGORY_ID] ?: 4
+        val existing = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
+        prefs[KEY_CATEGORIES] = encodeCategories(existing + Category(nextId, name))
+        prefs[KEY_NEXT_CATEGORY_ID] = nextId + 1
+    }
+
+    suspend fun renameCategory(id: Int, name: String) = dataStore.edit { prefs ->
+        val existing = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
+        prefs[KEY_CATEGORIES] = encodeCategories(
+            existing.map { if (it.id == id) it.copy(name = name) else it }
+        )
+    }
+
+    suspend fun deleteCategory(id: Int) = dataStore.edit { prefs ->
+        val existingCategories = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
+        val existingTasks = decodeTasks(prefs[KEY_TASKS] ?: "")
+        prefs[KEY_CATEGORIES] = encodeCategories(existingCategories.filterNot { it.id == id })
+        prefs[KEY_TASKS] = encodeTasks(
+            existingTasks.map { if (it.categoryId == id) it.copy(categoryId = null) else it }
+        )
+        val selected = prefs[KEY_SELECTED_CATEGORY_ID]?.toIntOrNull()
+        if (selected == id) prefs.remove(KEY_SELECTED_CATEGORY_ID)
+    }
+
+    suspend fun incrementTaskCompletedSessions(taskId: Int) = dataStore.edit { prefs ->
+        val existing = decodeTasks(prefs[KEY_TASKS] ?: "")
+        prefs[KEY_TASKS] = encodeTasks(
+            existing.map { if (it.id == taskId) it.copy(completedSessions = it.completedSessions + 1) else it }
+        )
     }
 }
 
@@ -330,4 +407,48 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
             openRecord = record
         )
     }.getOrNull()
+}
+
+// --- Task encoding ---
+// Each task: "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>:<categoryIdOrEmpty>"
+internal fun encodeTasks(tasks: List<FocusTask>): String =
+    tasks.joinToString("\n") { t ->
+        val encodedTitle = URLEncoder.encode(t.title, "UTF-8")
+        val catField = t.categoryId?.toString() ?: ""
+        "${t.id}:$encodedTitle:${t.minutes}:${t.completed}:${t.plannedSessions}:${t.completedSessions}:$catField"
+    }
+
+internal fun decodeTasks(raw: String): List<FocusTask> {
+    if (raw.isBlank()) return SEED_TASKS
+    return runCatching {
+        raw.split("\n").map { line ->
+            val p = line.split(":", limit = 7)
+            FocusTask(
+                id = p[0].toInt(),
+                title = URLDecoder.decode(p[1], "UTF-8"),
+                minutes = p[2].toInt(),
+                completed = p[3].toBoolean(),
+                plannedSessions = p[4].toInt(),
+                completedSessions = p[5].toInt(),
+                categoryId = p.getOrNull(6)?.takeIf { it.isNotBlank() }?.toInt()
+            )
+        }
+    }.getOrElse { SEED_TASKS }
+}
+
+// --- Category encoding ---
+// Each category: "<id>:<urlName>"
+internal fun encodeCategories(categories: List<Category>): String =
+    categories.joinToString("\n") { c ->
+        "${c.id}:${URLEncoder.encode(c.name, "UTF-8")}"
+    }
+
+internal fun decodeCategories(raw: String): List<Category> {
+    if (raw.isBlank()) return SEED_CATEGORIES
+    return runCatching {
+        raw.split("\n").map { line ->
+            val p = line.split(":", limit = 2)
+            Category(p[0].toInt(), URLDecoder.decode(p[1], "UTF-8"))
+        }
+    }.getOrElse { SEED_CATEGORIES }
 }
