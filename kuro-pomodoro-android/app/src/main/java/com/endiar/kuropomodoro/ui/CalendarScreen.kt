@@ -327,21 +327,23 @@ private fun SessionSection(
         }
         .sortedByDescending { it.startedAt }
 
-    val dateLabel = if (date == LocalDate.now()) {
-        val monthLabel = date.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        "Today · $monthLabel ${date.dayOfMonth}"
-    } else {
-        val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        val monthLabel = date.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        "$dayOfWeek · $monthLabel ${date.dayOfMonth}, ${date.year}"
-    }
+    val dayName = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()).lowercase()
+    val monthLabel = date.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    val fullDate = "$monthLabel ${date.dayOfMonth}, ${date.year}"
 
-    Text(
-        text = dateLabel,
-        color = Color.White.copy(alpha = 0.60f),
-        fontSize = 13.sp,
-        fontWeight = FontWeight.SemiBold
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = "$dayName,",
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = fullDate,
+            color = Color.White.copy(alpha = 0.50f),
+            fontSize = 13.sp
+        )
+    }
 
     if (dateRecords.isEmpty()) {
         Text(
