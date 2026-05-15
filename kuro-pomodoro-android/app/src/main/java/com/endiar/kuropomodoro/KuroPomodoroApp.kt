@@ -217,6 +217,7 @@ fun KuroPomodoroApp(
     }
     val cycleItems: List<TimerSessionItem> = runtimeState?.session?.items ?: emptyList()
     val cycleIndex = runtimeState?.session?.currentIndex ?: 0
+    val currentTimerState = runtimeState?.session?.timerState ?: TimerState.Idle
 
     val backdropTime = AppClock.now()
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
@@ -243,6 +244,7 @@ fun KuroPomodoroApp(
                         activeTask = activeTask,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
+                        currentTimerState = currentTimerState,
                         timerSettings = settings,
                         onSkip = { timerConnection.controller.skip() },
                         onStartPause = {
@@ -376,6 +378,7 @@ fun KuroPomodoroApp(
                     },
                     confirmButton = {
                         TextButton(onClick = {
+                            timerConnection.controller.dismissCompletion()
                             scope.launch { repo.setPendingCycleCompletionAck(false) }
                         }) {
                             Text(
@@ -407,6 +410,7 @@ private fun FocusDashboard(
     activeTask: FocusTask?,
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
+    currentTimerState: TimerState,
     timerSettings: TimerSettings,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
@@ -466,7 +470,7 @@ private fun FocusDashboard(
         return
     }
 
-    val dots = cycleDotsState(cycleItems, cycleIndex, timerSettings)
+    val dots = cycleDotsState(cycleItems, cycleIndex, currentTimerState, timerSettings)
     val totalFocusSessions = dots.totalFocusSessions
     val completedFocusSessions = dots.completedFocusSessions
     val isCurrentlyFocus = dots.isCurrentlyFocus
