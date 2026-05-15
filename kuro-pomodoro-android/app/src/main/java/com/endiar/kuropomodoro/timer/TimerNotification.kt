@@ -84,13 +84,14 @@ object TimerNotification {
         return builder.build()
     }
 
-    enum class CompletionKind { Focus, Break, Cycle }
+    enum class CompletionKind { Focus, Break, Cycle, Stopped }
 
     fun buildCompletionNotification(context: Context, kind: CompletionKind): Notification {
         val (title, body) = when (kind) {
             CompletionKind.Focus -> "Focus complete" to "Tap to start your break"
             CompletionKind.Break -> "Break complete" to "Ready for another focus session?"
             CompletionKind.Cycle -> "Cycle complete" to "Nice work — your Pomodoro cycle is done"
+            CompletionKind.Stopped -> "Timer stopped" to "Session ended early"
         }
         return NotificationCompat.Builder(context, CHANNEL_COMPLETION)
             .setSmallIcon(R.mipmap.ic_launcher_monochrome)

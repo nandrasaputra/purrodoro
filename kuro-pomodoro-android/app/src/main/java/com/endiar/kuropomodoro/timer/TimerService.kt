@@ -226,6 +226,10 @@ class TimerService : Service() {
         stopTicking()
         repo.setRuntimeSnapshot(null)
         _state.value = null
+        NotificationManagerCompat.from(applicationContext).notify(
+            TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
+            TimerNotification.buildCompletionNotification(applicationContext, TimerNotification.CompletionKind.Stopped)
+        )
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -310,6 +314,9 @@ class TimerService : Service() {
 
                     if (next.session.timerState == TimerState.Playing) {
                         scheduleAlarm(next)
+                        // Refresh the ongoing notification immediately so it reflects the
+                        // new segment instead of lagging by one tick (~1s).
+                        refreshOngoingNotification(next, System.currentTimeMillis())
                     } else {
                         stopForeground(STOP_FOREGROUND_REMOVE)
                         stopSelf()
