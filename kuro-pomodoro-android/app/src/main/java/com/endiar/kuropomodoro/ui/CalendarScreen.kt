@@ -346,12 +346,22 @@ private fun SessionSection(
     }
 
     if (dateRecords.isEmpty()) {
-        Text(
-            text = "No sessions recorded — start one today! 🐱",
-            color = Color.White.copy(alpha = 0.35f),
-            fontSize = 13.sp,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
+        val isToday = date == LocalDate.now()
+        Column(
+            modifier = Modifier.padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = if (isToday) "kuro hasn't seen you today yet 🐱" else "nothing here",
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = 14.sp
+            )
+            Text(
+                text = if (isToday) "start a session to begin your streak" else "kuro was probably napping 🐱",
+                color = Color.White.copy(alpha = 0.35f),
+                fontSize = 13.sp
+            )
+        }
     } else {
         dateRecords.forEach { record ->
             SessionCard(record = record, glassTreatment = glassTreatment)
