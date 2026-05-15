@@ -239,7 +239,7 @@ fun CalendarScreen(
             )
             Spacer(Modifier.height(10.dp))
             Text(
-                text = "${selectedDate.dayOfMonth} $selectedMonthName ${selectedDate.year} · $selectedCycles cycles · ${selectedMinutes} min",
+                text = "${selectedDate.dayOfMonth} $selectedMonthName ${selectedDate.year} · $selectedCycles cycles · ${selectedMinutes} min focused",
                 color = Color.White.copy(alpha = 0.50f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
@@ -394,12 +394,12 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
         val breakTimeTotal = record.completedShortBreakCount * record.shortBreakMinutes +
             record.completedLongBreakCount * record.longBreakMinutes
         val heroText =
-            "${totalMinutes} min focused" + if (breakTimeTotal > 0) " · ${breakTimeTotal} min rest" else ""
+            "${totalMinutes} min focused" + if (breakTimeTotal > 0) "\n${breakTimeTotal} min rest" else ""
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
                 text = heroText,
                 color = Color.White,
-                fontSize = 16.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(2.dp))
