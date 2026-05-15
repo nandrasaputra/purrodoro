@@ -109,14 +109,27 @@ fun CalendarScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val isToday = selectedDate == today
-            val todayLabel = if (isToday) "today" else selectedDate.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()).lowercase() + " ${selectedDate.dayOfMonth}"
-            InlineStatItem(label = todayLabel, value = "${selectedMinutes}m")
-            Box(Modifier.width(1.dp).height(14.dp).background(Color.White.copy(alpha = 0.20f)))
-            InlineStatItem(label = "this week", value = "${weekMinutes}m")
-            Box(Modifier.width(1.dp).height(14.dp).background(Color.White.copy(alpha = 0.20f)))
-            val streakLabel = if (streak > 0) "🔥 ${streak}d streak" else "no streak yet"
+            val todayLabel = if (isToday) "Today" else selectedDate.month.getDisplayName(
+                TextStyle.SHORT,
+                Locale.getDefault()
+            ).replaceFirstChar { it.uppercase() } + " ${selectedDate.dayOfMonth}"
+            InlineStatItem(label = todayLabel, value = "${selectedMinutes} min")
+            Box(
+                Modifier
+                    .width(1.dp)
+                    .height(14.dp)
+                    .background(Color.White.copy(alpha = 0.20f))
+            )
+            InlineStatItem(label = "This Week", value = "${weekMinutes} min")
+            Box(
+                Modifier
+                    .width(1.dp)
+                    .height(14.dp)
+                    .background(Color.White.copy(alpha = 0.20f))
+            )
+            val streakLabel = if (streak > 0) "🔥Streak" else "No Streak Yet"
             val streakAlpha = if (streak > 0) 1f else 0.35f
-            InlineStatItem(label = streakLabel, value = "${streak}d", valueAlpha = streakAlpha)
+            InlineStatItem(label = streakLabel, value = "${streak} day", valueAlpha = streakAlpha)
         }
 
         GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
@@ -147,7 +160,11 @@ fun CalendarScreen(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(if (isCurrentMonth) Color.White.copy(alpha = 0.04f) else Color.White.copy(alpha = 0.10f))
+                        .background(
+                            if (isCurrentMonth) Color.White.copy(alpha = 0.04f) else Color.White.copy(
+                                alpha = 0.10f
+                            )
+                        )
                         .clickable(enabled = !isCurrentMonth) {
                             displayMonth = displayMonth.plusMonths(1)
                         },
@@ -203,51 +220,31 @@ fun CalendarScreen(
                 if (row < rows - 1) Spacer(Modifier.height(4.dp))
             }
 
-        // Calendar footer
-        val monthMinutes = (1..displayMonth.lengthOfMonth())
-            .map { displayMonth.atDay(it) }
-            .sumOf { d ->
-                sessionRecords
-                    .filter { r ->
-                        java.time.Instant.ofEpochMilli(r.startedAt)
-                            .atZone(java.time.ZoneId.systemDefault())
-                            .toLocalDate() == d
-                    }
-                    .sumOf { r -> r.completedFocusCount * r.focusMinutes }
-            }
-        val monthCycles = (1..displayMonth.lengthOfMonth())
-            .map { displayMonth.atDay(it) }
-            .sumOf { d ->
-                sessionRecords
-                    .filter { r ->
-                        java.time.Instant.ofEpochMilli(r.startedAt)
-                            .atZone(java.time.ZoneId.systemDefault())
-                            .toLocalDate() == d
-                    }
-                    .sumOf { r -> r.completedFocusCount }
-            }
-        val monthName = displayMonth.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        Spacer(Modifier.height(12.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.White.copy(alpha = 0.10f))
-        )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = "$monthName ${displayMonth.year} · ${monthMinutes} min with kuro",
-            color = Color.White.copy(alpha = 0.50f),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
-        )
-        Text(
-            text = "$monthCycles cycles",
-            color = Color.White.copy(alpha = 0.40f),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
-        )
-    }
+            // Calendar footer — selected day stats
+            val selectedCycles = sessionRecords
+                .filter { r ->
+                    java.time.Instant.ofEpochMilli(r.startedAt)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate() == selectedDate
+                }
+                .sumOf { r -> r.completedFocusCount }
+            val selectedMonthName =
+                selectedDate.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+            Spacer(Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color.White.copy(alpha = 0.10f))
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "${selectedDate.dayOfMonth} $selectedMonthName ${selectedDate.year} · $selectedCycles cycles · ${selectedMinutes} min",
+                color = Color.White.copy(alpha = 0.50f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
 
         SessionSection(
             date = selectedDate,
@@ -290,20 +287,20 @@ private fun DayCell(
     onClick: () -> Unit = {}
 ) {
     val bg = when {
-        isSelected  -> Color(0xFFFF8B6F)
+        isSelected -> Color(0xFFFF8B6F)
         hasSessions -> Color.White.copy(alpha = 0.12f)
-        else        -> Color.Transparent
+        else -> Color.Transparent
     }
     val border = when {
-        isSelected  -> Color.Transparent
-        isToday     -> Color.White.copy(alpha = 0.60f)
+        isSelected -> Color.Transparent
+        isToday -> Color.White.copy(alpha = 0.60f)
         hasSessions -> Color.White.copy(alpha = 0.20f)
-        else        -> Color.Transparent
+        else -> Color.Transparent
     }
     val textColor = when {
-        isSelected  -> Color.White
+        isSelected -> Color.White
         hasSessions -> Color.White
-        else        -> Color.White.copy(alpha = 0.50f)
+        else -> Color.White.copy(alpha = 0.50f)
     }
     Box(
         modifier = Modifier
@@ -338,9 +335,10 @@ private fun SessionSection(
         }
         .sortedByDescending { it.startedAt }
 
-    val dayName = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()).lowercase()
+    val dayName = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        .replaceFirstChar { it.uppercase() }
     val monthLabel = date.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-    val fullDate = "$monthLabel ${date.dayOfMonth}, ${date.year}"
+    val fullDate = "${date.dayOfMonth} $monthLabel ${date.year}"
 
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
@@ -389,66 +387,41 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
     val endTime = java.time.Instant.ofEpochMilli(record.endedAt).atZone(zone)
         .format(timeFormatter)
 
-    val badgeText = if (record.status == SessionStatus.Completed) "Completed" else "Partial"
-    val badgeColor = if (record.status == SessionStatus.Completed) Color(0xFF4CAF50) else Color(0xFFFF8B6F)
-    val badgeBg = if (record.status == SessionStatus.Completed) Color(0x334CAF50) else Color(0x33FF8B6F)
-
     GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
-        // Hero line: accomplishment first
-        val cycleCount = record.completedFocusCount
-        val totalMinutes = cycleCount * record.focusMinutes
-        val cycleWord = if (cycleCount == 1) "cycle" else "cycles"
-        Text(
-            text = "$cycleCount $cycleWord · $totalMinutes min",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(Modifier.height(2.dp))
-        // Secondary row: time range + badge
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        // Hero line: accomplishment first. Break time reflects what the user actually
+        // completed (skipped breaks don't count) — see SessionRecord.completedShortBreakCount.
+        val totalMinutes = record.completedFocusCount * record.focusMinutes
+        val breakTimeTotal = record.completedShortBreakCount * record.shortBreakMinutes +
+            record.completedLongBreakCount * record.longBreakMinutes
+        val heroText =
+            "${totalMinutes} min focused" + if (breakTimeTotal > 0) " · ${breakTimeTotal} min rest" else ""
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                text = heroText,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(2.dp))
+            // Secondary row: time range
             Text(
                 text = "$startTime – $endTime",
                 color = Color.White.copy(alpha = 0.55f),
                 fontSize = 12.sp
             )
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(badgeBg)
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
-            ) {
-                Text(text = badgeText, color = badgeColor, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-            }
         }
-        Spacer(Modifier.height(4.dp))
+
+        Spacer(Modifier.height(16.dp))
         // Cycle dots — visual detail only, no redundant text
         com.endiar.kuropomodoro.ui.components.CycleDotsRow(
             totalFocusSessions = record.totalFocusCount,
             completedFocusSessions = record.completedFocusCount,
             isCurrentlyFocus = false
         )
-        // Break line — only show if there were breaks in this cycle
-        val hadShortBreaks = record.completedFocusCount > 1 || record.status == SessionStatus.Completed
-        val hadLongBreak = record.status == SessionStatus.Completed
-        if (hadShortBreaks || hadLongBreak) {
-            val breakText = when {
-                hadLongBreak -> "Break · ${record.shortBreakMinutes} min short + ${record.longBreakMinutes} min long"
-                else -> "Short break · ${record.shortBreakMinutes} min"
-            }
-            Text(
-                text = breakText,
-                color = Color.White.copy(alpha = 0.55f),
-                fontSize = 12.sp
-            )
-        }
+
         // Optional task chip
         if (record.taskName != null) {
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(16.dp))
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))

@@ -46,11 +46,23 @@ object TimerReconciler {
         while (now >= endsAt) {
             val currentItem = session.items.getOrNull(session.currentIndex) ?: break
 
-            if (currentItem.type is SessionItemType.Focus) {
-                stamps.add(Instant.ofEpochMilli(endsAt).atZone(zone).toLocalDate())
-                openRecord = openRecord?.copy(
-                    completedFocusCount = openRecord.completedFocusCount + 1
-                )
+            when (currentItem.type) {
+                is SessionItemType.Focus -> {
+                    stamps.add(Instant.ofEpochMilli(endsAt).atZone(zone).toLocalDate())
+                    openRecord = openRecord?.copy(
+                        completedFocusCount = openRecord.completedFocusCount + 1
+                    )
+                }
+                is SessionItemType.ShortBreak -> {
+                    openRecord = openRecord?.copy(
+                        completedShortBreakCount = openRecord.completedShortBreakCount + 1
+                    )
+                }
+                is SessionItemType.LongBreak -> {
+                    openRecord = openRecord?.copy(
+                        completedLongBreakCount = openRecord.completedLongBreakCount + 1
+                    )
+                }
             }
 
             val nextIndex = session.currentIndex + 1

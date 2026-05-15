@@ -209,6 +209,36 @@ class TimerReconcilerTest {
     }
 
     @Test
+    fun reconcile_increments_short_break_count_when_break_boundary_crossed() {
+        // autoStart on; replay crosses Focus#0 (25m) + ShortBreak#0 (5m) → lands inside Focus#1.
+        val startMillis = 1_700_000_000_000L
+        val snapshot = playingSnapshot(startMillis, autoSettings)
+        val now = startMillis + 32 * 60 * 1000L
+
+        val result = TimerReconciler.reconcile(snapshot, now, autoSettings)
+
+        assertEquals(1, result.state.openRecord?.completedFocusCount)
+        assertEquals(1, result.state.openRecord?.completedShortBreakCount)
+        assertEquals(0, result.state.openRecord?.completedLongBreakCount)
+    }
+
+    @Test
+    fun reconcile_closes_record_with_full_break_counts_on_cycle_end() {
+        // autoStart on; cycle = F SB F LB = 70 min. Replaying past 80m closes the record.
+        val startMillis = 1_700_000_000_000L
+        val snapshot = playingSnapshot(startMillis, autoSettings)
+        val now = startMillis + 80 * 60 * 1000L
+
+        val result = TimerReconciler.reconcile(snapshot, now, autoSettings)
+
+        assertEquals(1, result.closedRecords.size)
+        val closed = result.closedRecords[0]
+        assertEquals(2, closed.completedFocusCount)
+        assertEquals(1, closed.completedShortBreakCount)
+        assertEquals(1, closed.completedLongBreakCount)
+    }
+
+    @Test
     fun playing_with_null_endsAtMillis_is_treated_as_unchanged() {
         // Malformed snapshot — invariant says Playing implies endsAtMillis != null.
         // Reconciler should defensively return the snapshot unchanged rather than NPE.

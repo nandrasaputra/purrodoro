@@ -218,6 +218,13 @@ internal fun decodeStamps(raw: String): Map<LocalDate, Int> {
     }.getOrElse { emptyMap() }
 }
 
+// Schema, pipe-separated per record:
+//   0:id 1:startedAt 2:endedAt 3:focusMinutes 4:shortBreakMinutes 5:longBreakMinutes
+//   6:completedFocusCount 7:totalFocusCount 8:status 9:taskEncoded
+//   10:completedShortBreakCount (v2+) 11:completedLongBreakCount (v2+)
+//
+// Fields 10/11 were added in v2. Older records have 10 fields; the decoder defaults
+// the new counts to 0 so previously-saved sessions stay readable without migration.
 internal fun encodeSessionRecords(records: List<SessionRecord>): String =
     records.joinToString("\n") { r ->
         val taskEncoded = if (r.taskName != null) URLEncoder.encode(r.taskName, "UTF-8") else ""
@@ -225,7 +232,8 @@ internal fun encodeSessionRecords(records: List<SessionRecord>): String =
             r.id, r.startedAt, r.endedAt,
             r.focusMinutes, r.shortBreakMinutes, r.longBreakMinutes,
             r.completedFocusCount, r.totalFocusCount,
-            r.status.name, taskEncoded
+            r.status.name, taskEncoded,
+            r.completedShortBreakCount, r.completedLongBreakCount
         ).joinToString("|")
     }
 
@@ -245,7 +253,9 @@ internal fun decodeSessionRecords(raw: String): List<SessionRecord> {
                 completedFocusCount = p[6].toInt(),
                 totalFocusCount = p[7].toInt(),
                 status = SessionStatus.valueOf(p[8]),
-                taskName = if (p[9].isBlank()) null else URLDecoder.decode(p[9], "UTF-8")
+                taskName = if (p[9].isBlank()) null else URLDecoder.decode(p[9], "UTF-8"),
+                completedShortBreakCount = p.getOrNull(10)?.toIntOrNull() ?: 0,
+                completedLongBreakCount = p.getOrNull(11)?.toIntOrNull() ?: 0
             )
         }
     }.getOrElse { emptyList() }
@@ -277,7 +287,8 @@ internal fun encodeRuntimeSnapshot(state: TimerRuntimeState): String {
             r.id, r.startedAt, r.endedAt,
             r.focusMinutes, r.shortBreakMinutes, r.longBreakMinutes,
             r.completedFocusCount, r.totalFocusCount,
-            r.status.name, encodedTask
+            r.status.name, encodedTask,
+            r.completedShortBreakCount, r.completedLongBreakCount
         ).joinToString(";")
     } ?: ""
     return listOf(
@@ -334,7 +345,9 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
                 completedFocusCount = rp[6].toInt(),
                 totalFocusCount = rp[7].toInt(),
                 status = SessionStatus.valueOf(rp[8]),
-                taskName = if (rp[9].isBlank()) null else URLDecoder.decode(rp[9], "UTF-8")
+                taskName = if (rp[9].isBlank()) null else URLDecoder.decode(rp[9], "UTF-8"),
+                completedShortBreakCount = rp.getOrNull(10)?.toIntOrNull() ?: 0,
+                completedLongBreakCount = rp.getOrNull(11)?.toIntOrNull() ?: 0
             )
         }
         TimerRuntimeState(
