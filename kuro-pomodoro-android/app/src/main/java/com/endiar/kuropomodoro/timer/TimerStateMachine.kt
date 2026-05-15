@@ -48,6 +48,7 @@ object TimerStateMachine {
             openRecord = openRecord?.copy(
                 completedFocusCount = openRecord.completedFocusCount + 1
             )
+            snapshot.activeTask?.let { repo.incrementTaskCompletedSessions(it.id) }
         }
 
         val nextIndex = snapshot.session.currentIndex + 1
