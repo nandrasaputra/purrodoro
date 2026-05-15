@@ -264,3 +264,26 @@ fun SessionItemType.seconds(): Int = when (this) {
     is SessionItemType.ShortBreak -> seconds
     is SessionItemType.LongBreak -> seconds
 }
+
+/**
+ * Counts the number of consecutive days (ending today) that have at least one session.
+ *
+ * Convention: if today has no stamp yet, we look backwards from yesterday so
+ * an in-progress day does not reset a legitimate streak.
+ * The result is the count of that contiguous run, plus 1 if today also has a stamp.
+ *
+ * Examples:
+ *   stamps on Mon, Tue, Wed; today = Thu with no stamp → streak = 3
+ *   stamps on Mon, Tue, Wed; today = Thu with a stamp  → streak = 4
+ *   no stamps at all                                    → streak = 0
+ */
+fun calculateStreak(stamps: Map<LocalDate, Int>, today: LocalDate): Int {
+    val todayHasStamp = (stamps[today] ?: 0) > 0
+    var streak = if (todayHasStamp) 1 else 0
+    var date = today.minusDays(1)
+    while ((stamps[date] ?: 0) > 0) {
+        streak++
+        date = date.minusDays(1)
+    }
+    return streak
+}
