@@ -158,7 +158,7 @@ fun KuroPomodoroApp(
     val addTask: (String) -> Unit = { title ->
         persistTodoLists(todoLists.map { list ->
             if (list.id == selectedTodoListId) {
-                list.copy(tasks = list.tasks + FocusTask(nextTaskId, title, 25))
+                list.copy(tasks = list.tasks + FocusTask(nextTaskId, title, settings.focusMinutes))
             } else {
                 list
             }
