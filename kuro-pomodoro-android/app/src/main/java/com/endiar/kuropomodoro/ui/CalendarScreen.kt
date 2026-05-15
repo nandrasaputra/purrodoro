@@ -53,7 +53,8 @@ fun CalendarScreen(
 ) {
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
-    val yearMonth = YearMonth.of(today.year, today.month)
+    var displayMonth by remember { mutableStateOf(YearMonth.of(today.year, today.month)) }
+    val yearMonth = displayMonth
     val firstDay = yearMonth.atDay(1)
     val daysInMonth = yearMonth.lengthOfMonth()
     val startOffset = (firstDay.dayOfWeek.value % 7)
@@ -94,13 +95,47 @@ fun CalendarScreen(
         }
 
         GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
-            val monthLabel = today.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-            Text(
-                text = "$monthLabel ${today.year}",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            val monthLabel = displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.10f))
+                        .clickable { displayMonth = displayMonth.minusMonths(1) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("‹", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Light)
+                }
+                Text(
+                    text = "$monthLabel ${displayMonth.year}",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                val isCurrentMonth = displayMonth == YearMonth.of(today.year, today.month)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isCurrentMonth) Color.White.copy(alpha = 0.04f) else Color.White.copy(alpha = 0.10f))
+                        .clickable(enabled = !isCurrentMonth) {
+                            displayMonth = displayMonth.plusMonths(1)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "›",
+                        color = if (isCurrentMonth) Color.White.copy(alpha = 0.25f) else Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Light
+                    )
+                }
+            }
             Spacer(Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
