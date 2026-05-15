@@ -1,0 +1,229 @@
+# Kuro Pomodoro — Product Reference
+
+A practical reference for how Kuro Pomodoro models a Pomodoro **session**, the
+state transitions a session goes through, and how each end-path (stop, natural
+finish, skip-to-end) differs.
+
+> Source of truth: code in `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/`.
+> If this doc and the code disagree, the code wins — please update this file.
+
+---
+
+## What "session" means
+
+The word "session" is overloaded in the codebase. Two senses, both are real:
+
+### 1. Cycle-sense (the user-facing definition)
+
+A **session** = one full Pomodoro **cycle**: a sequence of focus segments
+interleaved with short breaks, capped by one long break.
+
+For `N = focusSessionsPerCycle` (default `4`, range `1..10`), the cycle is:
+
+```
+(Focus + ShortBreak) × (N − 1)   then   Focus + LongBreak
+```
+
+Example for `N = 4` (8 segments total):
+
+```
+Focus  ShortBreak  Focus  ShortBreak  Focus  ShortBreak  Focus  LongBreak
+  1                  2                  3                  4
+```
+
+Built by [`buildCycle(settings)`](../kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt) in `KuroModels.kt:103`.
+
+This is the unit recorded as a [`SessionRecord`](../kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt) (`KuroModels.kt:215`):
+one record per cycle attempt, written when the cycle ends (any path).
+
+### 2. Segment-sense (per-segment terminology)
+
+Internally each item in a cycle is a `TimerSessionItem` of a `SessionItemType`
+(`Focus` / `ShortBreak` / `LongBreak`), and the in-flight runtime container is
+a `TimerSession` (items + currentIndex + remainingSeconds + timerState).
+Some code/UI strings refer to a single Focus segment as a "session" (e.g.
+`completedFocusCount`, `totalFocusCount` on `SessionRecord`).
+
+**When in doubt:** "session" in product copy = cycle. "Focus session" or
+"focus count" inside a record = a single Focus segment within that cycle.
+
+---
+
+## The runtime state object
+
+`TimerService` owns a `MutableStateFlow<RuntimeState?>`:
+
+- `null` → no active cycle (idle home screen, no progress to show).
+- non-null → a cycle is in progress *or* has just ended and the user has not
+  yet acknowledged the completion dialog.
+
+Inside `RuntimeState` lives a `TimerSession`:
+
+| Field | Meaning |
+|---|---|
+| `items` | the cycle plan (list of `TimerSessionItem`) |
+| `currentIndex` | which segment we're on |
+| `remainingSeconds` | seconds left in the current segment |
+| `timerState` | `Idle` / `Playing` / `Paused` |
+
+The pure reducer that advances this is `TimerStateMachine` (timer ticks,
+pause/resume, segment completion). `TimerService` glues it to alarms,
+notifications, DataStore, and wall-clock reconciliation
+(`TimerReconciler` replays elapsed time after process death).
+
+---
+
+## Lifecycle of a single cycle
+
+```
+                 start(settings, task)
+                        │
+                        ▼
+                 ┌───────────────┐
+                 │   Playing     │ ◀─── resume() ───┐
+                 └───────────────┘                  │
+                  │   │   │   │                     │
+          tick    │   │   │   └── pause() ────► ┌────────┐
+                  │   │   │                     │ Paused │
+                  │   │   │     ◀── resume() ── └────────┘
+                  │   │   │
+   segment ends   │   │   └─── skip()  (advance to next segment)
+                  │   │
+   final segment  │   └─── (natural finish) ──┐
+   ends naturally │                            ▼
+                  │                   ┌────────────────────┐
+                  │                   │  Reset (Idle)      │
+                  │                   │  items preserved   │
+                  │                   │  currentIndex = 0  │
+                  │                   │  status=Completed  │
+                  │                   │  pendingCycleAck=T │
+                  │                   └────────────────────┘
+                  │
+   user taps Stop ───────► ┌─────────────────────┐
+                           │  Cleared (state=null)│
+                           │  status=Partial      │
+                           └─────────────────────┘
+```
+
+### Three end-paths
+
+There are exactly three ways a cycle can leave its "running" state.
+
+#### A. Stop (user pressed Stop)
+
+`TimerService.doStop()` (`TimerService.kt:204`):
+
+- Persists a `SessionRecord` with `status = SessionStatus.Partial`,
+  `endedAt = now`, `completedFocusCount` = focus segments finished so far.
+- If the user was mid-Focus with time remaining (Playing or Paused), increments
+  today's stamp via `repo.incrementStampFor(today)`. Gated by the pure helper
+  `shouldStampStopAsFocus(session)` (`KuroModels.kt`) so we never double-count
+  a natural finish (which already stamps inside `TimerStateMachine`).
+- Sets `_state.value = null` — the entire runtime is cleared.
+- UI effect: cycle dots row reverts to all-outline (no `cycleItems`,
+  fallback uses `settings.focusSessionsPerCycle` for total).
+
+#### B. Natural finish (the long break runs to zero)
+
+`TimerStateMachine.applyTimerComplete` (the reset branch, `TimerStateMachine.kt:63`):
+
+- Persists a `SessionRecord` with `status = SessionStatus.Completed`.
+- Sets `pendingCycleCompletionAck = true` so the UI can show the completion dialog.
+- Returns `state.copy(currentIndex = 0, timerState = TimerState.Idle)`.
+  **`items` is intentionally preserved** so the dots row stays populated until
+  the user acks the dialog.
+
+#### C. Skip-final (user pressed Skip on the last segment)
+
+`TimerService.buildResetState()` (`TimerService.kt:349`) takes the same path
+as B by design: same `SessionRecord` (Completed), same preserved `items`,
+same `currentIndex = 0` + `Idle`. The intent (per the in-source comment) is
+that the user cannot tell a skip-final apart from a natural finish.
+
+---
+
+### Segment-level skip (not an end-path)
+
+`doSkip()` on a non-final segment simply advances `currentIndex`, keeps the
+timer running (or paused/idle, whatever it was), and does not write a record.
+Only skipping the final segment terminates the cycle.
+
+---
+
+## Settings that shape the cycle
+
+[`TimerSettings`](../kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt) (`KuroModels.kt:69`) drives `buildCycle`:
+
+| Field | Default | Range | Notes |
+|---|---|---|---|
+| `focusMinutes` | 25 | 1..180 | duration of every Focus segment |
+| `shortBreakMinutes` | 5 | 1..180 | duration of every ShortBreak segment |
+| `longBreakMinutes` | 15 | 1..180 | duration of the trailing LongBreak |
+| `autoStartNextSession` | false | — | auto-advance into the next segment on completion |
+| `focusSessionsPerCycle` | 4 | 1..10 | the `N` in the cycle formula above |
+
+Settings are persisted to DataStore via `AppRepository`. Changing
+`focusSessionsPerCycle` mid-cycle does **not** rewrite the in-flight cycle —
+the running `items` list is fixed at `start()` time. The dots UI accounts
+for this (it derives `totalFocusSessions` from `cycleItems` when present,
+otherwise falls back to `settings.focusSessionsPerCycle`).
+
+---
+
+## Cycle-progress dots (UI)
+
+Rendered by `CycleDotsRow` (`KuroComponents.kt:553`), driven by the pure
+function `cycleDotsState(cycleItems, cycleIndex, timerState, settings)`
+(`KuroModels.kt:128`):
+
+| Field | How it's computed |
+|---|---|
+| `totalFocusSessions` | `cycleItems` Focus count, or `settings.focusSessionsPerCycle` when `cycleItems` is empty |
+| `completedFocusSessions` | number of Focus indices that are `< cycleIndex` |
+| `isCurrentlyFocus` | `timerState != Idle` **and** the current item is a `Focus` |
+
+The `timerState` gate matters because of end-paths B and C above:
+after a natural finish or skip-final, `cycleItems` is preserved and
+`cycleIndex` is reset to `0`, but `timerState` is `Idle`. Without the gate,
+the first dot would draw as the "active" peach highlight even though no
+segment is actually running.
+
+---
+
+## Persistence
+
+| Concern | Location | Persisted via |
+|---|---|---|
+| Settings | `TimerSettings` | DataStore (`AppRepository`) |
+| Records | `List<SessionRecord>` | DataStore (`AppRepository.recordsFlow`) |
+| Daily focus stamps | `Map<LocalDate, Int>` | DataStore (`AppRepository.setStamps` / `incrementStampFor`) |
+| Pending cycle-ack flag | boolean | DataStore (`pendingCycleCompletionAckFlow`) |
+| In-flight runtime | `RuntimeState` | in-memory in `TimerService`; replayed via `TimerReconciler` after process death using saved `endsAtMillis` |
+
+A `SessionRecord` carries enough context to render history without needing
+the original `TimerSettings`:
+
+```kotlin
+data class SessionRecord(
+    val id: Long,
+    val startedAt: Long,
+    val endedAt: Long,
+    val focusMinutes: Int,
+    val shortBreakMinutes: Int,
+    val longBreakMinutes: Int,
+    val completedFocusCount: Int,    // segments completed within this cycle
+    val totalFocusCount: Int,        // = settings.focusSessionsPerCycle at start
+    val status: SessionStatus,       // Completed | Partial
+    val taskName: String?
+)
+```
+
+---
+
+## Glossary
+
+- **Cycle** — one full Pomodoro plan from first Focus through the trailing LongBreak. = one `SessionRecord`.
+- **Segment / item** — a single `TimerSessionItem` (Focus, ShortBreak, or LongBreak) inside a cycle.
+- **Session** — overloaded; defaults to "cycle" in product copy, "Focus segment" inside `SessionRecord` field names.
+- **Stamp** — a per-day tally (`completed`, `unfinished`) of Focus segments, used by the calendar/records views.
+- **Pending cycle ack** — a persisted boolean indicating the completion dialog has not yet been dismissed; survives process death.

@@ -124,10 +124,15 @@ data class CycleDotsState(
  *
  * Falls back to [settings.focusSessionsPerCycle] when [cycleItems] is empty (idle state),
  * so the dots are always visible regardless of timer state.
+ *
+ * [timerState] gates the "currently focus" highlight: when the timer is [TimerState.Idle]
+ * (e.g. after a natural finish or skip-final reset, where [cycleItems] are still populated
+ * but [cycleIndex] has been reset to 0), no dot is highlighted as the active segment.
  */
 fun cycleDotsState(
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
+    timerState: TimerState,
     settings: TimerSettings
 ): CycleDotsState {
     val focusItemIndices = cycleItems.mapIndexedNotNull { i, item ->
@@ -136,7 +141,8 @@ fun cycleDotsState(
     val totalFocusSessions = if (focusItemIndices.isNotEmpty()) focusItemIndices.size
                              else settings.focusSessionsPerCycle
     val completedFocusSessions = focusItemIndices.count { it < cycleIndex }
-    val isCurrentlyFocus = cycleItems.getOrNull(cycleIndex)?.type is SessionItemType.Focus
+    val isCurrentlyFocus = timerState != TimerState.Idle &&
+        cycleItems.getOrNull(cycleIndex)?.type is SessionItemType.Focus
     return CycleDotsState(totalFocusSessions, completedFocusSessions, isCurrentlyFocus)
 }
 
@@ -195,19 +201,23 @@ fun formatSeconds(totalSeconds: Int): String {
     return "%02d:%02d".format(minutes, seconds)
 }
 
-data class FocusStamp(
-    val completed: Int = 0,
-    val unfinished: Int = 0
-)
-
-fun addCompletedStamp(stamps: Map<LocalDate, FocusStamp>, date: LocalDate): Map<LocalDate, FocusStamp> {
-    val existing = stamps[date] ?: FocusStamp()
-    return stamps + (date to existing.copy(completed = existing.completed + 1))
-}
-
-fun addUnfinishedStamp(stamps: Map<LocalDate, FocusStamp>, date: LocalDate): Map<LocalDate, FocusStamp> {
-    val existing = stamps[date] ?: FocusStamp()
-    return stamps + (date to existing.copy(unfinished = existing.unfinished + 1))
+/**
+ * Returns true when a Stop action should record a focus stamp for "today".
+ *
+ * Spec: stopping while a Focus segment is in progress (Playing or Paused) with time
+ * still remaining should be acknowledged in the daily stamp counter, so partially-
+ * worked focus periods are not lost from records / streaks.
+ *
+ * Returns false when:
+ *  - the timer is Idle (nothing in progress)
+ *  - the current segment is a break
+ *  - remainingSeconds == 0 (the segment is effectively complete; the natural-finish
+ *    path will stamp via TimerStateMachine — avoid double counting)
+ */
+fun shouldStampStopAsFocus(session: TimerSession): Boolean {
+    if (session.timerState == TimerState.Idle) return false
+    val current = session.currentItem ?: return false
+    return current.type is SessionItemType.Focus && session.remainingSeconds > 0
 }
 
 enum class SessionStatus { Completed, Partial }

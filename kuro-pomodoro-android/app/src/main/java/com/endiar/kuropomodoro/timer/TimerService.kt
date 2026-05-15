@@ -21,6 +21,7 @@ import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.buildCycle
 import com.endiar.kuropomodoro.model.seconds
+import com.endiar.kuropomodoro.model.shouldStampStopAsFocus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -30,6 +31,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 
 class TimerService : Service() {
 
@@ -50,6 +53,7 @@ class TimerService : Service() {
         override fun resume() { scope.launch { doResume() } }
         override fun stop()   { scope.launch { doStop() } }
         override fun skip()   { scope.launch { doSkip() } }
+        override fun dismissCompletion() { scope.launch { doDismissCompletion() } }
     }
 
     inner class LocalBinder : Binder() {
@@ -90,6 +94,7 @@ class TimerService : Service() {
                 ACTION_RESUME       -> doResume()
                 ACTION_STOP         -> doStop()
                 ACTION_SKIP         -> doSkip()
+                ACTION_DISMISS_COMPLETION -> doDismissCompletion()
                 ACTION_ALARM_FIRED  -> resumeFromAlarm()
                 // ACTION_START is handled via the controller's start()
             }
@@ -187,8 +192,7 @@ class TimerService : Service() {
             return
         }
         // Skip is an explicit user action — advance the cycle but leave the next
-        // segment paused, regardless of autoStartNextSession. Matches both the
-        // legacy in-Compose behavior and TimerSessionReducer's Skip handler.
+        // segment paused, regardless of autoStartNextSession.
         val nextSeconds = current.session.items[nextIndex].type.seconds()
         val updated = current.copy(
             session = current.session.copy(
@@ -205,6 +209,15 @@ class TimerService : Service() {
         val current = _state.value
         if (current != null) {
             val now = System.currentTimeMillis()
+            // Acknowledge a partial focus in the daily stamp counter so stopping
+            // mid-Focus is not invisible in records / streaks. See
+            // shouldStampStopAsFocus for the exact rule.
+            if (shouldStampStopAsFocus(current.session)) {
+                val today = Instant.ofEpochMilli(now)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                repo.incrementStampFor(today)
+            }
             current.openRecord?.let { rec ->
                 repo.appendSessionRecord(rec.copy(endedAt = now, status = SessionStatus.Partial))
             }
@@ -213,6 +226,25 @@ class TimerService : Service() {
         stopTicking()
         repo.setRuntimeSnapshot(null)
         _state.value = null
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
+    /**
+     * Collapse the post-cycle "warm reset" Idle state (preserved items + currentIndex=0)
+     * to a fully cold state (null), so subsequent settings changes are reflected
+     * immediately in the UI before the user taps Start again. Guarded to no-op if a
+     * session is in flight, so an out-of-order intent can't tear down a running cycle.
+     */
+    private suspend fun doDismissCompletion() {
+        val current = _state.value ?: run {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return
+        }
+        if (current.session.timerState != TimerState.Idle) return
+        _state.value = null
+        repo.setRuntimeSnapshot(null)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -383,6 +415,7 @@ class TimerService : Service() {
         const val ACTION_RESUME = "com.endiar.kuropomodoro.timer.RESUME"
         const val ACTION_STOP = "com.endiar.kuropomodoro.timer.STOP"
         const val ACTION_SKIP = "com.endiar.kuropomodoro.timer.SKIP"
+        const val ACTION_DISMISS_COMPLETION = "com.endiar.kuropomodoro.timer.DISMISS_COMPLETION"
         const val ACTION_ALARM_FIRED = "com.endiar.kuropomodoro.timer.ALARM_FIRED"
 
         private const val ALARM_REQUEST_CODE = 9001
