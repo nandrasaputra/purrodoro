@@ -201,6 +201,11 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             existing.map { if (it.id == taskId) it.copy(completedSessions = it.completedSessions + 1) else it }
         )
     }
+
+    suspend fun deleteSessionRecord(id: Long) = dataStore.edit { prefs ->
+        val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
+        prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing.filterNot { it.id == id })
+    }
 }
 
 // --- Encoding helpers ---

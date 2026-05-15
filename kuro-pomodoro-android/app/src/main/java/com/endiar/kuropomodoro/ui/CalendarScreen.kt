@@ -19,11 +19,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,12 +48,14 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun CalendarScreen(
     stamps: Map<LocalDate, Int>,
     completedSessions: Int,
     sessionRecords: List<SessionRecord> = emptyList(),
+    onDeleteRecord: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
     contentPadding: PaddingValues = PaddingValues(0.dp)
@@ -249,6 +257,7 @@ fun CalendarScreen(
         SessionSection(
             date = selectedDate,
             records = sessionRecords,
+            onDeleteRecord = onDeleteRecord,
             glassTreatment = glassTreatment
         )
     }
@@ -324,6 +333,7 @@ private fun DayCell(
 private fun SessionSection(
     date: LocalDate,
     records: List<SessionRecord>,
+    onDeleteRecord: (Long) -> Unit,
     glassTreatment: GlassTreatment
 ) {
     val dateRecords = records
@@ -373,13 +383,18 @@ private fun SessionSection(
         }
     } else {
         dateRecords.forEach { record ->
-            SessionCard(record = record, glassTreatment = glassTreatment)
+            SessionCard(record = record, onDelete = onDeleteRecord, glassTreatment = glassTreatment)
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
+private fun SessionCard(
+    record: SessionRecord,
+    onDelete: (Long) -> Unit,
+    glassTreatment: GlassTreatment
+) {
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
     val zone = java.time.ZoneId.systemDefault()
     val startTime = java.time.Instant.ofEpochMilli(record.startedAt).atZone(zone)
@@ -387,9 +402,14 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
     val endTime = java.time.Instant.ofEpochMilli(record.endedAt).atZone(zone)
         .format(timeFormatter)
 
-    GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
-        // Hero line: accomplishment first. Break time reflects what the user actually
-        // completed (skipped breaks don't count) — see SessionRecord.completedShortBreakCount.
+    var showDetail by remember { mutableStateOf(false) }
+
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showDetail = true },
+        glassTreatment = glassTreatment
+    ) {
         val totalMinutes = record.completedFocusCount * record.focusMinutes
         val breakTimeTotal = record.completedShortBreakCount * record.shortBreakMinutes +
             record.completedLongBreakCount * record.longBreakMinutes
@@ -403,7 +423,6 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(2.dp))
-            // Secondary row: time range
             Text(
                 text = "$startTime – $endTime",
                 color = Color.White.copy(alpha = 0.55f),
@@ -412,14 +431,12 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
         }
 
         Spacer(Modifier.height(16.dp))
-        // Cycle dots — visual detail only, no redundant text
         com.endiar.kuropomodoro.ui.components.CycleDotsRow(
             totalFocusSessions = record.totalFocusCount,
             completedFocusSessions = record.completedFocusCount,
             isCurrentlyFocus = false
         )
 
-        // Optional task chip
         if (record.taskName != null) {
             Spacer(Modifier.height(16.dp))
             Box(
@@ -434,6 +451,273 @@ private fun SessionCard(record: SessionRecord, glassTreatment: GlassTreatment) {
                     fontSize = 12.sp
                 )
             }
+        }
+    }
+
+    if (showDetail) {
+        SessionDetailSheet(
+            record = record,
+            onDismiss = { showDetail = false },
+            onDelete = { id ->
+                onDelete(id)
+                showDetail = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SessionDetailSheet(
+    record: SessionRecord,
+    onDismiss: () -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+    val zone = java.time.ZoneId.systemDefault()
+    val startTime = java.time.Instant.ofEpochMilli(record.startedAt).atZone(zone)
+        .format(timeFormatter)
+    val endTime = java.time.Instant.ofEpochMilli(record.endedAt).atZone(zone)
+        .format(timeFormatter)
+
+    val totalFocusMinutes = record.completedFocusCount * record.focusMinutes
+    val breakTimeTotal = record.completedShortBreakCount * record.shortBreakMinutes +
+        record.completedLongBreakCount * record.longBreakMinutes
+    val isCompleted = record.status == SessionStatus.Completed
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color(0xFF1A1228)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Session Details",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (isCompleted) Color(0xFF2A4A35) else Color(0xFF3A2A1A)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (isCompleted) "✓ Completed" else "Partial",
+                        color = if (isCompleted) Color(0xFF7EEAA0) else Color(0xFFFFB067),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "$startTime – $endTime",
+                color = Color.White.copy(alpha = 0.50f),
+                fontSize = 13.sp
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // Stats row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                DetailStatItem(label = "Focused", value = "${totalFocusMinutes} min")
+                Box(
+                    Modifier
+                        .width(1.dp)
+                        .height(36.dp)
+                        .background(Color.White.copy(alpha = 0.12f))
+                )
+                DetailStatItem(
+                    label = "Cycles",
+                    value = "${record.completedFocusCount}/${record.totalFocusCount}"
+                )
+                Box(
+                    Modifier
+                        .width(1.dp)
+                        .height(36.dp)
+                        .background(Color.White.copy(alpha = 0.12f))
+                )
+                DetailStatItem(
+                    label = "Rest",
+                    value = if (breakTimeTotal > 0) "${breakTimeTotal} min" else "—"
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color.White.copy(alpha = 0.10f))
+            )
+            Spacer(Modifier.height(20.dp))
+
+            // Timer settings used
+            Text(
+                text = "Timer settings",
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SettingChip(label = "Focus", value = "${record.focusMinutes} min")
+                SettingChip(label = "Short break", value = "${record.shortBreakMinutes} min")
+                SettingChip(label = "Long break", value = "${record.longBreakMinutes} min")
+            }
+
+            // Cycle dots
+            Spacer(Modifier.height(20.dp))
+            com.endiar.kuropomodoro.ui.components.CycleDotsRow(
+                totalFocusSessions = record.totalFocusCount,
+                completedFocusSessions = record.completedFocusCount,
+                isCurrentlyFocus = false
+            )
+
+            // Task chip
+            if (record.taskName != null) {
+                Spacer(Modifier.height(20.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "📌 ${record.taskName}",
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            // Delete button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFF3D1A1A))
+                    .border(1.dp, Color(0xFFFF4444).copy(alpha = 0.30f), RoundedCornerShape(16.dp))
+                    .clickable { showDeleteConfirm = true }
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Delete Record",
+                    color = Color(0xFFFF6B6B),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = {
+                Text(
+                    text = "Delete this record?",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Text(
+                    text = "The session from $startTime – $endTime will be permanently removed. This cannot be undone.",
+                    color = Color.White.copy(alpha = 0.70f),
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    scope.launch { sheetState.hide() }.invokeOnCompletion { onDelete(record.id) }
+                }) {
+                    Text("Delete", color = Color(0xFFFF6B6B), fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.70f))
+                }
+            },
+            containerColor = Color(0xFF1A1228),
+            titleContentColor = Color.White,
+            textContentColor = Color.White.copy(alpha = 0.70f)
+        )
+    }
+}
+
+@Composable
+private fun DetailStatItem(label: String, value: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = label,
+            color = Color.White.copy(alpha = 0.45f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = value,
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun SettingChip(label: String, value: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White.copy(alpha = 0.07f))
+            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = value,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = label,
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 10.sp
+            )
         }
     }
 }

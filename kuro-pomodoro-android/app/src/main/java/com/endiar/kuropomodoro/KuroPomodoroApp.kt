@@ -322,6 +322,7 @@ fun KuroPomodoroApp(
                         stamps = stamps,
                         completedSessions = completedSessions,
                         sessionRecords = sessionRecords,
+                        onDeleteRecord = { id -> scope.launch { repo.deleteSessionRecord(id) } },
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding
                     )
