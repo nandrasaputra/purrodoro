@@ -60,6 +60,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -227,7 +229,10 @@ fun KuroPomodoroApp(
     val isRunning = runtimeState?.session?.timerState == TimerState.Playing
     val isStarted = runtimeState != null && runtimeState?.session?.timerState != TimerState.Idle
 
-    val focusActive = isFocusMode && isRunning
+    // Treat focus as active during the brief async window where runtimeState hasn't
+    // arrived yet — so cold-restart into focus mode snaps to the final state instead
+    // of briefly flashing the dashboard then animating in.
+    val focusActive = isFocusMode && (isRunning || runtimeState == null)
     val focusTransition = updateTransition(targetState = focusActive, label = "focusMode")
 
     val scrimAlpha by focusTransition.animateFloat(
@@ -603,11 +608,19 @@ private fun FocusDashboard(
             .padding(contentPadding)
             // Full-screen tap-to-exit layer for focus mode, gated on the underlying
             // boolean so taps work the instant focus is active (not after animation).
+            // The semantics block exposes the same action to TalkBack / assistive tech.
             .then(
                 if (focusActive) {
-                    Modifier.pointerInput(focusActive) {
-                        detectTapGestures(onTap = { onExitFocusMode() })
-                    }
+                    Modifier
+                        .pointerInput(focusActive) {
+                            detectTapGestures(onTap = { onExitFocusMode() })
+                        }
+                        .semantics(mergeDescendants = true) {
+                            onClick(label = "Exit focus mode") {
+                                onExitFocusMode()
+                                true
+                            }
+                        }
                 } else {
                     Modifier
                 }
