@@ -90,13 +90,13 @@ fun ProfileScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Focus User",
+                        text = "Nandra",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = tokens.textPrimary
                     )
                     Text(
-                        text = "Pomodoro in progress",
+                        text = "Stay focused with kuro",
                         fontSize = 13.sp,
                         color = tokens.textSecondary
                     )
@@ -109,7 +109,7 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "FU",
+                        text = "NS",
                         color = tokens.accentOn,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -176,14 +176,15 @@ fun ProfileScreen(
             overBackdrop = overBackdrop,
         ) {
             Text(
-                text = "Glass readability",
-                fontSize = 15.sp,
+                text = "FOCUS SCREEN READABILITY",
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = tokens.textPrimary
+                letterSpacing = 1.sp,
+                color = tokens.textMuted
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Improve panel contrast on bright backgrounds.",
+                text = "Only affects the cat backdrop on the Focus tab.",
                 fontSize = 12.sp,
                 color = tokens.textSecondary
             )

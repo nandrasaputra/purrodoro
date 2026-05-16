@@ -67,6 +67,7 @@ import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.GlassPill
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.kuropomodoro.ui.theme.luminance
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -91,7 +92,6 @@ private fun tagPaletteFor(categoryId: Int?): Pair<Color, Color> {
     return presets[idx]
 }
 
-private fun Color.luminance(): Float = 0.2126f * red + 0.7152f * green + 0.0722f * blue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -43,6 +43,7 @@ import com.endiar.kuropomodoro.ui.theme.TileKeysLight
 import com.endiar.kuropomodoro.ui.theme.TileRainDark
 import com.endiar.kuropomodoro.ui.theme.TileRainLight
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.kuropomodoro.ui.theme.luminance
 
 @Composable
 private fun tileFillFor(soundId: Int): Color {
@@ -57,7 +58,6 @@ private fun tileFillFor(soundId: Int): Color {
     }
 }
 
-private fun Color.luminance(): Float = 0.2126f * red + 0.7152f * green + 0.0722f * blue
 
 @Composable
 fun SoundsScreen(
