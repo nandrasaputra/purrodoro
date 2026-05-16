@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,6 +45,7 @@ import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.ui.components.GlassCard
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -58,8 +61,11 @@ fun CalendarScreen(
     onDeleteRecord: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
     var displayMonth by remember { mutableStateOf(YearMonth.of(today.year, today.month)) }
@@ -68,7 +74,6 @@ fun CalendarScreen(
     val daysInMonth = yearMonth.lengthOfMonth()
     val startOffset = (firstDay.dayOfWeek.value % 7)
 
-    // Minutes from actual SessionRecords (accurate even with custom durations)
     fun minutesForDate(date: LocalDate): Int =
         sessionRecords
             .filter { r ->
@@ -100,13 +105,13 @@ fun CalendarScreen(
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = "Records",
-                color = Color.White,
+                color = tokens.textPrimary,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "your focus history with kuro 🐱",
-                color = Color.White.copy(alpha = 0.50f),
+                color = tokens.textSecondary,
                 fontSize = 13.sp
             )
         }
@@ -126,21 +131,25 @@ fun CalendarScreen(
                 Modifier
                     .width(1.dp)
                     .height(14.dp)
-                    .background(Color.White.copy(alpha = 0.20f))
+                    .background(tokens.textFaint)
             )
             InlineStatItem(label = "This Week", value = "${weekMinutes} min")
             Box(
                 Modifier
                     .width(1.dp)
                     .height(14.dp)
-                    .background(Color.White.copy(alpha = 0.20f))
+                    .background(tokens.textFaint)
             )
             val streakLabel = if (streak > 0) "🔥Streak" else "No Streak Yet"
             val streakAlpha = if (streak > 0) 1f else 0.35f
             InlineStatItem(label = streakLabel, value = "${streak} day", valueAlpha = streakAlpha)
         }
 
-        GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
+        ) {
             val monthLabel = displayMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -151,15 +160,15 @@ fun CalendarScreen(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.10f))
+                        .background(tokens.textFaint)
                         .clickable { displayMonth = displayMonth.minusMonths(1) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("‹", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Light)
+                    Text("‹", color = tokens.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Light)
                 }
                 Text(
                     text = "$monthLabel ${displayMonth.year}",
-                    color = Color.White,
+                    color = tokens.textPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -169,9 +178,8 @@ fun CalendarScreen(
                         .size(32.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isCurrentMonth) Color.White.copy(alpha = 0.04f) else Color.White.copy(
-                                alpha = 0.10f
-                            )
+                            if (isCurrentMonth) tokens.textFaint.copy(alpha = 0.4f)
+                            else tokens.textFaint
                         )
                         .clickable(enabled = !isCurrentMonth) {
                             displayMonth = displayMonth.plusMonths(1)
@@ -180,7 +188,7 @@ fun CalendarScreen(
                 ) {
                     Text(
                         "›",
-                        color = if (isCurrentMonth) Color.White.copy(alpha = 0.25f) else Color.White,
+                        color = if (isCurrentMonth) tokens.textMuted else tokens.textPrimary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Light
                     )
@@ -192,7 +200,7 @@ fun CalendarScreen(
                 listOf("S", "M", "T", "W", "T", "F", "S").forEach { day ->
                     Text(
                         text = day,
-                        color = Color.White.copy(alpha = 0.40f),
+                        color = tokens.textMuted,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
@@ -228,7 +236,6 @@ fun CalendarScreen(
                 if (row < rows - 1) Spacer(Modifier.height(4.dp))
             }
 
-            // Calendar footer — selected day stats
             val selectedCycles = sessionRecords
                 .filter { r ->
                     java.time.Instant.ofEpochMilli(r.startedAt)
@@ -243,12 +250,12 @@ fun CalendarScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.10f))
+                    .background(tokens.divider)
             )
             Spacer(Modifier.height(10.dp))
             Text(
                 text = "${selectedDate.dayOfMonth} $selectedMonthName ${selectedDate.year} · $selectedCycles cycles · ${selectedMinutes} min focused",
-                color = Color.White.copy(alpha = 0.50f),
+                color = tokens.textSecondary,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -258,7 +265,8 @@ fun CalendarScreen(
             date = selectedDate,
             records = sessionRecords,
             onDeleteRecord = onDeleteRecord,
-            glassTreatment = glassTreatment
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
         )
     }
 }
@@ -269,18 +277,19 @@ private fun InlineStatItem(
     value: String,
     valueAlpha: Float = 1f
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.50f),
+            color = tokens.textSecondary,
             fontSize = 11.sp
         )
         Text(
             text = value,
-            color = Color.White.copy(alpha = valueAlpha),
+            color = tokens.textPrimary.copy(alpha = valueAlpha),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
@@ -295,21 +304,22 @@ private fun DayCell(
     hasSessions: Boolean,
     onClick: () -> Unit = {}
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val bg = when {
-        isSelected -> Color(0xFFFF8B6F)
-        hasSessions -> Color.White.copy(alpha = 0.12f)
+        isSelected -> tokens.accent
+        hasSessions -> tokens.textFaint
         else -> Color.Transparent
     }
     val border = when {
         isSelected -> Color.Transparent
-        isToday -> Color.White.copy(alpha = 0.60f)
-        hasSessions -> Color.White.copy(alpha = 0.20f)
+        isToday -> tokens.textSecondary
+        hasSessions -> tokens.textMuted
         else -> Color.Transparent
     }
     val textColor = when {
-        isSelected -> Color.White
-        hasSessions -> Color.White
-        else -> Color.White.copy(alpha = 0.50f)
+        isSelected -> tokens.accentOn
+        hasSessions -> tokens.textPrimary
+        else -> tokens.textMuted
     }
     Box(
         modifier = Modifier
@@ -334,8 +344,10 @@ private fun SessionSection(
     date: LocalDate,
     records: List<SessionRecord>,
     onDeleteRecord: (Long) -> Unit,
-    glassTreatment: GlassTreatment
+    glassTreatment: GlassTreatment,
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val dateRecords = records
         .filter { record ->
             val recordDate = java.time.Instant.ofEpochMilli(record.startedAt)
@@ -353,13 +365,13 @@ private fun SessionSection(
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             text = "$dayName,",
-            color = Color.White,
+            color = tokens.textPrimary,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold
         )
         Text(
             text = fullDate,
-            color = Color.White.copy(alpha = 0.50f),
+            color = tokens.textSecondary,
             fontSize = 13.sp
         )
     }
@@ -372,18 +384,23 @@ private fun SessionSection(
         ) {
             Text(
                 text = if (isToday) "kuro hasn't seen you today yet 🐱" else "nothing here",
-                color = Color.White.copy(alpha = 0.55f),
+                color = tokens.textSecondary,
                 fontSize = 14.sp
             )
             Text(
                 text = if (isToday) "start a session to begin your streak" else "kuro was probably napping 🐱",
-                color = Color.White.copy(alpha = 0.35f),
+                color = tokens.textMuted,
                 fontSize = 13.sp
             )
         }
     } else {
         dateRecords.forEach { record ->
-            SessionCard(record = record, onDelete = onDeleteRecord, glassTreatment = glassTreatment)
+            SessionCard(
+                record = record,
+                onDelete = onDeleteRecord,
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
+            )
         }
     }
 }
@@ -393,8 +410,10 @@ private fun SessionSection(
 private fun SessionCard(
     record: SessionRecord,
     onDelete: (Long) -> Unit,
-    glassTreatment: GlassTreatment
+    glassTreatment: GlassTreatment,
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
     val zone = java.time.ZoneId.systemDefault()
     val startTime = java.time.Instant.ofEpochMilli(record.startedAt).atZone(zone)
@@ -408,7 +427,8 @@ private fun SessionCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { showDetail = true },
-        glassTreatment = glassTreatment
+        glassTreatment = glassTreatment,
+        overBackdrop = overBackdrop,
     ) {
         val totalMinutes = record.completedFocusCount * record.focusMinutes
         val breakTimeTotal = record.completedShortBreakCount * record.shortBreakMinutes +
@@ -418,14 +438,14 @@ private fun SessionCard(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
                 text = heroText,
-                color = Color.White,
+                color = tokens.textPrimary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = "$startTime – $endTime",
-                color = Color.White.copy(alpha = 0.55f),
+                color = tokens.textSecondary,
                 fontSize = 12.sp
             )
         }
@@ -442,12 +462,12 @@ private fun SessionCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.White.copy(alpha = 0.10f))
+                    .background(tokens.segmentedTrack)
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = "📌 ${record.taskName}",
-                    color = Color.White.copy(alpha = 0.90f),
+                    color = tokens.textPrimary,
                     fontSize = 12.sp
                 )
             }
@@ -473,6 +493,8 @@ private fun SessionDetailSheet(
     onDismiss: () -> Unit,
     onDelete: (Long) -> Unit
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val isLight = tokens.cardFill.luminance() > 0.5f
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -492,7 +514,7 @@ private fun SessionDetailSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF1A1228)
+        containerColor = tokens.cardFill
     ) {
         Column(
             modifier = Modifier
@@ -501,7 +523,6 @@ private fun SessionDetailSheet(
                 .padding(bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -509,7 +530,7 @@ private fun SessionDetailSheet(
             ) {
                 Text(
                     text = "Session Details",
-                    color = Color.White,
+                    color = tokens.textPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -517,13 +538,16 @@ private fun SessionDetailSheet(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(
-                            if (isCompleted) Color(0xFF2A4A35) else Color(0xFF3A2A1A)
+                            if (isCompleted) Color(0xFF00C853).copy(alpha = 0.18f) else Color(0xFFFF9500).copy(alpha = 0.18f)
                         )
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = if (isCompleted) "✓ Completed" else "Partial",
-                        color = if (isCompleted) Color(0xFF7EEAA0) else Color(0xFFFFB067),
+                        color = if (isCompleted)
+                            (if (isLight) Color(0xFF006B47) else Color(0xFF7EEAA0))
+                        else
+                            (if (isLight) Color(0xFFA04E00) else Color(0xFFFFB067)),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -533,13 +557,12 @@ private fun SessionDetailSheet(
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "$startTime – $endTime",
-                color = Color.White.copy(alpha = 0.50f),
+                color = tokens.textSecondary,
                 fontSize = 13.sp
             )
 
             Spacer(Modifier.height(24.dp))
 
-            // Stats row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -549,7 +572,7 @@ private fun SessionDetailSheet(
                     Modifier
                         .width(1.dp)
                         .height(36.dp)
-                        .background(Color.White.copy(alpha = 0.12f))
+                        .background(tokens.divider)
                 )
                 DetailStatItem(
                     label = "Cycles",
@@ -559,7 +582,7 @@ private fun SessionDetailSheet(
                     Modifier
                         .width(1.dp)
                         .height(36.dp)
-                        .background(Color.White.copy(alpha = 0.12f))
+                        .background(tokens.divider)
                 )
                 DetailStatItem(
                     label = "Rest",
@@ -572,14 +595,13 @@ private fun SessionDetailSheet(
                 Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.10f))
+                    .background(tokens.divider)
             )
             Spacer(Modifier.height(20.dp))
 
-            // Timer settings used
             Text(
                 text = "Timer settings",
-                color = Color.White.copy(alpha = 0.45f),
+                color = tokens.textMuted,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -590,7 +612,6 @@ private fun SessionDetailSheet(
                 SettingChip(label = "Long break", value = "${record.longBreakMinutes} min")
             }
 
-            // Cycle dots
             Spacer(Modifier.height(20.dp))
             com.endiar.kuropomodoro.ui.components.CycleDotsRow(
                 totalFocusSessions = record.totalFocusCount,
@@ -598,19 +619,18 @@ private fun SessionDetailSheet(
                 isCurrentlyFocus = false
             )
 
-            // Task chip
             if (record.taskName != null) {
                 Spacer(Modifier.height(20.dp))
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                        .background(tokens.segmentedTrack)
+                        .border(1.dp, tokens.borderSoft, RoundedCornerShape(10.dp))
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = "📌 ${record.taskName}",
-                        color = Color.White.copy(alpha = 0.85f),
+                        color = tokens.textPrimary,
                         fontSize = 13.sp
                     )
                 }
@@ -618,20 +638,19 @@ private fun SessionDetailSheet(
 
             Spacer(Modifier.height(32.dp))
 
-            // Delete button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF3D1A1A))
-                    .border(1.dp, Color(0xFFFF4444).copy(alpha = 0.30f), RoundedCornerShape(16.dp))
+                    .background(Color(0xFFFF3B30).copy(alpha = 0.10f))
+                    .border(1.dp, Color(0xFFFF3B30).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                     .clickable { showDeleteConfirm = true }
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Delete Record",
-                    color = Color(0xFFFF6B6B),
+                    color = if (isLight) Color(0xFFCC2222) else Color(0xFFFF6B6B),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -645,14 +664,14 @@ private fun SessionDetailSheet(
             title = {
                 Text(
                     text = "Delete this record?",
-                    color = Color.White,
+                    color = tokens.textPrimary,
                     fontWeight = FontWeight.SemiBold
                 )
             },
             text = {
                 Text(
                     text = "The session from $startTime – $endTime will be permanently removed. This cannot be undone.",
-                    color = Color.White.copy(alpha = 0.70f),
+                    color = tokens.textSecondary,
                     fontSize = 14.sp
                 )
             },
@@ -661,36 +680,37 @@ private fun SessionDetailSheet(
                     showDeleteConfirm = false
                     scope.launch { sheetState.hide() }.invokeOnCompletion { onDelete(record.id) }
                 }) {
-                    Text("Delete", color = Color(0xFFFF6B6B), fontWeight = FontWeight.SemiBold)
+                    Text("Delete", color = if (isLight) Color(0xFFCC2222) else Color(0xFFFF6B6B), fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.70f))
+                    Text("Cancel", color = tokens.textSecondary)
                 }
             },
-            containerColor = Color(0xFF1A1228),
-            titleContentColor = Color.White,
-            textContentColor = Color.White.copy(alpha = 0.70f)
+            containerColor = tokens.cardFill,
+            titleContentColor = tokens.textPrimary,
+            textContentColor = tokens.textSecondary,
         )
     }
 }
 
 @Composable
 private fun DetailStatItem(label: String, value: String) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.45f),
+            color = tokens.textMuted,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium
         )
         Text(
             text = value,
-            color = Color.White,
+            color = tokens.textPrimary,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
@@ -699,26 +719,26 @@ private fun DetailStatItem(label: String, value: String) {
 
 @Composable
 private fun SettingChip(label: String, value: String) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Color.White.copy(alpha = 0.07f))
-            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(10.dp))
+            .background(tokens.segmentedTrack)
+            .border(1.dp, tokens.borderSoft, RoundedCornerShape(10.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = value,
-                color = Color.White,
+                color = tokens.textPrimary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = label,
-                color = Color.White.copy(alpha = 0.45f),
+                color = tokens.textMuted,
                 fontSize = 10.sp
             )
         }
     }
 }
-

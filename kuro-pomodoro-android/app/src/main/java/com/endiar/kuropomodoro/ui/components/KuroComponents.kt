@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -60,6 +61,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerMode
@@ -67,6 +69,7 @@ import com.endiar.kuropomodoro.model.backgroundImageForTime
 import java.time.LocalTime
 import com.endiar.kuropomodoro.ui.theme.Cocoa
 import com.endiar.kuropomodoro.ui.theme.Coral
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import com.endiar.kuropomodoro.ui.theme.Lavender
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.Peach
@@ -74,53 +77,78 @@ import com.endiar.kuropomodoro.ui.theme.Peach
 private val DockCoral = Color(0xFFFF8B6F)
 private val LockedPurple = Color(0xFF7B4FBF)
 
-private data class GlassTokens(
+internal data class GlassTokens(
     val cardFill: Color,
     val activeCardFill: Color,
     val cardBorder: Color,
+    val activeCardBorder: Color,
     val pillFill: Color,
     val pillBorder: Color,
     val dockFill: Color,
     val dockBorder: Color,
-    val scrimAlpha: Float
+    val scrimAlpha: Float,
 )
 
-private fun glassTokens(treatment: GlassTreatment): GlassTokens {
+@Composable
+internal fun glassTokens(
+    treatment: GlassTreatment,
+    overBackdrop: Boolean = true,
+): GlassTokens {
+    if (!overBackdrop) {
+        val t = MaterialTheme.colorScheme.kuroTokens
+        return GlassTokens(
+            cardFill = t.cardFill,
+            activeCardFill = t.activeCardFill,
+            cardBorder = t.cardBorder,
+            activeCardBorder = t.accent.copy(alpha = 0.45f),
+            pillFill = t.segmentedTrack,
+            pillBorder = t.borderSoft,
+            dockFill = t.cardFill,
+            dockBorder = t.cardBorder,
+            scrimAlpha = 0f,
+        )
+    }
     return when (treatment) {
         GlassTreatment.Clear -> GlassTokens(
             cardFill = Color(0xFF0F0A1A).copy(alpha = 0.40f),
             activeCardFill = DockCoral.copy(alpha = 0.10f),
             cardBorder = Color.White.copy(alpha = 0.10f),
+            activeCardBorder = DockCoral.copy(alpha = 0.30f),
             pillFill = Color.White.copy(alpha = 0.08f),
             pillBorder = Color.White.copy(alpha = 0.15f),
             dockFill = Color(0xFF15101F).copy(alpha = 0.92f),
             dockBorder = Color.White.copy(alpha = 0.18f),
-            scrimAlpha = 0.80f
+            scrimAlpha = 0.80f,
         )
         GlassTreatment.Readable -> GlassTokens(
             cardFill = Color(0xFF0A0816).copy(alpha = 0.72f),
             activeCardFill = Color(0xFF2B1720).copy(alpha = 0.80f),
             cardBorder = Color.White.copy(alpha = 0.20f),
+            activeCardBorder = DockCoral.copy(alpha = 0.45f),
             pillFill = Color(0xFF0A0816).copy(alpha = 0.60f),
             pillBorder = Color.White.copy(alpha = 0.25f),
             dockFill = Color(0xFF0A0816).copy(alpha = 0.95f),
             dockBorder = Color.White.copy(alpha = 0.22f),
-            scrimAlpha = 0.90f
+            scrimAlpha = 0.90f,
         )
     }
 }
 
 @Composable
 fun KuroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    val colorScheme = MaterialTheme.colorScheme
-
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = tokens.cardFill),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(20.dp), content = content)
+        Column(
+            modifier = Modifier
+                .border(1.dp, tokens.cardBorder, RoundedCornerShape(28.dp))
+                .padding(20.dp),
+            content = content,
+        )
     }
 }
 
@@ -286,8 +314,9 @@ fun DashboardDock(
     modifier: Modifier = Modifier,
     selectedTab: AppTab? = null,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
 ) {
-    val tokens = glassTokens(glassTreatment)
+    val tokens = glassTokens(glassTreatment, overBackdrop)
     Row(
         modifier = modifier
             .padding(horizontal = 21.dp)
@@ -342,8 +371,9 @@ private fun DockTabItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val iconColor = if (active) DockCoral else Color.White.copy(alpha = 0.7f)
-    val bgColor = if (active) DockCoral.copy(alpha = 0.2f) else Color.Transparent
+    val kuroTokens = MaterialTheme.colorScheme.kuroTokens
+    val iconColor = if (active) kuroTokens.accentOn else kuroTokens.textMuted
+    val bgColor = if (active) kuroTokens.accent else Color.Transparent
 
     Box(
         modifier = modifier,
@@ -424,6 +454,26 @@ fun CatBackdrop(
     }
 }
 
+/**
+ * The non-Focus tabs' background: a flat fill from the active scheme.
+ *
+ * Unlike [CatBackdrop] this does not paint a photo or scrim — it is the
+ * "quiet workspace" surface for content-heavy tabs.
+ */
+@Composable
+fun KuroFlatSurface(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(tokens.pageBackground),
+        content = content,
+    )
+}
+
 // ── Glass primitives ─────────────────────────────────────────────────────────
 
 @Composable
@@ -431,11 +481,12 @@ fun GlassCard(
     modifier: Modifier = Modifier,
     active: Boolean = false,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val tokens = glassTokens(glassTreatment)
+    val tokens = glassTokens(glassTreatment, overBackdrop)
     val fill = if (active) tokens.activeCardFill else tokens.cardFill
-    val border = if (active) DockCoral.copy(alpha = 0.30f) else tokens.cardBorder
+    val border = if (active) tokens.activeCardBorder else tokens.cardBorder
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
@@ -451,11 +502,13 @@ fun GlassPill(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
 ) {
-    val tokens = glassTokens(glassTreatment)
-    val fill = if (selected) DockCoral else tokens.pillFill
-    val textColor = if (selected) Color.White else Color.White.copy(alpha = 0.72f)
+    val tokens = glassTokens(glassTreatment, overBackdrop)
+    val kuroT = MaterialTheme.colorScheme.kuroTokens
+    val fill = if (selected) kuroT.accent else tokens.pillFill
+    val textColor = if (selected) kuroT.accentOn else kuroT.textSecondary
     val borderColor = if (selected) Color.Transparent else tokens.pillBorder
     Box(
         modifier = Modifier
@@ -480,20 +533,22 @@ enum class StatusPillKind { Playing, Selected, Locked, Unlocked }
 fun StatusPill(
     label: String,
     kind: StatusPillKind,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
 ) {
-    val tokens = glassTokens(glassTreatment)
+    val tokens = glassTokens(glassTreatment, overBackdrop)
+    val kuroT = MaterialTheme.colorScheme.kuroTokens
     val fill = when (kind) {
-        StatusPillKind.Playing  -> DockCoral
+        StatusPillKind.Playing  -> kuroT.accent
         StatusPillKind.Selected -> tokens.pillFill
         StatusPillKind.Locked   -> LockedPurple.copy(alpha = 0.25f)
         StatusPillKind.Unlocked -> tokens.pillFill
     }
     val textColor = when (kind) {
-        StatusPillKind.Playing  -> Color.White
-        StatusPillKind.Selected -> Color.White.copy(alpha = 0.80f)
-        StatusPillKind.Locked   -> Color(0xFFD8C8FF)
-        StatusPillKind.Unlocked -> Color.White.copy(alpha = 0.55f)
+        StatusPillKind.Playing  -> kuroT.accentOn
+        StatusPillKind.Selected -> kuroT.textPrimary
+        StatusPillKind.Locked   -> kuroT.lockedText
+        StatusPillKind.Unlocked -> kuroT.textSecondary
     }
     val borderColor = when (kind) {
         StatusPillKind.Locked   -> Color(0xFFD8C8FF).copy(alpha = 0.40f)
@@ -514,9 +569,11 @@ fun StatusPill(
 fun StepperButton(
     label: String,
     onClick: () -> Unit,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
 ) {
-    val tokens = glassTokens(glassTreatment)
+    val tokens = glassTokens(glassTreatment, overBackdrop)
+    val kuroT = MaterialTheme.colorScheme.kuroTokens
     Box(
         modifier = Modifier
             .size(32.dp)
@@ -526,7 +583,7 @@ fun StepperButton(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Light)
+        Text(label, color = kuroT.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Light)
     }
 }
 
@@ -539,6 +596,55 @@ fun MockBadge() {
             .padding(horizontal = 7.dp, vertical = 3.dp)
     ) {
         Text(text = "Mock", color = Color(0xFFD8C8FF), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun AppearanceModeToggle(
+    mode: AppearanceMode,
+    onModeChanged: (AppearanceMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(tokens.segmentedTrack)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        AppearanceMode.entries.forEach { entry ->
+            val selected = entry == mode
+            val icon = when (entry) {
+                AppearanceMode.Light -> "☀"
+                AppearanceMode.Dark -> "☾"
+                AppearanceMode.Auto -> "◐"
+            }
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(if (selected) tokens.accent else Color.Transparent)
+                    .clickable { onModeChanged(entry) }
+                    .padding(vertical = 8.dp, horizontal = 10.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = icon,
+                    fontSize = 14.sp,
+                    color = if (selected) tokens.accentOn else tokens.textSecondary,
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = entry.label,
+                    fontSize = 12.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selected) tokens.accentOn else tokens.textSecondary,
+                )
+            }
+        }
     }
 }
 

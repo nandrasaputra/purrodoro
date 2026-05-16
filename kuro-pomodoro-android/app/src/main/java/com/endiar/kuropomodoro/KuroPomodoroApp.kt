@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -52,6 +53,7 @@ import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.data.AppState
 import com.endiar.kuropomodoro.model.AppClock
 import com.endiar.kuropomodoro.model.AppTab
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
@@ -73,6 +75,7 @@ import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.components.CatBackdrop
+import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import java.time.LocalDate
@@ -113,6 +116,7 @@ fun KuroPomodoroApp(
     var stamps by remember(appState.stamps) { mutableStateOf(appState.stamps) }
     var selectedSoundId by remember(appState.selectedSoundId) { mutableIntStateOf(appState.selectedSoundId) }
     var glassReadabilityMode by remember(appState.glassReadabilityMode) { mutableStateOf(appState.glassReadabilityMode) }
+    var appearanceMode by remember(appState.appearanceMode) { mutableStateOf(appState.appearanceMode) }
     var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
     var sessionRecords by remember(appState.sessionRecords) { mutableStateOf(appState.sessionRecords) }
     var tasks by remember(appState.tasks) { mutableStateOf(appState.tasks) }
@@ -153,6 +157,10 @@ fun KuroPomodoroApp(
 
     fun persistGlassReadabilityMode(v: GlassReadabilityMode) {
         glassReadabilityMode = v; scope.launch { repo.setGlassReadabilityMode(v) }
+    }
+
+    fun persistAppearanceMode(v: AppearanceMode) {
+        appearanceMode = v; scope.launch { repo.setAppearanceMode(v) }
     }
 
     fun persistNextTaskId(v: Int) {
@@ -234,7 +242,10 @@ fun KuroPomodoroApp(
     val backdropTime = AppClock.now()
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
-    CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
+    val useCatBackdrop = selectedTab == AppTab.Timer
+    val overBackdrop = selectedTab == AppTab.Timer
+
+    val surfaceContent: @Composable BoxScope.() -> Unit = {
         var dockHeightPx by remember { mutableIntStateOf(0) }
         val density = LocalDensity.current
         val dockHeightDp = with(density) { dockHeightPx.toDp() }
@@ -315,7 +326,8 @@ fun KuroPomodoroApp(
                         },
                         settings = settings,
                         glassTreatment = glassTreatment,
-                        contentPadding = screenContentPadding
+                        contentPadding = screenContentPadding,
+                        overBackdrop = overBackdrop,
                     )
 
                     AppTab.Calendar -> CalendarScreen(
@@ -324,7 +336,8 @@ fun KuroPomodoroApp(
                         sessionRecords = sessionRecords,
                         onDeleteRecord = { id -> scope.launch { repo.deleteSessionRecord(id) } },
                         glassTreatment = glassTreatment,
-                        contentPadding = screenContentPadding
+                        contentPadding = screenContentPadding,
+                        overBackdrop = overBackdrop,
                     )
 
                     AppTab.Sounds -> SoundsScreen(
@@ -345,13 +358,16 @@ fun KuroPomodoroApp(
                             playingSoundId = if (playingSoundId == sound.id) null else sound.id
                         },
                         glassTreatment = glassTreatment,
-                        contentPadding = screenContentPadding
+                        contentPadding = screenContentPadding,
+                        overBackdrop = overBackdrop,
                     )
 
                     AppTab.Profile -> ProfileScreen(
                         settings = settings,
                         glassReadabilityMode = glassReadabilityMode,
                         glassTreatment = glassTreatment,
+                        appearanceMode = appearanceMode,
+                        onAppearanceModeChanged = ::persistAppearanceMode,
                         onGlassReadabilityModeChanged = { persistGlassReadabilityMode(it) },
                         onDurationChanged = { mode, minutes ->
                             val updatedSettings = settings.update(mode, minutes)
@@ -365,7 +381,8 @@ fun KuroPomodoroApp(
                             scope.launch { repo.resetSettingsToDefault() }
                         },
                         onMockFeature = { premiumSheetMessage = it },
-                        contentPadding = screenContentPadding
+                        overBackdrop = overBackdrop,
+                        contentPadding = screenContentPadding,
                     )
                 }
             }
@@ -388,6 +405,7 @@ fun KuroPomodoroApp(
                     onNavigate = { selectedTab = it },
                     selectedTab = selectedTab,
                     glassTreatment = glassTreatment,
+                    overBackdrop = true,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
@@ -433,6 +451,12 @@ fun KuroPomodoroApp(
                 )
             }
         }
+    }
+
+    if (useCatBackdrop) {
+        CatBackdrop(glassTreatment = glassTreatment, time = backdropTime, content = surfaceContent)
+    } else {
+        KuroFlatSurface(content = surfaceContent)
     }
 }
 
