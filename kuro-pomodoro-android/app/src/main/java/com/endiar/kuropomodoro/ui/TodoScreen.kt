@@ -398,11 +398,10 @@ fun TodoScreen(
                 )
             }
         } else {
-            val firstActiveTask = filteredActiveTasks.firstOrNull()
             filteredActiveTasks.forEach { task ->
                 TaskGlassRow(
                     task = task,
-                    active = task == firstActiveTask,
+                    active = false,
                     showCategoryLabel = selectedCategoryId == null,
                     categoryName = categories.firstOrNull { it.id == task.categoryId }?.name,
                     onToggleTask = onToggleTask,
