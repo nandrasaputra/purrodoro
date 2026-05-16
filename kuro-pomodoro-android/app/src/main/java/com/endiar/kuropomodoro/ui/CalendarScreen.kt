@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -493,6 +494,7 @@ private fun SessionDetailSheet(
     onDelete: (Long) -> Unit
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val isLight = tokens.cardFill.luminance() > 0.5f
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -542,7 +544,10 @@ private fun SessionDetailSheet(
                 ) {
                     Text(
                         text = if (isCompleted) "✓ Completed" else "Partial",
-                        color = if (isCompleted) Color(0xFF00875A) else Color(0xFFC05E00),
+                        color = if (isCompleted)
+                            (if (isLight) Color(0xFF006B47) else Color(0xFF7EEAA0))
+                        else
+                            (if (isLight) Color(0xFFA04E00) else Color(0xFFFFB067)),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -645,7 +650,7 @@ private fun SessionDetailSheet(
             ) {
                 Text(
                     text = "Delete Record",
-                    color = Color(0xFFCC2222),
+                    color = if (isLight) Color(0xFFCC2222) else Color(0xFFFF6B6B),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -675,7 +680,7 @@ private fun SessionDetailSheet(
                     showDeleteConfirm = false
                     scope.launch { sheetState.hide() }.invokeOnCompletion { onDelete(record.id) }
                 }) {
-                    Text("Delete", color = Color(0xFFCC2222), fontWeight = FontWeight.SemiBold)
+                    Text("Delete", color = if (isLight) Color(0xFFCC2222) else Color(0xFFFF6B6B), fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
