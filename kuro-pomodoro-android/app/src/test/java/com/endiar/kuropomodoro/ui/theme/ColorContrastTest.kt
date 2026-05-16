@@ -36,14 +36,11 @@ class ColorContrastTest {
     }
 
     @Test
-    fun `light textMuted CocoaFaint on Cream meets WCAG AA 4-5 to 1`() {
-        // Current CocoaFaint = #A89486 on Cream → 2.75:1 — FAILS
-        // After fix: textMuted switches to CocoaSoft (#8B6B5A) → 4.57:1 — PASSES
-        // This test documents the requirement; update the assertion color to CocoaSoft
-        // after Task 3 promotes CocoaSoft to textMuted in LightTokens.
+    fun `light textMuted CocoaSoft on Cream meets WCAG AA 4-5 to 1`() {
+        // LightTokens.textMuted = CocoaSoft (#8B6B5A) — 4.57:1 ✓
         assertTrue(
-            "CocoaFaint on Cream: ${contrastRatio(CocoaFaint, Cream)}",
-            contrastRatio(CocoaFaint, Cream) >= 4.5
+            "CocoaSoft on Cream: ${contrastRatio(CocoaSoft, Cream)}",
+            contrastRatio(CocoaSoft, Cream) >= 4.5
         )
     }
 
@@ -57,5 +54,23 @@ class ColorContrastTest {
     @Test
     fun `Cocoa on Cream stays above 8 to 1`() {
         assertTrue(contrastRatio(Cocoa, Cream) >= 8.0)
+    }
+
+    @Test
+    fun `dark interactiveFill Peach with Cocoa text meets WCAG AA`() {
+        // DarkTokens.interactiveFill = Peach (#FFB59E), interactiveText = Cocoa (#5F4638)
+        assertTrue(
+            "Cocoa on Peach: ${contrastRatio(Cocoa, Peach)}",
+            contrastRatio(Cocoa, Peach) >= 4.5
+        )
+    }
+
+    @Test
+    fun `light interactiveFill DeepCoral with White text meets WCAG AA`() {
+        // LightTokens.interactiveFill = DeepCoral (#C64432), interactiveText = White
+        assertTrue(
+            "White on DeepCoral: ${contrastRatio(Color.White, DeepCoral)}",
+            contrastRatio(Color.White, DeepCoral) >= 4.5
+        )
     }
 }
