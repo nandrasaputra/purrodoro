@@ -67,6 +67,7 @@ import com.endiar.kuropomodoro.model.backgroundImageForTime
 import java.time.LocalTime
 import com.endiar.kuropomodoro.ui.theme.Cocoa
 import com.endiar.kuropomodoro.ui.theme.Coral
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import com.endiar.kuropomodoro.ui.theme.Lavender
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.Peach
@@ -422,6 +423,26 @@ fun CatBackdrop(
         )
         content()
     }
+}
+
+/**
+ * The non-Focus tabs' background: a flat fill from the active scheme.
+ *
+ * Unlike [CatBackdrop] this does not paint a photo or scrim — it is the
+ * "quiet workspace" surface for content-heavy tabs.
+ */
+@Composable
+fun KuroFlatSurface(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(tokens.pageBackground),
+        content = content,
+    )
 }
 
 // ── Glass primitives ─────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -73,6 +74,7 @@ import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.components.CatBackdrop
+import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import java.time.LocalDate
@@ -234,7 +236,9 @@ fun KuroPomodoroApp(
     val backdropTime = AppClock.now()
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
-    CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
+    val useCatBackdrop = selectedTab == AppTab.Timer
+
+    val surfaceContent: @Composable BoxScope.() -> Unit = {
         var dockHeightPx by remember { mutableIntStateOf(0) }
         val density = LocalDensity.current
         val dockHeightDp = with(density) { dockHeightPx.toDp() }
@@ -433,6 +437,12 @@ fun KuroPomodoroApp(
                 )
             }
         }
+    }
+
+    if (useCatBackdrop) {
+        CatBackdrop(glassTreatment = glassTreatment, time = backdropTime, content = surfaceContent)
+    } else {
+        KuroFlatSurface(content = surfaceContent)
     }
 }
 
