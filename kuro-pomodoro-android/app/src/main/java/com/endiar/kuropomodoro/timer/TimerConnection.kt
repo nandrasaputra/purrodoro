@@ -142,10 +142,11 @@ class TimerConnection(private val context: Context) {
     }
 
     fun bind() {
-        TimerNotification.ensureChannels(context)
         snapshotJob?.cancel()
         snapshotJob = scope.launch {
             val repo = AppRepository.get(context)
+            val soundEnabled = repo.appState.first().notificationSoundEnabled
+            TimerNotification.setNotificationSoundEnabled(context, soundEnabled)
 
             // When the service is not running, check if we have a stale Playing snapshot
             // (e.g. app was killed mid-session). Reconcile against the wall clock.

@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,6 +64,8 @@ fun ProfileScreen(
     overBackdrop: Boolean = true,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    notificationSoundEnabled: Boolean = true,
+    onNotificationSoundChanged: (Boolean) -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var showResetConfirm by remember { mutableStateOf(false) }
@@ -229,6 +233,57 @@ fun ProfileScreen(
                         overBackdrop = overBackdrop,
                     )
                 }
+            }
+        }
+
+        // Notification sound toggle
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
+        ) {
+            Text(
+                text = "NOTIFICATIONS",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp,
+                color = tokens.textMuted
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Play sound when a segment ends",
+                fontSize = 12.sp,
+                color = tokens.textSecondary
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Notification sound",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = tokens.textPrimary
+                    )
+                    Text(
+                        text = if (notificationSoundEnabled) "On" else "Off",
+                        fontSize = 12.sp,
+                        color = tokens.textSecondary
+                    )
+                }
+                Switch(
+                    checked = notificationSoundEnabled,
+                    onCheckedChange = onNotificationSoundChanged,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = tokens.accentOn,
+                        checkedTrackColor = tokens.accent,
+                        uncheckedThumbColor = tokens.textMuted,
+                        uncheckedTrackColor = tokens.segmentedTrack,
+                    )
+                )
             }
         }
 

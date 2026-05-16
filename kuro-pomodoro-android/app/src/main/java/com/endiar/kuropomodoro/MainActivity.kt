@@ -16,6 +16,7 @@ import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.timer.TimerNotification
 import com.endiar.kuropomodoro.ui.theme.KuroPomodoroTheme
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class MainActivity : ComponentActivity() {
@@ -29,7 +30,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        TimerNotification.ensureChannels(applicationContext)
+        val repo = AppRepository.get(this)
+        val soundEnabled = runCatching {
+            kotlinx.coroutines.runBlocking { repo.appState.first().notificationSoundEnabled }
+        }.getOrDefault(true)
+        TimerNotification.setNotificationSoundEnabled(applicationContext, soundEnabled)
         timerConnection = TimerConnection(applicationContext)
 
         setContent {

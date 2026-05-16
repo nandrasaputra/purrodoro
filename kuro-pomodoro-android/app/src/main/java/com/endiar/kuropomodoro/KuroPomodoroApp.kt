@@ -144,6 +144,7 @@ fun KuroPomodoroApp(
     var categories by remember(appState.categories) { mutableStateOf(appState.categories) }
     var nextCategoryId by remember(appState.nextCategoryId) { mutableIntStateOf(appState.nextCategoryId) }
     var selectedCategoryId by remember(appState.selectedCategoryId) { mutableStateOf(appState.selectedCategoryId) }
+    var notificationSoundEnabled by remember(appState.notificationSoundEnabled) { mutableStateOf(appState.notificationSoundEnabled) }
 
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 
@@ -194,6 +195,10 @@ fun KuroPomodoroApp(
 
     fun persistSelectedCategoryId(v: Int?) {
         selectedCategoryId = v; scope.launch { repo.setSelectedCategoryId(v) }
+    }
+
+    fun persistNotificationSoundEnabled(v: Boolean) {
+        notificationSoundEnabled = v; scope.launch { repo.setNotificationSoundEnabled(v) }
     }
 
     val addTask: (String, Int?) -> Unit = { title, categoryId ->
@@ -437,6 +442,8 @@ fun KuroPomodoroApp(
                         onMockFeature = { premiumSheetMessage = it },
                         overBackdrop = overBackdrop,
                         contentPadding = screenContentPadding,
+                        notificationSoundEnabled = notificationSoundEnabled,
+                        onNotificationSoundChanged = ::persistNotificationSoundEnabled,
                     )
                 }
             }
