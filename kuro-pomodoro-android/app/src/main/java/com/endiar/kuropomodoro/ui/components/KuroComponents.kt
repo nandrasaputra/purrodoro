@@ -194,13 +194,16 @@ fun ModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 fun KuroPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val colorScheme = MaterialTheme.colorScheme
+    val tokens = MaterialTheme.colorScheme.kuroTokens
 
     Button(
         onClick = onClick,
         modifier = modifier.height(56.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary, contentColor = colorScheme.onPrimary)
+        colors = ButtonDefaults.buttonColors(
+            containerColor = tokens.interactiveFill,
+            contentColor = tokens.interactiveText
+        )
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge)
     }
@@ -372,8 +375,8 @@ private fun DockTabItem(
     onClick: () -> Unit
 ) {
     val kuroTokens = MaterialTheme.colorScheme.kuroTokens
-    val iconColor = if (active) kuroTokens.accentOn else kuroTokens.textMuted
-    val bgColor = if (active) kuroTokens.accent else Color.Transparent
+    val iconColor = if (active) kuroTokens.interactiveText else kuroTokens.textMuted
+    val bgColor = if (active) kuroTokens.interactiveFill else Color.Transparent
 
     Box(
         modifier = modifier,
@@ -514,8 +517,8 @@ fun GlassPill(
 ) {
     val tokens = glassTokens(glassTreatment, overBackdrop)
     val kuroT = MaterialTheme.colorScheme.kuroTokens
-    val fill = if (selected) kuroT.accent else tokens.pillFill
-    val textColor = if (selected) kuroT.accentOn else kuroT.textSecondary
+    val fill = if (selected) kuroT.interactiveFill else tokens.pillFill
+    val textColor = if (selected) kuroT.interactiveText else kuroT.textSecondary
     val borderColor = if (selected) Color.Transparent else tokens.pillBorder
     Box(
         modifier = Modifier
@@ -632,7 +635,7 @@ fun AppearanceModeToggle(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(11.dp))
-                    .background(if (selected) tokens.accent else Color.Transparent)
+                    .background(if (selected) tokens.interactiveFill else Color.Transparent)
                     .clickable { onModeChanged(entry) }
                     .padding(vertical = 8.dp, horizontal = 10.dp),
                 horizontalArrangement = Arrangement.Center,
@@ -641,14 +644,14 @@ fun AppearanceModeToggle(
                 Text(
                     text = icon,
                     fontSize = 14.sp,
-                    color = if (selected) tokens.accentOn else tokens.textSecondary,
+                    color = if (selected) tokens.interactiveText else tokens.textSecondary,
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text = entry.label,
                     fontSize = 12.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (selected) tokens.accentOn else tokens.textSecondary,
+                    color = if (selected) tokens.interactiveText else tokens.textSecondary,
                 )
             }
         }
