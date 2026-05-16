@@ -155,11 +155,12 @@ fun KuroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() 
 @Composable
 fun SectionTitle(title: String, subtitle: String? = null) {
     val colorScheme = MaterialTheme.colorScheme
+    val kuroTokens = MaterialTheme.colorScheme.kuroTokens
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.headlineSmall, color = colorScheme.onBackground)
         if (subtitle != null) {
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = colorScheme.onSurface.copy(alpha = 0.72f))
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = kuroTokens.textSecondary)
         }
     }
 }
@@ -212,6 +213,7 @@ fun KuroPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
 @Composable
 fun TimerRing(timeText: String, progress: Float, modifier: Modifier = Modifier) {
     val colorScheme = MaterialTheme.colorScheme
+    val kuroTokens = MaterialTheme.colorScheme.kuroTokens
 
     Box(modifier = modifier.size(230.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(230.dp)) {
@@ -235,7 +237,7 @@ fun TimerRing(timeText: String, progress: Float, modifier: Modifier = Modifier) 
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(timeText, style = MaterialTheme.typography.displaySmall, color = colorScheme.onBackground)
-            Text("stay with kuro", style = MaterialTheme.typography.bodyMedium, color = colorScheme.onSurface.copy(alpha = 0.72f))
+            Text("stay with kuro", style = MaterialTheme.typography.bodyMedium, color = kuroTokens.textSecondary)
         }
     }
 }
