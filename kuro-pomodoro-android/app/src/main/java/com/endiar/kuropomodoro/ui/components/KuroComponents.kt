@@ -614,12 +614,12 @@ fun AppearanceModeToggle(
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        AppearanceMode.values().forEach { entry ->
+        AppearanceMode.entries.forEach { entry ->
             val selected = entry == mode
-            val (icon, label) = when (entry) {
-                AppearanceMode.Light -> "☀" to "Light"
-                AppearanceMode.Dark -> "☾" to "Dark"
-                AppearanceMode.Auto -> "◐" to "Auto"
+            val icon = when (entry) {
+                AppearanceMode.Light -> "☀"
+                AppearanceMode.Dark -> "☾"
+                AppearanceMode.Auto -> "◐"
             }
             Row(
                 modifier = Modifier
@@ -638,7 +638,7 @@ fun AppearanceModeToggle(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = label,
+                    text = entry.label,
                     fontSize = 12.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (selected) tokens.accentOn else tokens.textSecondary,
