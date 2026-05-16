@@ -405,7 +405,7 @@ fun KuroPomodoroApp(
                     onNavigate = { selectedTab = it },
                     selectedTab = selectedTab,
                     glassTreatment = glassTreatment,
-                    overBackdrop = overBackdrop,
+                    overBackdrop = true,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
