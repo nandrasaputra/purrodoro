@@ -25,7 +25,7 @@ object FocusModeMotion {
     const val BreathScalePeak = 1.02f
 
     /** Dim alpha applied on the dashboard; fades to 0 when entering focus mode. */
-    const val ScrimAlphaDashboard = 0.45f
+    const val ScrimAlphaDashboard = 0.1f
 
     /** Material 3 emphasized-decelerate — for entering content. */
     val EnterEasing: Easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)

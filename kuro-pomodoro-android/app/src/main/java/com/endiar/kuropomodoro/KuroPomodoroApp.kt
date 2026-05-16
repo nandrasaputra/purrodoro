@@ -241,6 +241,15 @@ fun KuroPomodoroApp(
         label = "scrimAlpha"
     ) { active -> if (active) 0f else FocusModeMotion.ScrimAlphaDashboard }
 
+    // Edge gradient scrims in CatBackdrop fade out alongside the full-screen
+    // scrim when entering focus, opening up the cat photo. Stays at 1f on
+    // non-Timer tabs because focusActive can only be true on the Timer tab
+    // (the dock is hidden in focus mode, so no other tab is reachable).
+    val edgeScrimMultiplier by focusTransition.animateFloat(
+        transitionSpec = FocusModeMotion.spec(),
+        label = "edgeScrimMultiplier"
+    ) { active -> if (active) 0f else 1f }
+
     // Drive recomposition every 250ms while playing so the displayed countdown ticks.
     var tickNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(isRunning) {
@@ -284,12 +293,16 @@ fun KuroPomodoroApp(
         val screenContentPadding = PaddingValues(bottom = dockHeightDp)
 
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(scrimAlpha)
-                    .background(Color.Black)
-            )
+            // Scrim belongs to the Timer dashboard only — render it nowhere else
+            // so tab switches don't fade a black overlay in/out behind content.
+            if (selectedTab == AppTab.Timer) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(scrimAlpha)
+                        .background(Color.Black)
+                )
+            }
 
             Box(
                 modifier = Modifier
@@ -524,7 +537,12 @@ fun KuroPomodoroApp(
     }
 
     if (useCatBackdrop) {
-        CatBackdrop(glassTreatment = glassTreatment, time = backdropTime, content = surfaceContent)
+        CatBackdrop(
+            glassTreatment = glassTreatment,
+            time = backdropTime,
+            edgeScrimAlphaMultiplier = edgeScrimMultiplier,
+            content = surfaceContent
+        )
     } else {
         KuroFlatSurface(content = surfaceContent)
     }
