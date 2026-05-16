@@ -237,6 +237,7 @@ fun KuroPomodoroApp(
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
     val useCatBackdrop = selectedTab == AppTab.Timer
+    val overBackdrop = selectedTab == AppTab.Timer
 
     val surfaceContent: @Composable BoxScope.() -> Unit = {
         var dockHeightPx by remember { mutableIntStateOf(0) }
@@ -319,7 +320,8 @@ fun KuroPomodoroApp(
                         },
                         settings = settings,
                         glassTreatment = glassTreatment,
-                        contentPadding = screenContentPadding
+                        contentPadding = screenContentPadding,
+                        overBackdrop = overBackdrop,
                     )
 
                     AppTab.Calendar -> CalendarScreen(
@@ -328,7 +330,8 @@ fun KuroPomodoroApp(
                         sessionRecords = sessionRecords,
                         onDeleteRecord = { id -> scope.launch { repo.deleteSessionRecord(id) } },
                         glassTreatment = glassTreatment,
-                        contentPadding = screenContentPadding
+                        contentPadding = screenContentPadding,
+                        overBackdrop = overBackdrop,
                     )
 
                     AppTab.Sounds -> SoundsScreen(
@@ -349,7 +352,8 @@ fun KuroPomodoroApp(
                             playingSoundId = if (playingSoundId == sound.id) null else sound.id
                         },
                         glassTreatment = glassTreatment,
-                        contentPadding = screenContentPadding
+                        contentPadding = screenContentPadding,
+                        overBackdrop = overBackdrop,
                     )
 
                     AppTab.Profile -> ProfileScreen(
@@ -369,7 +373,8 @@ fun KuroPomodoroApp(
                             scope.launch { repo.resetSettingsToDefault() }
                         },
                         onMockFeature = { premiumSheetMessage = it },
-                        contentPadding = screenContentPadding
+                        contentPadding = screenContentPadding,
+                        overBackdrop = overBackdrop,
                     )
                 }
             }
@@ -392,6 +397,7 @@ fun KuroPomodoroApp(
                     onNavigate = { selectedTab = it },
                     selectedTab = selectedTab,
                     glassTreatment = glassTreatment,
+                    overBackdrop = overBackdrop,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
