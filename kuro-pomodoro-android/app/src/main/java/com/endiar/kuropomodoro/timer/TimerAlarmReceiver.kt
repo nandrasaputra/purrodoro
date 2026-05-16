@@ -57,7 +57,9 @@ class TimerAlarmReceiver : BroadcastReceiver() {
                     else -> TimerNotification.CompletionKind.Focus
                 }
 
-                TimerNotification.ensureChannels(appCtx)
+                val soundEnabled = repo.appState.first().notificationSoundEnabled
+                TimerNotification.setNotificationSoundEnabled(appCtx, soundEnabled)
+                TimerNotification.ensureChannels(appCtx, soundEnabled)
                 NotificationManagerCompat.from(appCtx).notify(
                     TimerNotification.NOTIF_ID_COMPLETION + uniqueIdSuffix(),
                     TimerNotification.buildCompletionNotification(appCtx, kind)

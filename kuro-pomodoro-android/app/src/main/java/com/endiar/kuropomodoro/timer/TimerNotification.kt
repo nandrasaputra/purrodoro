@@ -23,7 +23,15 @@ object TimerNotification {
     const val NOTIF_ID_RUNNING = 1001
     const val NOTIF_ID_COMPLETION = 1002
 
-    fun ensureChannels(context: Context) {
+    var notificationSoundEnabled: Boolean = true
+        private set
+
+    fun setNotificationSoundEnabled(context: Context, enabled: Boolean) {
+        notificationSoundEnabled = enabled
+        ensureChannels(context, enabled)
+    }
+
+    fun ensureChannels(context: Context, soundEnabled: Boolean = true) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         nm.createNotificationChannel(
@@ -42,7 +50,9 @@ object TimerNotification {
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = "Notification when a Focus or Break segment ends"
-            setSound("android.resource://${context.packageName}/raw/kuro_sound".toUri(), null)
+            if (soundEnabled) {
+                setSound("android.resource://${context.packageName}/raw/kuro_sound".toUri(), null)
+            }
         }
         nm.createNotificationChannel(completionChannel)
     }

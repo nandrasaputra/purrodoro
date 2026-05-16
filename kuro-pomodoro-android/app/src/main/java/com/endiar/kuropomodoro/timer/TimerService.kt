@@ -67,7 +67,10 @@ class TimerService : Service() {
         super.onCreate()
         repo = AppRepository.get(applicationContext)
         alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        TimerNotification.ensureChannels(applicationContext)
+        scope.launch {
+            val soundEnabled = repo.appState.first().notificationSoundEnabled
+            TimerNotification.setNotificationSoundEnabled(applicationContext, soundEnabled)
+        }
         isRunning = true
     }
 

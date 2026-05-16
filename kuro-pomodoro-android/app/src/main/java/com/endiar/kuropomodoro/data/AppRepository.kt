@@ -39,7 +39,8 @@ data class AppState(
     val tasks: List<FocusTask> = emptyList(),
     val categories: List<Category> = emptyList(),
     val nextCategoryId: Int = 4,
-    val selectedCategoryId: Int? = null
+    val selectedCategoryId: Int? = null,
+    val notificationSoundEnabled: Boolean = true
 )
 
 private val SEED_CATEGORIES = listOf(
@@ -78,6 +79,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_NEXT_CATEGORY_ID = intPreferencesKey("next_category_id")
         private val KEY_SELECTED_CATEGORY_ID = stringPreferencesKey("selected_category_id")
         private val KEY_APPEARANCE_MODE = stringPreferencesKey("appearance_mode")
+        private val KEY_NOTIFICATION_SOUND = booleanPreferencesKey("notification_sound_enabled")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -123,7 +125,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             nextCategoryId = prefs[KEY_NEXT_CATEGORY_ID] ?: 4,
             selectedCategoryId = prefs[KEY_SELECTED_CATEGORY_ID]
                 ?.takeIf { it.isNotBlank() }
-                ?.toIntOrNull()
+                ?.toIntOrNull(),
+            notificationSoundEnabled = prefs[KEY_NOTIFICATION_SOUND] ?: true
         )
     }
 
@@ -176,6 +179,9 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             if (value == null) it.remove(KEY_SELECTED_CATEGORY_ID)
             else it[KEY_SELECTED_CATEGORY_ID] = value.toString()
         }
+
+    suspend fun setNotificationSoundEnabled(value: Boolean) =
+        dataStore.edit { it[KEY_NOTIFICATION_SOUND] = value }
 
     suspend fun addCategory(name: String) = dataStore.edit { prefs ->
         val nextId = prefs[KEY_NEXT_CATEGORY_ID] ?: 4
