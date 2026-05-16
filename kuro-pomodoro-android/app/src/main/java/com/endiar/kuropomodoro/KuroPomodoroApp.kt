@@ -361,6 +361,9 @@ fun KuroPomodoroApp(
                             val updatedSettings = settings.updateCycleSize(n)
                             persistSettings(updatedSettings)
                         },
+                        onResetSettings = {
+                            scope.launch { repo.resetSettingsToDefault() }
+                        },
                         onMockFeature = { premiumSheetMessage = it },
                         contentPadding = screenContentPadding
                     )
