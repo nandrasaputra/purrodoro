@@ -369,8 +369,9 @@ private fun DockTabItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val iconColor = if (active) DockCoral else Color.White.copy(alpha = 0.7f)
-    val bgColor = if (active) DockCoral.copy(alpha = 0.2f) else Color.Transparent
+    val kuroTokens = MaterialTheme.colorScheme.kuroTokens
+    val iconColor = if (active) kuroTokens.accentOn else kuroTokens.textSecondary
+    val bgColor = if (active) DockCoral else Color.Transparent
 
     Box(
         modifier = modifier,
