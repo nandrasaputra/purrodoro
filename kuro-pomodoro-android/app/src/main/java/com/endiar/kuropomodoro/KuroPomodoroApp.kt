@@ -1,16 +1,22 @@
 package com.endiar.kuropomodoro
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateInt
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -50,6 +56,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -288,7 +296,8 @@ fun KuroPomodoroApp(
                         remainingSeconds = remainingSeconds,
                         isRunning = isRunning,
                         isStarted = isStarted,
-                        isFocusMode = isFocusMode,
+                        focusActive = focusActive,
+                        focusTransition = focusTransition,
                         activeTask = activeTask,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
@@ -520,7 +529,8 @@ private fun FocusDashboard(
     remainingSeconds: Int,
     isRunning: Boolean,
     isStarted: Boolean,
-    isFocusMode: Boolean,
+    focusActive: Boolean,
+    focusTransition: Transition<Boolean>,
     activeTask: FocusTask?,
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
@@ -533,58 +543,6 @@ private fun FocusDashboard(
     onEnterFocusMode: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    if (isFocusMode && isRunning) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(onClick = onExitFocusMode),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "FOCUS",
-                    color = Color.White.copy(alpha = 0.40f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 2.sp
-                )
-                Text(
-                    text = formatSeconds(remainingSeconds),
-                    color = Color.White.copy(alpha = 0.95f),
-                    fontSize = 96.sp,
-                    fontWeight = FontWeight.W200,
-                    letterSpacing = (-2).sp
-                )
-                if (activeTask != null) {
-                    Text(
-                        text = activeTask.title,
-                        color = Color.White.copy(alpha = 0.60f),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = "${activeTask.completedSessions + 1} / ${activeTask.plannedSessions}",
-                        color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Spacer(Modifier.height(40.dp))
-                Text(
-                    text = "tap anywhere to show controls",
-                    color = Color.White.copy(alpha = 0.22f),
-                    fontSize = 12.sp
-                )
-            }
-        }
-        return
-    }
-
     val dots = cycleDotsState(cycleItems, cycleIndex, currentTimerState, timerSettings)
     val totalFocusSessions = dots.totalFocusSessions
     val completedFocusSessions = dots.completedFocusSessions
@@ -594,200 +552,366 @@ private fun FocusDashboard(
     val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
     var showStopConfirmDialog by remember { mutableStateOf(false) }
 
+    val timerSize by focusTransition.animateFloat(
+        transitionSpec = FocusModeMotion.spec(),
+        label = "timerSize"
+    ) { active -> if (active) 96f else 80f }
+
+    val timerWeight by focusTransition.animateInt(
+        transitionSpec = FocusModeMotion.spec(),
+        label = "timerWeight"
+    ) { active -> if (active) 200 else 400 }
+
+    val timerLetterSpacing by focusTransition.animateFloat(
+        transitionSpec = FocusModeMotion.spec(),
+        label = "timerLetterSpacing"
+    ) { active -> if (active) -2f else -1f }
+
+    val timerAlpha by focusTransition.animateFloat(
+        transitionSpec = FocusModeMotion.spec(),
+        label = "timerAlpha"
+    ) { active -> if (active) 0.95f else 0.9f }
+
+    val breathScale = remember { Animatable(1f) }
+    var hasComposed by remember { mutableStateOf(false) }
+    LaunchedEffect(focusActive) {
+        if (focusActive && hasComposed) {
+            delay(FocusModeMotion.BreathDelayMs)
+            breathScale.animateTo(
+                targetValue = FocusModeMotion.BreathScalePeak,
+                animationSpec = tween(
+                    durationMillis = FocusModeMotion.BreathDurationMs / 2,
+                    easing = FocusModeMotion.EnterEasing
+                )
+            )
+            breathScale.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = FocusModeMotion.BreathDurationMs / 2,
+                    easing = FocusModeMotion.ExitEasing
+                )
+            )
+        } else if (!focusActive) {
+            breathScale.snapTo(1f)
+        }
+        hasComposed = true
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding),
+            .padding(contentPadding)
+            .then(
+                if (focusActive) {
+                    Modifier.pointerInput(focusActive) {
+                        detectTapGestures(onTap = { onExitFocusMode() })
+                    }
+                } else {
+                    Modifier
+                }
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(40.dp))
-        if (isRunning && activeTask != null) {
-            Text(
-                text = activeTask.title,
-                color = Color.White.copy(alpha = 0.70f),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+
+        AnimatedVisibility(
+            visible = focusActive,
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = FocusModeMotion.EnterDurationMs - 350,
+                    delayMillis = 350,
+                    easing = FocusModeMotion.EnterEasing
+                )
+            ) + slideInVertically(
+                animationSpec = tween(
+                    durationMillis = FocusModeMotion.EnterDurationMs - 350,
+                    delayMillis = 350,
+                    easing = FocusModeMotion.EnterEasing
+                )
+            ) { -it / 2 },
+            exit = fadeOut(
+                animationSpec = tween(durationMillis = 250, easing = FocusModeMotion.ExitEasing)
             )
-            Text(
-                text = "${activeTask.completedSessions + 1} / ${activeTask.plannedSessions}",
-                color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(8.dp))
-        }
-        Spacer(Modifier.height(8.dp))
-        CycleDotsRow(
-            totalFocusSessions = totalFocusSessions,
-            completedFocusSessions = completedFocusSessions,
-            isCurrentlyFocus = isCurrentlyFocus,
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentSize(Alignment.Center)
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            text = formatSeconds(remainingSeconds),
-            color = Color.White.copy(alpha = 0.9f),
-            fontSize = 80.sp,
-            fontWeight = FontWeight.W400,
-            letterSpacing = (-1).sp
-        )
-        if (isStarted && !isRunning) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                text = "${timerMode.label} · paused",
-                color = Color.White.copy(alpha = 0.45f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.5.sp
-            )
-        }
-        Spacer(Modifier.height(24.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isRunning) {
-                val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
-                val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
-                        currentItemType is SessionItemType.LongBreak
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(buttonBg)
-                        .clickable(onClick = onStartPause),
-                    contentAlignment = Alignment.Center
-                ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "FOCUS",
+                    color = Color.White.copy(alpha = 0.40f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 2.sp
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+
+        AnimatedVisibility(
+            visible = !focusActive,
+            enter = fadeIn(
+                animationSpec = tween(FocusModeMotion.ExitDurationMs, delayMillis = 150, easing = FocusModeMotion.ExitEasing)
+            ) + expandVertically(
+                animationSpec = tween(FocusModeMotion.ExitDurationMs, easing = FocusModeMotion.ExitEasing)
+            ),
+            exit = fadeOut(
+                animationSpec = tween(durationMillis = 400, easing = FocusModeMotion.EnterEasing)
+            ) + shrinkVertically(
+                animationSpec = tween(durationMillis = 400, easing = FocusModeMotion.EnterEasing)
+            )
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (isRunning && activeTask != null) {
                     Text(
-                        text = "\u23f8",
-                        color = buttonContentColor,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        text = activeTask.title,
+                        color = Color.White.copy(alpha = 0.70f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
-                if (isOnBreak) {
-                    Spacer(Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .height(56.dp)
-                            .border(
-                                1.5.dp,
-                                Color.White.copy(alpha = 0.20f),
-                                RoundedCornerShape(28.dp)
-                            )
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .clickable(onClick = onSkip)
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Skip",
-                            color = Color.White.copy(alpha = 0.60f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            } else if (isStarted) {
-                val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
-                val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
-                        currentItemType is SessionItemType.LongBreak
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(buttonBg)
-                        .clickable(onClick = onStartPause),
-                    contentAlignment = Alignment.Center
-                ) {
                     Text(
-                        text = "\u25b6",
-                        color = buttonContentColor,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "${activeTask.completedSessions + 1} / ${activeTask.plannedSessions}",
+                        color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.width(8.dp))
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .clickable {
-                            val currentItemType2 = cycleItems.getOrNull(cycleIndex)?.type
-                            if (currentItemType2 is SessionItemType.Focus) {
-                                showStopConfirmDialog = true
-                            } else {
-                                onStop()
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "\u25a0",
-                        color = Color.White.copy(alpha = 0.60f),
-                        fontSize = 18.sp
-                    )
-                }
-                if (isOnBreak) {
-                    Spacer(Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .height(56.dp)
-                            .border(
-                                1.5.dp,
-                                Color.White.copy(alpha = 0.20f),
-                                RoundedCornerShape(28.dp)
-                            )
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .clickable(onClick = onSkip)
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Skip",
-                            color = Color.White.copy(alpha = 0.60f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            } else {
-                Box(
+                Spacer(Modifier.height(8.dp))
+                CycleDotsRow(
+                    totalFocusSessions = totalFocusSessions,
+                    completedFocusSessions = completedFocusSessions,
+                    isCurrentlyFocus = isCurrentlyFocus,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 48.dp)
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(Color(0xFFFF8B6F))
-                        .clickable(onClick = onStartPause),
-                    contentAlignment = Alignment.Center
-                ) {
+                        .wrapContentSize(Alignment.Center)
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+        }
+
+        Text(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = breathScale.value
+                    scaleY = breathScale.value
+                },
+            textAlign = TextAlign.Center,
+            text = formatSeconds(remainingSeconds),
+            color = Color.White.copy(alpha = timerAlpha),
+            fontSize = timerSize.sp,
+            fontWeight = FontWeight(timerWeight),
+            letterSpacing = timerLetterSpacing.sp
+        )
+
+        AnimatedVisibility(
+            visible = focusActive && activeTask != null,
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = FocusModeMotion.EnterDurationMs - 350,
+                    delayMillis = 350,
+                    easing = FocusModeMotion.EnterEasing
+                )
+            ) + expandVertically(
+                animationSpec = tween(
+                    durationMillis = FocusModeMotion.EnterDurationMs - 200,
+                    delayMillis = 200,
+                    easing = FocusModeMotion.EnterEasing
+                )
+            ),
+            exit = fadeOut(
+                animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.ExitEasing)
+            ) + shrinkVertically(
+                animationSpec = tween(durationMillis = 250, easing = FocusModeMotion.ExitEasing)
+            )
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(Modifier.height(16.dp))
+                activeTask?.let { task ->
                     Text(
-                        text = "Focus Now",
-                        color = Color.White,
+                        text = task.title,
+                        color = Color.White.copy(alpha = 0.60f),
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = "${task.completedSessions + 1} / ${task.plannedSessions}",
+                        color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
         }
+
+        AnimatedVisibility(
+            visible = !focusActive && isStarted && !isRunning,
+            enter = fadeIn(animationSpec = tween(durationMillis = 250)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 200))
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    text = "${timerMode.label} · paused",
+                    color = Color.White.copy(alpha = 0.45f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.5.sp
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        AnimatedVisibility(
+            visible = !focusActive,
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = FocusModeMotion.ExitDurationMs,
+                    delayMillis = 150,
+                    easing = FocusModeMotion.ExitEasing
+                )
+            ),
+            exit = fadeOut(
+                animationSpec = tween(durationMillis = 350, easing = FocusModeMotion.EnterEasing)
+            )
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isRunning) {
+                    val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
+                    val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
+                            currentItemType is SessionItemType.LongBreak
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(buttonBg)
+                            .clickable(onClick = onStartPause),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "\u23f8",
+                            color = buttonContentColor,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (isOnBreak) {
+                        Spacer(Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .height(56.dp)
+                                .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
+                                .clip(RoundedCornerShape(28.dp))
+                                .background(Color.White.copy(alpha = 0.08f))
+                                .clickable(onClick = onSkip)
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Skip",
+                                color = Color.White.copy(alpha = 0.60f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                } else if (isStarted) {
+                    val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
+                    val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
+                            currentItemType is SessionItemType.LongBreak
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(buttonBg)
+                            .clickable(onClick = onStartPause),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "\u25b6",
+                            color = buttonContentColor,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .clickable {
+                                val currentItemType2 = cycleItems.getOrNull(cycleIndex)?.type
+                                if (currentItemType2 is SessionItemType.Focus) {
+                                    showStopConfirmDialog = true
+                                } else {
+                                    onStop()
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "\u25a0",
+                            color = Color.White.copy(alpha = 0.60f),
+                            fontSize = 18.sp
+                        )
+                    }
+                    if (isOnBreak) {
+                        Spacer(Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .height(56.dp)
+                                .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
+                                .clip(RoundedCornerShape(28.dp))
+                                .background(Color.White.copy(alpha = 0.08f))
+                                .clickable(onClick = onSkip)
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Skip",
+                                color = Color.White.copy(alpha = 0.60f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 48.dp)
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color(0xFFFF8B6F))
+                            .clickable(onClick = onStartPause),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Focus Now",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
         if (showStopConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showStopConfirmDialog = false },
@@ -828,24 +952,55 @@ private fun FocusDashboard(
                 shape = RoundedCornerShape(20.dp)
             )
         }
+
         Spacer(Modifier.weight(1f))
-        if (isRunning) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFFF8B6F).copy(alpha = 0.18f))
-                    .border(1.dp, Color(0xFFFF8B6F).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
-                    .clickable(onClick = onEnterFocusMode)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = "↗  enter focus mode",
-                    color = Color(0xFFFF8B6F),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
-                )
+
+        AnimatedVisibility(
+            visible = !focusActive && isRunning,
+            enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 200)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 200))
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFFF8B6F).copy(alpha = 0.18f))
+                        .border(1.dp, Color(0xFFFF8B6F).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+                        .clickable(onClick = onEnterFocusMode)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "↗  enter focus mode",
+                        color = Color(0xFFFF8B6F),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Spacer(Modifier.height(40.dp))
             }
-            Spacer(Modifier.height(40.dp))
+        }
+
+        AnimatedVisibility(
+            visible = focusActive,
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = 400,
+                    delayMillis = 600,
+                    easing = FocusModeMotion.EnterEasing
+                )
+            ),
+            exit = fadeOut(
+                animationSpec = tween(durationMillis = 200)
+            )
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "tap anywhere to show controls",
+                    color = Color.White.copy(alpha = 0.22f),
+                    fontSize = 12.sp
+                )
+                Spacer(Modifier.height(40.dp))
+            }
         }
     }
 }
