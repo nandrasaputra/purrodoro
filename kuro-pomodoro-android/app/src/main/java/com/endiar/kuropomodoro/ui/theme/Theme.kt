@@ -5,43 +5,52 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import com.endiar.kuropomodoro.model.AppearanceMode
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Peach,
+    primary = DockCoral,
+    onPrimary = Cocoa,
     secondary = Lavender,
     tertiary = Mint,
-    background = Night,
+    background = NightDeep,
+    onBackground = NightMuted,
     surface = NightCard,
-    onPrimary = Cocoa,
-    onSecondary = Cream,
-    onTertiary = Cocoa,
-    onBackground = Cream,
-    onSurface = Cream
+    onSurface = NightMuted,
+    surfaceVariant = NightCardActive,
+    onSurfaceVariant = NightFaint,
+    outline = NightBorder,
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = Coral,
+    onPrimary = CardWhite,
     secondary = Peach,
     tertiary = Mint,
     background = Cream,
+    onBackground = CocoaSoft,
     surface = CardWhite,
-    onPrimary = CardWhite,
-    onSecondary = Cocoa,
-    onTertiary = Cocoa,
-    onBackground = Cocoa,
-    onSurface = Cocoa
+    onSurface = CocoaSoft,
+    surfaceVariant = CreamCardActive,
+    onSurfaceVariant = CocoaFaint,
+    outline = CreamBorder,
 )
 
+/**
+ * Wraps [content] in a [MaterialTheme] using the scheme implied by
+ * [appearanceMode]. `Auto` defers to [isSystemInDarkTheme].
+ */
 @Composable
 fun KuroPomodoroTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
+    appearanceMode: AppearanceMode = AppearanceMode.Auto,
+    systemInDark: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val isDark = appearanceMode.isDark(systemInDark)
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content
+        content = content,
     )
 }
