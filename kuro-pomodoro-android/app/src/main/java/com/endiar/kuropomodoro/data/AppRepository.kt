@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.SessionItemType
@@ -27,6 +28,7 @@ import java.time.LocalDate
 
 data class AppState(
     val glassReadabilityMode: GlassReadabilityMode,
+    val appearanceMode: AppearanceMode = AppearanceMode.Auto,
     val selectedSoundId: Int,
     val completedSessions: Int,
     val settings: TimerSettings,
@@ -75,6 +77,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_CATEGORIES = stringPreferencesKey("categories_json")
         private val KEY_NEXT_CATEGORY_ID = intPreferencesKey("next_category_id")
         private val KEY_SELECTED_CATEGORY_ID = stringPreferencesKey("selected_category_id")
+        private val KEY_APPEARANCE_MODE = stringPreferencesKey("appearance_mode")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -100,6 +103,9 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             glassReadabilityMode = prefs[KEY_GLASS_MODE]
                 ?.let { runCatching { GlassReadabilityMode.valueOf(it) }.getOrNull() }
                 ?: GlassReadabilityMode.Adaptive,
+            appearanceMode = prefs[KEY_APPEARANCE_MODE]
+                ?.let { runCatching { AppearanceMode.valueOf(it) }.getOrNull() }
+                ?: AppearanceMode.Auto,
             selectedSoundId = prefs[KEY_SOUND_ID] ?: 1,
             completedSessions = prefs[KEY_COMPLETED] ?: 0,
             settings = TimerSettings(
@@ -122,6 +128,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     }
 
     suspend fun setGlassReadabilityMode(value: GlassReadabilityMode) = dataStore.edit { it[KEY_GLASS_MODE] = value.name }
+    suspend fun setAppearanceMode(value: AppearanceMode) = dataStore.edit { it[KEY_APPEARANCE_MODE] = value.name }
     suspend fun setSelectedSoundId(value: Int) = dataStore.edit { it[KEY_SOUND_ID] = value }
     suspend fun setCompletedSessions(value: Int) = dataStore.edit { it[KEY_COMPLETED] = value }
     suspend fun setSettings(value: TimerSettings) = dataStore.edit { prefs ->

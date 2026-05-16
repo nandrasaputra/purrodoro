@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,8 +32,32 @@ import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.MockBadge
 import com.endiar.kuropomodoro.ui.components.StatusPill
 import com.endiar.kuropomodoro.ui.components.StatusPillKind
+import com.endiar.kuropomodoro.ui.theme.TileCafeDark
+import com.endiar.kuropomodoro.ui.theme.TileCafeLight
+import com.endiar.kuropomodoro.ui.theme.TileFireDark
+import com.endiar.kuropomodoro.ui.theme.TileFireLight
+import com.endiar.kuropomodoro.ui.theme.TileForestDark
+import com.endiar.kuropomodoro.ui.theme.TileForestLight
+import com.endiar.kuropomodoro.ui.theme.TileKeysDark
+import com.endiar.kuropomodoro.ui.theme.TileKeysLight
+import com.endiar.kuropomodoro.ui.theme.TileRainDark
+import com.endiar.kuropomodoro.ui.theme.TileRainLight
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.kuropomodoro.ui.theme.luminance
 
-private val PlayingTint = Color(0xFFFF8B6F).copy(alpha = 0.15f)
+@Composable
+private fun tileFillFor(soundId: Int): Color {
+    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
+    return when (soundId) {
+        1 -> if (isLight) TileRainLight else TileRainDark
+        2 -> if (isLight) TileCafeLight else TileCafeDark
+        3 -> if (isLight) TileForestLight else TileForestDark
+        4 -> if (isLight) TileFireLight else TileFireDark
+        5 -> if (isLight) TileKeysLight else TileKeysDark
+        else -> MaterialTheme.colorScheme.kuroTokens.cardFill
+    }
+}
+
 
 @Composable
 fun SoundsScreen(
@@ -41,8 +68,11 @@ fun SoundsScreen(
     onToggleSound: (SoundOption) -> Unit,
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -54,7 +84,7 @@ fun SoundsScreen(
     ) {
         Text(
             text = "Sounds",
-            color = Color.White,
+            color = tokens.textPrimary,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
@@ -79,60 +109,74 @@ fun SoundsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(if (isPlaying) PlayingTint else Color.Transparent)
+                    .background(if (isPlaying) tokens.accentSoft else Color.Transparent)
             ) {
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        role = Role.Button,
-                        onClickLabel = when {
-                            sound.locked -> "Unlock ${sound.name}"
-                            isPlaying    -> "Stop ${sound.name}"
-                            else         -> "Play ${sound.name}"
-                        }
-                    ) {
-                        if (isPlaying) onToggleSound(sound) else onSoundSelected(sound)
-                    },
-                active = isSelected,
-                glassTreatment = glassTreatment
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = when {
+                                sound.locked -> "Unlock ${sound.name}"
+                                isPlaying    -> "Stop ${sound.name}"
+                                else         -> "Play ${sound.name}"
+                            }
+                        ) {
+                            if (isPlaying) onToggleSound(sound) else onSoundSelected(sound)
+                        },
+                    active = isSelected,
+                    glassTreatment = glassTreatment,
+                    overBackdrop = overBackdrop,
                 ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = sound.symbol.take(2),
-                            fontSize = 28.sp
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(tileFillFor(sound.id)),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = sound.name,
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    text = sound.symbol.take(2),
+                                    fontSize = 22.sp
                                 )
-                                if (sound.locked) MockBadge()
                             }
-                            Text(
-                                text = sound.description,
-                                color = Color.White.copy(alpha = 0.50f),
-                                fontSize = 12.sp
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = sound.name,
+                                        color = tokens.textPrimary,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (sound.locked) MockBadge()
+                                }
+                                Text(
+                                    text = sound.description,
+                                    color = tokens.textSecondary,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
+                        StatusPill(
+                            label = pillLabel,
+                            kind = pillKind,
+                            glassTreatment = glassTreatment,
+                            overBackdrop = overBackdrop,
+                        )
                     }
-                    StatusPill(label = pillLabel, kind = pillKind, glassTreatment = glassTreatment)
                 }
-            }
             }
         }
     }

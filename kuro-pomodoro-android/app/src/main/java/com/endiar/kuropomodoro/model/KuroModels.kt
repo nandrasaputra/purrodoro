@@ -160,6 +160,22 @@ fun buildSession(settings: TimerSettings): TimerSession {
     )
 }
 
+enum class AppearanceMode(val label: String) {
+    Light("Light"),
+    Dark("Dark"),
+    Auto("Auto");
+
+    /**
+     * Resolves the user's choice into a concrete dark/light decision.
+     * `Auto` defers to [systemInDark]; explicit modes ignore it.
+     */
+    fun isDark(systemInDark: Boolean): Boolean = when (this) {
+        Light -> false
+        Dark -> true
+        Auto -> systemInDark
+    }
+}
+
 enum class GlassReadabilityMode(val label: String) {
     Adaptive("Adaptive"),
     Clear("Clear"),

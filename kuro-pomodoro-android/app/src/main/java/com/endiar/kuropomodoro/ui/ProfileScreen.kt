@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,28 +35,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.GlassTreatment
+import com.endiar.kuropomodoro.ui.components.AppearanceModeToggle
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.GlassPill
 import com.endiar.kuropomodoro.ui.components.MockBadge
 import com.endiar.kuropomodoro.ui.components.StepperButton
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
 @Composable
 fun ProfileScreen(
     settings: TimerSettings,
     glassReadabilityMode: GlassReadabilityMode,
     glassTreatment: GlassTreatment,
+    appearanceMode: AppearanceMode,
+    onAppearanceModeChanged: (AppearanceMode) -> Unit,
     onGlassReadabilityModeChanged: (GlassReadabilityMode) -> Unit,
     onDurationChanged: (TimerMode, Int) -> Unit,
     onCycleSizeChanged: (Int) -> Unit,
     onResetSettings: () -> Unit,
     onMockFeature: (String) -> Unit,
+    overBackdrop: Boolean = true,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     var showResetConfirm by remember { mutableStateOf(false) }
     Column(
         modifier = modifier
@@ -70,11 +78,15 @@ fun ProfileScreen(
             text = "Me",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = tokens.textPrimary
         )
 
         // Profile / avatar card
-        GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -82,27 +94,27 @@ fun ProfileScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Focus User",
+                        text = "Nandra",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = tokens.textPrimary
                     )
                     Text(
-                        text = "Pomodoro in progress",
+                        text = "Stay focused with kuro",
                         fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.55f)
+                        color = tokens.textSecondary
                     )
                 }
                 Box(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFF8B6F)),
+                        .background(tokens.accent),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "FU",
-                        color = Color.White,
+                        text = "NS",
+                        color = tokens.accentOn,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -110,12 +122,42 @@ fun ProfileScreen(
             }
         }
 
+        // Appearance card
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
+        ) {
+            Text(
+                text = "APPEARANCE",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp,
+                color = tokens.textMuted,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "Match your time of day",
+                fontSize = 12.sp,
+                color = tokens.textSecondary,
+            )
+            Spacer(Modifier.height(12.dp))
+            AppearanceModeToggle(
+                mode = appearanceMode,
+                onModeChanged = onAppearanceModeChanged,
+            )
+        }
+
         // Timer settings card
-        GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
+        ) {
             Text(
                 text = "TIMER SETTINGS",
                 fontSize = 13.sp,
-                color = Color.White.copy(alpha = 0.45f),
+                color = tokens.textMuted,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.2.sp
             )
@@ -125,7 +167,8 @@ fun ProfileScreen(
                 minutes = settings.focusMinutes,
                 onMinus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes - 1).coerceIn(1, 60)) },
                 onPlus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes + 1).coerceIn(1, 60)) },
-                glassTreatment = glassTreatment
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
             )
             Spacer(Modifier.height(8.dp))
             DurationRow(
@@ -133,7 +176,8 @@ fun ProfileScreen(
                 minutes = settings.shortBreakMinutes,
                 onMinus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes - 1).coerceIn(1, 60)) },
                 onPlus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes + 1).coerceIn(1, 60)) },
-                glassTreatment = glassTreatment
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
             )
             Spacer(Modifier.height(8.dp))
             DurationRow(
@@ -141,7 +185,8 @@ fun ProfileScreen(
                 minutes = settings.longBreakMinutes,
                 onMinus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes - 1).coerceIn(1, 60)) },
                 onPlus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes + 1).coerceIn(1, 60)) },
-                glassTreatment = glassTreatment
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
             )
             Spacer(Modifier.height(8.dp))
             DurationRow(
@@ -150,25 +195,28 @@ fun ProfileScreen(
                 unit = "sessions",
                 onMinus = { onCycleSizeChanged((settings.focusSessionsPerCycle - 1).coerceIn(1, 10)) },
                 onPlus = { onCycleSizeChanged((settings.focusSessionsPerCycle + 1).coerceIn(1, 10)) },
-                glassTreatment = glassTreatment
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
             )
         }
 
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
-            glassTreatment = glassTreatment
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
         ) {
             Text(
-                text = "Glass readability",
-                fontSize = 15.sp,
+                text = "FOCUS SCREEN READABILITY",
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White
+                letterSpacing = 1.sp,
+                color = tokens.textMuted
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Improve panel contrast on bright backgrounds.",
+                text = "Only affects the cat backdrop on the Focus tab.",
                 fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.55f)
+                color = tokens.textSecondary
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -177,7 +225,8 @@ fun ProfileScreen(
                         text = mode.label,
                         selected = mode == glassReadabilityMode,
                         onClick = { onGlassReadabilityModeChanged(mode) },
-                        glassTreatment = glassTreatment
+                        glassTreatment = glassTreatment,
+                        overBackdrop = overBackdrop,
                     )
                 }
             }
@@ -188,7 +237,8 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(role = Role.Button, onClick = { showResetConfirm = true }),
-            glassTreatment = glassTreatment
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -200,15 +250,15 @@ fun ProfileScreen(
                         text = "Reset to defaults",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = tokens.textPrimary
                     )
                     Text(
                         text = "Restore default timer settings",
                         fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.55f)
+                        color = tokens.textSecondary
                     )
                 }
-                Text("↺", fontSize = 22.sp, color = Color.White.copy(alpha = 0.70f))
+                Text("↺", fontSize = 22.sp, color = tokens.textSecondary)
             }
         }
 
@@ -216,7 +266,7 @@ fun ProfileScreen(
         Text(
             text = "FEATURES",
             fontSize = 10.sp,
-            color = Color.White.copy(alpha = 0.30f),
+            color = tokens.textFaint,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.5.sp
         )
@@ -227,7 +277,8 @@ fun ProfileScreen(
                 description = "Co-focus with friends",
                 onClick = { onMockFeature("Focus Together is a mock social focus room for this prototype.") },
                 modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
             )
             MockFeatureSquare(
                 name = "Reminders",
@@ -235,7 +286,8 @@ fun ProfileScreen(
                 description = "Smart break reminders",
                 onClick = { onMockFeature("Reminders are mocked here; notifications are not scheduled yet.") },
                 modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -245,7 +297,8 @@ fun ProfileScreen(
                 description = "Track important dates",
                 onClick = { onMockFeature("D-Day Tracker is a placeholder for future goal countdowns.") },
                 modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
             )
             MockFeatureSquare(
                 name = "Premium Sounds",
@@ -253,7 +306,8 @@ fun ProfileScreen(
                 description = "Unlock all sound packs",
                 onClick = { onMockFeature("Premium Sounds is simulated in this clone and does not start a purchase.") },
                 modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
             )
         }
     }
@@ -264,14 +318,14 @@ fun ProfileScreen(
             title = {
                 Text(
                     text = "Reset timer settings?",
-                    color = Color.White,
+                    color = tokens.textPrimary,
                     fontWeight = FontWeight.SemiBold
                 )
             },
             text = {
                 Text(
                     text = "This will restore Focus to 25 min, Short break to 5 min, Long break to 15 min, and Sessions/cycle to 4.",
-                    color = Color.White.copy(alpha = 0.70f),
+                    color = tokens.textSecondary,
                     fontSize = 14.sp
                 )
             },
@@ -280,17 +334,17 @@ fun ProfileScreen(
                     showResetConfirm = false
                     onResetSettings()
                 }) {
-                    Text("Reset", color = Color(0xFFFF8B6F), fontWeight = FontWeight.SemiBold)
+                    Text("Reset", color = tokens.accent, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetConfirm = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.70f))
+                    Text("Cancel", color = tokens.textSecondary)
                 }
             },
-            containerColor = Color(0xFF1A1228),
-            titleContentColor = Color.White,
-            textContentColor = Color.White.copy(alpha = 0.70f)
+            containerColor = tokens.cardFill,
+            titleContentColor = tokens.textPrimary,
+            textContentColor = tokens.textSecondary,
         )
     }
 }
@@ -302,28 +356,40 @@ private fun DurationRow(
     unit: String = "min",
     onMinus: () -> Unit,
     onPlus: () -> Unit,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = tokens.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            StepperButton(label = "−", onClick = onMinus, glassTreatment = glassTreatment)
+            StepperButton(
+                label = "−",
+                onClick = onMinus,
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
+            )
             Text(
                 text = "$minutes $unit",
-                color = Color.White,
+                color = tokens.textPrimary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.widthIn(min = 54.dp),
                 textAlign = TextAlign.Center
             )
-            StepperButton(label = "+", onClick = onPlus, glassTreatment = glassTreatment)
+            StepperButton(
+                label = "+",
+                onClick = onPlus,
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
+            )
         }
     }
 }
@@ -335,11 +401,14 @@ private fun MockFeatureSquare(
     description: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     GlassCard(
         modifier = modifier.clickable(role = Role.Button, onClickLabel = name, onClick = onClick),
-        glassTreatment = glassTreatment
+        glassTreatment = glassTreatment,
+        overBackdrop = overBackdrop,
     ) {
         Text(icon, fontSize = 24.sp)
         Spacer(Modifier.height(8.dp))
@@ -347,10 +416,10 @@ private fun MockFeatureSquare(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(name, color = tokens.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             MockBadge()
         }
         Spacer(Modifier.height(2.dp))
-        Text(description, color = Color.White.copy(alpha = 0.50f), fontSize = 11.sp)
+        Text(description, color = tokens.textSecondary, fontSize = 11.sp)
     }
 }

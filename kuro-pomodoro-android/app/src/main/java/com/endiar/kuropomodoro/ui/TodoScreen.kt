@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -65,9 +66,32 @@ import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.GlassPill
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.kuropomodoro.ui.theme.luminance
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+@Composable
+private fun tagPaletteFor(categoryId: Int?): Pair<Color, Color> {
+    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
+    val presets = if (isLight) listOf(
+        Pair(Color(0xFFEFE6FF), Color(0xFF5B3F8C)),
+        Pair(Color(0xFFDDF1E5), Color(0xFF3F7A4F)),
+        Pair(Color(0xFFFFE2D5), Color(0xFF8C432F)),
+        Pair(Color(0xFFDDE7F5), Color(0xFF3F567A)),
+        Pair(Color(0xFFFFD8DF), Color(0xFF8C3F4F)),
+    ) else listOf(
+        Pair(Color(0xFF3F2A4A), Color(0xFFD8C8FF)),
+        Pair(Color(0xFF1D3326), Color(0xFF9DD8B3)),
+        Pair(Color(0xFF4A2218), Color(0xFFFFB59E)),
+        Pair(Color(0xFF1F2A3F), Color(0xFFAFC6E0)),
+        Pair(Color(0xFF3A1F25), Color(0xFFFFB6C1)),
+    )
+    val idx = ((categoryId ?: 0).hashCode() and Int.MAX_VALUE) % presets.size
+    return presets[idx]
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,8 +112,11 @@ fun TodoScreen(
     settings: TimerSettings = TimerSettings(),
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+
     val filteredActiveTasks = tasks.filter { task ->
         !task.completed && (selectedCategoryId == null || task.categoryId == selectedCategoryId)
     }
@@ -141,13 +168,13 @@ fun TodoScreen(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "To-Do",
-                    color = Color.White,
+                    color = tokens.textPrimary,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = dateLabel,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = tokens.textSecondary,
                     fontSize = 13.sp
                 )
             }
@@ -155,11 +182,11 @@ fun TodoScreen(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFF8B6F))
+                    .background(tokens.accent)
                     .clickable { addingTask = !addingTask },
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "+", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = "+", color = tokens.accentOn, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
@@ -179,7 +206,8 @@ fun TodoScreen(
                     selected = selectedCategoryId == null,
                     isEditMode = false,
                     onClick = { onCategorySelected(null) },
-                    glassTreatment = glassTreatment
+                    glassTreatment = glassTreatment,
+                    overBackdrop = overBackdrop,
                 )
                 categories.forEach { category ->
                     CategoryPill(
@@ -194,21 +222,22 @@ fun TodoScreen(
                             }
                         },
                         onDelete = { deleteCategoryTarget = category },
-                        glassTreatment = glassTreatment
+                        glassTreatment = glassTreatment,
+                        overBackdrop = overBackdrop,
                     )
                 }
                 if (isEditMode) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
-                            .border(1.dp, Color(0xFFFF8B6F).copy(alpha = 0.50f), RoundedCornerShape(20.dp))
+                            .border(1.dp, tokens.accentSoft, RoundedCornerShape(20.dp))
                             .clickable { addCategorySheetVisible = true }
                             .padding(horizontal = 14.dp, vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "+ New",
-                            color = Color(0xFFFF8B6F),
+                            color = tokens.accent,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -220,12 +249,12 @@ fun TodoScreen(
                 modifier = Modifier
                     .width(1.dp)
                     .height(20.dp)
-                    .background(Color.White.copy(alpha = 0.18f))
+                    .background(tokens.borderSoft)
             )
             Spacer(Modifier.width(12.dp))
             Text(
                 text = if (isEditMode) "Done" else "Edit",
-                color = Color.White.copy(alpha = 0.75f),
+                color = tokens.textSecondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.clickable { isEditMode = !isEditMode }
@@ -238,8 +267,8 @@ fun TodoScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFF0F0A1A).copy(alpha = 0.40f))
-                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+                    .background(tokens.cardFill)
+                    .border(1.dp, tokens.borderSoft, RoundedCornerShape(18.dp))
                     .padding(horizontal = 14.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -254,7 +283,7 @@ fun TodoScreen(
                         placeholder = {
                             Text(
                                 text = "Add a focus task…",
-                                color = Color.White.copy(alpha = 0.35f),
+                                color = tokens.textMuted,
                                 fontSize = 14.sp
                             )
                         },
@@ -264,9 +293,9 @@ fun TodoScreen(
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFFFF8B6F),
+                            focusedTextColor = tokens.textPrimary,
+                            unfocusedTextColor = tokens.textPrimary,
+                            cursorColor = tokens.accent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         )
@@ -274,11 +303,11 @@ fun TodoScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFFF8B6F))
+                            .background(tokens.accent)
                             .clickable { submitTask() }
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
-                        Text(text = "Add", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(text = "Add", color = tokens.accentOn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 if (categories.isNotEmpty()) {
@@ -290,13 +319,13 @@ fun TodoScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(
-                                    if (newTaskCategoryId == null) Color(0xFFFF8B6F).copy(alpha = 0.25f)
-                                    else Color.White.copy(alpha = 0.08f)
+                                    if (newTaskCategoryId == null) tokens.accentSoft
+                                    else tokens.segmentedTrack
                                 )
                                 .border(
                                     1.dp,
-                                    if (newTaskCategoryId == null) Color(0xFFFF8B6F).copy(alpha = 0.60f)
-                                    else Color.White.copy(alpha = 0.15f),
+                                    if (newTaskCategoryId == null) tokens.accent.copy(alpha = 0.60f)
+                                    else tokens.borderSoft,
                                     RoundedCornerShape(14.dp)
                                 )
                                 .clickable { newTaskCategoryId = null }
@@ -304,7 +333,7 @@ fun TodoScreen(
                         ) {
                             Text(
                                 text = "None",
-                                color = if (newTaskCategoryId == null) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.55f),
+                                color = if (newTaskCategoryId == null) tokens.accent else tokens.textSecondary,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -315,13 +344,13 @@ fun TodoScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(
-                                        if (isSelected) Color(0xFFFF8B6F).copy(alpha = 0.25f)
-                                        else Color.White.copy(alpha = 0.08f)
+                                        if (isSelected) tokens.accentSoft
+                                        else tokens.segmentedTrack
                                     )
                                     .border(
                                         1.dp,
-                                        if (isSelected) Color(0xFFFF8B6F).copy(alpha = 0.60f)
-                                        else Color.White.copy(alpha = 0.15f),
+                                        if (isSelected) tokens.accent.copy(alpha = 0.60f)
+                                        else tokens.borderSoft,
                                         RoundedCornerShape(14.dp)
                                     )
                                     .clickable { newTaskCategoryId = cat.id }
@@ -329,7 +358,7 @@ fun TodoScreen(
                             ) {
                                 Text(
                                     text = cat.name,
-                                    color = if (isSelected) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.55f),
+                                    color = if (isSelected) tokens.accent else tokens.textSecondary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -343,24 +372,28 @@ fun TodoScreen(
         // ── Active tasks ────────────────────────────────────────────────
         Text(
             text = "UPCOMING",
-            color = Color.White.copy(alpha = 0.30f),
+            color = tokens.textFaint,
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.5.sp
         )
 
         if (filteredActiveTasks.isEmpty()) {
-            GlassCard(modifier = Modifier.fillMaxWidth(), glassTreatment = glassTreatment) {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
+            ) {
                 Text(
                     text = "No tasks yet",
-                    color = Color.White,
+                    color = tokens.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "Tap + to add your first focus task.",
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = tokens.textSecondary,
                     fontSize = 13.sp
                 )
             }
@@ -376,7 +409,8 @@ fun TodoScreen(
                     onDeleteTask = onDeleteTask,
                     onTapRow = { detailSheetTask = it },
                     onFocusTask = { if (!task.completed) focusSheetTask = it },
-                    glassTreatment = glassTreatment
+                    glassTreatment = glassTreatment,
+                    overBackdrop = overBackdrop,
                 )
             }
         }
@@ -393,14 +427,14 @@ fun TodoScreen(
             ) {
                 Text(
                     text = "COMPLETED (${filteredCompletedTasks.size})",
-                    color = Color.White.copy(alpha = 0.30f),
+                    color = tokens.textFaint,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.5.sp
                 )
                 Text(
                     text = if (completedExpanded) "▲" else "▼",
-                    color = Color.White.copy(alpha = 0.30f),
+                    color = tokens.textFaint,
                     fontSize = 10.sp
                 )
             }
@@ -417,7 +451,8 @@ fun TodoScreen(
                         onDeleteTask = onDeleteTask,
                         onTapRow = { detailSheetTask = it },
                         onFocusTask = {},
-                        glassTreatment = glassTreatment
+                        glassTreatment = glassTreatment,
+                        overBackdrop = overBackdrop,
                     )
                 }
                 Box(
@@ -470,19 +505,20 @@ fun TodoScreen(
 
     // ── Delete Category confirmation dialog ──────────────────────────────
     deleteCategoryTarget?.let { category ->
+        val dialogTokens = MaterialTheme.colorScheme.kuroTokens
         AlertDialog(
             onDismissRequest = { deleteCategoryTarget = null },
             title = {
                 Text(
                     text = "Delete ${category.name}?",
-                    color = Color.White,
+                    color = dialogTokens.textPrimary,
                     fontWeight = FontWeight.SemiBold
                 )
             },
             text = {
                 Text(
                     text = "Tasks in this category will become uncategorized.",
-                    color = Color.White.copy(alpha = 0.75f)
+                    color = dialogTokens.textSecondary
                 )
             },
             confirmButton = {
@@ -500,10 +536,10 @@ fun TodoScreen(
             },
             dismissButton = {
                 TextButton(onClick = { deleteCategoryTarget = null }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.70f))
+                    Text("Cancel", color = dialogTokens.textSecondary)
                 }
             },
-            containerColor = Color(0xFF2A2035),
+            containerColor = dialogTokens.cardFill,
             shape = RoundedCornerShape(20.dp)
         )
     }
@@ -542,14 +578,17 @@ private fun CategoryPill(
     isEditMode: Boolean,
     onClick: () -> Unit,
     onDelete: (() -> Unit)? = null,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(contentAlignment = Alignment.TopStart) {
         GlassPill(
             text = label,
             selected = selected,
             onClick = onClick,
-            glassTreatment = glassTreatment
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
         )
         if (isEditMode && onDelete != null) {
             Box(
@@ -563,7 +602,7 @@ private fun CategoryPill(
             ) {
                 Text(
                     text = "×",
-                    color = Color.White,
+                    color = tokens.accentOn,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     lineHeight = 12.sp
@@ -585,8 +624,10 @@ private fun TaskGlassRow(
     onDeleteTask: (Int) -> Unit,
     onTapRow: (FocusTask) -> Unit,
     onFocusTask: (FocusTask) -> Unit,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear
+    glassTreatment: GlassTreatment = GlassTreatment.Clear,
+    overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val scope = rememberCoroutineScope()
     var resetDismiss: (suspend () -> Unit)? = null
     val dismissState = rememberSwipeToDismissBoxState(
@@ -620,7 +661,7 @@ private fun TaskGlassRow(
                     .clip(RoundedCornerShape(20.dp))
                     .background(
                         when {
-                            isLeading -> Color(0xFFFF8B6F)
+                            isLeading -> tokens.accent
                             isTrailing -> Color(0xFFE53935)
                             else -> Color.Transparent
                         }
@@ -631,7 +672,7 @@ private fun TaskGlassRow(
                 when {
                     isLeading -> Text(
                         text = "▶  Focus with Kuro",
-                        color = Color.White,
+                        color = tokens.accentOn,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -646,7 +687,12 @@ private fun TaskGlassRow(
         },
         content = {
             val rowAlpha = if (dimmed) 0.50f else 1.0f
-            GlassCard(modifier = Modifier.fillMaxWidth(), active = active, glassTreatment = glassTreatment) {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                active = active,
+                glassTreatment = glassTreatment,
+                overBackdrop = overBackdrop,
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -654,8 +700,8 @@ private fun TaskGlassRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    val checkFill = if (task.completed) Color(0xFFFF8B6F).copy(alpha = rowAlpha) else Color.White.copy(alpha = 0.10f)
-                    val checkBorder = if (task.completed) Color.Transparent else Color.White.copy(alpha = 0.25f)
+                    val checkFill = if (task.completed) tokens.accent.copy(alpha = rowAlpha) else tokens.segmentedTrack
+                    val checkBorder = if (task.completed) Color.Transparent else tokens.borderSoft
                     Box(
                         modifier = Modifier
                             .size(22.dp)
@@ -669,27 +715,36 @@ private fun TaskGlassRow(
                         contentAlignment = Alignment.Center
                     ) {
                         if (task.completed) {
-                            Text(text = "✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "✓", color = tokens.accentOn, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = task.title,
-                            color = if (task.completed) Color.White.copy(alpha = 0.40f) else Color.White.copy(alpha = rowAlpha),
+                            color = if (task.completed) tokens.textMuted else tokens.textPrimary.copy(alpha = rowAlpha),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None
                         )
                         if (showCategoryLabel && categoryName != null) {
-                            Text(
-                                text = categoryName,
-                                color = Color.White.copy(alpha = 0.35f),
-                                fontSize = 11.sp
-                            )
+                            val (tagBg, tagText) = tagPaletteFor(task.categoryId)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(tagBg)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = categoryName,
+                                    color = tagText,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         } else {
                             Text(
                                 text = "${task.minutes} min",
-                                color = Color.White.copy(alpha = 0.45f * rowAlpha),
+                                color = tokens.textMuted.copy(alpha = rowAlpha),
                                 fontSize = 12.sp
                             )
                         }
@@ -710,6 +765,7 @@ private fun TaskDetailSheet(
     onUpdate: (FocusTask) -> Unit,
     onFocusTask: (FocusTask) -> Unit
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var title by rememberSaveable { mutableStateOf(task.title) }
     var minutes by rememberSaveable { mutableIntStateOf(task.minutes) }
@@ -730,8 +786,8 @@ private fun TaskDetailSheet(
     ModalBottomSheet(
         onDismissRequest = saveAndDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF1A1228),
-        contentColor = Color.White,
+        containerColor = tokens.cardFill,
+        contentColor = tokens.textPrimary,
         contentWindowInsets = { WindowInsets(0) }
     ) {
         Column(
@@ -744,7 +800,7 @@ private fun TaskDetailSheet(
         ) {
             Text(
                 text = "Task Detail",
-                color = Color.White,
+                color = tokens.textPrimary,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -754,7 +810,7 @@ private fun TaskDetailSheet(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "TITLE",
-                    color = Color.White.copy(alpha = 0.40f),
+                    color = tokens.textMuted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp
@@ -765,14 +821,14 @@ private fun TaskDetailSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color.White.copy(alpha = 0.08f)),
+                        .background(tokens.segmentedTrack),
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color(0xFFFF8B6F),
+                        focusedTextColor = tokens.textPrimary,
+                        unfocusedTextColor = tokens.textPrimary,
+                        cursorColor = tokens.accent,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     )
@@ -783,7 +839,7 @@ private fun TaskDetailSheet(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "CATEGORY",
-                    color = Color.White.copy(alpha = 0.40f),
+                    color = tokens.textMuted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp
@@ -796,14 +852,14 @@ private fun TaskDetailSheet(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (noneSelected) Color(0xFFFF8B6F).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.08f))
-                            .border(1.dp, if (noneSelected) Color(0xFFFF8B6F).copy(alpha = 0.60f) else Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                            .background(if (noneSelected) tokens.accentSoft else tokens.segmentedTrack)
+                            .border(1.dp, if (noneSelected) tokens.accent.copy(alpha = 0.60f) else tokens.borderSoft, RoundedCornerShape(14.dp))
                             .clickable { categoryId = null }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
                             text = "None",
-                            color = if (noneSelected) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.55f),
+                            color = if (noneSelected) tokens.accent else tokens.textSecondary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -813,14 +869,14 @@ private fun TaskDetailSheet(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSelected) Color(0xFFFF8B6F).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.08f))
-                                .border(1.dp, if (isSelected) Color(0xFFFF8B6F).copy(alpha = 0.60f) else Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                .background(if (isSelected) tokens.accentSoft else tokens.segmentedTrack)
+                                .border(1.dp, if (isSelected) tokens.accent.copy(alpha = 0.60f) else tokens.borderSoft, RoundedCornerShape(14.dp))
                                 .clickable { categoryId = cat.id }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = cat.name,
-                                color = if (isSelected) Color(0xFFFF8B6F) else Color.White.copy(alpha = 0.55f),
+                                color = if (isSelected) tokens.accent else tokens.textSecondary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -833,7 +889,7 @@ private fun TaskDetailSheet(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "MINUTES PER SESSION",
-                    color = Color.White.copy(alpha = 0.40f),
+                    color = tokens.textMuted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp
@@ -845,7 +901,7 @@ private fun TaskDetailSheet(
                 ) {
                     StepperButton(label = "−", enabled = minutes > 1, onClick = { if (minutes > 1) minutes-- })
                     Spacer(Modifier.width(24.dp))
-                    Text(text = minutes.toString(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                    Text(text = minutes.toString(), color = tokens.textPrimary, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(24.dp))
                     StepperButton(label = "+", enabled = minutes < 180, onClick = { if (minutes < 180) minutes++ })
                 }
@@ -855,7 +911,7 @@ private fun TaskDetailSheet(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "PLANNED SESSIONS",
-                    color = Color.White.copy(alpha = 0.40f),
+                    color = tokens.textMuted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp
@@ -867,7 +923,7 @@ private fun TaskDetailSheet(
                 ) {
                     StepperButton(label = "−", enabled = plannedSessions > 1, onClick = { if (plannedSessions > 1) plannedSessions-- })
                     Spacer(Modifier.width(24.dp))
-                    Text(text = plannedSessions.toString(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                    Text(text = plannedSessions.toString(), color = tokens.textPrimary, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(24.dp))
                     StepperButton(label = "+", enabled = plannedSessions < 8, onClick = { if (plannedSessions < 8) plannedSessions++ })
                 }
@@ -876,7 +932,7 @@ private fun TaskDetailSheet(
             // Completed sessions (read-only)
             Text(
                 text = "${task.completedSessions} of ${task.plannedSessions} sessions done",
-                color = Color(0xFFFF8B6F).copy(alpha = 0.75f),
+                color = tokens.accentSoft.copy(alpha = 0.75f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -887,7 +943,7 @@ private fun TaskDetailSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFFF8B6F))
+                    .background(tokens.accent)
                     .clickable {
                         val updated = task.copy(
                             title = title.trim().ifEmpty { task.title },
@@ -902,7 +958,7 @@ private fun TaskDetailSheet(
             ) {
                 Text(
                     text = "▶  Focus with Kuro",
-                    color = Color.White,
+                    color = tokens.accentOn,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -913,18 +969,19 @@ private fun TaskDetailSheet(
 
 @Composable
 private fun StepperButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
-            .background(if (enabled) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.05f))
+            .background(if (enabled) tokens.segmentedTrack else tokens.segmentedTrack.copy(alpha = 0.5f))
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { role = Role.Button },
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
-            color = if (enabled) Color.White else Color.White.copy(alpha = 0.30f),
+            color = if (enabled) tokens.textPrimary else tokens.textMuted,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
@@ -939,6 +996,7 @@ private fun CategoryNameSheet(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var name by rememberSaveable { mutableStateOf(initialName) }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -946,8 +1004,8 @@ private fun CategoryNameSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF1A1228),
-        contentColor = Color.White,
+        containerColor = tokens.cardFill,
+        contentColor = tokens.textPrimary,
         contentWindowInsets = { WindowInsets(0) }
     ) {
         Column(
@@ -959,15 +1017,15 @@ private fun CategoryNameSheet(
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = title, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(text = title, color = tokens.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             TextField(
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White.copy(alpha = 0.08f)),
-                placeholder = { Text("Category name", color = Color.White.copy(alpha = 0.35f)) },
+                    .background(tokens.segmentedTrack),
+                placeholder = { Text("Category name", color = tokens.textMuted) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
@@ -980,9 +1038,9 @@ private fun CategoryNameSheet(
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color(0xFFFF8B6F),
+                    focusedTextColor = tokens.textPrimary,
+                    unfocusedTextColor = tokens.textPrimary,
+                    cursorColor = tokens.accent,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 )
@@ -991,7 +1049,7 @@ private fun CategoryNameSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFFF8B6F))
+                    .background(tokens.accent)
                     .clickable {
                         val trimmed = name.trim()
                         if (trimmed.isNotEmpty()) {
@@ -1002,7 +1060,7 @@ private fun CategoryNameSheet(
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "Confirm", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Confirm", color = tokens.accentOn, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1016,6 +1074,7 @@ internal fun PreSessionSheet(
     onDismiss: () -> Unit,
     onStartFocus: (FocusTask) -> Unit
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sessionCount by rememberSaveable { mutableIntStateOf(1) }
     var showDetail by rememberSaveable { mutableStateOf(false) }
@@ -1023,8 +1082,8 @@ internal fun PreSessionSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF1A1228),
-        contentColor = Color.White,
+        containerColor = tokens.cardFill,
+        contentColor = tokens.textPrimary,
         contentWindowInsets = { WindowInsets(0) }
     ) {
         Column(
@@ -1038,13 +1097,13 @@ internal fun PreSessionSheet(
         ) {
             Text(
                 text = task.title,
-                color = Color.White.copy(alpha = 0.55f),
+                color = tokens.textSecondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 text = "Start focus session",
-                color = Color.White,
+                color = tokens.textPrimary,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -1052,7 +1111,7 @@ internal fun PreSessionSheet(
             Text(
                 text = if (sessionCount == 1) "1 session · $focusMinutes min"
                        else "$sessionCount sessions · $focusMinutes min each",
-                color = Color(0xFFFF8B6F).copy(alpha = 0.85f),
+                color = tokens.accent,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -1060,13 +1119,13 @@ internal fun PreSessionSheet(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.08f))
+                    .background(tokens.segmentedTrack)
                     .clickable { showDetail = !showDetail }
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             ) {
                 Text(
                     text = if (showDetail) "Hide detail ▲" else "Show detail ▼",
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = tokens.textSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -1077,14 +1136,14 @@ internal fun PreSessionSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.06f))
+                        .background(tokens.segmentedTrack)
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = "Sessions",
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = tokens.textMuted,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.sp
@@ -1098,8 +1157,8 @@ internal fun PreSessionSheet(
                                 .size(44.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (sessionCount <= 1) Color.White.copy(alpha = 0.05f)
-                                    else Color.White.copy(alpha = 0.12f)
+                                    if (sessionCount <= 1) tokens.segmentedTrack
+                                    else tokens.borderSoft
                                 )
                                 .clickable { if (sessionCount > 1) sessionCount-- }
                                 .semantics { role = Role.Button; contentDescription = "Decrease sessions" },
@@ -1107,19 +1166,19 @@ internal fun PreSessionSheet(
                         ) {
                             Text(
                                 text = "−",
-                                color = if (sessionCount <= 1) Color.White.copy(alpha = 0.30f) else Color.White,
+                                color = if (sessionCount <= 1) tokens.textMuted else tokens.textPrimary,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Text(text = sessionCount.toString(), color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                        Text(text = sessionCount.toString(), color = tokens.textPrimary, fontSize = 32.sp, fontWeight = FontWeight.Bold)
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (sessionCount >= 8) Color.White.copy(alpha = 0.05f)
-                                    else Color.White.copy(alpha = 0.12f)
+                                    if (sessionCount >= 8) tokens.segmentedTrack
+                                    else tokens.borderSoft
                                 )
                                 .clickable { if (sessionCount < 8) sessionCount++ }
                                 .semantics { role = Role.Button; contentDescription = "Increase sessions" },
@@ -1127,7 +1186,7 @@ internal fun PreSessionSheet(
                         ) {
                             Text(
                                 text = "+",
-                                color = if (sessionCount >= 8) Color.White.copy(alpha = 0.30f) else Color.White,
+                                color = if (sessionCount >= 8) tokens.textMuted else tokens.textPrimary,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1135,7 +1194,7 @@ internal fun PreSessionSheet(
                     }
                     Text(
                         text = "Duration per session comes from your Focus preference ($focusMinutes min)",
-                        color = Color.White.copy(alpha = 0.30f),
+                        color = tokens.textFaint,
                         fontSize = 11.sp,
                         textAlign = TextAlign.Center
                     )
@@ -1146,7 +1205,7 @@ internal fun PreSessionSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFFF8B6F))
+                    .background(tokens.accent)
                     .clickable {
                         onStartFocus(task.copy(plannedSessions = sessionCount, completedSessions = 0))
                     }
@@ -1155,7 +1214,7 @@ internal fun PreSessionSheet(
             ) {
                 Text(
                     text = "▶  Start Focus",
-                    color = Color.White,
+                    color = tokens.accentOn,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )

@@ -8,11 +8,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.timer.TimerNotification
 import com.endiar.kuropomodoro.ui.theme.KuroPomodoroTheme
+import kotlinx.coroutines.flow.map
 
 class MainActivity : ComponentActivity() {
 
@@ -29,9 +33,14 @@ class MainActivity : ComponentActivity() {
         timerConnection = TimerConnection(applicationContext)
 
         setContent {
-            KuroPomodoroTheme {
+            val repo = AppRepository.get(this)
+            val appearanceMode by repo.appState
+                .map { it.appearanceMode }
+                .collectAsStateWithLifecycle(initialValue = AppearanceMode.Auto)
+
+            KuroPomodoroTheme(appearanceMode = appearanceMode) {
                 KuroPomodoroApp(
-                    repo = AppRepository.get(this),
+                    repo = repo,
                     timerConnection = timerConnection,
                     requestNotificationPermission = ::requestNotificationPermissionIfNeeded
                 )
