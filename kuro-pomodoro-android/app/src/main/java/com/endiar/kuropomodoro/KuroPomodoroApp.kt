@@ -601,6 +601,8 @@ private fun FocusDashboard(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
+            // Full-screen tap-to-exit layer for focus mode, gated on the underlying
+            // boolean so taps work the instant focus is active (not after animation).
             .then(
                 if (focusActive) {
                     Modifier.pointerInput(focusActive) {
@@ -750,8 +752,8 @@ private fun FocusDashboard(
 
         AnimatedVisibility(
             visible = !focusActive && isStarted && !isRunning,
-            enter = fadeIn(animationSpec = tween(durationMillis = 250)),
-            exit = fadeOut(animationSpec = tween(durationMillis = 200))
+            enter = fadeIn(animationSpec = tween(durationMillis = 250, easing = FocusModeMotion.ExitEasing)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.EnterEasing))
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Spacer(Modifier.height(8.dp))
@@ -957,8 +959,8 @@ private fun FocusDashboard(
 
         AnimatedVisibility(
             visible = !focusActive && isRunning,
-            enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 200)),
-            exit = fadeOut(animationSpec = tween(durationMillis = 200))
+            enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 200, easing = FocusModeMotion.ExitEasing)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.EnterEasing))
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
@@ -990,7 +992,7 @@ private fun FocusDashboard(
                 )
             ),
             exit = fadeOut(
-                animationSpec = tween(durationMillis = 200)
+                animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.ExitEasing)
             )
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
