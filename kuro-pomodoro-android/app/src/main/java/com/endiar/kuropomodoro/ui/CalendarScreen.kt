@@ -536,13 +536,13 @@ private fun SessionDetailSheet(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(
-                            if (isCompleted) Color(0xFF2A4A35) else Color(0xFF3A2A1A)
+                            if (isCompleted) Color(0xFF00C853).copy(alpha = 0.18f) else Color(0xFFFF9500).copy(alpha = 0.18f)
                         )
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = if (isCompleted) "✓ Completed" else "Partial",
-                        color = if (isCompleted) Color(0xFF7EEAA0) else Color(0xFFFFB067),
+                        color = if (isCompleted) Color(0xFF00875A) else Color(0xFFC05E00),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -637,15 +637,15 @@ private fun SessionDetailSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF3D1A1A))
-                    .border(1.dp, Color(0xFFFF4444).copy(alpha = 0.30f), RoundedCornerShape(16.dp))
+                    .background(Color(0xFFFF3B30).copy(alpha = 0.10f))
+                    .border(1.dp, Color(0xFFFF3B30).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                     .clickable { showDeleteConfirm = true }
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Delete Record",
-                    color = Color(0xFFFF6B6B),
+                    color = Color(0xFFCC2222),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -675,7 +675,7 @@ private fun SessionDetailSheet(
                     showDeleteConfirm = false
                     scope.launch { sheetState.hide() }.invokeOnCompletion { onDelete(record.id) }
                 }) {
-                    Text("Delete", color = Color(0xFFFF6B6B), fontWeight = FontWeight.SemiBold)
+                    Text("Delete", color = Color(0xFFCC2222), fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {

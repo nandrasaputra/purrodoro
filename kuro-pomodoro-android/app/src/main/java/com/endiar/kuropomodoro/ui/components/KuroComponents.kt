@@ -370,8 +370,8 @@ private fun DockTabItem(
     onClick: () -> Unit
 ) {
     val kuroTokens = MaterialTheme.colorScheme.kuroTokens
-    val iconColor = if (active) kuroTokens.accentOn else kuroTokens.textSecondary
-    val bgColor = if (active) DockCoral else Color.Transparent
+    val iconColor = if (active) kuroTokens.accentOn else kuroTokens.textMuted
+    val bgColor = if (active) kuroTokens.accent else Color.Transparent
 
     Box(
         modifier = modifier,
@@ -535,13 +535,13 @@ fun StatusPill(
     overBackdrop: Boolean = true,
 ) {
     val tokens = glassTokens(glassTreatment, overBackdrop)
+    val kuroT = MaterialTheme.colorScheme.kuroTokens
     val fill = when (kind) {
-        StatusPillKind.Playing  -> DockCoral
+        StatusPillKind.Playing  -> kuroT.accent
         StatusPillKind.Selected -> tokens.pillFill
         StatusPillKind.Locked   -> LockedPurple.copy(alpha = 0.25f)
         StatusPillKind.Unlocked -> tokens.pillFill
     }
-    val kuroT = MaterialTheme.colorScheme.kuroTokens
     val textColor = when (kind) {
         StatusPillKind.Playing  -> kuroT.accentOn
         StatusPillKind.Selected -> kuroT.textPrimary

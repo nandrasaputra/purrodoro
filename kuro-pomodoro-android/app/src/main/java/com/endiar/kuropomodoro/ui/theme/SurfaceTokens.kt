@@ -88,6 +88,6 @@ object KuroTokens {
         get() = MaterialTheme.colorScheme.kuroTokens
 }
 
-private fun Color.luminance(): Float {
+internal fun Color.luminance(): Float {
     return 0.2126f * red + 0.7152f * green + 0.0722f * blue
 }
