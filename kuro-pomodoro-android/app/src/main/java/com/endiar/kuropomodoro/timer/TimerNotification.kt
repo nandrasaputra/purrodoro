@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toUri
 import com.endiar.kuropomodoro.MainActivity
 import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.SessionItemType
@@ -35,15 +36,15 @@ object TimerNotification {
                 setShowBadge(false)
             }
         )
-        nm.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_COMPLETION,
-                "Segment complete",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Notification when a Focus or Break segment ends"
-            }
-        )
+        val completionChannel = NotificationChannel(
+            CHANNEL_COMPLETION,
+            "Segment complete",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Notification when a Focus or Break segment ends"
+            setSound("android.resource://${context.packageName}/raw/kuro_sound".toUri(), null)
+        }
+        nm.createNotificationChannel(completionChannel)
     }
 
     fun buildRunningNotification(
@@ -75,10 +76,12 @@ object TimerNotification {
                     builder.addAction(action(context, "Skip", TimerService.ACTION_SKIP))
                 }
             }
+
             TimerState.Paused -> {
                 builder.addAction(action(context, "Resume", TimerService.ACTION_RESUME))
                 builder.addAction(action(context, "Stop", TimerService.ACTION_STOP))
             }
+
             TimerState.Idle -> Unit
         }
         return builder.build()
@@ -123,6 +126,7 @@ object TimerNotification {
             state.session.timerState == TimerState.Paused -> "$timeStr remaining"
             state.activeTask != null && currentItem?.type is SessionItemType.Focus ->
                 "${state.activeTask.title} · ${state.activeTask.completedSessions + 1} / ${state.activeTask.plannedSessions}"
+
             else -> null
         }
         return title to subtitle
@@ -147,7 +151,11 @@ object TimerNotification {
         is SessionItemType.LongBreak -> seconds
     }
 
-    private fun action(context: Context, label: String, intentAction: String): NotificationCompat.Action {
+    private fun action(
+        context: Context,
+        label: String,
+        intentAction: String
+    ): NotificationCompat.Action {
         val intent = Intent(context, TimerService::class.java).setAction(intentAction)
         val pi = PendingIntent.getService(
             context,
