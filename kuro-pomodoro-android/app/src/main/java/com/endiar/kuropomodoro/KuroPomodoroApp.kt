@@ -53,6 +53,7 @@ import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.data.AppState
 import com.endiar.kuropomodoro.model.AppClock
 import com.endiar.kuropomodoro.model.AppTab
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
@@ -115,6 +116,7 @@ fun KuroPomodoroApp(
     var stamps by remember(appState.stamps) { mutableStateOf(appState.stamps) }
     var selectedSoundId by remember(appState.selectedSoundId) { mutableIntStateOf(appState.selectedSoundId) }
     var glassReadabilityMode by remember(appState.glassReadabilityMode) { mutableStateOf(appState.glassReadabilityMode) }
+    var appearanceMode by remember(appState.appearanceMode) { mutableStateOf(appState.appearanceMode) }
     var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
     var sessionRecords by remember(appState.sessionRecords) { mutableStateOf(appState.sessionRecords) }
     var tasks by remember(appState.tasks) { mutableStateOf(appState.tasks) }
@@ -155,6 +157,10 @@ fun KuroPomodoroApp(
 
     fun persistGlassReadabilityMode(v: GlassReadabilityMode) {
         glassReadabilityMode = v; scope.launch { repo.setGlassReadabilityMode(v) }
+    }
+
+    fun persistAppearanceMode(v: AppearanceMode) {
+        appearanceMode = v; scope.launch { repo.setAppearanceMode(v) }
     }
 
     fun persistNextTaskId(v: Int) {
@@ -360,6 +366,8 @@ fun KuroPomodoroApp(
                         settings = settings,
                         glassReadabilityMode = glassReadabilityMode,
                         glassTreatment = glassTreatment,
+                        appearanceMode = appearanceMode,
+                        onAppearanceModeChanged = ::persistAppearanceMode,
                         onGlassReadabilityModeChanged = { persistGlassReadabilityMode(it) },
                         onDurationChanged = { mode, minutes ->
                             val updatedSettings = settings.update(mode, minutes)
@@ -373,8 +381,8 @@ fun KuroPomodoroApp(
                             scope.launch { repo.resetSettingsToDefault() }
                         },
                         onMockFeature = { premiumSheetMessage = it },
-                        contentPadding = screenContentPadding,
                         overBackdrop = overBackdrop,
+                        contentPadding = screenContentPadding,
                     )
                 }
             }
