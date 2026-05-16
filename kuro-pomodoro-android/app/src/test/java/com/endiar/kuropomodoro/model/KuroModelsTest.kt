@@ -218,4 +218,16 @@ class KuroModelsTest {
             glassTreatmentFor(GlassReadabilityMode.Adaptive, LocalTime.of(16, 0))
         )
     }
+
+    @Test
+    fun `AppearanceMode resolves Auto via system flag`() {
+        assertEquals(true, AppearanceMode.Auto.isDark(systemInDark = true))
+        assertEquals(false, AppearanceMode.Auto.isDark(systemInDark = false))
+    }
+
+    @Test
+    fun `AppearanceMode resolves Light and Dark explicitly`() {
+        assertEquals(false, AppearanceMode.Light.isDark(systemInDark = true))
+        assertEquals(true, AppearanceMode.Dark.isDark(systemInDark = false))
+    }
 }
