@@ -581,6 +581,7 @@ private fun CategoryPill(
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
     overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(contentAlignment = Alignment.TopStart) {
         GlassPill(
             text = label,
@@ -601,7 +602,7 @@ private fun CategoryPill(
             ) {
                 Text(
                     text = "×",
-                    color = Color.White,
+                    color = tokens.accentOn,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     lineHeight = 12.sp

@@ -504,8 +504,9 @@ fun GlassPill(
     overBackdrop: Boolean = true,
 ) {
     val tokens = glassTokens(glassTreatment, overBackdrop)
-    val fill = if (selected) DockCoral else tokens.pillFill
-    val textColor = if (selected) Color.White else Color.White.copy(alpha = 0.72f)
+    val kuroT = MaterialTheme.colorScheme.kuroTokens
+    val fill = if (selected) kuroT.accent else tokens.pillFill
+    val textColor = if (selected) kuroT.accentOn else kuroT.textSecondary
     val borderColor = if (selected) Color.Transparent else tokens.pillBorder
     Box(
         modifier = Modifier
@@ -540,11 +541,12 @@ fun StatusPill(
         StatusPillKind.Locked   -> LockedPurple.copy(alpha = 0.25f)
         StatusPillKind.Unlocked -> tokens.pillFill
     }
+    val kuroT = MaterialTheme.colorScheme.kuroTokens
     val textColor = when (kind) {
-        StatusPillKind.Playing  -> Color.White
-        StatusPillKind.Selected -> Color.White.copy(alpha = 0.80f)
-        StatusPillKind.Locked   -> Color(0xFFD8C8FF)
-        StatusPillKind.Unlocked -> Color.White.copy(alpha = 0.55f)
+        StatusPillKind.Playing  -> kuroT.accentOn
+        StatusPillKind.Selected -> kuroT.textPrimary
+        StatusPillKind.Locked   -> kuroT.lockedText
+        StatusPillKind.Unlocked -> kuroT.textSecondary
     }
     val borderColor = when (kind) {
         StatusPillKind.Locked   -> Color(0xFFD8C8FF).copy(alpha = 0.40f)
@@ -569,6 +571,7 @@ fun StepperButton(
     overBackdrop: Boolean = true,
 ) {
     val tokens = glassTokens(glassTreatment, overBackdrop)
+    val kuroT = MaterialTheme.colorScheme.kuroTokens
     Box(
         modifier = Modifier
             .size(32.dp)
@@ -578,7 +581,7 @@ fun StepperButton(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Light)
+        Text(label, color = kuroT.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Light)
     }
 }
 
