@@ -9,6 +9,7 @@ val CardWhite = Color(0xFFFFFCF7)
 val Peach = Color(0xFFFFB59E)
 val Coral = Color(0xFFFF7F73)
 val DockCoral = Color(0xFFFF8B6F)
+val DeepCoral = Color(0xFFC64432)        // deep terracotta; White on this = 4.91:1 ✓
 val Blush = Color(0xFFFFD8DF)
 val Lavender = Color(0xFFD8C8FF)
 val Mint = Color(0xFFCDEEDB)
@@ -23,7 +24,7 @@ val NightCardActive = Color(0xFF2B1720)  // selected card (e.g. active sound)
 val NightBorder = Color(0xFF2B2440)      // card border
 val NightDivider = Color(0xFF231D38)     // hairline between rows
 val NightMuted = Color(0xFFB8B0C8)       // text-secondary
-val NightFaint = Color(0xFF7A7388)       // text-muted
+val NightFaint = Color(0xFF7D768B)       // text-muted — contrast 4.37→4.56:1
 val NightFainter = Color(0xFF4A4458)     // text-faint (calendar empty cells)
 
 // Legacy alias — kept so Theme.kt and KuroComponents.kt still compile during migration
