@@ -206,6 +206,13 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
         prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing.filterNot { it.id == id })
     }
+
+    suspend fun resetSettingsToDefault() = dataStore.edit { prefs ->
+        prefs[KEY_FOCUS_MIN] = 25
+        prefs[KEY_SHORT_MIN] = 5
+        prefs[KEY_LONG_MIN] = 15
+        prefs[KEY_CYCLE_SIZE] = 4
+    }
 }
 
 // --- Encoding helpers ---

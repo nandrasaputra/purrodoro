@@ -17,8 +17,14 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,10 +51,12 @@ fun ProfileScreen(
     onGlassReadabilityModeChanged: (GlassReadabilityMode) -> Unit,
     onDurationChanged: (TimerMode, Int) -> Unit,
     onCycleSizeChanged: (Int) -> Unit,
+    onResetSettings: () -> Unit,
     onMockFeature: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
+    var showResetConfirm by remember { mutableStateOf(false) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -146,7 +154,6 @@ fun ProfileScreen(
             )
         }
 
-        // Mock features section
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
             glassTreatment = glassTreatment
@@ -173,6 +180,35 @@ fun ProfileScreen(
                         glassTreatment = glassTreatment
                     )
                 }
+            }
+        }
+
+        // Reset button
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = { showResetConfirm = true }),
+            glassTreatment = glassTreatment
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Reset to defaults",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Restore default timer settings",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.55f)
+                    )
+                }
+                Text("↺", fontSize = 22.sp, color = Color.White.copy(alpha = 0.70f))
             }
         }
 
@@ -220,6 +256,42 @@ fun ProfileScreen(
                 glassTreatment = glassTreatment
             )
         }
+    }
+
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = {
+                Text(
+                    text = "Reset timer settings?",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Text(
+                    text = "This will restore Focus to 25 min, Short break to 5 min, Long break to 15 min, and Sessions/cycle to 4.",
+                    color = Color.White.copy(alpha = 0.70f),
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showResetConfirm = false
+                    onResetSettings()
+                }) {
+                    Text("Reset", color = Color(0xFFFF8B6F), fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.70f))
+                }
+            },
+            containerColor = Color(0xFF1A1228),
+            titleContentColor = Color.White,
+            textContentColor = Color.White.copy(alpha = 0.70f)
+        )
     }
 }
 
