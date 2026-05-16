@@ -294,7 +294,8 @@ fun KuroPomodoroApp(
                             activeTask = null
                         },
                         onExitFocusMode = { isFocusMode = false },
-                        onEnterFocusMode = { isFocusMode = true }
+                        onEnterFocusMode = { isFocusMode = true },
+                        contentPadding = screenContentPadding
                     )
 
                     AppTab.Todo -> TodoScreen(
@@ -477,6 +478,7 @@ private fun FocusDashboard(
     onStop: () -> Unit,
     onExitFocusMode: () -> Unit,
     onEnterFocusMode: () -> Unit = {},
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     if (isFocusMode && isRunning) {
         Box(
@@ -540,7 +542,9 @@ private fun FocusDashboard(
     var showStopConfirmDialog by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(40.dp))
@@ -788,7 +792,7 @@ private fun FocusDashboard(
                     fontWeight = FontWeight.Medium
                 )
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(40.dp))
         }
     }
 }
