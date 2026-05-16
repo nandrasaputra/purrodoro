@@ -35,10 +35,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.GlassTreatment
+import com.endiar.kuropomodoro.ui.components.AppearanceModeToggle
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.GlassPill
 import com.endiar.kuropomodoro.ui.components.MockBadge
@@ -50,14 +52,16 @@ fun ProfileScreen(
     settings: TimerSettings,
     glassReadabilityMode: GlassReadabilityMode,
     glassTreatment: GlassTreatment,
+    appearanceMode: AppearanceMode,
+    onAppearanceModeChanged: (AppearanceMode) -> Unit,
     onGlassReadabilityModeChanged: (GlassReadabilityMode) -> Unit,
     onDurationChanged: (TimerMode, Int) -> Unit,
     onCycleSizeChanged: (Int) -> Unit,
     onResetSettings: () -> Unit,
     onMockFeature: (String) -> Unit,
+    overBackdrop: Boolean = true,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    overBackdrop: Boolean = true,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var showResetConfirm by remember { mutableStateOf(false) }
@@ -116,6 +120,32 @@ fun ProfileScreen(
                     )
                 }
             }
+        }
+
+        // Appearance card
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glassTreatment = glassTreatment,
+            overBackdrop = overBackdrop,
+        ) {
+            Text(
+                text = "APPEARANCE",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp,
+                color = tokens.textMuted,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "Match your time of day",
+                fontSize = 12.sp,
+                color = tokens.textSecondary,
+            )
+            Spacer(Modifier.height(12.dp))
+            AppearanceModeToggle(
+                mode = appearanceMode,
+                onModeChanged = onAppearanceModeChanged,
+            )
         }
 
         // Timer settings card

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -60,6 +61,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerMode
@@ -594,6 +596,55 @@ fun MockBadge() {
             .padding(horizontal = 7.dp, vertical = 3.dp)
     ) {
         Text(text = "Mock", color = Color(0xFFD8C8FF), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun AppearanceModeToggle(
+    mode: AppearanceMode,
+    onModeChanged: (AppearanceMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(tokens.segmentedTrack)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        AppearanceMode.values().forEach { entry ->
+            val selected = entry == mode
+            val (icon, label) = when (entry) {
+                AppearanceMode.Light -> "☀" to "Light"
+                AppearanceMode.Dark -> "☾" to "Dark"
+                AppearanceMode.Auto -> "◐" to "Auto"
+            }
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(if (selected) tokens.accent else Color.Transparent)
+                    .clickable { onModeChanged(entry) }
+                    .padding(vertical = 8.dp, horizontal = 10.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = icon,
+                    fontSize = 14.sp,
+                    color = if (selected) tokens.accentOn else tokens.textSecondary,
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = label,
+                    fontSize = 12.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selected) tokens.accentOn else tokens.textSecondary,
+                )
+            }
+        }
     }
 }
 
