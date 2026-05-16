@@ -31,6 +31,8 @@ data class KuroSurfaceTokens(
     val lockedFill: Color,
     val lockedBorder: Color,
     val lockedText: Color,
+    val interactiveFill: Color,   // button container + active tab/pill background
+    val interactiveText: Color,   // text/icon color on interactiveFill
 )
 
 private val DarkTokens = KuroSurfaceTokens(
@@ -51,6 +53,8 @@ private val DarkTokens = KuroSurfaceTokens(
     lockedFill = LockedPurple.copy(alpha = 0.25f),
     lockedBorder = LockedPurple.copy(alpha = 0.45f),
     lockedText = LockedPurpleText,
+    interactiveFill = Peach,   // #FFB59E — Cocoa on Peach = 5.10:1 ✓
+    interactiveText = Cocoa,
 )
 
 private val LightTokens = KuroSurfaceTokens(
@@ -63,14 +67,16 @@ private val LightTokens = KuroSurfaceTokens(
     segmentedTrack = LightBorderSoft,
     textPrimary = Cocoa,
     textSecondary = CocoaSoft,
-    textMuted = CocoaFaint,
-    textFaint = CocoaFainter,
+    textMuted = CocoaSoft,
+    textFaint = CocoaFaint,
     accent = Coral,
     accentSoft = Blush,
     accentOn = Color.White,
     lockedFill = LockedPurpleLight.copy(alpha = 0.15f),
     lockedBorder = LockedPurpleLight,
     lockedText = LockedPurpleTextDark,
+    interactiveFill = DeepCoral,  // #C64432 — White on DeepCoral = 4.91:1 ✓
+    interactiveText = Color.White,
 )
 
 /**
