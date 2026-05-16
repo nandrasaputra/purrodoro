@@ -223,19 +223,7 @@ fun KuroPomodoroApp(
     val focusTransition = updateTransition(targetState = focusActive, label = "focusMode")
 
     val scrimAlpha by focusTransition.animateFloat(
-        transitionSpec = {
-            if (targetState) {
-                tween(
-                    durationMillis = FocusModeMotion.EnterDurationMs,
-                    easing = FocusModeMotion.EnterEasing
-                )
-            } else {
-                tween(
-                    durationMillis = FocusModeMotion.ExitDurationMs,
-                    easing = FocusModeMotion.ExitEasing
-                )
-            }
-        },
+        transitionSpec = FocusModeMotion.spec(),
         label = "scrimAlpha"
     ) { active -> if (active) FocusModeMotion.ScrimAlphaFocus else 0f }
 
@@ -436,6 +424,8 @@ fun KuroPomodoroApp(
                 )
             }
 
+            // Dock visibility is the inverse of focus mode, so the durations swap:
+            // appearing = exiting focus (Exit, 400ms, snappier); disappearing = entering focus (Enter, 700ms, deliberate).
             AnimatedVisibility(
                 visible = !focusActive,
                 enter = slideInVertically(
@@ -463,7 +453,6 @@ fun KuroPomodoroApp(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .navigationBarsPadding()
             ) {
                 DashboardDock(
                     isRunning = isRunning,
@@ -474,6 +463,7 @@ fun KuroPomodoroApp(
                     overBackdrop = true,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .navigationBarsPadding()
                         .onSizeChanged { dockHeightPx = it.height }
                 )
             }
