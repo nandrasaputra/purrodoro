@@ -3,8 +3,8 @@ package com.endiar.kuropomodoro
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Transition
+import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateInt
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandVertically
@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -238,7 +239,7 @@ fun KuroPomodoroApp(
     val scrimAlpha by focusTransition.animateFloat(
         transitionSpec = FocusModeMotion.spec(),
         label = "scrimAlpha"
-    ) { active -> if (active) FocusModeMotion.ScrimAlphaFocus else 0f }
+    ) { active -> if (active) 0f else FocusModeMotion.ScrimAlphaDashboard }
 
     // Drive recomposition every 250ms while playing so the displayed countdown ticks.
     var tickNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -438,10 +439,11 @@ fun KuroPomodoroApp(
                 )
             }
 
-            // Dock visibility is the inverse of focus mode, so the durations swap:
+            // Child of focusTransition so it shares the single clock with scrim + timer
+            // (frame-perfect parallel). Dock visibility is the inverse of focus mode:
             // appearing = exiting focus (Exit, 400ms, snappier); disappearing = entering focus (Enter, 700ms, deliberate).
-            AnimatedVisibility(
-                visible = !focusActive,
+            focusTransition.AnimatedVisibility(
+                visible = { active -> !active },
                 enter = slideInVertically(
                     animationSpec = tween(
                         durationMillis = FocusModeMotion.ExitDurationMs,
@@ -562,10 +564,11 @@ private fun FocusDashboard(
         label = "timerSize"
     ) { active -> if (active) 96f else 80f }
 
-    val timerWeight by focusTransition.animateInt(
-        transitionSpec = FocusModeMotion.spec(),
-        label = "timerWeight"
-    ) { active -> if (active) 200 else 400 }
+    // Snap weight on transition start. Fonts only render discrete weights
+    // (100/200/.../900), so interpolating ints creates a visible stair-step
+    // mid-morph. Snapping lets the size/letter-spacing morph carry the
+    // visual change cleanly.
+    val timerWeight = if (focusActive) 200 else 400
 
     val timerLetterSpacing by focusTransition.animateFloat(
         transitionSpec = FocusModeMotion.spec(),
@@ -602,7 +605,12 @@ private fun FocusDashboard(
         hasComposed = true
     }
 
-    Column(
+    // BoxWithConstraints gives us maxHeight so the top spacer can ANIMATE its
+    // Dp between the dashboard top (40dp) and a value that roughly centers the
+    // cluster — on the same focusTransition clock as everything else. Without
+    // this, the top spacer would have to switch instantly between a fixed Dp
+    // and weight(1f), causing a one-frame timer jump that reads as "movement #1".
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
@@ -624,28 +632,51 @@ private fun FocusDashboard(
                 } else {
                     Modifier
                 }
-            ),
+            )
+    ) {
+        val focusTopReserve = ((maxHeight - 240.dp) / 2).coerceAtLeast(40.dp)
+        val topSpacerHeight by focusTransition.animateDp(
+            transitionSpec = FocusModeMotion.spec(),
+            label = "topSpacer"
+        ) { active -> if (active) focusTopReserve else 40.dp }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(topSpacerHeight))
 
-        AnimatedVisibility(
-            visible = focusActive,
-            enter = fadeIn(
-                animationSpec = tween(
-                    durationMillis = FocusModeMotion.EnterDurationMs - 350,
-                    delayMillis = 350,
-                    easing = FocusModeMotion.EnterEasing
+        focusTransition.AnimatedVisibility(
+            visible = { it },
+            // expandVertically grows the LAYOUT space smoothly so the timer below
+            // doesn't get pushed by an instant ~30dp jump when FOCUS appears.
+            enter = (
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = FocusModeMotion.EnterDurationMs - 150,
+                        delayMillis = 150,
+                        easing = FocusModeMotion.EnterEasing
+                    )
+                ) + slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = FocusModeMotion.EnterDurationMs - 150,
+                        delayMillis = 150,
+                        easing = FocusModeMotion.EnterEasing
+                    )
+                ) { -it / 2 } + expandVertically(
+                    animationSpec = tween(
+                        durationMillis = FocusModeMotion.EnterDurationMs,
+                        easing = FocusModeMotion.EnterEasing
+                    )
                 )
-            ) + slideInVertically(
-                animationSpec = tween(
-                    durationMillis = FocusModeMotion.EnterDurationMs - 350,
-                    delayMillis = 350,
-                    easing = FocusModeMotion.EnterEasing
-                )
-            ) { -it / 2 },
+            ),
             exit = fadeOut(
-                animationSpec = tween(durationMillis = 250, easing = FocusModeMotion.ExitEasing)
+                animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.ExitEasing)
+            ) + shrinkVertically(
+                animationSpec = tween(
+                    durationMillis = FocusModeMotion.ExitDurationMs,
+                    easing = FocusModeMotion.ExitEasing
+                )
             )
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -660,17 +691,17 @@ private fun FocusDashboard(
             }
         }
 
-        AnimatedVisibility(
-            visible = !focusActive,
+        focusTransition.AnimatedVisibility(
+            visible = { active -> !active },
             enter = fadeIn(
-                animationSpec = tween(FocusModeMotion.ExitDurationMs, delayMillis = 150, easing = FocusModeMotion.ExitEasing)
+                animationSpec = tween(FocusModeMotion.ExitDurationMs, easing = FocusModeMotion.ExitEasing)
             ) + expandVertically(
                 animationSpec = tween(FocusModeMotion.ExitDurationMs, easing = FocusModeMotion.ExitEasing)
             ),
             exit = fadeOut(
-                animationSpec = tween(durationMillis = 400, easing = FocusModeMotion.EnterEasing)
+                animationSpec = tween(durationMillis = 350, easing = FocusModeMotion.EnterEasing)
             ) + shrinkVertically(
-                animationSpec = tween(durationMillis = 400, easing = FocusModeMotion.EnterEasing)
+                animationSpec = tween(durationMillis = 350, easing = FocusModeMotion.EnterEasing)
             )
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -721,18 +752,18 @@ private fun FocusDashboard(
             letterSpacing = timerLetterSpacing.sp
         )
 
-        AnimatedVisibility(
-            visible = focusActive && activeTask != null,
+        focusTransition.AnimatedVisibility(
+            visible = { it && activeTask != null },
             enter = fadeIn(
                 animationSpec = tween(
-                    durationMillis = FocusModeMotion.EnterDurationMs - 350,
-                    delayMillis = 350,
+                    durationMillis = FocusModeMotion.EnterDurationMs - 150,
+                    delayMillis = 150,
                     easing = FocusModeMotion.EnterEasing
                 )
             ) + expandVertically(
                 animationSpec = tween(
-                    durationMillis = FocusModeMotion.EnterDurationMs - 200,
-                    delayMillis = 200,
+                    durationMillis = FocusModeMotion.EnterDurationMs - 100,
+                    delayMillis = 100,
                     easing = FocusModeMotion.EnterEasing
                 )
             ),
@@ -763,8 +794,8 @@ private fun FocusDashboard(
             }
         }
 
-        AnimatedVisibility(
-            visible = !focusActive && isStarted && !isRunning,
+        focusTransition.AnimatedVisibility(
+            visible = { active -> !active && isStarted && !isRunning },
             enter = fadeIn(animationSpec = tween(durationMillis = 250, easing = FocusModeMotion.ExitEasing)),
             exit = fadeOut(animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.EnterEasing))
         ) {
@@ -782,19 +813,20 @@ private fun FocusDashboard(
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        if (!focusActive) {
+            Spacer(Modifier.height(24.dp))
+        }
 
-        AnimatedVisibility(
-            visible = !focusActive,
+        focusTransition.AnimatedVisibility(
+            visible = { active -> !active },
             enter = fadeIn(
                 animationSpec = tween(
                     durationMillis = FocusModeMotion.ExitDurationMs,
-                    delayMillis = 150,
                     easing = FocusModeMotion.ExitEasing
                 )
             ),
             exit = fadeOut(
-                animationSpec = tween(durationMillis = 350, easing = FocusModeMotion.EnterEasing)
+                animationSpec = tween(durationMillis = 300, easing = FocusModeMotion.EnterEasing)
             )
         ) {
             Row(
@@ -970,9 +1002,9 @@ private fun FocusDashboard(
 
         Spacer(Modifier.weight(1f))
 
-        AnimatedVisibility(
-            visible = !focusActive && isRunning,
-            enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 200, easing = FocusModeMotion.ExitEasing)),
+        focusTransition.AnimatedVisibility(
+            visible = { active -> !active && isRunning },
+            enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 100, easing = FocusModeMotion.ExitEasing)),
             exit = fadeOut(animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.EnterEasing))
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -995,12 +1027,12 @@ private fun FocusDashboard(
             }
         }
 
-        AnimatedVisibility(
-            visible = focusActive,
+        focusTransition.AnimatedVisibility(
+            visible = { it },
             enter = fadeIn(
                 animationSpec = tween(
-                    durationMillis = 400,
-                    delayMillis = 600,
+                    durationMillis = 350,
+                    delayMillis = 350,
                     easing = FocusModeMotion.EnterEasing
                 )
             ),
@@ -1017,6 +1049,7 @@ private fun FocusDashboard(
                 Spacer(Modifier.height(40.dp))
             }
         }
+    }
     }
 }
 

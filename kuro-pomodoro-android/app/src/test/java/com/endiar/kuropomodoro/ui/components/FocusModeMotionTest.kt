@@ -32,8 +32,8 @@ class FocusModeMotionTest {
     }
 
     @Test
-    fun `scrim alpha is darker than mid-grey but not opaque`() {
-        assertEquals(0.45f, FocusModeMotion.ScrimAlphaFocus, 0.0001f)
+    fun `dashboard scrim alpha is darker than mid-grey but not opaque`() {
+        assertEquals(0.45f, FocusModeMotion.ScrimAlphaDashboard, 0.0001f)
     }
 
     @Test
