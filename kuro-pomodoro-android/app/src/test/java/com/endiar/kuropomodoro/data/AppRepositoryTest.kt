@@ -1,6 +1,7 @@
 package com.endiar.kuropomodoro.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.TimerSettings
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -105,5 +106,25 @@ class AppRepositoryTest {
         assertEquals(true, repo.pendingCycleCompletionAckFlow.first())
         repo.setPendingCycleCompletionAck(false)
         assertEquals(false, repo.pendingCycleCompletionAckFlow.first())
+    }
+
+    @Test
+    fun `default appearanceMode is Auto`() = runTest {
+        val repo = makeRepo()
+        assertEquals(AppearanceMode.Auto, repo.appState.first().appearanceMode)
+    }
+
+    @Test
+    fun `setAppearanceMode persists Light`() = runTest {
+        val repo = makeRepo()
+        repo.setAppearanceMode(AppearanceMode.Light)
+        assertEquals(AppearanceMode.Light, repo.appState.first().appearanceMode)
+    }
+
+    @Test
+    fun `setAppearanceMode persists Dark`() = runTest {
+        val repo = makeRepo()
+        repo.setAppearanceMode(AppearanceMode.Dark)
+        assertEquals(AppearanceMode.Dark, repo.appState.first().appearanceMode)
     }
 }
