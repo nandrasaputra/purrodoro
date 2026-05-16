@@ -116,6 +116,8 @@ fun CalendarScreen(
             )
         }
 
+        Spacer(Modifier.height(16.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -201,14 +203,14 @@ fun CalendarScreen(
                     Text(
                         text = day,
                         color = tokens.textMuted,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
 
             val cells = startOffset + daysInMonth
             val rows = (cells + 6) / 7
@@ -261,6 +263,8 @@ fun CalendarScreen(
             )
         }
 
+        Spacer(Modifier.height(16.dp))
+
         SessionSection(
             date = selectedDate,
             records = sessionRecords,
@@ -285,12 +289,12 @@ private fun InlineStatItem(
         Text(
             text = label,
             color = tokens.textSecondary,
-            fontSize = 11.sp
+            fontSize = 14.sp
         )
         Text(
             text = value,
             color = tokens.textPrimary.copy(alpha = valueAlpha),
-            fontSize = 18.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
     }

@@ -356,7 +356,7 @@ fun DashboardDock(
         ) { onNavigate(AppTab.Sounds) }
         DockTabItem(
             icon = Icons.Default.Person,
-            label = "ME",
+            label = "Profile",
             active = selectedTab == AppTab.Profile,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Profile) }
@@ -418,10 +418,17 @@ fun CatBackdrop(
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
     time: LocalTime = LocalTime.now(),
+    /**
+     * 0f..1f multiplier on the top/bottom gradient scrim alphas.
+     * Used by focus mode to fade the edge dims out (1f -> 0f) so the cat
+     * photo opens up while the user is focusing.
+     */
+    edgeScrimAlphaMultiplier: Float = 1f,
     content: @Composable BoxScope.() -> Unit
 ) {
     val darkBase = Color(0xFF0A0816)
     val tokens = glassTokens(glassTreatment)
+    val effectiveScrimAlpha = tokens.scrimAlpha * edgeScrimAlphaMultiplier
     Box(modifier = modifier.fillMaxSize().background(darkBase)) {
         Image(
             painter = painterResource(id = backgroundImageForTime(time)),
@@ -435,7 +442,7 @@ fun CatBackdrop(
                 .height(240.dp)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(darkBase.copy(alpha = tokens.scrimAlpha), Color.Transparent)
+                        colors = listOf(darkBase.copy(alpha = effectiveScrimAlpha), Color.Transparent)
                     )
                 )
         )
@@ -446,7 +453,7 @@ fun CatBackdrop(
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, darkBase.copy(alpha = tokens.scrimAlpha))
+                        colors = listOf(Color.Transparent, darkBase.copy(alpha = effectiveScrimAlpha))
                     )
                 )
         )

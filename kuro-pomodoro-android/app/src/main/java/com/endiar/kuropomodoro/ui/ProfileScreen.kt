@@ -75,7 +75,7 @@ fun ProfileScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Me",
+            text = "Profile",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = tokens.textPrimary
