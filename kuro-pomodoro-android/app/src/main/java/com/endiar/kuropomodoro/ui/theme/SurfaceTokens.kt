@@ -58,8 +58,8 @@ private val DarkTokens = KuroSurfaceTokens(
 )
 
 private val LightTokens = KuroSurfaceTokens(
-    pageBackground = Cream,
-    cardFill = CardWhite,
+    pageBackground = PageWhite,
+    cardFill = Color.White,
     activeCardFill = CreamCardActive,
     cardBorder = CreamBorder,
     divider = CreamDivider,
