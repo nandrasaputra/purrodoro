@@ -1,5 +1,13 @@
 package com.endiar.kuropomodoro
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
@@ -78,6 +87,7 @@ import com.endiar.kuropomodoro.ui.components.CatBackdrop
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.components.DashboardDock
+import com.endiar.kuropomodoro.ui.components.FocusModeMotion
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -209,6 +219,26 @@ fun KuroPomodoroApp(
     val isRunning = runtimeState?.session?.timerState == TimerState.Playing
     val isStarted = runtimeState != null && runtimeState?.session?.timerState != TimerState.Idle
 
+    val focusActive = isFocusMode && isRunning
+    val focusTransition = updateTransition(targetState = focusActive, label = "focusMode")
+
+    val scrimAlpha by focusTransition.animateFloat(
+        transitionSpec = {
+            if (targetState) {
+                tween(
+                    durationMillis = FocusModeMotion.EnterDurationMs,
+                    easing = FocusModeMotion.EnterEasing
+                )
+            } else {
+                tween(
+                    durationMillis = FocusModeMotion.ExitDurationMs,
+                    easing = FocusModeMotion.ExitEasing
+                )
+            }
+        },
+        label = "scrimAlpha"
+    ) { active -> if (active) FocusModeMotion.ScrimAlphaFocus else 0f }
+
     // Drive recomposition every 250ms while playing so the displayed countdown ticks.
     var tickNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(isRunning) {
@@ -252,6 +282,13 @@ fun KuroPomodoroApp(
         val screenContentPadding = PaddingValues(bottom = dockHeightDp)
 
         Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(scrimAlpha)
+                    .background(Color.Black)
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -399,7 +436,35 @@ fun KuroPomodoroApp(
                 )
             }
 
-            if (!(isFocusMode && isRunning)) {
+            AnimatedVisibility(
+                visible = !focusActive,
+                enter = slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = FocusModeMotion.ExitDurationMs,
+                        easing = FocusModeMotion.ExitEasing
+                    )
+                ) { fullHeight -> fullHeight } + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = FocusModeMotion.ExitDurationMs,
+                        easing = FocusModeMotion.ExitEasing
+                    )
+                ),
+                exit = slideOutVertically(
+                    animationSpec = tween(
+                        durationMillis = FocusModeMotion.EnterDurationMs,
+                        easing = FocusModeMotion.EnterEasing
+                    )
+                ) { fullHeight -> fullHeight } + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = FocusModeMotion.EnterDurationMs,
+                        easing = FocusModeMotion.EnterEasing
+                    )
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+            ) {
                 DashboardDock(
                     isRunning = isRunning,
                     isSoundPlaying = isSoundPlaying,
@@ -408,9 +473,7 @@ fun KuroPomodoroApp(
                     glassTreatment = glassTreatment,
                     overBackdrop = true,
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .navigationBarsPadding()
                         .onSizeChanged { dockHeightPx = it.height }
                 )
             }
