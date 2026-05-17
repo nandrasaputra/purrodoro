@@ -5,7 +5,11 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandVertically
@@ -347,6 +351,7 @@ fun KuroPomodoroApp(
                         cycleIndex = cycleIndex,
                         currentTimerState = currentTimerState,
                         timerSettings = settings,
+                        isSoundPlaying = isSoundPlaying,
                         onSkip = { timerConnection.controller.skip() },
                         onStartPause = {
                             when {
@@ -372,6 +377,7 @@ fun KuroPomodoroApp(
                             activeTask = null
                         },
                         onExitFocusMode = { isFocusMode = false },
+                        onOpenSoundsSheet = { showSoundsSheet = true },
                         onEnterFocusMode = { isFocusMode = true },
                         contentPadding = screenContentPadding
                     )
@@ -607,10 +613,12 @@ private fun FocusDashboard(
     cycleIndex: Int,
     currentTimerState: TimerState,
     timerSettings: TimerSettings,
+    isSoundPlaying: Boolean,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
     onStop: () -> Unit,
     onExitFocusMode: () -> Unit,
+    onOpenSoundsSheet: () -> Unit,
     onEnterFocusMode: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -1026,6 +1034,12 @@ private fun FocusDashboard(
             }
         }
 
+        Spacer(Modifier.height(16.dp))
+        MusicButton(
+            isPlaying = isSoundPlaying,
+            onClick = onOpenSoundsSheet
+        )
+
         if (showStopConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showStopConfirmDialog = false },
@@ -1136,6 +1150,46 @@ private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Mod
                 Text("Dismiss", style = MaterialTheme.typography.labelLarge)
             }
         }
+    }
+}
+
+@Composable
+private fun MusicButton(
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "musicRotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .border(
+                width = 1.5.dp,
+                color = Color.White.copy(alpha = if (isPlaying) 0.50f else 0.20f),
+                shape = RoundedCornerShape(22.dp)
+            )
+            .clip(RoundedCornerShape(22.dp))
+            .background(if (isPlaying) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .graphicsLayer { if (isPlaying) rotationZ = rotation },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "\u266B",
+            color = Color.White.copy(alpha = if (isPlaying) 0.90f else 0.40f),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
