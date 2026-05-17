@@ -452,15 +452,17 @@ fun KuroPomodoroApp(
                 }
             }
 
-            premiumSheetMessage?.let { message ->
-                PremiumMessage(
-                    message = message,
-                    onDismiss = { premiumSheetMessage = null },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(horizontal = 18.dp)
-                        .offset(y = -(dockHeightDp + 8.dp))
-                )
+            if (!showSoundsSheet) {
+                premiumSheetMessage?.let { message ->
+                    PremiumMessage(
+                        message = message,
+                        onDismiss = { premiumSheetMessage = null },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 18.dp)
+                            .offset(y = -(dockHeightDp + 8.dp))
+                    )
+                }
             }
 
             // Child of focusTransition so it shares the single clock with scrim + timer
