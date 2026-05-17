@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -102,10 +103,20 @@ import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import com.endiar.kuropomodoro.ui.components.FocusModeMotion
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import com.endiar.kuropomodoro.ui.components.glassTokens
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KuroPomodoroApp(
     repo: AppRepository,
@@ -157,6 +168,7 @@ fun KuroPomodoroApp(
     var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
     val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
     var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) {
         mutableStateOf<FocusTask?>(
             null
@@ -528,6 +540,45 @@ fun KuroPomodoroApp(
                     containerColor = Color(0xFF2A2035),
                     shape = RoundedCornerShape(20.dp)
                 )
+            }
+
+            if (showSoundsSheet) {
+                val sheetTokens = glassTokens(GlassTreatment.Clear, false)
+                ModalBottomSheet(
+                    onDismissRequest = { showSoundsSheet = false },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+                    containerColor = sheetTokens.cardFill,
+                    contentColor = MaterialTheme.colorScheme.kuroTokens.textPrimary,
+                    contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
+                ) {
+                    premiumSheetMessage?.let { message ->
+                        PremiumMessage(
+                            message = message,
+                            onDismiss = { premiumSheetMessage = null },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    SoundsScreen(
+                        sounds = sounds,
+                        selectedSoundId = selectedSoundId,
+                        playingSoundId = playingSoundId,
+                        onSoundSelected = { sound ->
+                            if (sound.locked && !isPremium) {
+                                premiumSheetMessage =
+                                    "${sound.name} is part of the simulated premium sound pack."
+                            } else {
+                                persistSelectedSoundId(sound.id)
+                                playingSoundId = sound.id
+                                premiumSheetMessage = null
+                            }
+                        },
+                        onToggleSound = { sound ->
+                            playingSoundId = if (playingSoundId == sound.id) null else sound.id
+                        },
+                        glassTreatment = GlassTreatment.Clear,
+                        overBackdrop = false,
+                    )
+                }
             }
         }
     }
