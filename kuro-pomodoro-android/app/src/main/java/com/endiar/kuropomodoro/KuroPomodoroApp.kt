@@ -103,10 +103,6 @@ import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import com.endiar.kuropomodoro.ui.components.FocusModeMotion
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -545,7 +541,10 @@ fun KuroPomodoroApp(
             if (showSoundsSheet) {
                 val sheetTokens = glassTokens(GlassTreatment.Clear, false)
                 ModalBottomSheet(
-                    onDismissRequest = { showSoundsSheet = false },
+                    onDismissRequest = {
+                        showSoundsSheet = false
+                        premiumSheetMessage = null
+                    },
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
                     containerColor = sheetTokens.cardFill,
                     contentColor = MaterialTheme.colorScheme.kuroTokens.textPrimary,
