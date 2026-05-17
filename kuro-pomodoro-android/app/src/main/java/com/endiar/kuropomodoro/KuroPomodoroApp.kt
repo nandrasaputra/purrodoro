@@ -411,28 +411,6 @@ fun KuroPomodoroApp(
                         overBackdrop = overBackdrop,
                     )
 
-                    AppTab.Sounds -> SoundsScreen(
-                        sounds = sounds,
-                        selectedSoundId = selectedSoundId,
-                        playingSoundId = playingSoundId,
-                        onSoundSelected = { sound ->
-                            if (sound.locked && !isPremium) {
-                                premiumSheetMessage =
-                                    "${sound.name} is part of the simulated premium sound pack."
-                            } else {
-                                persistSelectedSoundId(sound.id)
-                                playingSoundId = sound.id
-                                premiumSheetMessage = null
-                            }
-                        },
-                        onToggleSound = { sound ->
-                            playingSoundId = if (playingSoundId == sound.id) null else sound.id
-                        },
-                        glassTreatment = glassTreatment,
-                        contentPadding = screenContentPadding,
-                        overBackdrop = overBackdrop,
-                    )
-
                     AppTab.Profile -> ProfileScreen(
                         settings = settings,
                         glassReadabilityMode = glassReadabilityMode,
@@ -1113,7 +1091,7 @@ private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Mod
 
 private val AppTabSaver = Saver<AppTab, String>(
     save = { it.name },
-    restore = { AppTab.valueOf(it) }
+    restore = { name -> AppTab.entries.firstOrNull { it.name == name } ?: AppTab.Timer }
 )
 
 private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(

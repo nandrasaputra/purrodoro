@@ -34,7 +34,7 @@ class AppRepositoryTest {
         assertEquals(1, state.selectedSoundId)
         assertEquals(0, state.completedSessions)
         assertEquals(TimerSettings(), state.settings)
-        assertEquals(7, state.nextTaskId)
+        assertEquals(1, state.nextTaskId)
         assertEquals(emptyMap<LocalDate, Int>(), state.stamps)
     }
 
