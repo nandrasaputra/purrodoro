@@ -1,6 +1,7 @@
 package com.endiar.kuropomodoro
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateDp
@@ -297,8 +298,13 @@ fun KuroPomodoroApp(
     val useCatBackdrop = selectedTab == AppTab.Timer
     val overBackdrop = selectedTab == AppTab.Timer
 
+    // Hoisted so it survives the CatBackdrop/KuroFlatSurface slot swap on tab
+    // switches. Otherwise it resets to 0 on every return to the Timer tab,
+    // which makes BoxWithConstraints.maxHeight grow then shrink, causing the
+    // animateDp-driven topSpacer to slide the cluster upward on re-entry.
+    var dockHeightPx by remember { mutableIntStateOf(0) }
+
     val surfaceContent: @Composable BoxScope.() -> Unit = {
-        var dockHeightPx by remember { mutableIntStateOf(0) }
         val density = LocalDensity.current
         val dockHeightDp = with(density) { dockHeightPx.toDp() }
         val screenContentPadding = PaddingValues(bottom = dockHeightDp)
@@ -636,11 +642,14 @@ private fun FocusDashboard(
         hasComposed = true
     }
 
-    // BoxWithConstraints gives us maxHeight so the top spacer can ANIMATE its
-    // Dp between the dashboard top (40dp) and a value that roughly centers the
-    // cluster — on the same focusTransition clock as everything else. Without
-    // this, the top spacer would have to switch instantly between a fixed Dp
-    // and weight(1f), causing a one-frame timer jump that reads as "movement #1".
+    // Guards enter animations from replaying when FocusDashboard re-enters the
+    // composition after a tab switch. Dashboard elements (CycleDotsRow, buttons)
+    // are immediately visible on first frame — no enter animation needed. The
+    // flag becomes true after the first frame so focus-exit transitions still
+    // animate normally on all subsequent visibility changes.
+    var initialized by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { initialized = true }
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -665,11 +674,11 @@ private fun FocusDashboard(
                 }
             )
     ) {
-        val focusTopReserve = ((maxHeight - 240.dp) / 2).coerceAtLeast(40.dp)
+        val centerReserve = ((maxHeight - 240.dp) / 2).coerceAtLeast(40.dp)
         val topSpacerHeight by focusTransition.animateDp(
             transitionSpec = FocusModeMotion.spec(),
             label = "topSpacer"
-        ) { active -> if (active) focusTopReserve else 40.dp }
+        ) { centerReserve }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -724,11 +733,11 @@ private fun FocusDashboard(
 
         focusTransition.AnimatedVisibility(
             visible = { active -> !active },
-            enter = fadeIn(
+            enter = if (initialized) fadeIn(
                 animationSpec = tween(FocusModeMotion.ExitDurationMs, easing = FocusModeMotion.ExitEasing)
             ) + expandVertically(
                 animationSpec = tween(FocusModeMotion.ExitDurationMs, easing = FocusModeMotion.ExitEasing)
-            ),
+            ) else EnterTransition.None,
             exit = fadeOut(
                 animationSpec = tween(durationMillis = 350, easing = FocusModeMotion.EnterEasing)
             ) + shrinkVertically(
@@ -850,12 +859,12 @@ private fun FocusDashboard(
 
         focusTransition.AnimatedVisibility(
             visible = { active -> !active },
-            enter = fadeIn(
+            enter = if (initialized) fadeIn(
                 animationSpec = tween(
                     durationMillis = FocusModeMotion.ExitDurationMs,
                     easing = FocusModeMotion.ExitEasing
                 )
-            ),
+            ) else EnterTransition.None,
             exit = fadeOut(
                 animationSpec = tween(durationMillis = 300, easing = FocusModeMotion.EnterEasing)
             )
@@ -1032,7 +1041,6 @@ private fun FocusDashboard(
         }
 
         Spacer(Modifier.weight(1f))
-
         focusTransition.AnimatedVisibility(
             visible = { active -> !active && isRunning },
             enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 100, easing = FocusModeMotion.ExitEasing)),
