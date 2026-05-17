@@ -5,7 +5,11 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandVertically
@@ -38,6 +42,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -102,10 +107,16 @@ import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import com.endiar.kuropomodoro.ui.components.FocusModeMotion
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import com.endiar.kuropomodoro.ui.components.glassTokens
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KuroPomodoroApp(
     repo: AppRepository,
@@ -157,6 +168,7 @@ fun KuroPomodoroApp(
     var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
     val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
     var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) {
         mutableStateOf<FocusTask?>(
             null
@@ -339,6 +351,7 @@ fun KuroPomodoroApp(
                         cycleIndex = cycleIndex,
                         currentTimerState = currentTimerState,
                         timerSettings = settings,
+                        isSoundPlaying = isSoundPlaying,
                         onSkip = { timerConnection.controller.skip() },
                         onStartPause = {
                             when {
@@ -364,6 +377,7 @@ fun KuroPomodoroApp(
                             activeTask = null
                         },
                         onExitFocusMode = { isFocusMode = false },
+                        onOpenSoundsSheet = { showSoundsSheet = true },
                         onEnterFocusMode = { isFocusMode = true },
                         contentPadding = screenContentPadding
                     )
@@ -411,28 +425,6 @@ fun KuroPomodoroApp(
                         overBackdrop = overBackdrop,
                     )
 
-                    AppTab.Sounds -> SoundsScreen(
-                        sounds = sounds,
-                        selectedSoundId = selectedSoundId,
-                        playingSoundId = playingSoundId,
-                        onSoundSelected = { sound ->
-                            if (sound.locked && !isPremium) {
-                                premiumSheetMessage =
-                                    "${sound.name} is part of the simulated premium sound pack."
-                            } else {
-                                persistSelectedSoundId(sound.id)
-                                playingSoundId = sound.id
-                                premiumSheetMessage = null
-                            }
-                        },
-                        onToggleSound = { sound ->
-                            playingSoundId = if (playingSoundId == sound.id) null else sound.id
-                        },
-                        glassTreatment = glassTreatment,
-                        contentPadding = screenContentPadding,
-                        overBackdrop = overBackdrop,
-                    )
-
                     AppTab.Profile -> ProfileScreen(
                         settings = settings,
                         glassReadabilityMode = glassReadabilityMode,
@@ -460,15 +452,17 @@ fun KuroPomodoroApp(
                 }
             }
 
-            premiumSheetMessage?.let { message ->
-                PremiumMessage(
-                    message = message,
-                    onDismiss = { premiumSheetMessage = null },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(horizontal = 18.dp)
-                        .offset(y = -(dockHeightDp + 8.dp))
-                )
+            if (!showSoundsSheet) {
+                premiumSheetMessage?.let { message ->
+                    PremiumMessage(
+                        message = message,
+                        onDismiss = { premiumSheetMessage = null },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 18.dp)
+                            .offset(y = -(dockHeightDp + 8.dp))
+                    )
+                }
             }
 
             // Child of focusTransition so it shares the single clock with scrim + timer
@@ -504,7 +498,6 @@ fun KuroPomodoroApp(
             ) {
                 DashboardDock(
                     isRunning = isRunning,
-                    isSoundPlaying = isSoundPlaying,
                     onNavigate = { selectedTab = it },
                     selectedTab = selectedTab,
                     glassTreatment = glassTreatment,
@@ -552,6 +545,48 @@ fun KuroPomodoroApp(
                     shape = RoundedCornerShape(20.dp)
                 )
             }
+
+            if (showSoundsSheet) {
+                val sheetTokens = glassTokens(GlassTreatment.Clear, false)
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        showSoundsSheet = false
+                        premiumSheetMessage = null
+                    },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+                    containerColor = sheetTokens.cardFill,
+                    contentColor = MaterialTheme.colorScheme.kuroTokens.textPrimary,
+                    contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
+                ) {
+                    premiumSheetMessage?.let { message ->
+                        PremiumMessage(
+                            message = message,
+                            onDismiss = { premiumSheetMessage = null },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    SoundsScreen(
+                        sounds = sounds,
+                        selectedSoundId = selectedSoundId,
+                        playingSoundId = playingSoundId,
+                        onSoundSelected = { sound ->
+                            if (sound.locked && !isPremium) {
+                                premiumSheetMessage =
+                                    "${sound.name} is part of the simulated premium sound pack."
+                            } else {
+                                persistSelectedSoundId(sound.id)
+                                playingSoundId = sound.id
+                                premiumSheetMessage = null
+                            }
+                        },
+                        onToggleSound = { sound ->
+                            playingSoundId = if (playingSoundId == sound.id) null else sound.id
+                        },
+                        glassTreatment = GlassTreatment.Clear,
+                        overBackdrop = false,
+                    )
+                }
+            }
         }
     }
 
@@ -580,10 +615,12 @@ private fun FocusDashboard(
     cycleIndex: Int,
     currentTimerState: TimerState,
     timerSettings: TimerSettings,
+    isSoundPlaying: Boolean,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
     onStop: () -> Unit,
     onExitFocusMode: () -> Unit,
+    onOpenSoundsSheet: () -> Unit,
     onEnterFocusMode: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -999,6 +1036,12 @@ private fun FocusDashboard(
             }
         }
 
+        Spacer(Modifier.height(16.dp))
+        MusicButton(
+            isPlaying = isSoundPlaying,
+            onClick = onOpenSoundsSheet
+        )
+
         if (showStopConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showStopConfirmDialog = false },
@@ -1112,9 +1155,49 @@ private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Mod
     }
 }
 
+@Composable
+private fun MusicButton(
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "musicRotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .border(
+                width = 1.5.dp,
+                color = Color.White.copy(alpha = if (isPlaying) 0.50f else 0.20f),
+                shape = RoundedCornerShape(22.dp)
+            )
+            .clip(RoundedCornerShape(22.dp))
+            .background(if (isPlaying) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .graphicsLayer { if (isPlaying) rotationZ = rotation },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "\u266B",
+            color = Color.White.copy(alpha = if (isPlaying) 0.90f else 0.40f),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
 private val AppTabSaver = Saver<AppTab, String>(
     save = { it.name },
-    restore = { AppTab.valueOf(it) }
+    restore = { name -> AppTab.entries.firstOrNull { it.name == name } ?: AppTab.Timer }
 )
 
 private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(

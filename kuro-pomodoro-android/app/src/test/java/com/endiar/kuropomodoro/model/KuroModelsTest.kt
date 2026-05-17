@@ -230,4 +230,10 @@ class KuroModelsTest {
         assertEquals(false, AppearanceMode.Light.isDark(systemInDark = true))
         assertEquals(true, AppearanceMode.Dark.isDark(systemInDark = false))
     }
+
+    @Test
+    fun appTabHasFourEntriesAndNoSoundsTab() {
+        assertEquals(4, AppTab.entries.size)
+        assertFalse(AppTab.entries.any { it.name == "Sounds" })
+    }
 }

@@ -56,7 +56,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -315,7 +314,6 @@ fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun DashboardDock(
     isRunning: Boolean,
-    isSoundPlaying: Boolean,
     onNavigate: (AppTab) -> Unit,
     modifier: Modifier = Modifier,
     selectedTab: AppTab? = null,
@@ -354,12 +352,6 @@ fun DashboardDock(
             active = selectedTab == AppTab.Timer,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Timer) }
-        DockTabItem(
-            icon = Icons.Default.Notifications,
-            label = "SOUNDS",
-            active = selectedTab == AppTab.Sounds,
-            modifier = Modifier.weight(1f)
-        ) { onNavigate(AppTab.Sounds) }
         DockTabItem(
             icon = Icons.Default.Person,
             label = "Profile",
