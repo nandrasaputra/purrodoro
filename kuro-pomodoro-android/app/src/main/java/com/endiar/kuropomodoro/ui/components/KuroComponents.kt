@@ -740,7 +740,7 @@ fun ScreenStickyBar(
                 text = title,
                 color = tokens.textPrimary,
                 fontSize = 24.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
         }
         Box(
