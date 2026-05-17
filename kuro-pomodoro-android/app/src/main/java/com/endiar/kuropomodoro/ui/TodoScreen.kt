@@ -18,6 +18,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +43,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +51,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +75,7 @@ import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.GlassPill
+import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import com.endiar.kuropomodoro.ui.theme.luminance
 import java.time.LocalDate
@@ -116,6 +126,11 @@ fun TodoScreen(
     overBackdrop: Boolean = true,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val scrollState = rememberScrollState()
+    var headerHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val topPaddingPx = with(density) { 8.dp.roundToPx() }
+    val showStickyBar by remember { derivedStateOf { scrollState.value > headerHeightPx + topPaddingPx } }
 
     val filteredActiveTasks = tasks.filter { task ->
         !task.completed && (selectedCategoryId == null || task.categoryId == selectedCategoryId)
@@ -150,10 +165,11 @@ fun TodoScreen(
         }
     }
 
+    Box(modifier = modifier.fillMaxSize()) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 20.dp)
             .padding(top = 8.dp, bottom = 100.dp)
             .padding(contentPadding),
@@ -161,7 +177,9 @@ fun TodoScreen(
     ) {
         // ── Header row ──────────────────────────────────────────────────
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged { headerHeightPx = it.height },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -473,6 +491,15 @@ fun TodoScreen(
             }
         }
     }
+
+    AnimatedVisibility(
+        visible = showStickyBar,
+        enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { -it },
+        exit = fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it },
+    ) {
+        ScreenStickyBar(title = "To-Do")
+    }
+    } // Box
 
     // ── TaskDetailSheet ──────────────────────────────────────────────────
     detailSheetTask?.let { task ->
