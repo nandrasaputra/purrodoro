@@ -38,25 +38,11 @@ data class AppState(
     val sessionRecords: List<SessionRecord> = emptyList(),
     val tasks: List<FocusTask> = emptyList(),
     val categories: List<Category> = emptyList(),
-    val nextCategoryId: Int = 4,
+    val nextCategoryId: Int = 1,
     val selectedCategoryId: Int? = null,
     val notificationSoundEnabled: Boolean = true
 )
 
-private val SEED_CATEGORIES = listOf(
-    Category(1, "Study"),
-    Category(2, "Home"),
-    Category(3, "Ideas")
-)
-
-private val SEED_TASKS = listOf(
-    FocusTask(1, "Review Compose layout", 25, categoryId = 1),
-    FocusTask(2, "Read chapter notes", 20, categoryId = 1),
-    FocusTask(3, "Clean desk", 10, categoryId = 2),
-    FocusTask(4, "Water plants", 5, categoryId = 2),
-    FocusTask(5, "Sketch cat animation", 15, categoryId = 3),
-    FocusTask(6, "Plan next sprint", 25, categoryId = 3)
-)
 
 class AppRepository(private val dataStore: DataStore<Preferences>) {
 
@@ -116,13 +102,13 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
                 longBreakMinutes = prefs[KEY_LONG_MIN] ?: 15,
                 focusSessionsPerCycle = prefs[KEY_CYCLE_SIZE] ?: 4
             ),
-            nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 7,
+            nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 1,
             stamps = decodeStamps(prefs[KEY_STAMPS] ?: ""),
             isPremium = prefs[KEY_IS_PREMIUM] ?: false,
             sessionRecords = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: ""),
             tasks = decodeTasks(prefs[KEY_TASKS] ?: ""),
             categories = decodeCategories(prefs[KEY_CATEGORIES] ?: ""),
-            nextCategoryId = prefs[KEY_NEXT_CATEGORY_ID] ?: 4,
+            nextCategoryId = prefs[KEY_NEXT_CATEGORY_ID] ?: 1,
             selectedCategoryId = prefs[KEY_SELECTED_CATEGORY_ID]
                 ?.takeIf { it.isNotBlank() }
                 ?.toIntOrNull(),
@@ -184,7 +170,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[KEY_NOTIFICATION_SOUND] = value }
 
     suspend fun addCategory(name: String) = dataStore.edit { prefs ->
-        val nextId = prefs[KEY_NEXT_CATEGORY_ID] ?: 4
+        val nextId = prefs[KEY_NEXT_CATEGORY_ID] ?: 1
         val existing = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
         prefs[KEY_CATEGORIES] = encodeCategories(existing + Category(nextId, name))
         prefs[KEY_NEXT_CATEGORY_ID] = nextId + 1
@@ -395,8 +381,8 @@ internal fun encodeTasks(tasks: List<FocusTask>): String =
     }
 
 internal fun decodeTasks(raw: String): List<FocusTask> {
-    if (raw.isBlank()) return SEED_TASKS   // key absent → first run, seed
-    if (raw == "[]") return emptyList()    // explicitly empty
+    if (raw.isBlank()) return emptyList()
+    if (raw == "[]") return emptyList()
     return runCatching {
         raw.split("\n").map { line ->
             val p = line.split(":", limit = 7)
@@ -410,7 +396,7 @@ internal fun decodeTasks(raw: String): List<FocusTask> {
                 categoryId = p.getOrNull(6)?.takeIf { it.isNotBlank() }?.toInt()
             )
         }
-    }.getOrElse { SEED_TASKS }
+    }.getOrElse { emptyList() }
 }
 
 // --- Category encoding ---
@@ -422,12 +408,12 @@ internal fun encodeCategories(categories: List<Category>): String =
     }
 
 internal fun decodeCategories(raw: String): List<Category> {
-    if (raw.isBlank()) return SEED_CATEGORIES   // key absent → first run, seed
-    if (raw == "[]") return emptyList()         // explicitly empty
+    if (raw.isBlank()) return emptyList()
+    if (raw == "[]") return emptyList()
     return runCatching {
         raw.split("\n").map { line ->
             val p = line.split(":", limit = 2)
             Category(p[0].toInt(), URLDecoder.decode(p[1], "UTF-8"))
         }
-    }.getOrElse { SEED_CATEGORIES }
+    }.getOrElse { emptyList() }
 }
