@@ -59,7 +59,6 @@ class TimerAlarmReceiver : BroadcastReceiver() {
 
                 val soundEnabled = repo.appState.first().notificationSoundEnabled
                 TimerNotification.setNotificationSoundEnabled(appCtx, soundEnabled)
-                TimerNotification.ensureChannels(appCtx, soundEnabled)
                 NotificationManagerCompat.from(appCtx).notify(
                     TimerNotification.NOTIF_ID_COMPLETION + uniqueIdSuffix(),
                     TimerNotification.buildCompletionNotification(appCtx, kind)

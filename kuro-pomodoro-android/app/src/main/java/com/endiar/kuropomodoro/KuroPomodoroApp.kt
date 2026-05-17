@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
@@ -89,6 +90,7 @@ import com.endiar.kuropomodoro.model.cycleDotsState
 import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.model.glassTreatmentFor
 import com.endiar.kuropomodoro.timer.TimerConnection
+import com.endiar.kuropomodoro.timer.TimerNotification
 import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.CycleCompletionCopy
 import com.endiar.kuropomodoro.ui.ProfileScreen
@@ -146,6 +148,8 @@ fun KuroPomodoroApp(
     var selectedCategoryId by remember(appState.selectedCategoryId) { mutableStateOf(appState.selectedCategoryId) }
     var notificationSoundEnabled by remember(appState.notificationSoundEnabled) { mutableStateOf(appState.notificationSoundEnabled) }
 
+    val context = LocalContext.current
+
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
@@ -198,7 +202,9 @@ fun KuroPomodoroApp(
     }
 
     fun persistNotificationSoundEnabled(v: Boolean) {
-        notificationSoundEnabled = v; scope.launch { repo.setNotificationSoundEnabled(v) }
+        notificationSoundEnabled = v
+        TimerNotification.setNotificationSoundEnabled(context, v)
+        scope.launch { repo.setNotificationSoundEnabled(v) }
     }
 
     val addTask: (String, Int?) -> Unit = { title, categoryId ->

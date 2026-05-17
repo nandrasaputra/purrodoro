@@ -18,7 +18,11 @@ import com.endiar.kuropomodoro.model.formatSeconds
 object TimerNotification {
 
     const val CHANNEL_RUNNING = "timer_running"
-    const val CHANNEL_COMPLETION = "timer_completion"
+    // Two fixed channels: one with sound, one silent. Android does not allow updating
+    // a channel's sound after it has been created, so we route notifications to the
+    // appropriate channel at post-time instead of mutating an existing channel.
+    const val CHANNEL_COMPLETION_SOUND = "timer_completion_sound"
+    const val CHANNEL_COMPLETION_SILENT = "timer_completion_silent"
 
     const val NOTIF_ID_RUNNING = 1001
     const val NOTIF_ID_COMPLETION = 1002
@@ -28,10 +32,10 @@ object TimerNotification {
 
     fun setNotificationSoundEnabled(context: Context, enabled: Boolean) {
         notificationSoundEnabled = enabled
-        ensureChannels(context, enabled)
+        ensureChannels(context)
     }
 
-    fun ensureChannels(context: Context, soundEnabled: Boolean = true) {
+    fun ensureChannels(context: Context) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         nm.createNotificationChannel(
@@ -44,17 +48,28 @@ object TimerNotification {
                 setShowBadge(false)
             }
         )
-        val completionChannel = NotificationChannel(
-            CHANNEL_COMPLETION,
-            "Segment complete",
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = "Notification when a Focus or Break segment ends"
-            if (soundEnabled) {
+
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_COMPLETION_SOUND,
+                "Segment complete (with sound)",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notification when a Focus or Break segment ends"
                 setSound("android.resource://${context.packageName}/raw/kuro_sound".toUri(), null)
             }
-        }
-        nm.createNotificationChannel(completionChannel)
+        )
+
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_COMPLETION_SILENT,
+                "Segment complete (silent)",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notification when a Focus or Break segment ends"
+                setSound(null, null)
+            }
+        )
     }
 
     fun buildRunningNotification(
@@ -106,7 +121,8 @@ object TimerNotification {
             CompletionKind.Cycle -> "Cycle complete" to "Nice work — your Pomodoro cycle is done"
             CompletionKind.Stopped -> "Timer stopped" to "Session ended early"
         }
-        return NotificationCompat.Builder(context, CHANNEL_COMPLETION)
+        val channel = if (notificationSoundEnabled) CHANNEL_COMPLETION_SOUND else CHANNEL_COMPLETION_SILENT
+        return NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.mipmap.ic_launcher_monochrome)
             .setContentTitle(title)
             .setContentText(body)
