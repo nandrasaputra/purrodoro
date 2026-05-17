@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -714,5 +715,39 @@ fun CycleDotsRow(
                 }
             }
         }
+    }
+}
+
+/**
+ * Compact title bar that overlays the top of a scrollable screen.
+ * Shown via [AnimatedVisibility] in each screen once the full header scrolls out of view.
+ */
+@Composable
+fun ScreenStickyBar(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(modifier = modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(tokens.pageBackground)
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = title,
+                color = tokens.textPrimary,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(tokens.divider)
+        )
     }
 }
