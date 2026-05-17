@@ -504,7 +504,6 @@ fun KuroPomodoroApp(
             ) {
                 DashboardDock(
                     isRunning = isRunning,
-                    isSoundPlaying = isSoundPlaying,
                     onNavigate = { selectedTab = it },
                     selectedTab = selectedTab,
                     glassTreatment = glassTreatment,
