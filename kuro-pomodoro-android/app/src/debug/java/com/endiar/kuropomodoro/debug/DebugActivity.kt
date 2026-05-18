@@ -137,28 +137,35 @@ private fun DebugScreen(
                     color = if (clockOverride != null) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
+                // 6 presets cover all 6 background ranges
                 val clockPresets = listOf(
-                    "08:00" to java.time.LocalTime.of(8, 0),
-                    "12:00" to java.time.LocalTime.of(12, 0),
-                    "17:00" to java.time.LocalTime.of(17, 0),
-                    "22:00" to java.time.LocalTime.of(22, 0)
+                    "05:00 🌅" to java.time.LocalTime.of(5, 0),   // dawn
+                    "08:00 ☀️" to java.time.LocalTime.of(8, 0),   // morning
+                    "12:00 🌤️" to java.time.LocalTime.of(12, 0),  // day
+                    "17:00 🌇" to java.time.LocalTime.of(17, 0),  // evening
+                    "20:00 🌆" to java.time.LocalTime.of(20, 0),  // night
+                    "22:00 🌙" to java.time.LocalTime.of(22, 0),  // midnight
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    clockPresets.forEach { (label, time) ->
-                        OutlinedButton(onClick = {
-                            debugRepo.setClockOverride(time)
-                            scope.launch {
-                                val result = snackbarHostState.showSnackbar(
-                                    message = "Clock set to $label",
-                                    actionLabel = "Restart",
-                                    duration = SnackbarDuration.Short
-                                )
-                                if (result == SnackbarResult.ActionPerformed) {
-                                    onRestartApp()
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    clockPresets.chunked(3).forEach { rowPresets ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            rowPresets.forEach { (label, time) ->
+                                OutlinedButton(onClick = {
+                                    debugRepo.setClockOverride(time)
+                                    scope.launch {
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "Clock set to $label",
+                                            actionLabel = "Restart",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            onRestartApp()
+                                        }
+                                    }
+                                }) {
+                                    Text(label, fontSize = 12.sp)
                                 }
                             }
-                        }) {
-                            Text(label)
                         }
                     }
                 }

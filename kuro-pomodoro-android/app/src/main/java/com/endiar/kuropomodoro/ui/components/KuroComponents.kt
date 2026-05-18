@@ -53,6 +53,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
@@ -346,6 +347,12 @@ fun DashboardDock(
             active = selectedTab == AppTab.Todo,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Todo) }
+        DockTabItem(
+            icon = Icons.Default.CheckCircle,
+            label = "HABITS",
+            active = selectedTab == AppTab.Habits,
+            modifier = Modifier.weight(1f)
+        ) { onNavigate(AppTab.Habits) }
         DockTabItem(
             icon = Icons.Default.DateRange,
             label = "RECORDS",

@@ -46,8 +46,8 @@ class TimerService : Service() {
     private lateinit var alarmManager: AlarmManager
 
     private val controllerImpl: TimerController = object : TimerController {
-        override fun start(settings: TimerSettings, task: FocusTask?) {
-            scope.launch { startCycle(settings, task) }
+        override fun start(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?) {
+            scope.launch { startCycle(settings, task, activeHabitId) }
         }
         override fun pause()  { scope.launch { doPause() } }
         override fun resume() { scope.launch { doResume() } }
@@ -116,7 +116,7 @@ class TimerService : Service() {
 
     // --- Transitions ---
 
-    private suspend fun startCycle(settings: TimerSettings, task: FocusTask?) {
+    private suspend fun startCycle(settings: TimerSettings, task: FocusTask?, activeHabitId: Int? = null) {
         val items = buildCycle(settings)
         val firstSeconds = items.first().type.seconds()
         val now = System.currentTimeMillis()
@@ -136,7 +136,8 @@ class TimerService : Service() {
             session = TimerSession(items, 0, firstSeconds, TimerState.Playing),
             endsAtMillis = now + firstSeconds * 1000L,
             activeTask = task,
-            openRecord = record
+            openRecord = record,
+            activeHabitId = activeHabitId,
         )
         updateState(state)
         scheduleAlarm(state)

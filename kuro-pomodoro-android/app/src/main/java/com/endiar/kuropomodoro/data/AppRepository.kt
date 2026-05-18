@@ -9,17 +9,27 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.endiar.kuropomodoro.model.AppearanceMode
+import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
+import com.endiar.kuropomodoro.model.Habit
+import com.endiar.kuropomodoro.model.HabitLog
+import com.endiar.kuropomodoro.model.HabitLogState
+import com.endiar.kuropomodoro.model.HabitOccurrence
+import com.endiar.kuropomodoro.model.HabitTargetType
 import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
+import com.endiar.kuropomodoro.model.TimeBlock
 import com.endiar.kuropomodoro.model.TimerRuntimeState
 import com.endiar.kuropomodoro.model.TimerSession
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.Category
+import com.endiar.kuropomodoro.model.incrementProgress
+import com.endiar.kuropomodoro.model.toggleBinaryOn
+import com.endiar.kuropomodoro.model.withLog
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.net.URLDecoder
@@ -40,7 +50,9 @@ data class AppState(
     val categories: List<Category> = emptyList(),
     val nextCategoryId: Int = 1,
     val selectedCategoryId: Int? = null,
-    val notificationSoundEnabled: Boolean = true
+    val notificationSoundEnabled: Boolean = true,
+    val habits: List<Habit> = emptyList(),
+    val nextHabitId: Int = 1,
 )
 
 
@@ -66,6 +78,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_SELECTED_CATEGORY_ID = stringPreferencesKey("selected_category_id")
         private val KEY_APPEARANCE_MODE = stringPreferencesKey("appearance_mode")
         private val KEY_NOTIFICATION_SOUND = booleanPreferencesKey("notification_sound_enabled")
+        private val KEY_HABITS = stringPreferencesKey("habits_json")
+        private val KEY_NEXT_HABIT_ID = intPreferencesKey("next_habit_id")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -112,7 +126,9 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             selectedCategoryId = prefs[KEY_SELECTED_CATEGORY_ID]
                 ?.takeIf { it.isNotBlank() }
                 ?.toIntOrNull(),
-            notificationSoundEnabled = prefs[KEY_NOTIFICATION_SOUND] ?: true
+            notificationSoundEnabled = prefs[KEY_NOTIFICATION_SOUND] ?: true,
+            habits = decodeHabits(prefs[KEY_HABITS] ?: ""),
+            nextHabitId = prefs[KEY_NEXT_HABIT_ID] ?: 1,
         )
     }
 
@@ -212,6 +228,71 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         prefs[KEY_LONG_MIN] = 15
         prefs[KEY_CYCLE_SIZE] = 4
     }
+
+    // ── Habit mutators ────────────────────────────────────────────────────────
+
+    suspend fun addHabit(
+        name: String,
+        emoji: String,
+        colorArgb: Long,
+        targetType: HabitTargetType = HabitTargetType.Binary,
+        targetValue: Int = 1,
+        occurrence: HabitOccurrence = HabitOccurrence.Daily,
+        timeBlock: TimeBlock = TimeBlock.Anytime,
+    ) = dataStore.edit { prefs ->
+        val nextId = prefs[KEY_NEXT_HABIT_ID] ?: 1
+        val existing = decodeHabits(prefs[KEY_HABITS] ?: "")
+        val habit = Habit(
+            id = nextId, name = name, emoji = emoji, colorArgb = colorArgb,
+            createdAt = System.currentTimeMillis(),
+            targetType = targetType, targetValue = targetValue,
+            occurrence = occurrence, timeBlock = timeBlock,
+        )
+        prefs[KEY_HABITS] = encodeHabits(existing + habit)
+        prefs[KEY_NEXT_HABIT_ID] = nextId + 1
+    }
+
+    suspend fun deleteHabit(id: Int) = dataStore.edit { prefs ->
+        val existing = decodeHabits(prefs[KEY_HABITS] ?: "")
+        prefs[KEY_HABITS] = encodeHabits(existing.filterNot { it.id == id })
+    }
+
+    suspend fun updateHabitMeta(
+        id: Int,
+        name: String,
+        emoji: String,
+        colorArgb: Long,
+        targetType: HabitTargetType,
+        targetValue: Int,
+        occurrence: HabitOccurrence,
+        timeBlock: TimeBlock,
+    ) = mutateHabit(id) {
+        it.copy(name = name, emoji = emoji, colorArgb = colorArgb,
+            targetType = targetType, targetValue = targetValue,
+            occurrence = occurrence, timeBlock = timeBlock)
+    }
+
+    suspend fun toggleHabitBinaryCompletion(id: Int, date: LocalDate) =
+        mutateHabit(id) { it.toggleBinaryOn(date) }
+
+    suspend fun incrementHabitProgress(id: Int, date: LocalDate, delta: Int = 1) =
+        mutateHabit(id) { it.incrementProgress(date, delta) }
+
+    suspend fun setHabitSkipped(id: Int, date: LocalDate, skipped: Boolean) =
+        mutateHabit(id) {
+            if (skipped) it.withLog(date, HabitLogState.Skipped) else it.withLog(date, null)
+        }
+
+    suspend fun clearHabitLog(id: Int, date: LocalDate) =
+        mutateHabit(id) { it.withLog(date, null) }
+
+    private suspend fun mutateHabit(id: Int, transform: (Habit) -> Habit) =
+        dataStore.edit { prefs ->
+            val existing = decodeHabits(prefs[KEY_HABITS] ?: "")
+            prefs[KEY_HABITS] = encodeHabits(
+                existing.map { if (it.id == id) transform(it) else it }
+            )
+        }
 }
 
 // --- Encoding helpers ---
@@ -273,8 +354,9 @@ internal fun decodeSessionRecords(raw: String): List<SessionRecord> {
 }
 
 // --- Runtime snapshot encoding ---
-// Schema (single line, pipe-separated, 7 fields):
-// <timerState>|<currentIndex>|<remainingSeconds>|<endsAtMillisOrEmpty>|<itemsCsv>|<taskOrEmpty>|<openRecordOrEmpty>
+// Schema (single line, pipe-separated):
+//   v2 (7 fields): <timerState>|<currentIndex>|<remainingSeconds>|<endsAtMillisOrEmpty>|<itemsCsv>|<taskOrEmpty>|<openRecordOrEmpty>
+//   v3 (8 fields): same as v2 + |<activeHabitIdOrEmpty>
 //
 // itemsCsv: comma-separated, each token is "F:<sec>", "S:<sec>", or "L:<sec>"
 // taskOrEmpty: "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>"
@@ -309,14 +391,15 @@ internal fun encodeRuntimeSnapshot(state: TimerRuntimeState): String {
         state.endsAtMillis ?: "",
         itemsCsv,
         taskField,
-        recordField
+        recordField,
+        state.activeHabitId?.toString() ?: ""
     ).joinToString("|")
 }
 
 internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
     if (raw.isBlank()) return null
     return runCatching {
-        val parts = raw.split("|", limit = 7)
+        val parts = raw.split("|", limit = 8)
         val timerState = TimerState.valueOf(parts[0])
         val currentIndex = parts[1].toInt()
         val remainingSeconds = parts[2].toInt()
@@ -361,11 +444,13 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
                 completedLongBreakCount = rp.getOrNull(11)?.toIntOrNull() ?: 0
             )
         }
+        val activeHabitId = parts.getOrNull(7)?.takeIf { it.isNotBlank() }?.toIntOrNull()
         TimerRuntimeState(
             session = TimerSession(items, currentIndex, remainingSeconds, timerState),
             endsAtMillis = endsAtMillis,
             activeTask = task,
-            openRecord = record
+            openRecord = record,
+            activeHabitId = activeHabitId
         )
     }.getOrNull()
 }
@@ -416,4 +501,124 @@ internal fun decodeCategories(raw: String): List<Category> {
             Category(p[0].toInt(), URLDecoder.decode(p[1], "UTF-8"))
         }
     }.getOrElse { emptyList() }
+}
+
+// ─── Habit encoding ───────────────────────────────────────────────────────────
+//
+// v2 schema — one habit per line, 11 pipe-separated fields:
+//   0:id  1:urlName  2:urlEmoji  3:colorArgb  4:createdAt
+//   5:targetTag  ("B"|"Q"|"P")
+//   6:targetValue
+//   7:occurrenceTag  ("D" daily | "W" weekdays)
+//   8:occurrenceData (empty for daily; "MON,WED,FRI" for weekdays)
+//   9:timeBlockTag   ("M"|"A"|"E"|"X")
+//   10:logsCsv       comma-separated "<isoDate>~<tag>[~progress]"
+//                    tags: "C" Completed | "S" Skipped | "P" Partial
+//
+// v1 legacy (6 fields): id|urlName|urlEmoji|colorArgb|createdAt|completionDatesCsv
+// Detected on read and migrated to Binary/Daily/Anytime with Completed logs.
+
+internal fun encodeHabits(habits: List<Habit>): String =
+    if (habits.isEmpty()) "[]"
+    else habits.joinToString("\n") { h ->
+        val tTag = when (h.targetType) {
+            HabitTargetType.Binary -> "B"; HabitTargetType.Quantity -> "Q"
+            HabitTargetType.Pomodoro -> "P"
+        }
+        val (oTag, oData) = when (val o = h.occurrence) {
+            HabitOccurrence.Daily -> "D" to ""
+            is HabitOccurrence.Weekdays -> "W" to o.days.sortedBy { it.value }.joinToString(",") { it.name }
+        }
+        val bTag = when (h.timeBlock) {
+            TimeBlock.Morning -> "M"; TimeBlock.Afternoon -> "A"
+            TimeBlock.Evening -> "E"; TimeBlock.Anytime -> "X"
+        }
+        val logsCsv = h.logs.entries.sortedBy { it.key }.joinToString(",") { (date, log) ->
+            when (val s = log.state) {
+                HabitLogState.Completed -> "$date~C"
+                HabitLogState.Skipped   -> "$date~S"
+                is HabitLogState.Partial -> "$date~P~${s.progress}"
+            }
+        }
+        listOf(
+            h.id, URLEncoder.encode(h.name, "UTF-8"), URLEncoder.encode(h.emoji, "UTF-8"),
+            h.colorArgb, h.createdAt,
+            tTag, h.targetValue, oTag, oData, bTag, logsCsv
+        ).joinToString("|")
+    }
+
+internal fun decodeHabits(raw: String): List<Habit> {
+    if (raw.isBlank() || raw == "[]") return emptyList()
+    return runCatching {
+        raw.split("\n").mapNotNull { line ->
+            val p = line.split("|")
+            when {
+                p.size >= 11 -> decodeHabitV2(p)
+                p.size in 5..6 -> decodeHabitV1(p)
+                else -> null
+            }
+        }
+    }.getOrElse { emptyList() }
+}
+
+private fun decodeHabitV2(p: List<String>): Habit {
+    val targetType = when (p[5]) {
+        "Q" -> HabitTargetType.Quantity; "P" -> HabitTargetType.Pomodoro
+        else -> HabitTargetType.Binary
+    }
+    val occurrence: HabitOccurrence = when (p[7]) {
+        "W" -> {
+            val days = p[8].split(",").filter { it.isNotBlank() }
+                .mapNotNull { runCatching { DayOfWeek.valueOf(it) }.getOrNull() }.toSet()
+            if (days.isEmpty()) HabitOccurrence.Daily else HabitOccurrence.Weekdays(days)
+        }
+        else -> HabitOccurrence.Daily
+    }
+    val timeBlock = when (p[9]) {
+        "M" -> TimeBlock.Morning; "A" -> TimeBlock.Afternoon
+        "E" -> TimeBlock.Evening; else -> TimeBlock.Anytime
+    }
+    val logs: Map<LocalDate, HabitLog> = p.getOrNull(10)
+        ?.takeIf { it.isNotBlank() }
+        ?.split(",")
+        ?.mapNotNull { entry ->
+            val parts = entry.split("~")
+            if (parts.size < 2) return@mapNotNull null
+            val date = runCatching { LocalDate.parse(parts[0]) }.getOrNull() ?: return@mapNotNull null
+            val state: HabitLogState = when (parts[1]) {
+                "C" -> HabitLogState.Completed
+                "S" -> HabitLogState.Skipped
+                "P" -> HabitLogState.Partial(parts.getOrNull(2)?.toIntOrNull()?.coerceAtLeast(0) ?: 0)
+                else -> return@mapNotNull null
+            }
+            date to HabitLog(state)
+        }
+        ?.toMap() ?: emptyMap()
+    return Habit(
+        id = p[0].toInt(),
+        name = URLDecoder.decode(p[1], "UTF-8"),
+        emoji = URLDecoder.decode(p[2], "UTF-8"),
+        colorArgb = p[3].toLong(),
+        createdAt = p[4].toLong(),
+        targetType = targetType,
+        targetValue = p[6].toIntOrNull()?.coerceAtLeast(1) ?: 1,
+        occurrence = occurrence, timeBlock = timeBlock, logs = logs,
+    )
+}
+
+private fun decodeHabitV1(p: List<String>): Habit {
+    val completions = p.getOrNull(5)
+        ?.takeIf { it.isNotBlank() }
+        ?.split(",")
+        ?.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
+        ?.associateWith { HabitLog(HabitLogState.Completed) }
+        ?: emptyMap()
+    return Habit(
+        id = p[0].toInt(),
+        name = URLDecoder.decode(p[1], "UTF-8"),
+        emoji = URLDecoder.decode(p[2], "UTF-8"),
+        colorArgb = p[3].toLong(),
+        createdAt = p[4].toLong(),
+        logs = completions,
+    )
 }
