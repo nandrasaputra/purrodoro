@@ -335,6 +335,12 @@ fun DashboardDock(
         verticalAlignment = Alignment.CenterVertically
     ) {
         DockTabItem(
+            icon = if (isRunning) Icons.Default.PlayArrow else Icons.Default.Home,
+            label = "HOME",
+            active = selectedTab == AppTab.Timer,
+            modifier = Modifier.weight(1f)
+        ) { onNavigate(AppTab.Timer) }
+        DockTabItem(
             icon = Icons.Default.List,
             label = "TODO",
             active = selectedTab == AppTab.Todo,
@@ -346,12 +352,6 @@ fun DashboardDock(
             active = selectedTab == AppTab.Calendar,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Calendar) }
-        DockTabItem(
-            icon = if (isRunning) Icons.Default.PlayArrow else Icons.Default.Home,
-            label = "HOME",
-            active = selectedTab == AppTab.Timer,
-            modifier = Modifier.weight(1f)
-        ) { onNavigate(AppTab.Timer) }
         DockTabItem(
             icon = Icons.Default.Person,
             label = "Profile",
