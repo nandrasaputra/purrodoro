@@ -44,20 +44,22 @@ class TimerConnection(private val context: Context) {
     val state: StateFlow<TimerRuntimeState?> = _state.asStateFlow()
 
     private var controllerRef: TimerController? = null
-    private var pendingStart: Pair<TimerSettings, FocusTask?>? = null
+
+    private data class PendingStart(val settings: TimerSettings, val task: FocusTask?, val activeHabitId: Int?)
+    private var pendingStart: PendingStart? = null
 
     /**
      * Public controller. Always non-null; routes through the binder when available,
      * falls back to an intent dispatch otherwise.
      */
     val controller: TimerController = object : TimerController {
-        override fun start(settings: TimerSettings, task: FocusTask?) {
+        override fun start(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?) {
             val bound = controllerRef
             if (bound != null) {
-                bound.start(settings, task)
+                bound.start(settings, task, activeHabitId)
                 return
             }
-            pendingStart = settings to task
+            pendingStart = PendingStart(settings, task, activeHabitId)
             val intent = Intent(context, TimerService::class.java)
                 .setAction(TimerService.ACTION_START)
             safeStartForegroundService(intent)
@@ -120,8 +122,8 @@ class TimerConnection(private val context: Context) {
                 lb.state.collectLatest { _state.value = it }
             }
             // Flush a buffered start() if one was queued before the binder arrived.
-            pendingStart?.let { (settings, task) ->
-                lb.controller.start(settings, task)
+            pendingStart?.let { ps ->
+                lb.controller.start(ps.settings, ps.task, ps.activeHabitId)
                 pendingStart = null
             }
         }
@@ -169,6 +171,11 @@ class TimerConnection(private val context: Context) {
                         )
                         result.stampsToIncrement.forEach { date -> repo.incrementStampFor(date) }
                         result.closedRecords.forEach { repo.appendSessionRecord(it) }
+                        snapshot.activeHabitId?.let { habitId ->
+                            result.habitProgressDates.forEach { date ->
+                                repo.incrementHabitProgress(habitId, date)
+                            }
+                        }
 
                         if (result.state.session.timerState == TimerState.Playing) {
                             val intent = Intent(context, TimerService::class.java)

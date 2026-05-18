@@ -232,8 +232,9 @@ class KuroModelsTest {
     }
 
     @Test
-    fun appTabHasFourEntriesAndNoSoundsTab() {
-        assertEquals(4, AppTab.entries.size)
+    fun appTabHasFiveEntriesAndNoSoundsTab() {
+        assertEquals(5, AppTab.entries.size)
         assertFalse(AppTab.entries.any { it.name == "Sounds" })
+        assertTrue(AppTab.entries.any { it.name == "Habits" })
     }
 }

@@ -14,7 +14,8 @@ import java.time.ZoneId
 data class ReconcileResult(
     val state: TimerRuntimeState,
     val stampsToIncrement: List<LocalDate>,
-    val closedRecords: List<SessionRecord>
+    val closedRecords: List<SessionRecord>,
+    val habitProgressDates: List<LocalDate> = emptyList(),
 )
 
 object TimerReconciler {
@@ -42,13 +43,16 @@ object TimerReconciler {
         var openRecord = snapshot.openRecord
         val stamps = mutableListOf<LocalDate>()
         val closed = mutableListOf<SessionRecord>()
+        val habitDates = mutableListOf<LocalDate>()
 
         while (now >= endsAt) {
             val currentItem = session.items.getOrNull(session.currentIndex) ?: break
 
             when (currentItem.type) {
                 is SessionItemType.Focus -> {
-                    stamps.add(Instant.ofEpochMilli(endsAt).atZone(zone).toLocalDate())
+                    val segDate = Instant.ofEpochMilli(endsAt).atZone(zone).toLocalDate()
+                    stamps.add(segDate)
+                    if (snapshot.activeHabitId != null) habitDates.add(segDate)
                     openRecord = openRecord?.copy(
                         completedFocusCount = openRecord.completedFocusCount + 1
                     )
@@ -86,7 +90,8 @@ object TimerReconciler {
                         openRecord = null
                     ),
                     stampsToIncrement = stamps,
-                    closedRecords = closed
+                    closedRecords = closed,
+                    habitProgressDates = habitDates,
                 )
             }
 
@@ -108,7 +113,8 @@ object TimerReconciler {
                         openRecord = openRecord
                     ),
                     stampsToIncrement = stamps,
-                    closedRecords = closed
+                    closedRecords = closed,
+                    habitProgressDates = habitDates,
                 )
             }
         }
@@ -121,7 +127,8 @@ object TimerReconciler {
                 openRecord = openRecord
             ),
             stampsToIncrement = stamps,
-            closedRecords = closed
+            closedRecords = closed,
+            habitProgressDates = habitDates,
         )
     }
 }

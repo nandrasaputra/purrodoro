@@ -160,4 +160,32 @@ class AppRepositoryRuntimeSnapshotTest {
         assertEquals(0, decoded.openRecord?.completedShortBreakCount)
         assertEquals(0, decoded.openRecord?.completedLongBreakCount)
     }
+
+    // ── activeHabitId (v3) ───────────────────────────────────────────────────
+
+    @Test
+    fun encode_then_decode_roundTrips_activeHabitId() {
+        val state = TimerRuntimeState(
+            session = TimerSession(
+                items = listOf(TimerSessionItem(SessionItemType.Focus(1500))),
+                currentIndex = 0, remainingSeconds = 1500, timerState = TimerState.Playing
+            ),
+            endsAtMillis = 1_700_000_000_000L,
+            activeTask = null, openRecord = null,
+            activeHabitId = 7,
+        )
+        val decoded = decodeRuntimeSnapshot(encodeRuntimeSnapshot(state))
+        assertEquals(7, decoded?.activeHabitId)
+    }
+
+    @Test
+    fun decode_v2_snapshot_without_activeHabitId_defaults_to_null() {
+        // 7-field v2 snapshot (no 8th field) must decode without crashing.
+        val v2 = listOf(
+            "Playing", "0", "1500", "1700000000000", "F:1500", "", ""
+        ).joinToString("|")
+        val decoded = decodeRuntimeSnapshot(v2)
+        assertNotNull(decoded)
+        assertNull(decoded?.activeHabitId)
+    }
 }
