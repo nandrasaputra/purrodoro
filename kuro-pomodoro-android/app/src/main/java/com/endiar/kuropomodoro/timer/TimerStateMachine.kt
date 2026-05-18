@@ -41,6 +41,7 @@ object TimerStateMachine {
         val currentItem = snapshot.session.items[snapshot.session.currentIndex]
         var openRecord = snapshot.openRecord
 
+        var activeTask = snapshot.activeTask
         when (currentItem.type) {
             is SessionItemType.Focus -> {
                 val date = Instant.ofEpochMilli(snapshot.endsAtMillis ?: now)
@@ -49,7 +50,12 @@ object TimerStateMachine {
                 openRecord = openRecord?.copy(
                     completedFocusCount = openRecord.completedFocusCount + 1
                 )
-                snapshot.activeTask?.let { repo.incrementTaskCompletedSessions(it.id) }
+                activeTask?.let { repo.incrementTaskCompletedSessions(it.id) }
+                snapshot.activeHabitId?.let { habitId ->
+                    repo.incrementHabitProgress(habitId, date)
+                    // Keep UI counter in sync for display during the cycle.
+                    activeTask = activeTask?.copy(completedSessions = (activeTask?.completedSessions ?: 0) + 1)
+                }
             }
             is SessionItemType.ShortBreak -> {
                 openRecord = openRecord?.copy(
@@ -80,6 +86,7 @@ object TimerStateMachine {
                     timerState = TimerState.Idle
                 ),
                 endsAtMillis = null,
+                activeTask = activeTask,
                 openRecord = null
             )
             repo.setRuntimeSnapshot(null)
@@ -98,6 +105,7 @@ object TimerStateMachine {
                     timerState = TimerState.Playing
                 ),
                 endsAtMillis = baseEndsAt + nextSeconds * 1000L,
+                activeTask = activeTask,
                 openRecord = openRecord
             )
         } else {
@@ -108,6 +116,7 @@ object TimerStateMachine {
                     timerState = TimerState.Paused
                 ),
                 endsAtMillis = null,
+                activeTask = activeTask,
                 openRecord = openRecord
             )
         }

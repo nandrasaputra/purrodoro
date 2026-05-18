@@ -4,7 +4,7 @@ import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.TimerSettings
 
 interface TimerController {
-    fun start(settings: TimerSettings, task: FocusTask?)
+    fun start(settings: TimerSettings, task: FocusTask?, activeHabitId: Int? = null)
     fun pause()
     fun resume()
     fun stop()
