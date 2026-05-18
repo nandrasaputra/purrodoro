@@ -99,9 +99,13 @@ import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.timer.TimerNotification
 import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.CycleCompletionCopy
+import com.endiar.kuropomodoro.ui.HabitsScreen
+import com.endiar.kuropomodoro.ui.HabitDraft
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
+import com.endiar.kuropomodoro.model.effectiveTarget
+import com.endiar.kuropomodoro.model.progressOn
 import com.endiar.kuropomodoro.ui.components.CatBackdrop
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.CycleDotsRow
@@ -423,6 +427,71 @@ fun KuroPomodoroApp(
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding,
                         overBackdrop = overBackdrop,
+                    )
+
+                    AppTab.Habits -> HabitsScreen(
+                        habits = appState.habits,
+                        today = java.time.LocalDate.now(),
+                        onAddHabit = { draft ->
+                            scope.launch {
+                                repo.addHabit(
+                                    name = draft.name,
+                                    emoji = draft.emoji,
+                                    colorArgb = draft.colorArgb,
+                                    targetType = draft.targetType,
+                                    targetValue = draft.targetValue,
+                                    occurrence = draft.occurrence,
+                                    timeBlock = draft.timeBlock,
+                                )
+                            }
+                        },
+                        onUpdateHabit = { id, draft ->
+                            scope.launch {
+                                repo.updateHabitMeta(
+                                    id = id,
+                                    name = draft.name,
+                                    emoji = draft.emoji,
+                                    colorArgb = draft.colorArgb,
+                                    targetType = draft.targetType,
+                                    targetValue = draft.targetValue,
+                                    occurrence = draft.occurrence,
+                                    timeBlock = draft.timeBlock,
+                                )
+                            }
+                        },
+                        onToggleBinary = { id, date ->
+                            scope.launch { repo.toggleHabitBinaryCompletion(id, date) }
+                        },
+                        onIncrementProgress = { id, date, delta ->
+                            scope.launch { repo.incrementHabitProgress(id, date, delta) }
+                        },
+                        onSetSkipped = { id, date, skipped ->
+                            scope.launch { repo.setHabitSkipped(id, date, skipped) }
+                        },
+                        onClearLog = { id, date ->
+                            scope.launch { repo.clearHabitLog(id, date) }
+                        },
+                        onDeleteHabit = { id -> scope.launch { repo.deleteHabit(id) } },
+                        glassTreatment = glassTreatment,
+                        overBackdrop = overBackdrop,
+                        onStartPomodoroForHabit = { habit ->
+                            val remaining = habit.effectiveTarget() - habit.progressOn(java.time.LocalDate.now())
+                            val displaySessions = remaining.coerceAtLeast(1)
+                            val syntheticTask = FocusTask(
+                                id = -habit.id,
+                                title = "${habit.emoji} ${habit.name}",
+                                minutes = 0,
+                                completed = false,
+                                plannedSessions = displaySessions,
+                                completedSessions = habit.progressOn(java.time.LocalDate.now()),
+                            )
+                            activeTask = syntheticTask
+                            isFocusMode = true
+                            selectedTab = AppTab.Timer
+                            requestNotificationPermission()
+                            timerConnection.controller.start(settings, syntheticTask, habit.id)
+                        },
+                        contentPadding = screenContentPadding,
                     )
 
                     AppTab.Profile -> ProfileScreen(

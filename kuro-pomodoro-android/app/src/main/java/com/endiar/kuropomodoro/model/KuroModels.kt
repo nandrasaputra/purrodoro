@@ -8,6 +8,7 @@ enum class AppTab(val label: String, val symbol: String) {
     Timer("Focus", "Home"),
     Todo("Todo", "Todo"),
     Calendar("Records", "Records"),
+    Habits("Habits", "Habits"),
     Profile("Me", "Me")
 }
 
