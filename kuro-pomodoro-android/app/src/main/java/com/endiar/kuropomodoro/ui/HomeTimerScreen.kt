@@ -1,6 +1,7 @@
 package com.endiar.kuropomodoro.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,6 +42,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
@@ -55,15 +58,16 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.cycleDotsState
 import com.endiar.kuropomodoro.model.formatSeconds
 import java.time.LocalTime
 
 // Color palette matched to reference image
-private val HomeCream = Color(0xFFF5EDE3)      // warm beige background
-private val HomeCard = Color(0xFFFAF3EC)        // card surface, slightly warmer
-private val HomeCardWarm = Color(0xFFF5EDE3)    // quote card, same as background
-private val HomeBorder = Color(0xFFE8D5C4)      // subtle warm border
+private val HomeCream = Color(0xFFFAF5F2)      // exact extracted main background
+private val HomeCard = Color(0xFFFFFFFF)        // white card lifts off the beige background
+private val HomeCardWarm = Color(0xFFF9EEE5)   // exact extracted bottom card color
+private val HomeBorder = Color(0xFFE9DED8)     // subtle warm border tuned for FAF5F2
 private val HomeText = Color(0xFF1E1612)        // near-black warm brown
 private val HomeMuted = Color(0xFF9E8A7E)       // muted warm grey-brown
 private val HomeCoral = Color(0xFFBF5B3D)       // reference coral/terracotta (darker, less orange)
@@ -192,19 +196,20 @@ private fun HomeHeader(greeting: HomeGreeting) {
 }
 
 @Composable
-private fun HeroPlaceholder(modifier: Modifier = Modifier) {
-    Box(
+private fun HeroImage(modifier: Modifier = Modifier, time: LocalTime) {
+    val resId = if (time.hour in 6..17) {
+        R.drawable.cat_home_header_day
+    } else {
+        R.drawable.cat_home_header_night
+    }
+    Image(
+        painter = painterResource(id = resId),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
         modifier = modifier
             .aspectRatio(1.48f)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFFD4B896)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "🐱",
-            fontSize = 72.sp
-        )
-    }
+    )
 }
 
 @Composable
@@ -212,7 +217,7 @@ private fun IdleHero(backdropTime: LocalTime, onStartPause: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxWidth()
     ) {
-        HeroPlaceholder(modifier = Modifier.fillMaxWidth())
+        HeroImage(modifier = Modifier.fillMaxWidth(), time = backdropTime)
         HomePrimaryButton(
             text = "Start Focus",
             onClick = onStartPause,
@@ -243,7 +248,7 @@ private fun ActiveHero(
     onStop: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        HeroPlaceholder(modifier = Modifier.fillMaxWidth())
+        HeroImage(modifier = Modifier.fillMaxWidth(), time = backdropTime)
         ActiveTimerCard(
             timerMode = timerMode,
             remainingSeconds = remainingSeconds,
@@ -286,7 +291,7 @@ private fun ActiveTimerCard(
     val isFocus = currentType is SessionItemType.Focus
     var showStopConfirmDialog by remember { mutableStateOf(false) }
 
-    HomeCardSurface(modifier = modifier, color = HomeCard.copy(alpha = 0.94f)) {
+    HomeCardSurface(modifier = modifier, color = HomeCard) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -561,7 +566,7 @@ private fun HomeCardSurface(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(color)
-            .border(1.dp, HomeBorder.copy(alpha = 0.74f), RoundedCornerShape(20.dp))
+            .border(1.dp, HomeBorder.copy(alpha = 0.60f), RoundedCornerShape(20.dp))
             .padding(horizontal = 18.dp, vertical = 14.dp)
     ) {
         content()
