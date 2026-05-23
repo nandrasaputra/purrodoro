@@ -83,10 +83,14 @@ fun pomodoroProgress(
         totalFocusSessions > 0 -> totalFocusSessions
         else -> settings.focusSessionsPerCycle.coerceAtLeast(1)
     }
-    val current = if (isStarted) {
+    val current = if (task != null && isStarted) {
+        (task.completedSessions + 1).coerceIn(1, total)
+    } else if (task != null) {
+        task.completedSessions.coerceIn(0, total)
+    } else if (isStarted) {
         (completedFocusSessions + 1).coerceIn(1, total)
     } else {
-        ((task?.completedSessions ?: completedFocusSessions) + 0).coerceIn(0, total)
+        completedFocusSessions.coerceIn(0, total)
     }
     val displayCurrent = if (isStarted) current else current.coerceAtLeast(0)
     return PomodoroProgress(

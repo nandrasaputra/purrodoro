@@ -125,6 +125,22 @@ class HomeTimerModelsTest {
                 settings = settings
             )
         )
+        assertEquals(
+            PomodoroProgress(3, 5, "Pomodoro 3 of 5", "3 / 5 Pomodoros completed"),
+            pomodoroProgress(
+                completedFocusSessions = 0,
+                totalFocusSessions = 5,
+                isStarted = true,
+                task = FocusTask(
+                    id = 7,
+                    title = "Compose Migration",
+                    minutes = 25,
+                    plannedSessions = 5,
+                    completedSessions = 2
+                ),
+                settings = settings
+            )
+        )
     }
 
     private fun record(
