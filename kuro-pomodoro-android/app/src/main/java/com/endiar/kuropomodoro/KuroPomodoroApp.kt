@@ -1,45 +1,24 @@
 package com.endiar.kuropomodoro
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Transition
-import androidx.compose.animation.core.animateDp
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,19 +40,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
@@ -93,7 +65,6 @@ import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.cycleDotsState
-import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.model.glassTreatmentFor
 import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.timer.TimerNotification
@@ -101,14 +72,19 @@ import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.CycleCompletionCopy
 import com.endiar.kuropomodoro.ui.HabitsScreen
 import com.endiar.kuropomodoro.ui.HabitDraft
+import com.endiar.kuropomodoro.ui.HomeTimerScreen
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
+import com.endiar.kuropomodoro.ui.continueTask
+import com.endiar.kuropomodoro.ui.homeStartTask
+import com.endiar.kuropomodoro.ui.homeGreetingFor
+import com.endiar.kuropomodoro.ui.pomodoroProgress
+import com.endiar.kuropomodoro.ui.todayFocusMetrics
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.progressOn
 import com.endiar.kuropomodoro.ui.components.CatBackdrop
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
-import com.endiar.kuropomodoro.ui.components.CycleDotsRow
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import com.endiar.kuropomodoro.ui.components.FocusModeMotion
 import androidx.compose.foundation.layout.WindowInsets
@@ -309,6 +285,21 @@ fun KuroPomodoroApp(
     val currentTimerState = runtimeState?.session?.timerState ?: TimerState.Idle
 
     val backdropTime = AppClock.now()
+    val homeGreeting = homeGreetingFor(backdropTime)
+    val homeContinueTask = continueTask(activeTask, tasks)
+    val homeMetrics = todayFocusMetrics(
+        sessionRecords = sessionRecords,
+        today = LocalDate.now()
+    )
+    val homeDots = cycleDotsState(cycleItems, cycleIndex, currentTimerState, settings)
+    val homeProgressTask = runtimeState?.activeTask ?: activeTask ?: homeContinueTask
+    val homePomodoroProgress = pomodoroProgress(
+        completedFocusSessions = homeDots.completedFocusSessions,
+        totalFocusSessions = homeDots.totalFocusSessions,
+        isStarted = isStarted,
+        task = homeProgressTask,
+        settings = settings
+    )
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
     val useCatBackdrop = selectedTab == AppTab.Timer
@@ -343,26 +334,31 @@ fun KuroPomodoroApp(
                     .statusBarsPadding()
             ) {
                 when (selectedTab) {
-                    AppTab.Timer -> FocusDashboard(
+                    AppTab.Timer -> HomeTimerScreen(
                         timerMode = timerMode,
                         remainingSeconds = remainingSeconds,
                         isRunning = isRunning,
                         isStarted = isStarted,
-                        focusActive = focusActive,
-                        focusTransition = focusTransition,
                         activeTask = activeTask,
+                        continueTask = homeContinueTask,
+                        greeting = homeGreeting,
+                        todayMetrics = homeMetrics,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
                         currentTimerState = currentTimerState,
                         timerSettings = settings,
+                        pomodoroProgress = homePomodoroProgress,
                         isSoundPlaying = isSoundPlaying,
+                        backdropTime = backdropTime,
                         onSkip = { timerConnection.controller.skip() },
                         onStartPause = {
                             when {
                                 !isStarted -> {
+                                    val taskToStart = homeStartTask(activeTask, homeContinueTask)
                                     requestNotificationPermission()
-                                    isFocusMode = true
-                                    timerConnection.controller.start(settings, activeTask)
+                                    isFocusMode = false
+                                    activeTask = taskToStart
+                                    timerConnection.controller.start(settings, taskToStart)
                                 }
 
                                 isRunning -> {
@@ -371,6 +367,7 @@ fun KuroPomodoroApp(
                                 }
 
                                 else -> {
+                                    isFocusMode = false
                                     timerConnection.controller.resume()
                                 }
                             }
@@ -380,9 +377,7 @@ fun KuroPomodoroApp(
                             isFocusMode = false
                             activeTask = null
                         },
-                        onExitFocusMode = { isFocusMode = false },
                         onOpenSoundsSheet = { showSoundsSheet = true },
-                        onEnterFocusMode = { isFocusMode = true },
                         contentPadding = screenContentPadding
                     )
 
@@ -408,7 +403,7 @@ fun KuroPomodoroApp(
                         onDeleteCategory = { id -> scope.launch { repo.deleteCategory(id) } },
                         onFocusTask = { task ->
                             activeTask = task
-                            isFocusMode = true
+                            isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
                             timerConnection.controller.start(settings, task)
@@ -486,7 +481,7 @@ fun KuroPomodoroApp(
                                 completedSessions = habit.progressOn(java.time.LocalDate.now()),
                             )
                             activeTask = syntheticTask
-                            isFocusMode = true
+                            isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
                             timerConnection.controller.start(settings, syntheticTask, habit.id)
@@ -672,539 +667,6 @@ fun KuroPomodoroApp(
 }
 
 @Composable
-private fun FocusDashboard(
-    timerMode: TimerMode,
-    remainingSeconds: Int,
-    isRunning: Boolean,
-    isStarted: Boolean,
-    focusActive: Boolean,
-    focusTransition: Transition<Boolean>,
-    activeTask: FocusTask?,
-    cycleItems: List<TimerSessionItem>,
-    cycleIndex: Int,
-    currentTimerState: TimerState,
-    timerSettings: TimerSettings,
-    isSoundPlaying: Boolean,
-    onSkip: () -> Unit,
-    onStartPause: () -> Unit,
-    onStop: () -> Unit,
-    onExitFocusMode: () -> Unit,
-    onOpenSoundsSheet: () -> Unit,
-    onEnterFocusMode: () -> Unit = {},
-    contentPadding: PaddingValues = PaddingValues(0.dp),
-) {
-    val dots = cycleDotsState(cycleItems, cycleIndex, currentTimerState, timerSettings)
-    val totalFocusSessions = dots.totalFocusSessions
-    val completedFocusSessions = dots.completedFocusSessions
-    val isCurrentlyFocus = dots.isCurrentlyFocus
-
-    val buttonBg = if (isRunning) Color.White.copy(alpha = 0.92f) else Color(0xFFFF8B6F)
-    val buttonContentColor = if (isRunning) Color(0xFF241E2B) else Color.White
-    var showStopConfirmDialog by remember { mutableStateOf(false) }
-
-    val timerSize by focusTransition.animateFloat(
-        transitionSpec = FocusModeMotion.spec(),
-        label = "timerSize"
-    ) { active -> if (active) 96f else 80f }
-
-    // Snap weight on transition start. Fonts only render discrete weights
-    // (100/200/.../900), so interpolating ints creates a visible stair-step
-    // mid-morph. Snapping lets the size/letter-spacing morph carry the
-    // visual change cleanly.
-    val timerWeight = if (focusActive) 200 else 400
-
-    val timerLetterSpacing by focusTransition.animateFloat(
-        transitionSpec = FocusModeMotion.spec(),
-        label = "timerLetterSpacing"
-    ) { active -> if (active) -2f else -1f }
-
-    val timerAlpha by focusTransition.animateFloat(
-        transitionSpec = FocusModeMotion.spec(),
-        label = "timerAlpha"
-    ) { active -> if (active) 0.95f else 0.9f }
-
-    val breathScale = remember { Animatable(1f) }
-    var hasComposed by remember { mutableStateOf(false) }
-    LaunchedEffect(focusActive) {
-        if (focusActive && hasComposed) {
-            delay(FocusModeMotion.BreathDelayMs)
-            breathScale.animateTo(
-                targetValue = FocusModeMotion.BreathScalePeak,
-                animationSpec = tween(
-                    durationMillis = FocusModeMotion.BreathDurationMs / 2,
-                    easing = FocusModeMotion.EnterEasing
-                )
-            )
-            breathScale.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(
-                    durationMillis = FocusModeMotion.BreathDurationMs / 2,
-                    easing = FocusModeMotion.ExitEasing
-                )
-            )
-        } else if (!focusActive) {
-            breathScale.snapTo(1f)
-        }
-        hasComposed = true
-    }
-
-    // Guards enter animations from replaying when FocusDashboard re-enters the
-    // composition after a tab switch. Dashboard elements (CycleDotsRow, buttons)
-    // are immediately visible on first frame — no enter animation needed. The
-    // flag becomes true after the first frame so focus-exit transitions still
-    // animate normally on all subsequent visibility changes.
-    var initialized by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { initialized = true }
-
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(contentPadding)
-            // Full-screen tap-to-exit layer for focus mode, gated on the underlying
-            // boolean so taps work the instant focus is active (not after animation).
-            // The semantics block exposes the same action to TalkBack / assistive tech.
-            .then(
-                if (focusActive) {
-                    Modifier
-                        .pointerInput(focusActive) {
-                            detectTapGestures(onTap = { onExitFocusMode() })
-                        }
-                        .semantics(mergeDescendants = true) {
-                            onClick(label = "Exit focus mode") {
-                                onExitFocusMode()
-                                true
-                            }
-                        }
-                } else {
-                    Modifier
-                }
-            )
-    ) {
-        val centerReserve = ((maxHeight - 240.dp) / 2).coerceAtLeast(40.dp)
-        val topSpacerHeight by focusTransition.animateDp(
-            transitionSpec = FocusModeMotion.spec(),
-            label = "topSpacer"
-        ) { centerReserve }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(Modifier.height(topSpacerHeight))
-
-        focusTransition.AnimatedVisibility(
-            visible = { it },
-            // expandVertically grows the LAYOUT space smoothly so the timer below
-            // doesn't get pushed by an instant ~30dp jump when FOCUS appears.
-            enter = (
-                fadeIn(
-                    animationSpec = tween(
-                        durationMillis = FocusModeMotion.EnterDurationMs - 150,
-                        delayMillis = 150,
-                        easing = FocusModeMotion.EnterEasing
-                    )
-                ) + slideInVertically(
-                    animationSpec = tween(
-                        durationMillis = FocusModeMotion.EnterDurationMs - 150,
-                        delayMillis = 150,
-                        easing = FocusModeMotion.EnterEasing
-                    )
-                ) { -it / 2 } + expandVertically(
-                    animationSpec = tween(
-                        durationMillis = FocusModeMotion.EnterDurationMs,
-                        easing = FocusModeMotion.EnterEasing
-                    )
-                )
-            ),
-            exit = fadeOut(
-                animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.ExitEasing)
-            ) + shrinkVertically(
-                animationSpec = tween(
-                    durationMillis = FocusModeMotion.ExitDurationMs,
-                    easing = FocusModeMotion.ExitEasing
-                )
-            )
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "FOCUS",
-                    color = Color.White.copy(alpha = 0.40f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 2.sp
-                )
-                Spacer(Modifier.height(16.dp))
-            }
-        }
-
-        focusTransition.AnimatedVisibility(
-            visible = { active -> !active },
-            enter = if (initialized) fadeIn(
-                animationSpec = tween(FocusModeMotion.ExitDurationMs, easing = FocusModeMotion.ExitEasing)
-            ) + expandVertically(
-                animationSpec = tween(FocusModeMotion.ExitDurationMs, easing = FocusModeMotion.ExitEasing)
-            ) else EnterTransition.None,
-            exit = fadeOut(
-                animationSpec = tween(durationMillis = 350, easing = FocusModeMotion.EnterEasing)
-            ) + shrinkVertically(
-                animationSpec = tween(durationMillis = 350, easing = FocusModeMotion.EnterEasing)
-            )
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (isRunning && activeTask != null) {
-                    Text(
-                        text = activeTask.title,
-                        color = Color.White.copy(alpha = 0.70f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = "${activeTask.completedSessions + 1} / ${activeTask.plannedSessions}",
-                        color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-                Spacer(Modifier.height(8.dp))
-                CycleDotsRow(
-                    totalFocusSessions = totalFocusSessions,
-                    completedFocusSessions = completedFocusSessions,
-                    isCurrentlyFocus = isCurrentlyFocus,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentSize(Alignment.Center)
-                )
-                Spacer(Modifier.height(4.dp))
-            }
-        }
-
-        Text(
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    scaleX = breathScale.value
-                    scaleY = breathScale.value
-                },
-            textAlign = TextAlign.Center,
-            text = formatSeconds(remainingSeconds),
-            color = Color.White.copy(alpha = timerAlpha),
-            fontSize = timerSize.sp,
-            fontWeight = FontWeight(timerWeight),
-            letterSpacing = timerLetterSpacing.sp
-        )
-
-        focusTransition.AnimatedVisibility(
-            visible = { it && activeTask != null },
-            enter = fadeIn(
-                animationSpec = tween(
-                    durationMillis = FocusModeMotion.EnterDurationMs - 150,
-                    delayMillis = 150,
-                    easing = FocusModeMotion.EnterEasing
-                )
-            ) + expandVertically(
-                animationSpec = tween(
-                    durationMillis = FocusModeMotion.EnterDurationMs - 100,
-                    delayMillis = 100,
-                    easing = FocusModeMotion.EnterEasing
-                )
-            ),
-            exit = fadeOut(
-                animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.ExitEasing)
-            ) + shrinkVertically(
-                animationSpec = tween(durationMillis = 250, easing = FocusModeMotion.ExitEasing)
-            )
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(Modifier.height(16.dp))
-                activeTask?.let { task ->
-                    Text(
-                        text = task.title,
-                        color = Color.White.copy(alpha = 0.60f),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = "${task.completedSessions + 1} / ${task.plannedSessions}",
-                        color = Color(0xFFFF8B6F).copy(alpha = 0.80f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-
-        focusTransition.AnimatedVisibility(
-            visible = { active -> !active && isStarted && !isRunning },
-            enter = fadeIn(animationSpec = tween(durationMillis = 250, easing = FocusModeMotion.ExitEasing)),
-            exit = fadeOut(animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.EnterEasing))
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "${timerMode.label} · paused",
-                    color = Color.White.copy(alpha = 0.45f),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.5.sp
-                )
-            }
-        }
-
-        if (!focusActive) {
-            Spacer(Modifier.height(24.dp))
-        }
-
-        focusTransition.AnimatedVisibility(
-            visible = { active -> !active },
-            enter = if (initialized) fadeIn(
-                animationSpec = tween(
-                    durationMillis = FocusModeMotion.ExitDurationMs,
-                    easing = FocusModeMotion.ExitEasing
-                )
-            ) else EnterTransition.None,
-            exit = fadeOut(
-                animationSpec = tween(durationMillis = 300, easing = FocusModeMotion.EnterEasing)
-            )
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isRunning) {
-                    val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
-                    val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
-                            currentItemType is SessionItemType.LongBreak
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(buttonBg)
-                            .clickable(onClick = onStartPause),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "\u23f8",
-                            color = buttonContentColor,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    if (isOnBreak) {
-                        Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .height(56.dp)
-                                .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
-                                .clip(RoundedCornerShape(28.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .clickable(onClick = onSkip)
-                                .padding(horizontal = 16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Skip",
-                                color = Color.White.copy(alpha = 0.60f),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                } else if (isStarted) {
-                    val currentItemType = cycleItems.getOrNull(cycleIndex)?.type
-                    val isOnBreak = currentItemType is SessionItemType.ShortBreak ||
-                            currentItemType is SessionItemType.LongBreak
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .border(1.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(buttonBg)
-                            .clickable(onClick = onStartPause),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "\u25b6",
-                            color = buttonContentColor,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .clickable {
-                                val currentItemType2 = cycleItems.getOrNull(cycleIndex)?.type
-                                if (currentItemType2 is SessionItemType.Focus) {
-                                    showStopConfirmDialog = true
-                                } else {
-                                    onStop()
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "\u25a0",
-                            color = Color.White.copy(alpha = 0.60f),
-                            fontSize = 18.sp
-                        )
-                    }
-                    if (isOnBreak) {
-                        Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .height(56.dp)
-                                .border(1.5.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
-                                .clip(RoundedCornerShape(28.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .clickable(onClick = onSkip)
-                                .padding(horizontal = 16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Skip",
-                                color = Color.White.copy(alpha = 0.60f),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 48.dp)
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(Color(0xFFFF8B6F))
-                            .clickable(onClick = onStartPause),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Focus Now",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-        MusicButton(
-            isPlaying = isSoundPlaying,
-            onClick = onOpenSoundsSheet
-        )
-
-        if (showStopConfirmDialog) {
-            AlertDialog(
-                onDismissRequest = { showStopConfirmDialog = false },
-                title = {
-                    Text(
-                        text = "Taking a break?",
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Your focus time so far will still be counted.",
-                        color = Color.White.copy(alpha = 0.75f)
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showStopConfirmDialog = false
-                        onStop()
-                    }) {
-                        Text(
-                            text = "Stop for now",
-                            color = Color(0xFFFF8B6F),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showStopConfirmDialog = false }) {
-                        Text(
-                            text = "Stay focused",
-                            color = Color.White.copy(alpha = 0.70f)
-                        )
-                    }
-                },
-                containerColor = Color(0xFF2A2035),
-                shape = RoundedCornerShape(20.dp)
-            )
-        }
-
-        Spacer(Modifier.weight(1f))
-        focusTransition.AnimatedVisibility(
-            visible = { active -> !active && isRunning },
-            enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 100, easing = FocusModeMotion.ExitEasing)),
-            exit = fadeOut(animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.EnterEasing))
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFFFF8B6F).copy(alpha = 0.18f))
-                        .border(1.dp, Color(0xFFFF8B6F).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
-                        .clickable(onClick = onEnterFocusMode)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "↗  enter focus mode",
-                        color = Color(0xFFFF8B6F),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                Spacer(Modifier.height(40.dp))
-            }
-        }
-
-        focusTransition.AnimatedVisibility(
-            visible = { it },
-            enter = fadeIn(
-                animationSpec = tween(
-                    durationMillis = 350,
-                    delayMillis = 350,
-                    easing = FocusModeMotion.EnterEasing
-                )
-            ),
-            exit = fadeOut(
-                animationSpec = tween(durationMillis = 200, easing = FocusModeMotion.ExitEasing)
-            )
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "tap anywhere to show controls",
-                    color = Color.White.copy(alpha = 0.22f),
-                    fontSize = 12.sp
-                )
-                Spacer(Modifier.height(40.dp))
-            }
-        }
-    }
-    }
-}
-
-@Composable
 private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -1221,46 +683,6 @@ private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Mod
                 Text("Dismiss", style = MaterialTheme.typography.labelLarge)
             }
         }
-    }
-}
-
-@Composable
-private fun MusicButton(
-    isPlaying: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "musicRotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
-
-    Box(
-        modifier = modifier
-            .size(44.dp)
-            .border(
-                width = 1.5.dp,
-                color = Color.White.copy(alpha = if (isPlaying) 0.50f else 0.20f),
-                shape = RoundedCornerShape(22.dp)
-            )
-            .clip(RoundedCornerShape(22.dp))
-            .background(if (isPlaying) Color.White.copy(alpha = 0.12f) else Color.Transparent)
-            .clickable(onClick = onClick)
-            .graphicsLayer { if (isPlaying) rotationZ = rotation },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "\u266B",
-            color = Color.White.copy(alpha = if (isPlaying) 0.90f else 0.40f),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 
