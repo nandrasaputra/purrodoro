@@ -106,7 +106,7 @@ fun HomeTimerScreen(
                 .padding(contentPadding)
                 .padding(horizontal = 20.dp)
                 .padding(top = 18.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             HomeHeader(greeting = greeting)
             if (isStarted) {
@@ -147,16 +147,16 @@ private fun HomeHeader(greeting: HomeGreeting) {
             Text(
                 text = greeting.salutation,
                 color = HomeMuted,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Nandra",
                     color = HomeText,
-                    fontSize = 36.sp,
-                    lineHeight = 40.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 32.sp,
+                    lineHeight = 36.sp,
+                    fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.Serif
                 )
                 Canvas(
@@ -181,8 +181,8 @@ private fun HomeHeader(greeting: HomeGreeting) {
             Text(
                 text = greeting.encouragement,
                 color = HomeMuted,
-                fontSize = 14.sp,
-                lineHeight = 18.sp,
+                fontSize = 13.sp,
+                lineHeight = 17.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -196,7 +196,7 @@ private fun HeroPlaceholder(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .aspectRatio(1.48f)
-            .clip(RoundedCornerShape(32.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(Color(0xFFD4B896)),
         contentAlignment = Alignment.Center
     ) {
@@ -329,9 +329,9 @@ private fun ActiveTimerCard(
                     Text(
                         text = formatSeconds(remainingSeconds),
                         color = HomeText,
-                        fontSize = 48.sp,
-                        lineHeight = 52.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        fontSize = 44.sp,
+                        lineHeight = 48.sp,
+                        fontWeight = FontWeight.Light
                     )
                     Text(
                         text = "remaining",
@@ -415,13 +415,13 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
     HomeCardSurface {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "📅", fontSize = 15.sp)
+                Text(text = "📅", fontSize = 14.sp)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = "Continue where you left off",
                     color = HomeText,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
             Row(
@@ -434,8 +434,8 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
                     Text(
                         text = task?.title ?: "Choose a focus task",
                         color = HomeText,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -470,8 +470,8 @@ private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
                 Text(
                     text = "Today's Focus",
                     color = HomeText,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = "View all",
@@ -480,13 +480,10 @@ private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
                     fontWeight = FontWeight.Medium
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                MetricColumn(label = "Focus time", value = metrics.focusTimeLabel)
-                MetricColumn(label = "Sessions", value = metrics.sessionsLabel)
-                MetricColumn(label = "Completed", value = metrics.completedLabel)
+            Row(modifier = Modifier.fillMaxWidth()) {
+                MetricColumn(label = "Focus time", value = metrics.focusTimeLabel, modifier = Modifier.weight(1f))
+                MetricColumn(label = "Sessions", value = metrics.sessionsLabel, modifier = Modifier.weight(1f))
+                MetricColumn(label = "Completed", value = metrics.completedLabel, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -503,9 +500,9 @@ private fun QuoteCard() {
             Text(
                 text = "Little by little,\na lot becomes a lot. ♡",
                 color = HomeText,
-                fontSize = 19.sp,
-                lineHeight = 25.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 15.sp,
+                lineHeight = 22.sp,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
             SleepingCat(modifier = Modifier.size(88.dp))
@@ -535,19 +532,20 @@ private fun SoundChip(isPlaying: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MetricColumn(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            color = HomeText,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
+private fun MetricColumn(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
             color = HomeMuted,
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = value,
+            color = HomeText,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -561,10 +559,10 @@ private fun HomeCardSurface(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(color)
-            .border(1.dp, HomeBorder.copy(alpha = 0.74f), RoundedCornerShape(28.dp))
-            .padding(18.dp)
+            .border(1.dp, HomeBorder.copy(alpha = 0.74f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 18.dp, vertical = 14.dp)
     ) {
         content()
     }
@@ -628,8 +626,8 @@ private fun PomodoroRing(progress: PomodoroProgress) {
     val total = progress.total.coerceAtLeast(1)
     val fraction = (progress.current.toFloat() / total.toFloat()).coerceIn(0f, 1f)
     Box(contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.size(72.dp)) {
-            val stroke = 8.dp.toPx()
+        Canvas(modifier = Modifier.size(64.dp)) {
+            val stroke = 7.dp.toPx()
             drawArc(
                 color = HomeCoralSoft,
                 startAngle = -90f,
