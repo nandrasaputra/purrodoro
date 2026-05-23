@@ -126,8 +126,7 @@ fun HomeTimerScreen(
                     backdropTime = backdropTime,
                     onSkip = onSkip,
                     onStartPause = onStartPause,
-                    onStop = onStop,
-                    onEnterFocusMode = onEnterFocusMode
+                    onStop = onStop
                 )
             } else {
                 IdleHero(backdropTime = backdropTime, onStartPause = onStartPause)
@@ -234,8 +233,7 @@ private fun ActiveHero(
     backdropTime: LocalTime,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
-    onStop: () -> Unit,
-    onEnterFocusMode: () -> Unit
+    onStop: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -262,7 +260,6 @@ private fun ActiveHero(
             onSkip = onSkip,
             onStartPause = onStartPause,
             onStop = onStop,
-            onEnterFocusMode = onEnterFocusMode,
             modifier = Modifier
                 .offset(y = (-72).dp)
                 .padding(horizontal = 12.dp)
@@ -284,7 +281,6 @@ private fun ActiveTimerCard(
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
     onStop: () -> Unit,
-    onEnterFocusMode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dots = cycleDotsState(cycleItems, cycleIndex, currentTimerState, timerSettings)
@@ -376,11 +372,6 @@ private fun ActiveTimerCard(
                 if (isBreak) {
                     TextButton(onClick = onSkip) {
                         Text("Skip break", color = HomeMuted, fontWeight = FontWeight.Bold)
-                    }
-                }
-                if (isRunning) {
-                    TextButton(onClick = onEnterFocusMode) {
-                        Text("Focus mode", color = HomeCoral, fontWeight = FontWeight.Bold)
                     }
                 }
             }
