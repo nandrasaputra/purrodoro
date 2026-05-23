@@ -93,7 +93,6 @@ fun HomeTimerScreen(
     onStartPause: () -> Unit,
     onStop: () -> Unit,
     onOpenSoundsSheet: () -> Unit,
-    onEnterFocusMode: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
