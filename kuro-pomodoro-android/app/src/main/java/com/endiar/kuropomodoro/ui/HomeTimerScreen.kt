@@ -731,64 +731,10 @@ private fun CatAvatar() {
 
 @Composable
 private fun SleepingCat(modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val fur = Color(0xFF2D2421)
-        val blush = Color(0xFFFFA891)
-        drawOval(
-            color = fur,
-            topLeft = Offset(size.width * 0.14f, size.height * 0.38f),
-            size = Size(size.width * 0.68f, size.height * 0.34f)
-        )
-        drawCircle(
-            color = fur,
-            radius = size.minDimension * 0.18f,
-            center = Offset(size.width * 0.30f, size.height * 0.40f)
-        )
-        drawCircle(
-            color = fur,
-            radius = size.minDimension * 0.08f,
-            center = Offset(size.width * 0.18f, size.height * 0.26f)
-        )
-        drawCircle(
-            color = fur,
-            radius = size.minDimension * 0.08f,
-            center = Offset(size.width * 0.38f, size.height * 0.26f)
-        )
-        drawArc(
-            color = Color.White.copy(alpha = 0.86f),
-            startAngle = 10f,
-            sweepAngle = 150f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.19f, size.height * 0.37f),
-            size = Size(size.width * 0.10f, size.height * 0.08f),
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-        )
-        drawArc(
-            color = Color.White.copy(alpha = 0.86f),
-            startAngle = 20f,
-            sweepAngle = 140f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.34f, size.height * 0.37f),
-            size = Size(size.width * 0.10f, size.height * 0.08f),
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-        )
-        drawCircle(color = blush, radius = size.minDimension * 0.035f, center = Offset(size.width * 0.26f, size.height * 0.49f))
-        drawCircle(color = blush, radius = size.minDimension * 0.035f, center = Offset(size.width * 0.42f, size.height * 0.49f))
-        drawArc(
-            color = fur,
-            startAngle = 165f,
-            sweepAngle = 210f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.64f, size.height * 0.32f),
-            size = Size(size.width * 0.24f, size.height * 0.34f),
-            style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round)
-        )
-        drawLine(
-            color = HomeBorder,
-            start = Offset(size.width * 0.05f, size.height * 0.75f),
-            end = Offset(size.width * 0.95f, size.height * 0.75f),
-            strokeWidth = 2.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-    }
+    Image(
+        painter = painterResource(id = R.drawable.cat_home_sleeping),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = modifier
+    )
 }
