@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,7 +25,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -237,20 +237,18 @@ private fun ActiveHero(
     onStop: () -> Unit,
     onEnterFocusMode: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 32.dp)
-    ) {
-        Image(
-            painter = painterResource(id = backgroundImageForTime(backdropTime)),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1.48f)
-                .clip(RoundedCornerShape(32.dp))
-        )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Image(
+                painter = painterResource(id = backgroundImageForTime(backdropTime)),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1.48f)
+                    .clip(RoundedCornerShape(32.dp))
+            )
+        }
         ActiveTimerCard(
             timerMode = timerMode,
             remainingSeconds = remainingSeconds,
@@ -266,8 +264,7 @@ private fun ActiveHero(
             onStop = onStop,
             onEnterFocusMode = onEnterFocusMode,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = 72.dp)
+                .offset(y = (-72).dp)
                 .padding(horizontal = 12.dp)
         )
     }
@@ -324,10 +321,10 @@ private fun ActiveTimerCard(
                     )
                 }
                 Text(
-                    text = "Edit",
-                    color = HomeCoral,
+                    text = "Active",
+                    color = HomeMuted,
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Medium
                 )
             }
             Row(
@@ -458,12 +455,6 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = HomeMuted,
-                    modifier = Modifier.size(26.dp)
-                )
             }
         }
     }
@@ -483,12 +474,6 @@ private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
                     color = HomeText,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.ExtraBold
-                )
-                Text(
-                    text = "View all",
-                    color = HomeCoral,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
                 )
             }
             Row(
@@ -528,6 +513,7 @@ private fun QuoteCard() {
 private fun SoundChip(isPlaying: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(Color.White.copy(alpha = 0.58f))
             .border(1.dp, HomeBorder, RoundedCornerShape(24.dp))
