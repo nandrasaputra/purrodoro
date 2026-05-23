@@ -352,9 +352,11 @@ fun KuroPomodoroApp(
                         onStartPause = {
                             when {
                                 !isStarted -> {
+                                    val taskToStart = activeTask ?: homeContinueTask
                                     requestNotificationPermission()
-                                    isFocusMode = true
-                                    timerConnection.controller.start(settings, activeTask)
+                                    isFocusMode = false
+                                    activeTask = taskToStart
+                                    timerConnection.controller.start(settings, taskToStart)
                                 }
 
                                 isRunning -> {
@@ -373,7 +375,7 @@ fun KuroPomodoroApp(
                             activeTask = null
                         },
                         onOpenSoundsSheet = { showSoundsSheet = true },
-                        onEnterFocusMode = { isFocusMode = true },
+                        onEnterFocusMode = { isFocusMode = false },
                         contentPadding = screenContentPadding
                     )
 
