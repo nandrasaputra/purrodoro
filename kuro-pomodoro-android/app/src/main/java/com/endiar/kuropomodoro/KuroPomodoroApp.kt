@@ -77,6 +77,7 @@ import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.continueTask
+import com.endiar.kuropomodoro.ui.homeStartTask
 import com.endiar.kuropomodoro.ui.homeGreetingFor
 import com.endiar.kuropomodoro.ui.pomodoroProgress
 import com.endiar.kuropomodoro.ui.todayFocusMetrics
@@ -291,11 +292,12 @@ fun KuroPomodoroApp(
         today = LocalDate.now()
     )
     val homeDots = cycleDotsState(cycleItems, cycleIndex, currentTimerState, settings)
+    val homeProgressTask = runtimeState?.activeTask ?: activeTask ?: homeContinueTask
     val homePomodoroProgress = pomodoroProgress(
         completedFocusSessions = homeDots.completedFocusSessions,
         totalFocusSessions = homeDots.totalFocusSessions,
         isStarted = isStarted,
-        task = activeTask ?: homeContinueTask,
+        task = homeProgressTask,
         settings = settings
     )
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
@@ -352,7 +354,7 @@ fun KuroPomodoroApp(
                         onStartPause = {
                             when {
                                 !isStarted -> {
-                                    val taskToStart = activeTask ?: homeContinueTask
+                                    val taskToStart = homeStartTask(activeTask, homeContinueTask)
                                     requestNotificationPermission()
                                     isFocusMode = false
                                     activeTask = taskToStart
@@ -401,7 +403,7 @@ fun KuroPomodoroApp(
                         onDeleteCategory = { id -> scope.launch { repo.deleteCategory(id) } },
                         onFocusTask = { task ->
                             activeTask = task
-                            isFocusMode = true
+                            isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
                             timerConnection.controller.start(settings, task)
@@ -479,7 +481,7 @@ fun KuroPomodoroApp(
                                 completedSessions = habit.progressOn(java.time.LocalDate.now()),
                             )
                             activeTask = syntheticTask
-                            isFocusMode = true
+                            isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
                             timerConnection.controller.start(settings, syntheticTask, habit.id)
