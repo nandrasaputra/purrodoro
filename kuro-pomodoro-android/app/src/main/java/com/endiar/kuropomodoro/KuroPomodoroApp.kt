@@ -365,6 +365,7 @@ fun KuroPomodoroApp(
                                 }
 
                                 else -> {
+                                    isFocusMode = false
                                     timerConnection.controller.resume()
                                 }
                             }
@@ -375,7 +376,6 @@ fun KuroPomodoroApp(
                             activeTask = null
                         },
                         onOpenSoundsSheet = { showSoundsSheet = true },
-                        onEnterFocusMode = { isFocusMode = false },
                         contentPadding = screenContentPadding
                     )
 
