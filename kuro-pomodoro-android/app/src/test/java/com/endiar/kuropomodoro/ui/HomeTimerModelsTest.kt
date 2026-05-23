@@ -96,6 +96,21 @@ class HomeTimerModelsTest {
     }
 
     @Test
+    fun homeStartTaskDoesNotAutoBindContinueTask() {
+        val continueTask = FocusTask(
+            id = 1,
+            title = "Inbox cleanup",
+            minutes = 25,
+            completed = false,
+            plannedSessions = 3,
+            completedSessions = 1
+        )
+
+        assertNull(homeStartTask(activeTask = null, continueTask = continueTask))
+        assertEquals(continueTask, homeStartTask(activeTask = continueTask, continueTask = null))
+    }
+
+    @Test
     fun pomodoroProgressLabelUsesCurrentFocusPositionDuringCycle() {
         val settings = TimerSettings(focusSessionsPerCycle = 5)
 
@@ -137,6 +152,22 @@ class HomeTimerModelsTest {
                     minutes = 25,
                     plannedSessions = 5,
                     completedSessions = 2
+                ),
+                settings = settings
+            )
+        )
+        assertEquals(
+            PomodoroProgress(2, 5, "Pomodoro 2 of 5", "2 / 5 Pomodoros completed"),
+            pomodoroProgress(
+                completedFocusSessions = 1,
+                totalFocusSessions = 5,
+                isStarted = true,
+                task = FocusTask(
+                    id = 7,
+                    title = "Compose Migration",
+                    minutes = 25,
+                    plannedSessions = 5,
+                    completedSessions = 0
                 ),
                 settings = settings
             )

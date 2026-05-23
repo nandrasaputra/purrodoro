@@ -71,6 +71,10 @@ fun continueTask(activeTask: FocusTask?, tasks: List<FocusTask>): FocusTask? {
         ?: tasks.firstOrNull { !it.completed }
 }
 
+fun homeStartTask(activeTask: FocusTask?, continueTask: FocusTask?): FocusTask? {
+    return activeTask
+}
+
 fun pomodoroProgress(
     completedFocusSessions: Int,
     totalFocusSessions: Int,
@@ -83,14 +87,15 @@ fun pomodoroProgress(
         totalFocusSessions > 0 -> totalFocusSessions
         else -> settings.focusSessionsPerCycle.coerceAtLeast(1)
     }
+    val completed = maxOf(task?.completedSessions ?: 0, completedFocusSessions)
     val current = if (task != null && isStarted) {
-        (task.completedSessions + 1).coerceIn(1, total)
+        (completed + 1).coerceIn(1, total)
     } else if (task != null) {
-        task.completedSessions.coerceIn(0, total)
+        completed.coerceIn(0, total)
     } else if (isStarted) {
-        (completedFocusSessions + 1).coerceIn(1, total)
+        (completed + 1).coerceIn(1, total)
     } else {
-        completedFocusSessions.coerceIn(0, total)
+        completed.coerceIn(0, total)
     }
     val displayCurrent = if (isStarted) current else current.coerceAtLeast(0)
     return PomodoroProgress(

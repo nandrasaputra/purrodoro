@@ -1,7 +1,6 @@
 package com.endiar.kuropomodoro.ui
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -43,8 +43,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,20 +55,20 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.backgroundImageForTime
 import com.endiar.kuropomodoro.model.cycleDotsState
 import com.endiar.kuropomodoro.model.formatSeconds
 import java.time.LocalTime
 
-private val HomeCream = Color(0xFFFFF7EC)
-private val HomeCard = Color(0xFFFFFCF6)
-private val HomeCardWarm = Color(0xFFFFF1E2)
-private val HomeBorder = Color(0xFFEFDCC8)
-private val HomeText = Color(0xFF2B201C)
-private val HomeMuted = Color(0xFF8B7770)
-private val HomeCoral = Color(0xFFFF7D62)
-private val HomeCoralSoft = Color(0xFFFFE3D9)
-private val HomeLeaf = Color(0xFF8EAD7E)
+// Color palette matched to reference image
+private val HomeCream = Color(0xFFF5EDE3)      // warm beige background
+private val HomeCard = Color(0xFFFAF3EC)        // card surface, slightly warmer
+private val HomeCardWarm = Color(0xFFF5EDE3)    // quote card, same as background
+private val HomeBorder = Color(0xFFE8D5C4)      // subtle warm border
+private val HomeText = Color(0xFF1E1612)        // near-black warm brown
+private val HomeMuted = Color(0xFF9E8A7E)       // muted warm grey-brown
+private val HomeCoral = Color(0xFFBF5B3D)       // reference coral/terracotta (darker, less orange)
+private val HomeCoralSoft = Color(0xFFF2DDD5)   // soft coral tint for tiles
+private val HomeLeaf = Color(0xFF7A9A60)        // leaf green
 
 @Composable
 fun HomeTimerScreen(
@@ -194,28 +192,38 @@ private fun HomeHeader(greeting: HomeGreeting) {
 }
 
 @Composable
-private fun IdleHero(backdropTime: LocalTime, onStartPause: () -> Unit) {
+private fun HeroPlaceholder(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .aspectRatio(1.48f)
             .clip(RoundedCornerShape(32.dp))
+            .background(Color(0xFFD4B896)),
+        contentAlignment = Alignment.Center
     ) {
-        Image(
-            painter = painterResource(id = backgroundImageForTime(backdropTime)),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+        Text(
+            text = "🐱",
+            fontSize = 72.sp
         )
+    }
+}
+
+@Composable
+private fun IdleHero(backdropTime: LocalTime, onStartPause: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        HeroPlaceholder(modifier = Modifier.fillMaxWidth())
         HomePrimaryButton(
             text = "Start Focus",
             onClick = onStartPause,
             icon = true,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 18.dp)
+                .padding(horizontal = 24.dp)
+                .offset(y = 27.dp)
         )
     }
+    Spacer(Modifier.height(27.dp))
 }
 
 @Composable
@@ -235,17 +243,7 @@ private fun ActiveHero(
     onStop: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Image(
-                painter = painterResource(id = backgroundImageForTime(backdropTime)),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1.48f)
-                    .clip(RoundedCornerShape(32.dp))
-            )
-        }
+        HeroPlaceholder(modifier = Modifier.fillMaxWidth())
         ActiveTimerCard(
             timerMode = timerMode,
             remainingSeconds = remainingSeconds,
@@ -316,8 +314,8 @@ private fun ActiveTimerCard(
                     )
                 }
                 Text(
-                    text = "Active",
-                    color = HomeMuted,
+                    text = "✎ Edit",
+                    color = HomeCoral,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -416,12 +414,16 @@ private fun ActiveTimerCard(
 private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
     HomeCardSurface {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(
-                text = "Continue where you left off",
-                color = HomeText,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "📅", fontSize = 15.sp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Continue where you left off",
+                    color = HomeText,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -445,6 +447,12 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = HomeMuted,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -462,8 +470,14 @@ private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
                 Text(
                     text = "Today's Focus",
                     color = HomeText,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "View all",
+                    color = HomeCoral,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
             Row(
@@ -633,16 +647,18 @@ private fun PomodoroRing(progress: PomodoroProgress) {
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "${progress.current.coerceAtLeast(0)}",
-                color = HomeText,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold
+                text = "Pomodoro",
+                color = HomeMuted,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
             )
             Text(
-                text = "/ $total",
-                color = HomeMuted,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
+                text = "${progress.current.coerceAtLeast(1)} of $total",
+                color = HomeText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -660,13 +676,13 @@ private fun CycleDots(dots: com.endiar.kuropomodoro.model.CycleDotsState) {
             val active = dots.isCurrentlyFocus && index == dots.completedFocusSessions
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .size(width = if (active) 24.dp else 9.dp, height = 9.dp)
-                    .clip(RoundedCornerShape(9.dp))
+                    .padding(horizontal = 5.dp)
+                    .size(if (active) 13.dp else 10.dp)
+                    .clip(CircleShape)
                     .background(
                         when {
                             active -> HomeCoral
-                            completed -> HomeLeaf
+                            completed -> HomeCoral.copy(alpha = 0.55f)
                             else -> HomeBorder
                         }
                     )
