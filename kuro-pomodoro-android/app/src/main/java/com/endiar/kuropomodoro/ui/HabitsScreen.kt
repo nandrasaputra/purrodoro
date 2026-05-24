@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,9 +51,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -68,10 +72,6 @@ import com.endiar.kuropomodoro.model.TimeBlock
 import com.endiar.kuropomodoro.model.currentStreak
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.isScheduledOn
-import com.endiar.kuropomodoro.model.isTargetMetOn
-import com.endiar.kuropomodoro.model.progressOn
-import com.endiar.kuropomodoro.model.streakLabel
-import com.endiar.kuropomodoro.ui.components.GlassCard
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
 import com.endiar.kuropomodoro.ui.theme.KuroSurfaceTokens
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
@@ -80,6 +80,17 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+
+private val ReferenceCream = Color(0xFFF9F5F0)    // near-white BG
+private val ReferenceCard = Color(0xFFFFFFFF)      // pure white cards
+private val ReferenceCardWarm = Color(0xFFFFF8F2)  // very light warm inner surfaces
+private val ReferenceBorder = Color(0xFFEDE0D4)
+private val ReferenceTrack = Color(0xFFF5EEE8)     // near-invisible filter track
+private val ReferenceInk = Color(0xFF201714)
+private val ReferenceMuted = Color(0xFF786B64)
+private val ReferenceFaint = Color(0xFFA99B92)
+private val ReferenceCoral = Color(0xFFC96F51)
+private val ReferenceLeaf = Color(0xFF8BA478)
 
 // ─── Data transfer object ─────────────────────────────────────────────────────
 
@@ -120,100 +131,68 @@ fun HabitsScreen(
     val topPaddingPx = with(density) { 8.dp.roundToPx() }
     val showStickyBar by remember { derivedStateOf { scrollState.value > headerHeightPx + topPaddingPx } }
 
-    val todayHabits = habits.filter { it.isScheduledOn(today) }
-    val upcomingHabits = habits.filter { !it.isScheduledOn(today) }
-    val dateLabel = today.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))
+    var selectedHabitFilter by rememberSaveable { mutableStateOf(HabitUiFilter.All) }
+    val visibleHabits = filterHabitsForUi(habits, selectedHabitFilter)
+    val sectionTitle = when (selectedHabitFilter) {
+        HabitUiFilter.All -> "Daily Habits"
+        HabitUiFilter.Daily -> "Daily Habits"
+        HabitUiFilter.Weekly -> "Weekly Habits"
+        HabitUiFilter.Custom -> "Custom Habits"
+    }
 
     var showAddSheet by remember { mutableStateOf(false) }
     var editingHabit by remember { mutableStateOf<Habit?>(null) }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(ReferenceCream),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp)
-                .padding(top = 8.dp, bottom = 100.dp)
+                .padding(horizontal = 18.dp)
+                .padding(top = 10.dp, bottom = 100.dp)
                 .padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            // ── Header ───────────────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onSizeChanged { headerHeightPx = it.height },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = "Habits",
-                        color = tokens.textPrimary,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(text = dateLabel, color = tokens.textSecondary, fontSize = 13.sp)
-                }
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(tokens.accent)
-                        .clickable { showAddSheet = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(text = "+", color = tokens.accentOn, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                }
-            }
+            ReferenceHabitHeader(
+                modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
+                onAdd = { showAddSheet = true },
+            )
 
-            Spacer(Modifier.height(24.dp))
+            HabitFilterTabs(
+                selectedFilter = selectedHabitFilter,
+                onSelected = { selectedHabitFilter = it },
+            )
 
-            if (habits.isEmpty()) {
-                // ── Empty state ───────────────────────────────────────────
-                HabitsEmptyState(tokens = tokens, onAdd = { showAddSheet = true })
+            Text(
+                text = sectionTitle,
+                color = ReferenceInk,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+            )
+
+            if (visibleHabits.isEmpty()) {
+                ReferenceEmptyHabitCard(filter = selectedHabitFilter, onAdd = { showAddSheet = true })
             } else {
-                // ── TODAY ─────────────────────────────────────────────────
-                if (todayHabits.isNotEmpty()) {
-                    SectionLabel(text = "TODAY", tokens = tokens)
-                    Spacer(Modifier.height(8.dp))
-                    todayHabits.forEach { habit ->
-                        HabitRow(
-                            habit = habit,
-                            today = today,
-                            isToday = true,
-                            glassTreatment = glassTreatment,
-                            overBackdrop = overBackdrop,
-                            tokens = tokens,
-                            onEdit = { editingHabit = habit },
-                            onToggle = { onToggleBinary(habit.id, today) },
-                            onIncrement = { onIncrementProgress(habit.id, today, 1) },
-                            onStartPomodoro = { onStartPomodoroForHabit(habit) },
-                        )
-                        Spacer(Modifier.height(8.dp))
-                    }
-                }
-
-                // ── UPCOMING ──────────────────────────────────────────────
-                if (upcomingHabits.isNotEmpty()) {
-                    if (todayHabits.isNotEmpty()) Spacer(Modifier.height(8.dp))
-                    SectionLabel(text = "UPCOMING", tokens = tokens)
-                    Spacer(Modifier.height(8.dp))
-                    upcomingHabits.forEach { habit ->
-                        HabitRow(
-                            habit = habit,
-                            today = today,
-                            isToday = false,
-                            glassTreatment = glassTreatment,
-                            overBackdrop = overBackdrop,
-                            tokens = tokens,
-                            onEdit = { editingHabit = habit },
-                            onToggle = {},
-                            onIncrement = {},
-                            onStartPomodoro = {},
-                        )
-                        Spacer(Modifier.height(8.dp))
-                    }
+                visibleHabits.forEach { habit ->
+                    val isScheduledToday = habit.isScheduledOn(today)
+                    ReferenceHabitCard(
+                        habit = habit,
+                        today = today,
+                        isScheduledToday = isScheduledToday,
+                        onEdit = { editingHabit = habit },
+                        onToggle = { onToggleBinary(habit.id, today) },
+                        onIncrement = { onIncrementProgress(habit.id, today, 1) },
+                        onStartPomodoro = { onStartPomodoroForHabit(habit) },
+                    )
                 }
             }
+
+            MonthlyHabitProgressCard(habits = habits, today = today)
+            HabitMotivationCard()
         }
 
         // ── Sticky top bar ────────────────────────────────────────────────
@@ -266,84 +245,107 @@ fun HabitsScreen(
     }
 }
 
-// ─── Habit row ────────────────────────────────────────────────────────────────
+// ─── Reference-style habit screen ─────────────────────────────────────────────
 
 @Composable
-private fun HabitRow(
-    habit: Habit,
-    today: LocalDate,
-    isToday: Boolean,
-    glassTreatment: GlassTreatment,
-    overBackdrop: Boolean,
-    tokens: KuroSurfaceTokens,
-    onEdit: () -> Unit,
-    onToggle: () -> Unit,
-    onIncrement: () -> Unit,
-    onStartPomodoro: () -> Unit,
+private fun ReferenceHabitHeader(
+    modifier: Modifier = Modifier,
+    onAdd: () -> Unit,
 ) {
-    val accent = Color(habit.colorArgb.toInt())
-    val streak = habit.currentStreak(today)
-
-    GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEdit),
-        glassTreatment = glassTreatment,
-        overBackdrop = overBackdrop,
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ── Emoji bubble ──────────────────────────────────────────────
+            LeafBadge()
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Habits",
+                    color = ReferenceInk,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Small daily actions, big change.",
+                    color = ReferenceMuted,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(ReferenceCoral)
+                .clickable(onClick = onAdd),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = "+", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+@Composable
+private fun LeafBadge() {
+    // Flat leaf icon — no circle container, just the leaf shape on background
+    Box(
+        modifier = Modifier.size(40.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(13.dp)
+                .height(24.dp)
+                .rotate(-32f)
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp))
+                .background(ReferenceLeaf),
+        )
+        Box(
+            modifier = Modifier
+                .width(12.dp)
+                .height(21.dp)
+                .padding(top = 5.dp)
+                .rotate(34f)
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp))
+                .background(ReferenceLeaf.copy(alpha = 0.74f)),
+        )
+    }
+}
+
+@Composable
+private fun HabitFilterTabs(
+    selectedFilter: HabitUiFilter,
+    onSelected: (HabitUiFilter) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(ReferenceTrack)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(28.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        HabitUiFilter.entries.forEach { filter ->
+            val selected = filter == selectedFilter
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(accent.copy(alpha = if (isToday) 0.15f else 0.08f)),
+                    .weight(1f)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(if (selected) ReferenceCard else Color.Transparent)
+                    .clickable { onSelected(filter) }
+                    .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = habit.emoji,
-                    fontSize = 20.sp,
-                    color = if (isToday) Color.Unspecified else LocalContentColorMuted,
-                )
-            }
-
-            // ── Name + streak / schedule ──────────────────────────────────
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Text(
-                    text = habit.name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isToday) tokens.textPrimary else tokens.textMuted,
-                )
-                val sub = buildString {
-                    if (streak > 0) append("🔥 ${streakLabel(streak)}")
-                    if (!isToday) {
-                        val schedule = nextScheduledLabel(habit, today)
-                        if (streak > 0) append("  ·  $schedule")
-                        else append(schedule)
-                    }
-                }
-                if (sub.isNotEmpty()) {
-                    Text(text = sub, fontSize = 11.sp, color = tokens.textSecondary)
-                }
-            }
-
-            // ── Action (today only) — intercepts its own tap ──────────────
-            if (isToday) {
-                HabitRowAction(
-                    habit = habit,
-                    today = today,
-                    accent = accent,
-                    tokens = tokens,
-                    onToggle = onToggle,
-                    onIncrement = onIncrement,
-                    onStartPomodoro = onStartPomodoro,
+                    text = filter.label,
+                    color = if (selected) ReferenceCoral else ReferenceMuted,
+                    fontSize = 13.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 )
             }
         }
@@ -351,89 +353,267 @@ private fun HabitRow(
 }
 
 @Composable
-private fun HabitRowAction(
+private fun ReferenceEmptyHabitCard(
+    filter: HabitUiFilter,
+    onAdd: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(30.dp))
+            .background(ReferenceCard)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(30.dp))
+            .clickable(onClick = onAdd)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        LeafBadge()
+        Text(
+            text = if (filter == HabitUiFilter.All) "No habits yet" else "No ${filter.label.lowercase()} habits yet",
+            color = ReferenceInk,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "Add a small repeatable action and let Kuro keep you company.",
+            color = ReferenceMuted,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
+        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(18.dp))
+                .background(ReferenceCoral)
+                .padding(horizontal = 22.dp, vertical = 11.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("Add habit", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun ReferenceHabitCard(
     habit: Habit,
     today: LocalDate,
-    accent: Color,
-    tokens: KuroSurfaceTokens,
+    isScheduledToday: Boolean,
+    onEdit: () -> Unit,
     onToggle: () -> Unit,
     onIncrement: () -> Unit,
     onStartPomodoro: () -> Unit,
 ) {
-    val isDone = habit.isTargetMetOn(today)
-    when (habit.targetType) {
-        HabitTargetType.Binary -> {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(if (isDone) accent else tokens.segmentedTrack)
-                    .border(1.5.dp, if (isDone) Color.Transparent else tokens.borderSoft, CircleShape)
-                    .clickable(onClick = onToggle),
-                contentAlignment = Alignment.Center,
+    val accent = Color(habit.colorArgb.toInt())
+    val streak = habit.currentStreak(today)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(ReferenceCard)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .clickable(onClick = onEdit)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        // ── Top row: emoji + name/subtitle + streak ───────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (isDone) {
-                    Text("✓", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(accent.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = habit.emoji, fontSize = 24.sp)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = habit.name,
+                        color = ReferenceInk,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = habitTargetScheduleLabel(habit, today),
+                        color = ReferenceMuted,
+                        fontSize = 12.sp,
+                    )
                 }
             }
-        }
-        HabitTargetType.Quantity -> {
-            val progress = habit.progressOn(today)
-            val target = habit.effectiveTarget()
-            Box(
-                modifier = Modifier
-                    .height(32.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isDone) accent else tokens.segmentedTrack)
-                    .border(1.5.dp, if (isDone) Color.Transparent else accent.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                    .clickable(onClick = onIncrement)
-                    .padding(horizontal = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
+            // Streak — right aligned: number + "day streak" / "week streak"
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
-                    text = when {
-                        isDone -> "✓"
-                        progress == 0 -> "0/$target"
-                        else -> "$progress/$target"
-                    },
-                    color = if (isDone) Color.White else if (progress == 0) tokens.textMuted else tokens.textPrimary,
-                    fontSize = 12.sp,
+                    text = streak.toString(),
+                    color = ReferenceCoral,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = habitStreakUnitLabel(habit),
+                    color = ReferenceFaint,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
-        HabitTargetType.Pomodoro -> {
-            val progress = habit.progressOn(today)
-            val target = habit.effectiveTarget()
-            Box(
-                modifier = Modifier
-                    .height(32.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isDone) accent else tokens.segmentedTrack)
-                    .border(1.5.dp, if (isDone) Color.Transparent else accent.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                    .clickable(onClick = onStartPomodoro)
-                    .padding(horizontal = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+
+        // ── Week dots row ─────────────────────────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            habitWeekDots(habit, today).forEach { dot ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    if (isDone) {
-                        Text("✓", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    } else {
-                        Text("▶", color = accent, fontSize = 10.sp)
-                        Text(
-                            "$progress/$target",
-                            color = if (progress == 0) tokens.textMuted else tokens.textPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
+                    Text(dot.label, color = ReferenceFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(
+                                when {
+                                    dot.isCompleted -> ReferenceLeaf          // green for completed
+                                    dot.isScheduled -> ReferenceLeaf.copy(alpha = 0.25f)
+                                    else -> ReferenceBorder.copy(alpha = 0.6f)
+                                },
+                            )
+                            .border(
+                                1.dp,
+                                if (dot.date == today) ReferenceInk.copy(alpha = 0.20f) else Color.Transparent,
+                                CircleShape,
+                            ),
+                    )
                 }
             }
         }
     }
+}
+
+/** Returns "day streak" or "week streak" depending on occurrence. */
+private fun habitStreakUnitLabel(habit: Habit): String = when (habit.occurrence) {
+    is HabitOccurrence.Daily -> "day streak"
+    is HabitOccurrence.Weekdays -> "week streak"
+}
+
+@Composable
+private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
+    val dots = monthlyHabitProgressDots(habits, today)
+    val monthLabel = today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+    // Monday-first: DayOfWeek.MONDAY.value=1 → offset 0, SUNDAY.value=7 → offset 6
+    val leadingBlanks = dots.firstOrNull()?.date?.dayOfWeek?.let { (it.value - 1) % 7 } ?: 0
+    val gridSlots = List(leadingBlanks) { null } + dots
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(ReferenceCard)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Text("Monthly Progress", color = ReferenceInk, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(monthLabel, color = ReferenceMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        }
+        // Monday-first day headers
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
+                Text(
+                    text = day,
+                    color = ReferenceFaint,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+        gridSlots.chunked(7).forEach { rowDots ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                rowDots.forEach { dot ->
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    when {
+                                        dot == null -> Color.Transparent
+                                        dot.isCompleted -> ReferenceLeaf        // green for completed
+                                        dot.date == today -> ReferenceLeaf.copy(alpha = 0.4f)
+                                        else -> ReferenceBorder
+                                    },
+                                ),
+                        )
+                    }
+                }
+                repeat(7 - rowDots.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HabitMotivationCard() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(ReferenceCardWarm)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .padding(18.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Real cat asset
+        Image(
+            painter = painterResource(id = com.endiar.kuropomodoro.R.drawable.cat_face),
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            contentScale = ContentScale.Fit,
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "Consistency is the secret behind all progress.",
+                color = ReferenceInk,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "You're doing great! 🌟",
+                color = ReferenceCoral,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+private fun habitTargetScheduleLabel(habit: Habit, today: LocalDate): String {
+    val target = when (habit.targetType) {
+        HabitTargetType.Binary -> "Check off"
+        HabitTargetType.Quantity -> "${habit.effectiveTarget()} times"
+        HabitTargetType.Pomodoro -> "${habit.effectiveTarget()} pomodoros"
+    }
+    return "$target - ${nextScheduledLabel(habit, today)}"
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -448,68 +628,6 @@ private fun nextScheduledLabel(habit: Habit, today: LocalDate): String {
             shortNames
         }
     }
-}
-
-// Used to dim emoji text color for upcoming habits without a composable modifier stack
-private val LocalContentColorMuted = Color(0xFF757575)
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-@Composable
-private fun HabitsEmptyState(
-    tokens: KuroSurfaceTokens,
-    onAdd: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text("🌱", fontSize = 48.sp)
-        Text(
-            text = "No habits yet",
-            color = tokens.textPrimary,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = "Build your first daily habit and pair it\nwith your Pomodoro sessions.",
-            color = tokens.textSecondary,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(tokens.accent)
-                .clickable(onClick = onAdd)
-                .padding(horizontal = 28.dp, vertical = 14.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "+ Add habit",
-                color = tokens.accentOn,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
-}
-
-// ─── Section label ────────────────────────────────────────────────────────────
-
-@Composable
-private fun SectionLabel(text: String, tokens: KuroSurfaceTokens) {
-    Text(
-        text = text,
-        color = tokens.textFaint,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 1.5.sp,
-    )
 }
 
 // ─── Habit editor sheet ───────────────────────────────────────────────────────
