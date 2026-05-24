@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -321,47 +322,55 @@ fun DashboardDock(
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
     overBackdrop: Boolean = true,
 ) {
-    val tokens = glassTokens(glassTreatment, overBackdrop)
+    val dockShape = RoundedCornerShape(34.dp)
+    val dockFill = Color.White.copy(alpha = 0.92f)
+    val dockBorder = Color(0xFFEFE6DE).copy(alpha = 0.86f)
     Row(
         modifier = modifier
-            .padding(horizontal = 21.dp)
+            .padding(horizontal = 18.dp)
             .padding(bottom = 12.dp)
             .fillMaxWidth()
-            .height(62.dp)
-            .border(1.dp, tokens.dockBorder, RoundedCornerShape(36.dp))
-            .clip(RoundedCornerShape(36.dp))
-            .background(tokens.dockFill)
-            .padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.Start,
+            .height(82.dp)
+            .shadow(
+                elevation = 18.dp,
+                shape = dockShape,
+                ambientColor = Color(0xFFD8BFAF).copy(alpha = 0.22f),
+                spotColor = Color(0xFFBFA494).copy(alpha = 0.18f)
+            )
+            .border(1.dp, dockBorder, dockShape)
+            .clip(dockShape)
+            .background(dockFill)
+            .padding(horizontal = 8.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         DockTabItem(
             icon = if (isRunning) Icons.Default.PlayArrow else Icons.Default.Home,
-            label = "HOME",
+            label = "Home",
             active = selectedTab == AppTab.Timer,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Timer) }
         DockTabItem(
             icon = Icons.Default.List,
-            label = "TODO",
+            label = "Tasks",
             active = selectedTab == AppTab.Todo,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Todo) }
         DockTabItem(
             icon = Icons.Default.CheckCircle,
-            label = "HABITS",
+            label = "Habits",
             active = selectedTab == AppTab.Habits,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Habits) }
         DockTabItem(
             icon = Icons.Default.DateRange,
-            label = "RECORDS",
+            label = "History",
             active = selectedTab == AppTab.Calendar,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Calendar) }
         DockTabItem(
             icon = Icons.Default.Person,
-            label = "Profile",
+            label = "Stats",
             active = selectedTab == AppTab.Profile,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Profile) }
@@ -376,9 +385,8 @@ private fun DockTabItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val kuroTokens = MaterialTheme.colorScheme.kuroTokens
-    val iconColor = if (active) kuroTokens.interactiveText else kuroTokens.textMuted
-    val bgColor = if (active) kuroTokens.interactiveFill else Color.Transparent
+    val iconColor = if (active) Color(0xFFD36B4F) else Color(0xFF717171)
+    val bgColor = if (active) Color(0xFFFFF3EC) else Color.Transparent
 
     Box(
         modifier = modifier,
@@ -386,20 +394,29 @@ private fun DockTabItem(
     ) {
         Column(
             modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
+                .widthIn(min = 58.dp)
+                .height(66.dp)
+                .clip(RoundedCornerShape(30.dp))
                 .background(bgColor)
                 .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 8.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = iconColor,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
             )
-            Text(label, color = iconColor, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = label,
+                color = iconColor,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
