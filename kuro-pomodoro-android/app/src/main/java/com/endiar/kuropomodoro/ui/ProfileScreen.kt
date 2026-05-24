@@ -1,517 +1,331 @@
 package com.endiar.kuropomodoro.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.endiar.kuropomodoro.model.AppearanceMode
-import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.GlassReadabilityMode
-import com.endiar.kuropomodoro.model.GlassTreatment
-import com.endiar.kuropomodoro.ui.components.AppearanceModeToggle
-import com.endiar.kuropomodoro.ui.components.GlassCard
-import com.endiar.kuropomodoro.ui.components.GlassPill
-import com.endiar.kuropomodoro.ui.components.MockBadge
-import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
-import com.endiar.kuropomodoro.ui.components.StepperButton
-import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
+private val CreamBackground = Color(0xFFFFF8F0)
+private val WarmBrown = Color(0xFF8B7355)
+private val DividerColor = Color(0xFFE8DDD0)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     settings: TimerSettings,
-    glassReadabilityMode: GlassReadabilityMode,
-    glassTreatment: GlassTreatment,
-    appearanceMode: AppearanceMode,
-    onAppearanceModeChanged: (AppearanceMode) -> Unit,
-    onGlassReadabilityModeChanged: (GlassReadabilityMode) -> Unit,
-    onDurationChanged: (TimerMode, Int) -> Unit,
-    onCycleSizeChanged: (Int) -> Unit,
-    onResetSettings: () -> Unit,
-    onMockFeature: (String) -> Unit,
-    overBackdrop: Boolean = true,
-    modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
-    notificationSoundEnabled: Boolean = true,
-    onNotificationSoundChanged: (Boolean) -> Unit = {},
+    onBack: () -> Unit,
+    onUpdateSettings: (TimerSettings) -> Unit,
+    notificationSoundEnabled: Boolean,
+    onUpdateNotificationSound: (Boolean) -> Unit,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    var showResetConfirm by remember { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
-    var headerHeightPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
-    val topPaddingPx = with(density) { 8.dp.roundToPx() }
-    val showStickyBar by remember { derivedStateOf { scrollState.value > headerHeightPx + topPaddingPx } }
+    var editingField by remember { mutableStateOf<String?>(null) }
 
-    Box(modifier = modifier.fillMaxSize()) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp)
-            .padding(top = 8.dp, bottom = 100.dp)
-            .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = "Profile",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = tokens.textPrimary
-            )
-            Text(
-                text = "settings & preferences",
-                fontSize = 13.sp,
-                color = tokens.textSecondary
-            )
-        }
-
-        // Profile / avatar card
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            glassTreatment = glassTreatment,
-            overBackdrop = overBackdrop,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
                     Text(
-                        text = "Nandra",
-                        fontSize = 18.sp,
+                        text = "Profile",
                         fontWeight = FontWeight.SemiBold,
-                        color = tokens.textPrimary
+                        fontSize = 18.sp,
+                        color = Color(0xFF3C2F1E)
                     )
-                    Text(
-                        text = "Stay focused with kuro",
-                        fontSize = 13.sp,
-                        color = tokens.textSecondary
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(tokens.accent),
-                    contentAlignment = Alignment.Center
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(0xFF3C2F1E)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = CreamBackground,
+                    scrolledContainerColor = CreamBackground
+                )
+            )
+        },
+        containerColor = CreamBackground
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // ── Timer Settings section ──────────────────────────────────
+            SectionHeader(title = "TIMER SETTINGS")
+
+            SettingsRow(
+                label = "Focus Duration",
+                value = "${settings.focusMinutes} min",
+                onClick = { editingField = "focus" }
+            )
+            SettingsRow(
+                label = "Short Break",
+                value = "${settings.shortBreakMinutes} min",
+                onClick = { editingField = "short" }
+            )
+            SettingsRow(
+                label = "Long Break",
+                value = "${settings.longBreakMinutes} min",
+                onClick = { editingField = "long" }
+            )
+            SettingsRow(
+                label = "Cycle Size",
+                value = "${settings.focusSessionsPerCycle} sessions",
+                onClick = { editingField = "cycle" }
+            )
+
+            // Auto-start toggle row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Auto-start next session",
+                    fontSize = 16.sp,
+                    color = Color(0xFF3C2F1E)
+                )
+                Switch(
+                    checked = settings.autoStartNextSession,
+                    onCheckedChange = { checked ->
+                        onUpdateSettings(settings.copy(autoStartNextSession = checked))
+                    }
+                )
+            }
+
+            SectionDivider()
+
+            // ── About section ───────────────────────────────────────────
+            SectionHeader(title = "ABOUT")
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Kuro Pomodoro",
+                    fontSize = 16.sp,
+                    color = Color(0xFF3C2F1E)
+                )
+                Text(
+                    text = "v1.0",
+                    fontSize = 14.sp,
+                    color = WarmBrown
+                )
+            }
+
+            SectionDivider()
+        }
+    }
+
+    // ── Edit dialogs ────────────────────────────────────────────────────
+    when (editingField) {
+        "focus" -> NumericEditDialog(
+            title = "Focus Duration",
+            value = settings.focusMinutes,
+            min = 1,
+            max = 120,
+            unit = "min",
+            onConfirm = { onUpdateSettings(settings.copy(focusMinutes = it)) },
+            onDismiss = { editingField = null }
+        )
+        "short" -> NumericEditDialog(
+            title = "Short Break",
+            value = settings.shortBreakMinutes,
+            min = 1,
+            max = 120,
+            unit = "min",
+            onConfirm = { onUpdateSettings(settings.copy(shortBreakMinutes = it)) },
+            onDismiss = { editingField = null }
+        )
+        "long" -> NumericEditDialog(
+            title = "Long Break",
+            value = settings.longBreakMinutes,
+            min = 1,
+            max = 120,
+            unit = "min",
+            onConfirm = { onUpdateSettings(settings.copy(longBreakMinutes = it)) },
+            onDismiss = { editingField = null }
+        )
+        "cycle" -> NumericEditDialog(
+            title = "Cycle Size",
+            value = settings.focusSessionsPerCycle,
+            min = 1,
+            max = 10,
+            unit = "sessions",
+            onConfirm = { onUpdateSettings(settings.copy(focusSessionsPerCycle = it)) },
+            onDismiss = { editingField = null }
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 1.2.sp,
+        color = WarmBrown,
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .padding(top = 20.dp, bottom = 4.dp)
+    )
+}
+
+@Composable
+private fun SectionDivider() {
+    Spacer(modifier = Modifier.height(8.dp))
+    HorizontalDivider(color = DividerColor, thickness = 1.dp)
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun SettingsRow(
+    label: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            fontSize = 16.sp,
+            color = Color(0xFF3C2F1E)
+        )
+        Text(
+            text = value,
+            fontSize = 14.sp,
+            color = WarmBrown
+        )
+    }
+}
+
+@Composable
+private fun NumericEditDialog(
+    title: String,
+    value: Int,
+    min: Int,
+    max: Int,
+    unit: String,
+    onConfirm: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var current by remember(value) { mutableIntStateOf(value) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = title,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF3C2F1E)
+            )
+        },
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(
+                    onClick = { if (current > min) current-- },
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Text(
-                        text = "NS",
-                        color = tokens.accentOn,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "−",
+                        fontSize = 22.sp,
+                        color = if (current > min) WarmBrown else Color(0xFFCCBBAA)
                     )
                 }
-            }
-        }
-
-        // Appearance card
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            glassTreatment = glassTreatment,
-            overBackdrop = overBackdrop,
-        ) {
-            Text(
-                text = "APPEARANCE",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp,
-                color = tokens.textMuted,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "Match your time of day",
-                fontSize = 12.sp,
-                color = tokens.textSecondary,
-            )
-            Spacer(Modifier.height(12.dp))
-            AppearanceModeToggle(
-                mode = appearanceMode,
-                onModeChanged = onAppearanceModeChanged,
-            )
-        }
-
-        // Timer settings card
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            glassTreatment = glassTreatment,
-            overBackdrop = overBackdrop,
-        ) {
-            Text(
-                text = "TIMER SETTINGS",
-                fontSize = 13.sp,
-                color = tokens.textMuted,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.2.sp
-            )
-            Spacer(Modifier.height(8.dp))
-            DurationRow(
-                label = TimerMode.Focus.label,
-                minutes = settings.focusMinutes,
-                onMinus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes - 1).coerceIn(1, 60)) },
-                onPlus = { onDurationChanged(TimerMode.Focus, (settings.focusMinutes + 1).coerceIn(1, 60)) },
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-            Spacer(Modifier.height(8.dp))
-            DurationRow(
-                label = TimerMode.ShortBreak.label,
-                minutes = settings.shortBreakMinutes,
-                onMinus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes - 1).coerceIn(1, 60)) },
-                onPlus = { onDurationChanged(TimerMode.ShortBreak, (settings.shortBreakMinutes + 1).coerceIn(1, 60)) },
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-            Spacer(Modifier.height(8.dp))
-            DurationRow(
-                label = TimerMode.LongBreak.label,
-                minutes = settings.longBreakMinutes,
-                onMinus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes - 1).coerceIn(1, 60)) },
-                onPlus = { onDurationChanged(TimerMode.LongBreak, (settings.longBreakMinutes + 1).coerceIn(1, 60)) },
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-            Spacer(Modifier.height(8.dp))
-            DurationRow(
-                label = "Focus sessions / cycle",
-                minutes = settings.focusSessionsPerCycle,
-                unit = "sessions",
-                onMinus = { onCycleSizeChanged((settings.focusSessionsPerCycle - 1).coerceIn(1, 10)) },
-                onPlus = { onCycleSizeChanged((settings.focusSessionsPerCycle + 1).coerceIn(1, 10)) },
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-        }
-
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            glassTreatment = glassTreatment,
-            overBackdrop = overBackdrop,
-        ) {
-            Text(
-                text = "FOCUS SCREEN READABILITY",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp,
-                color = tokens.textMuted
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Only affects the cat backdrop on the Focus tab.",
-                fontSize = 12.sp,
-                color = tokens.textSecondary
-            )
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GlassReadabilityMode.values().toList().forEach { mode ->
-                    GlassPill(
-                        text = mode.label,
-                        selected = mode == glassReadabilityMode,
-                        onClick = { onGlassReadabilityModeChanged(mode) },
-                        glassTreatment = glassTreatment,
-                        overBackdrop = overBackdrop,
-                    )
-                }
-            }
-        }
-
-        // Notification sound toggle
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            glassTreatment = glassTreatment,
-            overBackdrop = overBackdrop,
-        ) {
-            Text(
-                text = "NOTIFICATIONS",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp,
-                color = tokens.textMuted
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Play sound when a segment ends",
-                fontSize = 12.sp,
-                color = tokens.textSecondary
-            )
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Notification sound",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = tokens.textPrimary
-                    )
-                    Text(
-                        text = if (notificationSoundEnabled) "On" else "Off",
-                        fontSize = 12.sp,
-                        color = tokens.textSecondary
-                    )
-                }
-                Switch(
-                    checked = notificationSoundEnabled,
-                    onCheckedChange = onNotificationSoundChanged,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = tokens.accentOn,
-                        checkedTrackColor = tokens.accent,
-                        uncheckedThumbColor = tokens.textMuted,
-                        uncheckedTrackColor = tokens.segmentedTrack,
-                    )
-                )
-            }
-        }
-
-        // Reset button
-        GlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Button, onClick = { showResetConfirm = true }),
-            glassTreatment = glassTreatment,
-            overBackdrop = overBackdrop,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Reset to defaults",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = tokens.textPrimary
-                    )
-                    Text(
-                        text = "Restore default timer settings",
-                        fontSize = 12.sp,
-                        color = tokens.textSecondary
-                    )
-                }
-                Text("↺", fontSize = 22.sp, color = tokens.textSecondary)
-            }
-        }
-
-        // Mock features section label
-        Text(
-            text = "FEATURES",
-            fontSize = 10.sp,
-            color = tokens.textFaint,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.5.sp
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MockFeatureSquare(
-                name = "Focus Together",
-                icon = "\uD83D\uDC65",
-                description = "Co-focus with friends",
-                onClick = { onMockFeature("Focus Together is a mock social focus room for this prototype.") },
-                modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-            MockFeatureSquare(
-                name = "Reminders",
-                icon = "\uD83D\uDD14",
-                description = "Smart break reminders",
-                onClick = { onMockFeature("Reminders are mocked here; notifications are not scheduled yet.") },
-                modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MockFeatureSquare(
-                name = "D-Day Tracker",
-                icon = "\uD83D\uDCC5",
-                description = "Track important dates",
-                onClick = { onMockFeature("D-Day Tracker is a placeholder for future goal countdowns.") },
-                modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-            MockFeatureSquare(
-                name = "Premium Sounds",
-                icon = "\uD83C\uDFB5",
-                description = "Unlock all sound packs",
-                onClick = { onMockFeature("Premium Sounds is simulated in this clone and does not start a purchase.") },
-                modifier = Modifier.weight(1f),
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-        }
-    }
-
-    AnimatedVisibility(
-        visible = showStickyBar,
-        enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { -it },
-        exit = fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it },
-    ) {
-        ScreenStickyBar(title = "Profile")
-    }
-    } // Box
-
-    if (showResetConfirm) {
-        AlertDialog(
-            onDismissRequest = { showResetConfirm = false },
-            title = {
+                Spacer(modifier = Modifier.width(16.dp))
                 Text(
-                    text = "Reset timer settings?",
-                    color = tokens.textPrimary,
-                    fontWeight = FontWeight.SemiBold
+                    text = "$current $unit",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF3C2F1E)
                 )
-            },
-            text = {
-                Text(
-                    text = "This will restore Focus to 25 min, Short break to 5 min, Long break to 15 min, and Sessions/cycle to 4.",
-                    color = tokens.textSecondary,
-                    fontSize = 14.sp
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showResetConfirm = false
-                    onResetSettings()
-                }) {
-                    Text("Reset", color = tokens.accent, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.width(16.dp))
+                IconButton(
+                    onClick = { if (current < max) current++ },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Text(
+                        text = "+",
+                        fontSize = 22.sp,
+                        color = if (current < max) WarmBrown else Color(0xFFCCBBAA)
+                    )
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showResetConfirm = false }) {
-                    Text("Cancel", color = tokens.textSecondary)
-                }
-            },
-            containerColor = tokens.cardFill,
-            titleContentColor = tokens.textPrimary,
-            textContentColor = tokens.textSecondary,
-        )
-    }
-}
-
-@Composable
-private fun DurationRow(
-    label: String,
-    minutes: Int,
-    unit: String = "min",
-    onMinus: () -> Unit,
-    onPlus: () -> Unit,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear,
-    overBackdrop: Boolean = true,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = tokens.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StepperButton(
-                label = "−",
-                onClick = onMinus,
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-            Text(
-                text = "$minutes $unit",
-                color = tokens.textPrimary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.widthIn(min = 54.dp),
-                textAlign = TextAlign.Center
-            )
-            StepperButton(
-                label = "+",
-                onClick = onPlus,
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            )
-        }
-    }
-}
-
-@Composable
-private fun MockFeatureSquare(
-    name: String,
-    icon: String,
-    description: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear,
-    overBackdrop: Boolean = true,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    GlassCard(
-        modifier = modifier.clickable(role = Role.Button, onClickLabel = name, onClick = onClick),
-        glassTreatment = glassTreatment,
-        overBackdrop = overBackdrop,
-    ) {
-        Text(icon, fontSize = 24.sp)
-        Spacer(Modifier.height(8.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(name, color = tokens.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            MockBadge()
-        }
-        Spacer(Modifier.height(2.dp))
-        Text(description, color = tokens.textSecondary, fontSize = 11.sp)
-    }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm(current)
+                onDismiss()
+            }) {
+                Text("OK", color = WarmBrown, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color(0xFF8B7355).copy(alpha = 0.6f))
+            }
+        },
+        containerColor = Color(0xFFFFF8F0)
+    )
 }
