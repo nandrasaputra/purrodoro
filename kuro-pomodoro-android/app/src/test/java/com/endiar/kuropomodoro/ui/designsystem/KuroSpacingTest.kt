@@ -20,4 +20,7 @@ class KuroSpacingTest {
         assertEquals(28.dp, KuroSpacing.radiusLg)
         assertEquals(34.dp, KuroSpacing.radiusPill)
     }
+    @Test fun dockClearance() {
+        assertEquals(100.dp, KuroSpacing.dockClearance)
+    }
 }

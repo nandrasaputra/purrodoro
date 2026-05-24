@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.endiar.kuropomodoro.ui.theme.JourneyGreen
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
 // ── KuroChip ─────────────────────────────────────────────────────────────────
@@ -51,7 +52,16 @@ fun KuroChip(
 // ── KuroPill ─────────────────────────────────────────────────────────────────
 // Semantic status pill. Replaces StatusPill.
 
-enum class KuroPillKind { Playing, Locked, Default }
+enum class KuroPillKind {
+    Playing,
+    Selected,
+    Locked,
+    Default,
+    /** Journey timeline: completed session */
+    JourneyCompleted,
+    /** Journey timeline: partial session */
+    JourneyPartial,
+}
 
 @Composable
 fun KuroPill(
@@ -61,25 +71,32 @@ fun KuroPill(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val fill = when (kind) {
-        KuroPillKind.Playing -> tokens.accent
-        KuroPillKind.Locked  -> tokens.lockedFill
-        KuroPillKind.Default -> tokens.cardBorder
+        KuroPillKind.Playing          -> tokens.accent
+        KuroPillKind.Selected         -> tokens.accentSoft
+        KuroPillKind.Locked           -> tokens.lockedFill
+        KuroPillKind.Default          -> tokens.cardBorder
+        KuroPillKind.JourneyCompleted -> tokens.accentSoft
+        KuroPillKind.JourneyPartial   -> tokens.activeCardFill
     }
     val textColor = when (kind) {
-        KuroPillKind.Playing -> tokens.accentOn
-        KuroPillKind.Locked  -> tokens.lockedText
-        KuroPillKind.Default -> tokens.textSecondary
+        KuroPillKind.Playing          -> tokens.accentOn
+        KuroPillKind.Selected         -> tokens.accent
+        KuroPillKind.Locked           -> tokens.lockedText
+        KuroPillKind.Default          -> tokens.textSecondary
+        KuroPillKind.JourneyCompleted -> JourneyGreen
+        KuroPillKind.JourneyPartial   -> tokens.accent
     }
     val borderColor = when (kind) {
-        KuroPillKind.Locked -> tokens.lockedBorder
-        else                -> Color.Transparent
+        KuroPillKind.Selected -> tokens.accent.copy(alpha = 0.45f)
+        KuroPillKind.Locked   -> tokens.lockedBorder
+        else                  -> Color.Transparent
     }
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(KuroSpacing.radiusSm))
             .background(fill)
             .border(1.dp, borderColor, RoundedCornerShape(KuroSpacing.radiusSm))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = KuroSpacing.sm, vertical = KuroSpacing.xs),
     ) {
         Text(text = label, style = KuroType.labelMeta, color = textColor)
     }
@@ -93,18 +110,28 @@ fun KuroStepper(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    large: Boolean = false,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val stepperSize = if (large) 44.dp else 32.dp
     Box(
         modifier = modifier
-            .size(32.dp)
+            .size(stepperSize)
             .clip(CircleShape)
-            .background(tokens.segmentedTrack)
+            .background(
+                if (enabled) tokens.segmentedTrack
+                else tokens.segmentedTrack.copy(alpha = 0.5f)
+            )
             .border(1.dp, tokens.borderSoft, CircleShape)
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = label, style = KuroType.headingCard, color = tokens.textPrimary)
+        Text(
+            text = label,
+            style = if (large) KuroType.headingCard else KuroType.labelStrong,
+            color = if (enabled) tokens.textPrimary else tokens.textMuted,
+        )
     }
 }
 
