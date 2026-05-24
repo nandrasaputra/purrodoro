@@ -420,10 +420,9 @@ fun KuroPomodoroApp(
                             isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
-                            timerConnection.controller.start(settings, request.task, request.habitId)
+                            timerConnection.controller.start(request.settings, request.task, request.habitId)
                         },
                         habits = appState.habits,
-                        onEditTimerSettings = { showProfile = true },
                         settings = settings,
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding,
@@ -519,18 +518,13 @@ fun KuroPomodoroApp(
                             showStartFocusSheet = false
                             startFocusPrefill = null
                         },
-                        onEditConfig = {
-                            showStartFocusSheet = false
-                            startFocusPrefill = null
-                            showProfile = true
-                        },
                         onStartFocus = { request ->
                             showStartFocusSheet = false
                             startFocusPrefill = null
                             requestNotificationPermission()
                             isFocusMode = false
                             activeTask = request.task
-                            timerConnection.controller.start(settings, request.task, request.habitId)
+                            timerConnection.controller.start(request.settings, request.task, request.habitId)
                         },
                     )
                 }

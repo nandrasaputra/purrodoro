@@ -95,7 +95,6 @@ fun TodoScreen(
     onDeleteCategory: (Int) -> Unit,
     onFocusTask: (StartFocusRequest) -> Unit,
     habits: List<Habit> = emptyList(),
-    onEditTimerSettings: () -> Unit = {},
     settings: TimerSettings = TimerSettings(),
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
@@ -254,10 +253,6 @@ fun TodoScreen(
                 today = java.time.LocalDate.now(),
                 prefill = StartFocusPrefill.Task(task.id),
                 onDismiss = { focusSheetTask = null },
-                onEditConfig = {
-                    focusSheetTask = null
-                    onEditTimerSettings()
-                },
                 onStartFocus = { request ->
                     focusSheetTask = null
                     onFocusTask(request)
