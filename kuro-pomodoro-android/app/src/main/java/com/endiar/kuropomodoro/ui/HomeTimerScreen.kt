@@ -101,7 +101,6 @@ fun HomeTimerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(HomeCream)
     ) {
         Column(
             modifier = Modifier

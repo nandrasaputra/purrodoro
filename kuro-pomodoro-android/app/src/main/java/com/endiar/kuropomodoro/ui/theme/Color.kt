@@ -32,7 +32,7 @@ val Night = NightDeep
 val NightCardLegacy = Color(0xFF342C3F)  // old value used in existing Theme.kt surface
 
 // ── Light scheme tokens ────────────────────────────────────────────────────
-val PageWhite = Color(0xFFF9F7F5)    // flat-screen page background (non-home tabs)
+val PageWhite = Color(0xFFFAF5F2)    // flat-screen page background (all tabs)
 val CreamBorder = Color(0xFFEBDFCC)
 val CreamCardActive = Color(0xFFFFE9DD)
 val CreamDivider = Color(0xFFEFE3D0)

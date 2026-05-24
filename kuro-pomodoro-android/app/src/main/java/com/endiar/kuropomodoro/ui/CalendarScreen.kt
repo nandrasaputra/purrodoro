@@ -66,6 +66,8 @@ import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
+import androidx.compose.material3.MaterialTheme
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -119,7 +121,8 @@ fun CalendarScreen(
         journeySummary(records = sessionRecords, selectedDate = selectedDate, today = today, zone = zone)
     }
 
-    Box(modifier = modifier.fillMaxSize().background(JourneyPaper)) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(modifier = modifier.fillMaxSize().background(tokens.pageBackground)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

@@ -9,6 +9,8 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,15 +31,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Initial transparent setup; style (light/dark icons) is updated reactively below.
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
+            statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         )
 
         val repo = AppRepository.get(this)
@@ -52,6 +49,21 @@ class MainActivity : ComponentActivity() {
             val appearanceMode by repo.appState
                 .map { it.appearanceMode }
                 .collectAsStateWithLifecycle(initialValue = AppearanceMode.Auto)
+
+            val systemInDark = isSystemInDarkTheme()
+            val isDark = appearanceMode.isDark(systemInDark)
+
+            // Reactively update status bar icon style so icons are visible in both light and dark.
+            SideEffect {
+                enableEdgeToEdge(
+                    statusBarStyle = if (isDark) {
+                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    } else {
+                        SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+                    },
+                    navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                )
+            }
 
             KuroPomodoroTheme(appearanceMode = appearanceMode) {
                 KuroPomodoroApp(

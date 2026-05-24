@@ -146,7 +146,7 @@ fun HabitsScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(ReferenceCream),
+            .background(tokens.pageBackground),
     ) {
         Column(
             modifier = Modifier

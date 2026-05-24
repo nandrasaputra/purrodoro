@@ -319,7 +319,8 @@ fun KuroPomodoroApp(
         Box(modifier = Modifier.fillMaxSize()) {
             // Scrim belongs to the Timer dashboard only — render it nowhere else
             // so tab switches don't fade a black overlay in/out behind content.
-            if (selectedTab == AppTab.Timer) {
+            // Only used with CatBackdrop to dim the photo; skip on flat surface.
+            if (useCatBackdrop && selectedTab == AppTab.Timer) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -331,13 +332,8 @@ fun KuroPomodoroApp(
             // For the cream-background tabs (Todo, Habits) paint the background
             // edge-to-edge including behind the status bar, before the
             // statusBarsPadding box constrains the content area below.
-            if (selectedTab == AppTab.Todo || selectedTab == AppTab.Habits) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFFF9F5F0))
-                )
-            }
+            // Removed: each screen now uses tokens.pageBackground directly,
+            // and KuroFlatSurface fills the full surface including status bar region.
 
             Box(
                 modifier = Modifier
