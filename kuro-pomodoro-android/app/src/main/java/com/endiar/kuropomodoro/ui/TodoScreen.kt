@@ -34,6 +34,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,23 +53,30 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassTreatment
+import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
+import com.endiar.kuropomodoro.ui.designsystem.KuroChip
+import com.endiar.kuropomodoro.ui.designsystem.KuroChipVariant
+import com.endiar.kuropomodoro.ui.designsystem.KuroCompletedTaskRow
 import com.endiar.kuropomodoro.ui.designsystem.KuroInputField
+import com.endiar.kuropomodoro.ui.designsystem.KuroPill
+import com.endiar.kuropomodoro.ui.designsystem.KuroPillKind
 import com.endiar.kuropomodoro.ui.designsystem.KuroScreenScaffold
 import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroSegmentedControl
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroStepper
+import com.endiar.kuropomodoro.ui.designsystem.KuroTaskCard
+import com.endiar.kuropomodoro.ui.designsystem.KuroTasksEmptyState
+import com.endiar.kuropomodoro.ui.designsystem.KuroTasksOverviewCard
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
-import com.endiar.kuropomodoro.ui.theme.Mint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,7 +93,9 @@ fun TodoScreen(
     onAddCategory: (String) -> Unit,
     onRenameCategory: (Int, String) -> Unit,
     onDeleteCategory: (Int) -> Unit,
-    onFocusTask: (FocusTask) -> Unit,
+    onFocusTask: (StartFocusRequest) -> Unit,
+    habits: List<Habit> = emptyList(),
+    onEditTimerSettings: () -> Unit = {},
     settings: TimerSettings = TimerSettings(),
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
@@ -234,17 +244,26 @@ fun TodoScreen(
         )
     }
 
-    // ── PreSessionSheet ──────────────────────────────────────────────────
+    // ── StartFocusSheet ──────────────────────────────────────────────────
     focusSheetTask?.let { task ->
-        PreSessionSheet(
-            task = task,
-            focusMinutes = settings.focusMinutes,
-            onDismiss = { focusSheetTask = null },
-            onStartFocus = { updatedTask ->
-                focusSheetTask = null
-                onFocusTask(updatedTask)
-            }
-        )
+        key(task.id) {
+            StartFocusSheet(
+                settings = settings,
+                tasks = tasks,
+                habits = habits,
+                today = java.time.LocalDate.now(),
+                prefill = StartFocusPrefill.Task(task.id),
+                onDismiss = { focusSheetTask = null },
+                onEditConfig = {
+                    focusSheetTask = null
+                    onEditTimerSettings()
+                },
+                onStartFocus = { request ->
+                    focusSheetTask = null
+                    onFocusTask(request)
+                },
+            )
+        }
     }
 
     // ── Delete Category confirmation dialog ──────────────────────────────
@@ -339,14 +358,14 @@ private fun TasksScreenHeader(
                         .height(KuroSpacing.xxl)
                         .clip(RoundedCornerShape(KuroSpacing.sm))
                         .background(tokens.activeCardFill)
-                        .border(1.5.dp, tokens.accent.copy(alpha = 0.7f), RoundedCornerShape(KuroSpacing.sm))
+                        .border(KuroSpacing.hairline, tokens.accent.copy(alpha = 0.7f), RoundedCornerShape(KuroSpacing.sm))
                         .padding(top = KuroSpacing.md),
                     verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(Modifier.width(KuroSpacing.md - KuroSpacing.xs).height(1.5.dp).background(tokens.textSecondary.copy(alpha = 0.5f)))
-                    Box(Modifier.width(KuroSpacing.md - KuroSpacing.xs).height(1.5.dp).background(tokens.textSecondary.copy(alpha = 0.5f)))
-                    Box(Modifier.width(KuroSpacing.md - KuroSpacing.sm).height(1.5.dp).background(tokens.textSecondary.copy(alpha = 0.5f)))
+                    Box(Modifier.width(KuroSpacing.md - KuroSpacing.xs).height(KuroSpacing.hairline).background(tokens.textSecondary.copy(alpha = 0.5f)))
+                    Box(Modifier.width(KuroSpacing.md - KuroSpacing.xs).height(KuroSpacing.hairline).background(tokens.textSecondary.copy(alpha = 0.5f)))
+                    Box(Modifier.width(KuroSpacing.md - KuroSpacing.sm).height(KuroSpacing.hairline).background(tokens.textSecondary.copy(alpha = 0.5f)))
                 }
                 Box(
                     modifier = Modifier
@@ -399,91 +418,47 @@ private fun CategoryFilterRow(
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
             modifier = Modifier
                 .weight(1f)
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
-            CategoryFilterPill(
-                label = "All",
+            KuroChip(
+                text = "All",
                 selected = selectedCategoryId == null,
-                onClick = { onCategorySelected(null) }
+                variant = KuroChipVariant.Inverted,
+                onClick = { onCategorySelected(null) },
             )
             categories.forEach { category ->
-                CategoryFilterPill(
-                    label = category.name,
+                KuroChip(
+                    text = category.name,
                     selected = category.id == selectedCategoryId,
-                    isEditMode = isEditMode,
+                    variant = KuroChipVariant.Inverted,
                     onClick = {
                         if (isEditMode) onRenameCategory(category) else onCategorySelected(category.id)
                     },
-                    onDelete = { onDeleteCategory(category) }
+                    onDelete = if (isEditMode) {{ onDeleteCategory(category) }} else null,
                 )
             }
             if (isEditMode) {
-                CategoryFilterPill(
-                    label = "+ New",
+                KuroChip(
+                    text = "+ New",
                     selected = false,
+                    variant = KuroChipVariant.Accent,
                     onClick = onAddCategory,
-                    accent = true,
                 )
             }
         }
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(KuroSpacing.sm))
         Text(
             text = if (isEditMode) "Done" else "Edit",
             color = tokens.textSecondary,
             style = KuroType.labelStrong,
-            modifier = Modifier.clickable(onClick = onToggleEditMode)
+            modifier = Modifier.clickable(onClick = onToggleEditMode),
         )
-    }
-}
-
-@Composable
-private fun CategoryFilterPill(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    isEditMode: Boolean = false,
-    onDelete: (() -> Unit)? = null,
-    accent: Boolean = false,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(contentAlignment = Alignment.TopStart) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(18.dp))
-                .background(if (selected) tokens.textPrimary else tokens.cardFill)
-                .border(1.dp, if (accent) tokens.accent.copy(alpha = 0.45f) else tokens.cardBorder, RoundedCornerShape(18.dp))
-                .clickable(onClick = onClick)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = label,
-                color = when {
-                    selected -> Color.White
-                    accent -> tokens.accent
-                    else -> tokens.textSecondary
-                },
-                style = KuroType.labelStrong
-            )
-        }
-        if (isEditMode && onDelete != null) {
-                    Box(
-                        modifier = Modifier
-                            .size(18.dp)
-                            .clip(CircleShape)
-                            .background(tokens.destructive)
-                            .clickable(onClick = onDelete),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "x", color = tokens.accentOn, style = KuroType.labelMeta)
-            }
-        }
     }
 }
 
@@ -552,268 +527,35 @@ private fun InlineAddTaskCard(
 
 @Composable
 private fun AddCategoryChoice(label: String, selected: Boolean, onClick: () -> Unit) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) tokens.activeCardFill else Color.Transparent)
-            .border(1.dp, if (selected) tokens.accent.copy(alpha = 0.45f) else tokens.cardBorder, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    ) {
-        Text(
-            text = label,
-            color = if (selected) tokens.accent else tokens.textSecondary,
-            style = KuroType.labelMeta,
+    Box(modifier = Modifier.clickable(onClick = onClick)) {
+        KuroPill(
+            label = label,
+            kind = if (selected) KuroPillKind.Selected else KuroPillKind.Default,
         )
     }
 }
 
 @Composable
 private fun TasksOverviewCard(overview: TaskOverview) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Text(
-            text = "Overview",
-            color = tokens.textPrimary,
-            style = KuroType.headingCard,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            OverviewMetric(
-                icon = "📋",
-                value = overview.total.toString(),
-                label = "Total",
-                modifier = Modifier.weight(1f)
-            )
-            OverviewMetric(
-                icon = "🕐",
-                value = overview.inProgress.toString(),
-                label = "In Progress",
-                modifier = Modifier.weight(1f)
-            )
-            OverviewMetric(
-                icon = "✅",
-                value = overview.completed.toString(),
-                label = "Completed",
-                modifier = Modifier.weight(1f)
-            )
-            OverviewMetric(
-                icon = "🕐",
-                value = overview.estimatedFocusTimeLabel,
-                label = "Est. Focus Time",
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun OverviewMetric(icon: String, value: String, label: String, modifier: Modifier = Modifier) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(text = icon, style = KuroType.metricValue)
-        Text(text = value, color = tokens.textPrimary, style = KuroType.metricValue)
-        Text(
-            text = label,
-            color = tokens.textSecondary,
-            style = KuroType.labelMeta,
-            textAlign = TextAlign.Center
-        )
-    }
+    KuroTasksOverviewCard(
+        total = overview.total,
+        inProgress = overview.inProgress,
+        completed = overview.completed,
+        estimatedFocusTimeLabel = overview.estimatedFocusTimeLabel,
+    )
 }
 
 @Composable
 private fun TasksEmptyState(filter: TaskUiFilter) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
     val message = if (filter == TaskUiFilter.Archived) {
         "Archived tasks will appear here once archive support is available."
     } else {
         "Tap + to capture the next thing worth focusing on."
     }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(26.dp))
-            .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(26.dp))
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(text = if (filter == TaskUiFilter.Archived) "Nothing archived" else "No tasks here", color = tokens.textPrimary, style = KuroType.headingCard)
-        Text(text = message, color = tokens.textSecondary, style = KuroType.bodySecondary)
-    }
-}
-
-@Composable
-private fun TaskCard(
-    task: FocusTask,
-    categoryName: String?,
-    onToggleTask: (Int) -> Unit,
-    onDeleteTask: (Int) -> Unit,
-    onTapRow: (FocusTask) -> Unit,
-    onFocusTask: (FocusTask) -> Unit,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
-            .clickable { onTapRow(task) }
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // ── Top row: icon tile + title/meta + ⋮ menu ──────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(13.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Icon tile — first character of task title
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(tokens.activeCardFill)
-                        .border(1.dp, tokens.cardBorder, RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = task.title.firstOrNull()?.uppercaseChar()?.toString() ?: "T",
-                        color = tokens.accent,
-                        style = KuroType.metricValue,
-                    )
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = task.title,
-                        color = tokens.textPrimary,
-                        style = KuroType.headingCard,
-                    )
-                    Text(
-                        text = taskMetadataLabel(task, categoryName),
-                        color = tokens.textSecondary,
-                        style = KuroType.bodySecondary
-                    )
-                }
-            }
-            // ⋮ opens detail sheet
-            Text(
-                text = "⋮",
-                color = tokens.textFaint,
-                style = KuroType.metricValue,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable { onTapRow(task) }
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            )
-        }
-
-        // ── Bottom row: pomodoro dots left, N/M count right ───────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Pomodoro dots — 14dp, empty = white with border
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                repeat(task.plannedSessions.coerceAtLeast(1)) { index ->
-                    Box(
-                        modifier = Modifier
-                            .size(14.dp)
-                            .clip(CircleShape)
-                            .background(if (index < task.completedSessions) tokens.accent else Color.White)
-                            .border(1.5.dp, if (index < task.completedSessions) tokens.accent else tokens.cardBorder, CircleShape)
-                    )
-                }
-            }
-            // N / M count in coral
-            Text(
-                text = "${task.completedSessions.coerceAtMost(task.plannedSessions)} / ${task.plannedSessions.coerceAtLeast(1)}",
-                color = tokens.accent,
-                style = KuroType.labelStrong
-            )
-        }
-    }
-}
-
-@Composable
-private fun CompletedTaskRow(
-    task: FocusTask,
-    categoryName: String?,
-    onToggleTask: (Int) -> Unit,
-    onDeleteTask: (Int) -> Unit,
-    onTapRow: (FocusTask) -> Unit,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(20.dp))
-            .clickable { onTapRow(task) }
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Icon tile — same style as active card
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(tokens.activeCardFill)
-                .border(1.dp, tokens.cardBorder, RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = task.title.firstOrNull()?.uppercaseChar()?.toString() ?: "T",
-                color = tokens.textSecondary,
-                style = KuroType.headingCard,
-            )
-        }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = task.title,
-                color = tokens.textSecondary,
-                style = KuroType.bodyPrimary,
-                textDecoration = TextDecoration.LineThrough
-            )
-            Text(text = taskMetadataLabel(task, categoryName), color = tokens.textFaint, style = KuroType.labelMeta)
-        }
-        // Green checkmark on the RIGHT
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(Mint)
-                .clickable(role = Role.Checkbox) { onToggleTask(task.id) },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "✓", color = tokens.accentOn, style = KuroType.labelStrong)
-        }
-    }
+    KuroTasksEmptyState(
+        title = if (filter == TaskUiFilter.Archived) "Nothing archived" else "No tasks here",
+        message = message,
+    )
 }
 
 private fun taskMetadataLabel(task: FocusTask, categoryName: String?): String {
@@ -870,41 +612,38 @@ private fun SwipeableTaskCard(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(30.dp))
+                            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
                             .background(
                                 when {
                                     isLeading -> tokens.accent
                                     isTrailing -> tokens.destructive
                                     else -> Color.Transparent
-                                }
+                                },
                             )
-                    .padding(horizontal = 24.dp),
-                contentAlignment = if (isLeading) Alignment.CenterStart else Alignment.CenterEnd
-            ) {
-                when {
-                    isLeading -> Text(
-                        text = "Focus with Kuro",
-                        color = Color.White,
-                        style = KuroType.bodyPrimary,
-                    )
-                    isTrailing -> Text(
-                        text = "Delete",
-                        color = Color.White,
-                        style = KuroType.bodyPrimary,
-                    )
-                }
-            }
-        },
+                            .padding(horizontal = KuroSpacing.xl),
+                        contentAlignment = if (isLeading) Alignment.CenterStart else Alignment.CenterEnd,
+                    ) {
+                        when {
+                            isLeading -> Text(
+                                text = "Focus with Kuro",
+                                color = tokens.accentOn,
+                                style = KuroType.bodyPrimary,
+                            )
+                            isTrailing -> Text(
+                                text = "Delete",
+                                color = tokens.accentOn,
+                                style = KuroType.bodyPrimary,
+                            )
+                        }
+                    }
+                },
         content = {
-            TaskCard(
+            KuroTaskCard(
                 task = task,
-                categoryName = categoryName,
-                onToggleTask = onToggleTask,
-                onDeleteTask = onDeleteTask,
-                onTapRow = onTapRow,
-                onFocusTask = onFocusTask,
+                subtitle = taskMetadataLabel(task, categoryName),
+                onTap = { onTapRow(task) },
             )
-        }
+        },
     )
 }
 
@@ -940,34 +679,33 @@ private fun SwipeToDeleteCompletedTaskRow(
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
-                    val tokens = MaterialTheme.colorScheme.kuroTokens
-                    val isTrailing = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(if (isTrailing) tokens.destructive else Color.Transparent)
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.CenterEnd
+            val tokens = MaterialTheme.colorScheme.kuroTokens
+            val isTrailing = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                    .background(if (isTrailing) tokens.destructive else Color.Transparent)
+                    .padding(horizontal = KuroSpacing.xl),
+                contentAlignment = Alignment.CenterEnd,
             ) {
                 if (isTrailing) {
                     Text(
                         text = "Delete",
-                        color = Color.White,
+                        color = tokens.accentOn,
                         style = KuroType.bodyPrimary,
                     )
                 }
             }
         },
         content = {
-            CompletedTaskRow(
+            KuroCompletedTaskRow(
                 task = task,
-                categoryName = categoryName,
-                onToggleTask = onToggleTask,
-                onDeleteTask = onDeleteTask,
-                onTapRow = onTapRow,
+                subtitle = taskMetadataLabel(task, categoryName),
+                onTap = { onTapRow(task) },
+                onToggleComplete = { onToggleTask(task.id) },
             )
-        }
+        },
     )
 }
 
@@ -1114,90 +852,3 @@ private fun CategoryNameSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun PreSessionSheet(
-    task: FocusTask,
-    focusMinutes: Int,
-    onDismiss: () -> Unit,
-    onStartFocus: (FocusTask) -> Unit
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    var sessionCount by rememberSaveable { mutableIntStateOf(1) }
-    var showDetail by rememberSaveable { mutableStateOf(false) }
-
-    KuroBottomSheet(title = "Start focus session", onDismiss = onDismiss) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
-        ) {
-            Text(text = task.title, color = tokens.textSecondary, style = KuroType.bodySecondary)
-            Text(
-                text = if (sessionCount == 1) "1 session · $focusMinutes min"
-                else "$sessionCount sessions · $focusMinutes min each",
-                color = tokens.accent,
-                style = KuroType.labelStrong,
-            )
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(KuroSpacing.radiusSm))
-                    .background(tokens.segmentedTrack)
-                    .clickable { showDetail = !showDetail }
-                    .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
-            ) {
-                Text(
-                    text = if (showDetail) "Hide detail ▲" else "Show detail ▼",
-                    color = tokens.textSecondary,
-                    style = KuroType.bodySecondary,
-                )
-            }
-
-            if (showDetail) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(KuroSpacing.md))
-                        .background(tokens.segmentedTrack)
-                        .padding(KuroSpacing.md),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
-                ) {
-                    Text(text = "Sessions", color = tokens.textMuted, style = KuroType.labelCaption)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xl),
-                    ) {
-                        KuroStepper(
-                            label = "−",
-                            enabled = sessionCount > 1,
-                            large = true,
-                            onClick = { if (sessionCount > 1) sessionCount-- },
-                        )
-                        Text(text = sessionCount.toString(), color = tokens.textPrimary, style = KuroType.stepperValue)
-                        KuroStepper(
-                            label = "+",
-                            enabled = sessionCount < 8,
-                            large = true,
-                            onClick = { if (sessionCount < 8) sessionCount++ },
-                        )
-                    }
-                    Text(
-                        text = "Duration per session comes from your Focus preference ($focusMinutes min)",
-                        color = tokens.textFaint,
-                        style = KuroType.labelMeta,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-
-            KuroPrimaryButton(
-                text = "▶  Start Focus",
-                onClick = {
-                    onStartFocus(task.copy(plannedSessions = sessionCount, completedSessions = 0))
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}

@@ -26,26 +26,63 @@ import com.endiar.kuropomodoro.ui.theme.kuroTokens
 // ── KuroChip ─────────────────────────────────────────────────────────────────
 // Flat-surface filter chip. Used in Todo and Habits filter bars.
 
+enum class KuroChipVariant {
+    /** Coral fill when selected — default filter chips */
+    Default,
+    /** Dark fill when selected — Tasks category bar */
+    Inverted,
+    /** Accent outline — "+ New" in category edit mode */
+    Accent,
+}
+
 @Composable
 fun KuroChip(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    variant: KuroChipVariant = KuroChipVariant.Default,
+    onDelete: (() -> Unit)? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val fill = if (selected) tokens.interactiveFill else Color.Transparent
-    val textColor = if (selected) tokens.interactiveText else tokens.textSecondary
-    val borderColor = if (selected) Color.Transparent else tokens.cardBorder
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-            .background(fill)
-            .border(1.dp, borderColor, RoundedCornerShape(KuroSpacing.radiusMd))
-            .selectable(selected = selected, onClick = onClick, role = Role.Tab)
-            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
-    ) {
-        Text(text = text, style = KuroType.labelStrong, color = textColor)
+    val fill = when (variant) {
+        KuroChipVariant.Default -> if (selected) tokens.interactiveFill else Color.Transparent
+        KuroChipVariant.Inverted -> if (selected) tokens.textPrimary else tokens.cardFill
+        KuroChipVariant.Accent -> tokens.cardFill
+    }
+    val textColor = when (variant) {
+        KuroChipVariant.Default -> if (selected) tokens.interactiveText else tokens.textSecondary
+        KuroChipVariant.Inverted -> if (selected) tokens.accentOn else tokens.textSecondary
+        KuroChipVariant.Accent -> tokens.accent
+    }
+    val borderColor = when (variant) {
+        KuroChipVariant.Accent -> tokens.accent.copy(alpha = 0.45f)
+        KuroChipVariant.Default -> if (selected) Color.Transparent else tokens.cardBorder
+        KuroChipVariant.Inverted -> tokens.cardBorder
+    }
+    Box(contentAlignment = Alignment.TopStart) {
+        Box(
+            modifier = modifier
+                .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                .background(fill)
+                .border(1.dp, borderColor, RoundedCornerShape(KuroSpacing.radiusMd))
+                .selectable(selected = selected, onClick = onClick, role = Role.Tab)
+                .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+        ) {
+            Text(text = text, style = KuroType.labelStrong, color = textColor)
+        }
+        if (onDelete != null) {
+            Box(
+                modifier = Modifier
+                    .size(KuroSpacing.taskChipDeleteBadge)
+                    .clip(CircleShape)
+                    .background(tokens.destructive)
+                    .clickable(onClick = onDelete),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "x", color = tokens.accentOn, style = KuroType.labelMeta)
+            }
+        }
     }
 }
 
