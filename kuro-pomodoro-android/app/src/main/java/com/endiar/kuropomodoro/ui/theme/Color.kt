@@ -13,6 +13,7 @@ val DeepCoral = Color(0xFFC64432)        // deep terracotta; White on this = 4.9
 val Blush = Color(0xFFFFD8DF)
 val Lavender = Color(0xFFD8C8FF)
 val Mint = Color(0xFFCDEEDB)
+val JourneyGreen = Color(0xFF8BA05E)
 val Sky = Color(0xFFCFEAF8)
 val Cocoa = Color(0xFF5F4638)
 val CocoaSoft = Color(0xFF8B6B5A)

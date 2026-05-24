@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -129,15 +130,22 @@ fun KuroBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = tokens.pageBackground,
+        containerColor = tokens.cardFill,
         modifier = modifier,
     ) {
-        Column(modifier = Modifier.padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.md)) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = KuroSpacing.xl)
+                .padding(top = KuroSpacing.md, bottom = KuroSpacing.xxl)
+                .navigationBarsPadding(),
+        ) {
             Text(
                 text = title,
                 style = KuroType.headingCard,
                 color = tokens.textPrimary,
-                modifier = Modifier.padding(bottom = KuroSpacing.md),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = KuroSpacing.lg),
             )
             content()
         }
@@ -182,37 +190,57 @@ fun KuroInputField(
 // ── KuroSegmentedControl ─────────────────────────────────────────────────────
 // Generalised N-option segmented control. Replaces AppearanceModeToggle.
 
+enum class KuroSegmentedControlStyle {
+    /** Filled white pill — Tasks, Habits */
+    Filled,
+    /** Outlined accent border — Journey period tabs */
+    Outlined,
+}
+
 @Composable
 fun KuroSegmentedControl(
     options: List<String>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    style: KuroSegmentedControlStyle = KuroSegmentedControlStyle.Filled,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
             .background(tokens.segmentedTrack)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(0.dp),
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
+            .padding(KuroSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
     ) {
         options.forEachIndexed { i, label ->
             val selected = i == selectedIndex
+            val segmentShape = RoundedCornerShape(KuroSpacing.radiusMd)
+            val segmentFill = when {
+                !selected -> Color.Transparent
+                style == KuroSegmentedControlStyle.Filled -> tokens.cardFill
+                else -> Color.Transparent
+            }
+            val segmentBorder = when {
+                selected && style == KuroSegmentedControlStyle.Outlined -> tokens.accent
+                else -> Color.Transparent
+            }
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(11.dp))
-                    .background(if (selected) tokens.interactiveFill else Color.Transparent)
+                    .clip(segmentShape)
+                    .background(segmentFill)
+                    .border(1.dp, segmentBorder, segmentShape)
                     .clickable { onSelect(i) }
-                    .padding(vertical = KuroSpacing.sm, horizontal = 10.dp),
+                    .padding(vertical = KuroSpacing.sm),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
                     style = if (selected) KuroType.labelStrong else KuroType.bodySecondary,
-                    color = if (selected) tokens.interactiveText else tokens.textSecondary,
+                    color = if (selected) tokens.accent else tokens.textSecondary,
                 )
             }
         }

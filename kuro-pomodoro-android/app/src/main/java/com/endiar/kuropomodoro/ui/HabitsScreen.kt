@@ -72,8 +72,14 @@ import com.endiar.kuropomodoro.model.TimeBlock
 import com.endiar.kuropomodoro.model.currentStreak
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.isScheduledOn
-import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
+import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
+import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
+import com.endiar.kuropomodoro.ui.designsystem.KuroInputField
+import com.endiar.kuropomodoro.ui.designsystem.KuroScreenScaffold
+import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
+import com.endiar.kuropomodoro.ui.designsystem.KuroSegmentedControl
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
+import com.endiar.kuropomodoro.ui.designsystem.KuroStepper
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.theme.KuroSurfaceTokens
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
@@ -117,11 +123,6 @@ fun HabitsScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val scrollState = rememberScrollState()
-    var headerHeightPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
-    val topPaddingPx = with(density) { 8.dp.roundToPx() }
-    val showStickyBar by remember { derivedStateOf { scrollState.value > headerHeightPx + topPaddingPx } }
 
     var selectedHabitFilter by rememberSaveable { mutableStateOf(HabitUiFilter.All) }
     val visibleHabits = filterHabitsForUi(habits, selectedHabitFilter)
@@ -135,41 +136,38 @@ fun HabitsScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     var editingHabit by remember { mutableStateOf<Habit?>(null) }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(tokens.pageBackground),
-    ) {
+    KuroScreenScaffold(
+        stickyTitle = "Habits",
+        modifier = modifier,
+        contentPadding = contentPadding,
+    ) { scrollState, headerMeasureModifier ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 18.dp)
-                .padding(top = 10.dp, bottom = 100.dp)
+                .padding(horizontal = KuroSpacing.lg)
+                .padding(top = KuroSpacing.lg, bottom = KuroSpacing.dockClearance)
                 .padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(18.dp),        ) {
-            ReferenceHabitHeader(
-                modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
-                onAdd = { showAddSheet = true },
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+        ) {
+            Box(headerMeasureModifier) {
+                HabitsScreenHeader(onAdd = { showAddSheet = true })
+            }
+
+            KuroSegmentedControl(
+                options = HabitUiFilter.entries.map { it.label },
+                selectedIndex = HabitUiFilter.entries.indexOf(selectedHabitFilter),
+                onSelect = { selectedHabitFilter = HabitUiFilter.entries[it] },
             )
 
-            HabitFilterTabs(
-                selectedFilter = selectedHabitFilter,
-                onSelected = { selectedHabitFilter = it },
-            )
-
-            Text(
-                text = sectionTitle,
-                color = tokens.textPrimary,
-                style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
-            )
+            KuroSectionHeader(title = sectionTitle)
 
             if (visibleHabits.isEmpty()) {
-                ReferenceEmptyHabitCard(filter = selectedHabitFilter, onAdd = { showAddSheet = true })
+                EmptyHabitCard(filter = selectedHabitFilter, onAdd = { showAddSheet = true })
             } else {
                 visibleHabits.forEach { habit ->
                     val isScheduledToday = habit.isScheduledOn(today)
-                    ReferenceHabitCard(
+                    HabitCard(
                         habit = habit,
                         today = today,
                         isScheduledToday = isScheduledToday,
@@ -184,27 +182,10 @@ fun HabitsScreen(
             MonthlyHabitProgressCard(habits = habits, today = today)
             HabitMotivationCard()
         }
-
-        // ── Sticky top bar ────────────────────────────────────────────────
-        AnimatedVisibility(
-            visible = showStickyBar,
-            enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { -it },
-            exit = fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it },
-        ) {
-            ScreenStickyBar(title = "Habits")
-        }
     }
 
-    // ── Add sheet ────────────────────────────────────────────────────────
     if (showAddSheet) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { showAddSheet = false },
-            sheetState = sheetState,
-            containerColor = tokens.cardFill,
-            contentColor = tokens.textPrimary,
-            contentWindowInsets = { WindowInsets(0) },
-        ) {
+        KuroBottomSheet(title = "Add habit", onDismiss = { showAddSheet = false }) {
             HabitEditorSheet(
                 initial = null,
                 tokens = tokens,
@@ -214,16 +195,8 @@ fun HabitsScreen(
         }
     }
 
-    // ── Edit / detail sheet ───────────────────────────────────────────────
     editingHabit?.let { habit ->
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { editingHabit = null },
-            sheetState = sheetState,
-            containerColor = tokens.cardFill,
-            contentColor = tokens.textPrimary,
-            contentWindowInsets = { WindowInsets(0) },
-        ) {
+        KuroBottomSheet(title = "Edit habit", onDismiss = { editingHabit = null }) {
             HabitEditorSheet(
                 initial = habit,
                 tokens = tokens,
@@ -238,27 +211,25 @@ fun HabitsScreen(
 // ─── Reference-style habit screen ─────────────────────────────────────────────
 
 @Composable
-private fun ReferenceHabitHeader(
-    modifier: Modifier = Modifier,
+private fun HabitsScreenHeader(
     onAdd: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             LeafBadge()
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2)) {
                 Text(
                     text = "Habits",
                     color = tokens.textPrimary,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = KuroType.headingDisplay,
                 )
                 Text(
                     text = "Small daily actions, big change.",
@@ -269,13 +240,13 @@ private fun ReferenceHabitHeader(
         }
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(KuroSpacing.xxxl + KuroSpacing.sm)
                 .clip(CircleShape)
                 .background(tokens.accent)
                 .clickable(onClick = onAdd),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "+", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Medium)
+            Text(text = "+", color = tokens.accentOn, style = KuroType.fabGlyph)
         }
     }
 }
@@ -309,43 +280,7 @@ private fun LeafBadge() {
 }
 
 @Composable
-private fun HabitFilterTabs(
-    selectedFilter: HabitUiFilter,
-    onSelected: (HabitUiFilter) -> Unit,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(tokens.segmentedTrack)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(28.dp))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        HabitUiFilter.entries.forEach { filter ->
-            val selected = filter == selectedFilter
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(if (selected) tokens.cardFill else Color.Transparent)
-                    .clickable { onSelected(filter) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = filter.label,
-                    color = if (selected) tokens.accent else tokens.textSecondary,
-                    style = if (selected) KuroType.labelStrong else KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReferenceEmptyHabitCard(
+private fun EmptyHabitCard(
     filter: HabitUiFilter,
     onAdd: () -> Unit,
 ) {
@@ -386,7 +321,7 @@ private fun ReferenceEmptyHabitCard(
 }
 
 @Composable
-private fun ReferenceHabitCard(
+private fun HabitCard(
     habit: Habit,
     today: LocalDate,
     isScheduledToday: Boolean,

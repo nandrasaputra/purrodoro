@@ -14,6 +14,10 @@ class KuroTypeTest {
         assertEquals(28.sp, KuroType.headingScreen.fontSize)
         assertEquals(FontWeight.Bold, KuroType.headingScreen.fontWeight)
     }
+    @Test fun headingDisplaySpec() {
+        assertEquals(36.sp, KuroType.headingDisplay.fontSize)
+        assertEquals(FontWeight.Bold, KuroType.headingDisplay.fontWeight)
+    }
     @Test fun labelMetaSpec() {
         assertEquals(11.sp, KuroType.labelMeta.fontSize)
         assertEquals(FontWeight.SemiBold, KuroType.labelMeta.fontWeight)
