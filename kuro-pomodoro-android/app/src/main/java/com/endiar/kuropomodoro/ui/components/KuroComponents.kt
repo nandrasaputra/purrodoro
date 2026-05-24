@@ -352,7 +352,7 @@ fun DashboardDock(
         ) { onNavigate(AppTab.Timer) }
         DockTabItem(
             icon = Icons.Default.List,
-            label = "Tasks",
+            label = "TASKS",
             active = selectedTab == AppTab.Todo,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Todo) }
