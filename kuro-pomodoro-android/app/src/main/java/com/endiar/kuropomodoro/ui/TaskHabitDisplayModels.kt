@@ -54,6 +54,7 @@ data class HabitWeekDot(
     val date: LocalDate,
     val isScheduled: Boolean,
     val isCompleted: Boolean,
+    val isToday: Boolean = false,
 )
 
 data class MonthProgressDot(
@@ -80,6 +81,7 @@ fun habitWeekDots(
             date = date,
             isScheduled = habit.isScheduledOn(date),
             isCompleted = habit.isTargetMetOn(date),
+            isToday = date == today,
         )
     }
 

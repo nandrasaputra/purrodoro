@@ -1,11 +1,5 @@
 package com.endiar.kuropomodoro.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -17,12 +11,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,14 +28,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -58,12 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.HabitOccurrence
 import com.endiar.kuropomodoro.model.HabitTargetType
@@ -74,14 +57,21 @@ import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
+import com.endiar.kuropomodoro.ui.designsystem.KuroHabitCard
+import com.endiar.kuropomodoro.ui.designsystem.KuroHabitMonthDotUi
+import com.endiar.kuropomodoro.ui.designsystem.KuroHabitMotivationCard
+import com.endiar.kuropomodoro.ui.designsystem.KuroHabitsEmptyState
+import com.endiar.kuropomodoro.ui.designsystem.KuroHabitWeekDotUi
 import com.endiar.kuropomodoro.ui.designsystem.KuroInputField
+import com.endiar.kuropomodoro.ui.designsystem.KuroMonthlyHabitProgressCard
+import com.endiar.kuropomodoro.ui.designsystem.KuroPill
+import com.endiar.kuropomodoro.ui.designsystem.KuroPillKind
 import com.endiar.kuropomodoro.ui.designsystem.KuroScreenScaffold
 import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroSegmentedControl
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroStepper
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
-import com.endiar.kuropomodoro.ui.theme.KuroSurfaceTokens
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import com.endiar.kuropomodoro.ui.theme.Mint
 import java.time.DayOfWeek
@@ -166,21 +156,31 @@ fun HabitsScreen(
                 EmptyHabitCard(filter = selectedHabitFilter, onAdd = { showAddSheet = true })
             } else {
                 visibleHabits.forEach { habit ->
-                    val isScheduledToday = habit.isScheduledOn(today)
-                    HabitCard(
-                        habit = habit,
-                        today = today,
-                        isScheduledToday = isScheduledToday,
-                        onEdit = { editingHabit = habit },
-                        onToggle = { onToggleBinary(habit.id, today) },
-                        onIncrement = { onIncrementProgress(habit.id, today, 1) },
-                        onStartPomodoro = { onStartPomodoroForHabit(habit) },
+                    KuroHabitCard(
+                        name = habit.name,
+                        emoji = habit.emoji,
+                        accentColor = Color(habit.colorArgb.toInt()),
+                        scheduleLabel = habitTargetScheduleLabel(habit, today),
+                        streak = habit.currentStreak(today),
+                        streakUnitLabel = habitStreakUnitLabel(habit),
+                        weekDots = habitWeekDots(habit, today).map { dot ->
+                            KuroHabitWeekDotUi(
+                                label = dot.label,
+                                isScheduled = dot.isScheduled,
+                                isCompleted = dot.isCompleted,
+                                isToday = dot.date == today,
+                            )
+                        },
+                        onClick = { editingHabit = habit },
                     )
                 }
             }
 
             MonthlyHabitProgressCard(habits = habits, today = today)
-            HabitMotivationCard()
+            KuroHabitMotivationCard(
+                quote = "Consistency is the secret behind all progress.",
+                encouragement = "You're doing great! 🌟",
+            )
         }
     }
 
@@ -188,7 +188,6 @@ fun HabitsScreen(
         KuroBottomSheet(title = "Add habit", onDismiss = { showAddSheet = false }) {
             HabitEditorSheet(
                 initial = null,
-                tokens = tokens,
                 onConfirm = { draft -> onAddHabit(draft); showAddSheet = false },
                 onDismiss = { showAddSheet = false },
             )
@@ -199,7 +198,6 @@ fun HabitsScreen(
         KuroBottomSheet(title = "Edit habit", onDismiss = { editingHabit = null }) {
             HabitEditorSheet(
                 initial = habit,
-                tokens = tokens,
                 onConfirm = { draft -> onUpdateHabit(habit.id, draft); editingHabit = null },
                 onDelete = { onDeleteHabit(habit.id); editingHabit = null },
                 onDismiss = { editingHabit = null },
@@ -208,7 +206,7 @@ fun HabitsScreen(
     }
 }
 
-// ─── Reference-style habit screen ─────────────────────────────────────────────
+// ─── Habits screen sections ────────────────────────────────────────────────────
 
 @Composable
 private fun HabitsScreenHeader(
@@ -253,27 +251,25 @@ private fun HabitsScreenHeader(
 
 @Composable
 private fun LeafBadge() {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    // Flat leaf icon — no circle container, just the leaf shape on background
     Box(
-        modifier = Modifier.size(40.dp),
+        modifier = Modifier.size(KuroSpacing.habitLeafBadge),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .width(13.dp)
-                .height(24.dp)
+                .width(KuroSpacing.md - KuroSpacing.xs)
+                .height(KuroSpacing.xl)
                 .rotate(-32f)
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp))
+                .clip(RoundedCornerShape(topStart = KuroSpacing.md, topEnd = KuroSpacing.md, bottomEnd = KuroSpacing.md))
                 .background(Mint),
         )
         Box(
             modifier = Modifier
-                .width(12.dp)
-                .height(21.dp)
-                .padding(top = 5.dp)
+                .width(KuroSpacing.md - KuroSpacing.xs)
+                .height(KuroSpacing.lg)
+                .padding(top = KuroSpacing.xs + 1.dp)
                 .rotate(34f)
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp))
+                .clip(RoundedCornerShape(topStart = KuroSpacing.md, topEnd = KuroSpacing.md, bottomStart = KuroSpacing.md))
                 .background(Mint.copy(alpha = 0.74f)),
         )
     }
@@ -284,252 +280,36 @@ private fun EmptyHabitCard(
     filter: HabitUiFilter,
     onAdd: () -> Unit,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(30.dp))
-            .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(30.dp))
-            .clickable(onClick = onAdd)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        LeafBadge()
-        Text(
-            text = if (filter == HabitUiFilter.All) "No habits yet" else "No ${filter.label.lowercase()} habits yet",
-            color = tokens.textPrimary,
-            style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
-        )
-        Text(
-            text = "Add a small repeatable action and let Kuro keep you company.",
-            color = tokens.textSecondary,
-            style = KuroType.bodySecondary,
-            textAlign = TextAlign.Center,
-        )
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(18.dp))
-                .background(tokens.accent)
-                .padding(horizontal = 22.dp, vertical = 11.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("Add habit", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-private fun HabitCard(
-    habit: Habit,
-    today: LocalDate,
-    isScheduledToday: Boolean,
-    onEdit: () -> Unit,
-    onToggle: () -> Unit,
-    onIncrement: () -> Unit,
-    onStartPomodoro: () -> Unit,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    val accent = Color(habit.colorArgb.toInt())
-    val streak = habit.currentStreak(today)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
-            .clickable(onClick = onEdit)
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        // ── Top row: emoji + name/subtitle + streak ───────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(accent.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(text = habit.emoji, fontSize = 24.sp)
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = habit.name,
-                        color = tokens.textPrimary,
-                        style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
-                    )
-                    Text(
-                        text = habitTargetScheduleLabel(habit, today),
-                        color = tokens.textSecondary,
-                        style = KuroType.labelMeta,
-                    )
-                }
-            }
-            // Streak — right aligned: number + "day streak" / "week streak"
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(
-                    text = streak.toString(),
-                    color = tokens.accent,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = habitStreakUnitLabel(habit),
-                    color = tokens.textFaint,
-                    style = KuroType.labelMeta,
-                )
-            }
-        }
-
-        // ── Week dots row ─────────────────────────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            habitWeekDots(habit, today).forEach { dot ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(dot.label, color = tokens.textFaint, style = KuroType.labelMeta)
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when {
-                                    dot.isCompleted -> Mint          // green for completed
-                                    dot.isScheduled -> Mint.copy(alpha = 0.25f)
-                                    else -> tokens.cardBorder.copy(alpha = 0.6f)
-                                },
-                            )
-                            .border(
-                                1.dp,
-                                if (dot.date == today) tokens.textPrimary.copy(alpha = 0.20f) else Color.Transparent,
-                                CircleShape,
-                            ),
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** Returns "day streak" or "week streak" depending on occurrence. */
-private fun habitStreakUnitLabel(habit: Habit): String = when (habit.occurrence) {
-    is HabitOccurrence.Daily -> "day streak"
-    is HabitOccurrence.Weekdays -> "week streak"
+    KuroHabitsEmptyState(
+        title = if (filter == HabitUiFilter.All) "No habits yet" else "No ${filter.label.lowercase()} habits yet",
+        message = "Add a small repeatable action and let Kuro keep you company.",
+        onAdd = onAdd,
+        leading = { LeafBadge() },
+    )
 }
 
 @Composable
 private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
     val dots = monthlyHabitProgressDots(habits, today)
     val monthLabel = today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
-    // Monday-first: DayOfWeek.MONDAY.value=1 → offset 0, SUNDAY.value=7 → offset 6
     val leadingBlanks = dots.firstOrNull()?.date?.dayOfWeek?.let { (it.value - 1) % 7 } ?: 0
-    val gridSlots = List(leadingBlanks) { null } + dots
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            Text("Monthly Progress", color = tokens.textPrimary, style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold))
-            Text(monthLabel, color = tokens.textSecondary, style = KuroType.labelMeta.copy(fontWeight = FontWeight.Medium))
-        }
-        // Monday-first day headers
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
-                Text(
-                    text = day,
-                    color = tokens.textFaint,
-                    style = KuroType.labelMeta,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
-        gridSlots.chunked(7).forEach { rowDots ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                rowDots.forEach { dot ->
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    when {
-                                        dot == null -> Color.Transparent
-                                        dot.isCompleted -> Mint        // green for completed
-                                        dot.date == today -> Mint.copy(alpha = 0.4f)
-                                        else -> tokens.cardBorder
-                                    },
-                                ),
-                        )
-                    }
-                }
-                repeat(7 - rowDots.size) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
+    val gridSlots = List(leadingBlanks) {
+        KuroHabitMonthDotUi(isCompleted = false, isToday = false, isPlaceholder = true)
+    } + dots.map { dot ->
+        KuroHabitMonthDotUi(
+            isCompleted = dot.isCompleted,
+            isToday = dot.date == today,
+        )
     }
+    KuroMonthlyHabitProgressCard(
+        monthLabel = monthLabel,
+        rows = gridSlots.chunked(7),
+    )
 }
 
-@Composable
-private fun HabitMotivationCard() {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(tokens.activeCardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
-            .padding(18.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Real cat asset
-        Image(
-            painter = painterResource(id = com.endiar.kuropomodoro.R.drawable.cat_face),
-            contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            contentScale = ContentScale.Fit,
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = "Consistency is the secret behind all progress.",
-                color = tokens.textPrimary,
-                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold),
-            )
-            Text(
-                text = "You're doing great! 🌟",
-                color = tokens.accent,
-                style = KuroType.labelStrong,
-            )
-        }
-    }
+private fun habitStreakUnitLabel(habit: Habit): String = when (habit.occurrence) {
+    is HabitOccurrence.Daily -> "day streak"
+    is HabitOccurrence.Weekdays -> "week streak"
 }
 
 private fun habitTargetScheduleLabel(habit: Habit, today: LocalDate): String {
@@ -581,11 +361,11 @@ private val HABIT_EMOJIS: List<String> = listOf(
 @Composable
 private fun HabitEditorSheet(
     initial: Habit?,
-    tokens: KuroSurfaceTokens,
     onConfirm: (HabitDraft) -> Unit,
     onDelete: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf(initial?.name ?: "") }
@@ -597,227 +377,183 @@ private fun HabitEditorSheet(
 
     val isDaily = occurrence == HabitOccurrence.Daily
     val weekdaySet = (occurrence as? HabitOccurrence.Weekdays)?.days ?: emptySet()
-    val timeBlock = initial?.timeBlock ?: com.endiar.kuropomodoro.model.TimeBlock.Anytime
+    val timeBlock = initial?.timeBlock ?: TimeBlock.Anytime
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 32.dp)
-            .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
     ) {
-        Text(
-            text = if (initial == null) "New Habit" else "Edit Habit",
-            color = tokens.textPrimary,
-            style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-
-        // ── Name + emoji ──────────────────────────────────────────────────
-        EditorLabel("NAME", tokens)
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Emoji picker button
+        EditorLabel("NAME")
+        Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(KuroSpacing.habitEditorEmojiButton)
+                    .clip(RoundedCornerShape(KuroSpacing.radiusSm))
                     .background(tokens.segmentedTrack)
                     .clickable { showEmojiPicker = true },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(emoji, fontSize = 24.sp)
+                Text(emoji, style = KuroType.habitEmoji)
             }
-            TextField(
+            KuroInputField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = { Text("e.g. Meditate", color = tokens.textMuted, fontSize = 14.sp) },
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(tokens.segmentedTrack),
-                singleLine = true,
-                colors = transparentFieldColors(tokens),
+                placeholder = "e.g. Meditate",
+                modifier = Modifier.weight(1f),
             )
         }
 
-        // ── Color ─────────────────────────────────────────────────────────
-        EditorLabel("COLOR", tokens)
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        EditorLabel("COLOR")
+        Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
             PRESET_COLORS.forEach { c ->
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(KuroSpacing.habitColorSwatch)
                         .clip(CircleShape)
                         .background(Color(c.toInt()))
-                        .border(2.5.dp, if (c == colorArgb) tokens.textPrimary else Color.Transparent, CircleShape)
+                        .border(
+                            KuroSpacing.habitColorSwatchRing,
+                            if (c == colorArgb) tokens.textPrimary else Color.Transparent,
+                            CircleShape,
+                        )
                         .clickable { colorArgb = c },
                 )
             }
         }
 
-        // ── Type ──────────────────────────────────────────────────────────
-        EditorLabel("TYPE", tokens)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(HabitTargetType.Binary to "Check off", HabitTargetType.Quantity to "Count", HabitTargetType.Pomodoro to "Pomodoro")
-                .forEach { (t, label) ->
-                    PillChip(label = label, selected = targetType == t, tokens = tokens) { targetType = t }
-                }
+        EditorLabel("TYPE")
+        Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+            listOf(
+                HabitTargetType.Binary to "Check off",
+                HabitTargetType.Quantity to "Count",
+                HabitTargetType.Pomodoro to "Pomodoro",
+            ).forEach { (type, label) ->
+                EditorPill(label = label, selected = targetType == type) { targetType = type }
+            }
         }
 
-        // ── Target value ──────────────────────────────────────────────────
         if (targetType != HabitTargetType.Binary) {
             val unit = if (targetType == HabitTargetType.Pomodoro) "sessions" else "times"
-            EditorLabel("TARGET", tokens)
+            EditorLabel("TARGET")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
-                StepBtn("−", targetValue > 1, tokens) { if (targetValue > 1) targetValue-- }
-                Spacer(Modifier.width(20.dp))
-                Text("$targetValue $unit", color = tokens.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.width(20.dp))
-                StepBtn("+", targetValue < 20, tokens) { if (targetValue < 20) targetValue++ }
+                KuroStepper(label = "−", enabled = targetValue > 1, large = true, onClick = { if (targetValue > 1) targetValue-- })
+                Spacer(Modifier.width(KuroSpacing.lg))
+                Text("$targetValue $unit", color = tokens.textPrimary, style = KuroType.stepperValue)
+                Spacer(Modifier.width(KuroSpacing.lg))
+                KuroStepper(label = "+", enabled = targetValue < 20, large = true, onClick = { if (targetValue < 20) targetValue++ })
             }
         }
 
-        // ── Schedule ──────────────────────────────────────────────────────
-        EditorLabel("SCHEDULE", tokens)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PillChip("Every day", isDaily, tokens) { occurrence = HabitOccurrence.Daily }
-            PillChip("Custom days", !isDaily, tokens) {
+        EditorLabel("SCHEDULE")
+        Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+            EditorPill("Every day", isDaily) { occurrence = HabitOccurrence.Daily }
+            EditorPill("Custom days", !isDaily) {
                 if (isDaily) occurrence = HabitOccurrence.Weekdays(setOf(DayOfWeek.MONDAY))
             }
         }
         if (!isDaily) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DayOfWeek.values().forEach { dow ->
-                    val sel = dow in weekdaySet
-                    PillChip(
+            Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                DayOfWeek.entries.forEach { dow ->
+                    val selected = dow in weekdaySet
+                    EditorPill(
                         label = dow.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
-                        selected = sel,
-                        tokens = tokens,
+                        selected = selected,
                     ) {
-                        val newSet = if (sel) weekdaySet - dow else weekdaySet + dow
+                        val newSet = if (selected) weekdaySet - dow else weekdaySet + dow
                         occurrence = if (newSet.isEmpty()) HabitOccurrence.Daily
-                                     else HabitOccurrence.Weekdays(newSet)
+                        else HabitOccurrence.Weekdays(newSet)
                     }
                 }
             }
         }
 
-        // ── Confirm ───────────────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (name.isBlank()) tokens.accent.copy(alpha = 0.4f) else tokens.accent)
-                .clickable(enabled = name.isNotBlank()) {
-                    onConfirm(
-                        HabitDraft(
-                            name = name.trim(),
-                            emoji = emoji.ifBlank { "✅" },
-                            colorArgb = colorArgb,
-                            targetType = targetType,
-                            targetValue = targetValue.coerceAtLeast(1),
-                            occurrence = occurrence,
-                            timeBlock = timeBlock,
-                        )
-                    )
-                }
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = if (initial == null) "Add Habit" else "Save Changes",
-                color = tokens.accentOn,
-                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold),
-            )
-        }
+        KuroPrimaryButton(
+            text = if (initial == null) "Add Habit" else "Save Changes",
+            onClick = {
+                val trimmed = name.trim()
+                if (trimmed.isEmpty()) return@KuroPrimaryButton
+                onConfirm(
+                    HabitDraft(
+                        name = trimmed,
+                        emoji = emoji.ifBlank { "✅" },
+                        colorArgb = colorArgb,
+                        targetType = targetType,
+                        targetValue = targetValue.coerceAtLeast(1),
+                        occurrence = occurrence,
+                        timeBlock = timeBlock,
+                    ),
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
 
-        // ── Delete (edit mode only) ───────────────────────────────────────
         if (onDelete != null) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, tokens.destructive.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(KuroSpacing.md))
+                    .border(1.dp, tokens.destructive.copy(alpha = 0.4f), RoundedCornerShape(KuroSpacing.md))
                     .clickable { showDeleteConfirm = true }
-                    .padding(vertical = 14.dp),
+                    .padding(vertical = KuroSpacing.md),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "Delete Habit",
                     color = tokens.destructive.copy(alpha = 0.85f),
-                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+                    style = KuroType.labelStrong,
                 )
             }
         }
     }
 
-    // ── Emoji picker dialog ───────────────────────────────────────────────
     if (showEmojiPicker) {
         AlertDialog(
             onDismissRequest = { showEmojiPicker = false },
-            title = {
-                Text("Choose icon", color = tokens.textPrimary, fontWeight = FontWeight.SemiBold)
-            },
+            title = { Text("Choose icon", color = tokens.textPrimary, style = KuroType.headingCard) },
             text = {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
                 ) {
                     items(HABIT_EMOJIS) { e ->
                         Box(
                             modifier = Modifier
                                 .aspectRatio(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (e == emoji) tokens.accent.copy(alpha = 0.15f)
-                                    else Color.Transparent
-                                )
+                                .clip(RoundedCornerShape(KuroSpacing.sm))
+                                .background(if (e == emoji) tokens.accent.copy(alpha = 0.15f) else Color.Transparent)
                                 .border(
                                     1.dp,
                                     if (e == emoji) tokens.accent.copy(alpha = 0.5f) else Color.Transparent,
-                                    RoundedCornerShape(8.dp),
+                                    RoundedCornerShape(KuroSpacing.sm),
                                 )
                                 .clickable { emoji = e; showEmojiPicker = false },
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(e, fontSize = 22.sp, textAlign = TextAlign.Center)
+                            Text(e, style = KuroType.metricValue, textAlign = TextAlign.Center)
                         }
                     }
                 }
             },
             confirmButton = {},
             containerColor = tokens.cardFill,
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(KuroSpacing.radiusMd),
         )
     }
 
-    // ── Delete confirmation dialog ────────────────────────────────────────
     if (showDeleteConfirm && onDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = {
-                Text(
-                    text = "Delete habit?",
-                    color = tokens.textPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            },
-            text = {
-                Text(
-                    text = "All logs and streak data will be permanently removed.",
-                    color = tokens.textSecondary,
-                )
-            },
+            title = { Text("Delete habit?", color = tokens.textPrimary, style = KuroType.headingCard) },
+            text = { Text("All logs and streak data will be permanently removed.", color = tokens.textSecondary) },
             confirmButton = {
                 TextButton(onClick = { showDeleteConfirm = false; onDelete() }) {
-                    Text("Delete", color = tokens.destructive, fontWeight = FontWeight.SemiBold)
+                    Text("Delete", color = tokens.destructive, style = KuroType.labelStrong)
                 }
             },
             dismissButton = {
@@ -826,57 +562,20 @@ private fun HabitEditorSheet(
                 }
             },
             containerColor = tokens.cardFill,
-            shape = RoundedCornerShape(20.dp),
-        )
-    }
-}
-
-// ─── Small shared composables ─────────────────────────────────────────────────
-
-@Composable
-private fun EditorLabel(text: String, tokens: KuroSurfaceTokens) {
-    Text(text = text, color = tokens.textMuted, style = KuroType.labelMeta, letterSpacing = 1.sp)
-}
-
-@Composable
-private fun PillChip(label: String, selected: Boolean, tokens: KuroSurfaceTokens, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) tokens.accentSoft else tokens.segmentedTrack)
-            .border(1.dp, if (selected) tokens.accent.copy(alpha = 0.6f) else tokens.borderSoft, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-    ) {
-        Text(
-            text = label,
-            style = KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium),
-            color = if (selected) tokens.accent else tokens.textSecondary,
+            shape = RoundedCornerShape(KuroSpacing.radiusMd),
         )
     }
 }
 
 @Composable
-private fun StepBtn(label: String, enabled: Boolean, tokens: KuroSurfaceTokens, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(if (enabled) tokens.segmentedTrack else tokens.segmentedTrack.copy(alpha = 0.5f))
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, color = if (enabled) tokens.textPrimary else tokens.textMuted, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-    }
+private fun EditorLabel(text: String) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Text(text = text, color = tokens.textMuted, style = KuroType.labelCaption)
 }
 
 @Composable
-private fun transparentFieldColors(tokens: KuroSurfaceTokens) = TextFieldDefaults.colors(
-    focusedContainerColor = Color.Transparent,
-    unfocusedContainerColor = Color.Transparent,
-    focusedTextColor = tokens.textPrimary,
-    unfocusedTextColor = tokens.textPrimary,
-    cursorColor = tokens.accent,
-    focusedIndicatorColor = Color.Transparent,
-    unfocusedIndicatorColor = Color.Transparent,
-)
+private fun EditorPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(modifier = Modifier.clickable(onClick = onClick)) {
+        KuroPill(label = label, kind = if (selected) KuroPillKind.Selected else KuroPillKind.Default)
+    }
+}
