@@ -70,6 +70,14 @@ class AppRepositoryTest {
     }
 
     @Test
+    fun `setSettings persists auto-start next session`() = runTest {
+        val repo = makeRepo()
+        repo.setSettings(TimerSettings(autoStartNextSession = true))
+
+        assertEquals(true, repo.appState.first().settings.autoStartNextSession)
+    }
+
+    @Test
     fun `setNextTaskId persists value`() = runTest {
         val repo = makeRepo()
         repo.setNextTaskId(42)
