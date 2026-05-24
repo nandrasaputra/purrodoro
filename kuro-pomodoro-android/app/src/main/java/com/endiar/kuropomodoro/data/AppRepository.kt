@@ -65,6 +65,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_FOCUS_MIN = intPreferencesKey("focus_minutes")
         private val KEY_SHORT_MIN = intPreferencesKey("short_break_minutes")
         private val KEY_LONG_MIN = intPreferencesKey("long_break_minutes")
+        private val KEY_AUTO_START_NEXT_SESSION = booleanPreferencesKey("auto_start_next_session")
         private val KEY_CYCLE_SIZE = intPreferencesKey("focus_sessions_per_cycle")
         private val KEY_NEXT_TASK_ID = intPreferencesKey("next_task_id")
         private val KEY_STAMPS = stringPreferencesKey("stamps_json")
@@ -114,6 +115,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
                 focusMinutes = prefs[KEY_FOCUS_MIN] ?: 25,
                 shortBreakMinutes = prefs[KEY_SHORT_MIN] ?: 5,
                 longBreakMinutes = prefs[KEY_LONG_MIN] ?: 15,
+                autoStartNextSession = prefs[KEY_AUTO_START_NEXT_SESSION] ?: false,
                 focusSessionsPerCycle = prefs[KEY_CYCLE_SIZE] ?: 4
             ),
             nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 1,
@@ -140,6 +142,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         prefs[KEY_FOCUS_MIN] = value.focusMinutes
         prefs[KEY_SHORT_MIN] = value.shortBreakMinutes
         prefs[KEY_LONG_MIN] = value.longBreakMinutes
+        prefs[KEY_AUTO_START_NEXT_SESSION] = value.autoStartNextSession
         prefs[KEY_CYCLE_SIZE] = value.focusSessionsPerCycle
     }
     suspend fun setNextTaskId(value: Int) = dataStore.edit { it[KEY_NEXT_TASK_ID] = value }

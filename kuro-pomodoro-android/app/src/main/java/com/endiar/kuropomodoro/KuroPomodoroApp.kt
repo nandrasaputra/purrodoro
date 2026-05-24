@@ -155,6 +155,7 @@ fun KuroPomodoroApp(
         )
     }
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
+    var showProfile by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -385,6 +386,7 @@ fun KuroPomodoroApp(
                             activeTask = null
                         },
                         onOpenSoundsSheet = { showSoundsSheet = true },
+                        onOpenProfile = { showProfile = true },
                         contentPadding = screenContentPadding
                     )
 
@@ -493,34 +495,19 @@ fun KuroPomodoroApp(
                             requestNotificationPermission()
                             timerConnection.controller.start(settings, syntheticTask, habit.id)
                         },
-                        contentPadding = screenContentPadding,
-                    )
-
-                    AppTab.Profile -> ProfileScreen(
-                        settings = settings,
-                        glassReadabilityMode = glassReadabilityMode,
-                        glassTreatment = glassTreatment,
-                        appearanceMode = appearanceMode,
-                        onAppearanceModeChanged = ::persistAppearanceMode,
-                        onGlassReadabilityModeChanged = { persistGlassReadabilityMode(it) },
-                        onDurationChanged = { mode, minutes ->
-                            val updatedSettings = settings.update(mode, minutes)
-                            persistSettings(updatedSettings)
-                        },
-                        onCycleSizeChanged = { n ->
-                            val updatedSettings = settings.updateCycleSize(n)
-                            persistSettings(updatedSettings)
-                        },
-                        onResetSettings = {
-                            scope.launch { repo.resetSettingsToDefault() }
-                        },
-                        onMockFeature = { premiumSheetMessage = it },
-                        overBackdrop = overBackdrop,
-                        contentPadding = screenContentPadding,
-                        notificationSoundEnabled = notificationSoundEnabled,
-                        onNotificationSoundChanged = ::persistNotificationSoundEnabled,
-                    )
+                         contentPadding = screenContentPadding,
+                     )
                 }
+            }
+
+            if (showProfile) {
+                ProfileScreen(
+                    settings = settings,
+                    onBack = { showProfile = false },
+                    onUpdateSettings = { persistSettings(it) },
+                    notificationSoundEnabled = notificationSoundEnabled,
+                    onUpdateNotificationSound = { persistNotificationSoundEnabled(it) },
+                )
             }
 
             if (!showSoundsSheet) {
@@ -540,7 +527,7 @@ fun KuroPomodoroApp(
             // (frame-perfect parallel). Dock visibility is the inverse of focus mode:
             // appearing = exiting focus (Exit, 400ms, snappier); disappearing = entering focus (Enter, 700ms, deliberate).
             focusTransition.AnimatedVisibility(
-                visible = { active -> !active },
+                visible = { active -> !active && !showProfile },
                 enter = slideInVertically(
                     animationSpec = tween(
                         durationMillis = FocusModeMotion.ExitDurationMs,
@@ -656,9 +643,10 @@ fun KuroPomodoroApp(
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,
                     )
-                }
             }
+
         }
+    }
     }
 
     if (useCatBackdrop) {

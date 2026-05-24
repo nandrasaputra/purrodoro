@@ -368,12 +368,6 @@ fun DashboardDock(
             active = selectedTab == AppTab.Calendar,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Calendar) }
-        DockTabItem(
-            icon = Icons.Default.Person,
-            label = "Stats",
-            active = selectedTab == AppTab.Profile,
-            modifier = Modifier.weight(1f)
-        ) { onNavigate(AppTab.Profile) }
     }
 }
 

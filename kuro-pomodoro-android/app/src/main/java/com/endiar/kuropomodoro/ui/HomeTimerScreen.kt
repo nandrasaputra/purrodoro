@@ -95,6 +95,7 @@ fun HomeTimerScreen(
     onStartPause: () -> Unit,
     onStop: () -> Unit,
     onOpenSoundsSheet: () -> Unit,
+    onOpenProfile: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
@@ -111,7 +112,7 @@ fun HomeTimerScreen(
                 .padding(top = 18.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            HomeHeader(greeting = greeting)
+            HomeHeader(greeting = greeting, onOpenProfile = onOpenProfile)
             if (isStarted) {
                 ActiveHero(
                     timerMode = timerMode,
@@ -140,7 +141,7 @@ fun HomeTimerScreen(
 }
 
 @Composable
-private fun HomeHeader(greeting: HomeGreeting) {
+private fun HomeHeader(greeting: HomeGreeting, onOpenProfile: () -> Unit = {}) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -190,7 +191,7 @@ private fun HomeHeader(greeting: HomeGreeting) {
                 overflow = TextOverflow.Ellipsis
             )
         }
-        CatAvatar()
+        CatAvatar(onClick = onOpenProfile)
     }
 }
 
@@ -694,8 +695,8 @@ private fun CycleDots(dots: com.endiar.kuropomodoro.model.CycleDotsState) {
 }
 
 @Composable
-private fun CatAvatar() {
-    Box(modifier = Modifier.size(64.dp)) {
+private fun CatAvatar(onClick: () -> Unit = {}) {
+    Box(modifier = Modifier.size(64.dp).clickable(onClick = onClick)) {
         Box(
             modifier = Modifier
                 .matchParentSize()
