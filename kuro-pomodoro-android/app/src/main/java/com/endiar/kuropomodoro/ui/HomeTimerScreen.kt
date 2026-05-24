@@ -58,21 +58,15 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
+import androidx.compose.material3.MaterialTheme
 import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.cycleDotsState
 import com.endiar.kuropomodoro.model.formatSeconds
+import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
+import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.theme.Mint
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import java.time.LocalTime
-
-// Color palette matched to reference image
-private val HomeCream = Color(0xFFFAF5F2)      // exact extracted main background
-private val HomeCard = Color(0xFFFFFFFF)        // white card lifts off the beige background
-private val HomeCardWarm = Color(0xFFF9EEE5)   // exact extracted bottom card color
-private val HomeBorder = Color(0xFFE9DED8)     // subtle warm border tuned for FAF5F2
-private val HomeText = Color(0xFF1E1612)        // near-black warm brown
-private val HomeMuted = Color(0xFF9E8A7E)       // muted warm grey-brown
-private val HomeCoral = Color(0xFFBF5B3D)       // reference coral/terracotta (darker, less orange)
-private val HomeCoralSoft = Color(0xFFF2DDD5)   // soft coral tint for tiles
-private val HomeLeaf = Color(0xFF7A9A60)        // leaf green
 
 @Composable
 fun HomeTimerScreen(
@@ -108,8 +102,8 @@ fun HomeTimerScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(contentPadding)
-                .padding(horizontal = 20.dp)
-                .padding(top = 18.dp, bottom = 24.dp),
+                .padding(horizontal = KuroSpacing.lg)
+                .padding(top = 18.dp, bottom = KuroSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             HomeHeader(greeting = greeting, onOpenProfile = onOpenProfile)
@@ -142,6 +136,7 @@ fun HomeTimerScreen(
 
 @Composable
 private fun HomeHeader(greeting: HomeGreeting, onOpenProfile: () -> Unit = {}) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -150,14 +145,13 @@ private fun HomeHeader(greeting: HomeGreeting, onOpenProfile: () -> Unit = {}) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = greeting.salutation,
-                color = HomeMuted,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Normal
+                color = tokens.textSecondary,
+                style = KuroType.bodySecondary
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Nandra",
-                    color = HomeText,
+                    color = tokens.textPrimary,
                     fontSize = 32.sp,
                     lineHeight = 36.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -165,16 +159,16 @@ private fun HomeHeader(greeting: HomeGreeting, onOpenProfile: () -> Unit = {}) {
                 )
                 Canvas(
                     modifier = Modifier
-                        .padding(start = 8.dp, top = 5.dp)
+                        .padding(start = KuroSpacing.sm, top = 5.dp)
                         .size(18.dp, 14.dp)
                 ) {
                     drawOval(
-                        color = HomeLeaf,
+                        color = Mint,
                         topLeft = Offset(size.width * 0.12f, size.height * 0.05f),
                         size = Size(size.width * 0.72f, size.height * 0.82f)
                     )
                     drawLine(
-                        color = HomeText.copy(alpha = 0.35f),
+                        color = tokens.textPrimary.copy(alpha = 0.35f),
                         start = Offset(size.width * 0.28f, size.height * 0.74f),
                         end = Offset(size.width * 0.90f, size.height * 0.08f),
                         strokeWidth = 1.5f,
@@ -184,8 +178,8 @@ private fun HomeHeader(greeting: HomeGreeting, onOpenProfile: () -> Unit = {}) {
             }
             Text(
                 text = greeting.encouragement,
-                color = HomeMuted,
-                fontSize = 13.sp,
+                color = tokens.textSecondary,
+                style = KuroType.bodySecondary,
                 lineHeight = 17.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -208,7 +202,7 @@ private fun HeroImage(modifier: Modifier = Modifier, time: LocalTime) {
         contentScale = ContentScale.Crop,
         modifier = modifier
             .aspectRatio(1.48f)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
     )
 }
 
@@ -224,7 +218,7 @@ private fun IdleHero(backdropTime: LocalTime, onStartPause: () -> Unit) {
             icon = true,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = KuroSpacing.xl)
                 .offset(y = 27.dp)
         )
     }
@@ -290,8 +284,9 @@ private fun ActiveTimerCard(
     val isBreak = currentType is SessionItemType.ShortBreak || currentType is SessionItemType.LongBreak
     val isFocus = currentType is SessionItemType.Focus
     var showStopConfirmDialog by remember { mutableStateOf(false) }
+    val tokens = MaterialTheme.colorScheme.kuroTokens
 
-    HomeCardSurface(modifier = modifier, color = HomeCard) {
+    HomeCardSurface(modifier = modifier, color = tokens.cardFill) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -305,24 +300,21 @@ private fun ActiveTimerCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = activeTask?.title ?: timerMode.label,
-                        color = HomeText,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        color = tokens.textPrimary,
+                        style = KuroType.headingCard,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "Deep Work",
-                        color = HomeMuted,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        color = tokens.textSecondary,
+                        style = KuroType.labelStrong
                     )
                 }
                 Text(
                     text = "✎ Edit",
-                    color = HomeCoral,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                    color = tokens.accent,
+                    style = KuroType.labelStrong
                 )
             }
             Row(
@@ -333,16 +325,15 @@ private fun ActiveTimerCard(
                 Column {
                     Text(
                         text = formatSeconds(remainingSeconds),
-                        color = HomeText,
+                        color = tokens.textPrimary,
                         fontSize = 44.sp,
                         lineHeight = 48.sp,
                         fontWeight = FontWeight.Light
                     )
                     Text(
                         text = "remaining",
-                        color = HomeMuted,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        color = tokens.textSecondary,
+                        style = KuroType.labelStrong
                     )
                 }
                 PomodoroRing(progress = pomodoroProgress)
@@ -364,16 +355,15 @@ private fun ActiveTimerCard(
                 }) {
                     Text(
                         text = "■",
-                        color = HomeMuted,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        color = tokens.textSecondary,
+                        style = KuroType.labelMeta
                     )
                     Spacer(Modifier.width(5.dp))
-                    Text("Stop", color = HomeMuted, fontWeight = FontWeight.Bold)
+                    Text("Stop", color = tokens.textSecondary, fontWeight = FontWeight.Bold)
                 }
                 if (isBreak) {
                     TextButton(onClick = onSkip) {
-                        Text("Skip break", color = HomeMuted, fontWeight = FontWeight.Bold)
+                        Text("Skip break", color = tokens.textSecondary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -386,14 +376,14 @@ private fun ActiveTimerCard(
             title = {
                 Text(
                     text = "Taking a break?",
-                    color = HomeText,
+                    color = tokens.textPrimary,
                     fontWeight = FontWeight.ExtraBold
                 )
             },
             text = {
                 Text(
                     text = "Your focus time so far will still be counted.",
-                    color = HomeMuted
+                    color = tokens.textSecondary
                 )
             },
             confirmButton = {
@@ -401,32 +391,32 @@ private fun ActiveTimerCard(
                     showStopConfirmDialog = false
                     onStop()
                 }) {
-                    Text("Stop for now", color = HomeCoral, fontWeight = FontWeight.Bold)
+                    Text("Stop for now", color = tokens.accent, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showStopConfirmDialog = false }) {
-                    Text("Stay focused", color = HomeMuted, fontWeight = FontWeight.Bold)
+                    Text("Stay focused", color = tokens.textSecondary, fontWeight = FontWeight.Bold)
                 }
             },
-            containerColor = HomeCard,
-            shape = RoundedCornerShape(24.dp)
+            containerColor = tokens.cardFill,
+            shape = RoundedCornerShape(KuroSpacing.xl)
         )
     }
 }
 
 @Composable
 private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     HomeCardSurface {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = "📅", fontSize = 14.sp)
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(KuroSpacing.sm))
                 Text(
                     text = "Continue where you left off",
-                    color = HomeText,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
+                    color = tokens.textPrimary,
+                    style = KuroType.labelStrong
                 )
             }
             Row(
@@ -438,16 +428,15 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = task?.title ?: "Choose a focus task",
-                        color = HomeText,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        color = tokens.textPrimary,
+                        style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = if (task != null) progress.completedLabel else "A calm place to begin when you are ready.",
-                        color = HomeMuted,
-                        fontSize = 13.sp,
+                        color = tokens.textSecondary,
+                        style = KuroType.bodySecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -455,7 +444,7 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = HomeMuted,
+                    tint = tokens.textSecondary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -465,6 +454,7 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
 
 @Composable
 private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     HomeCardSurface {
         Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(
@@ -474,15 +464,13 @@ private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
             ) {
                 Text(
                     text = "Today's Focus",
-                    color = HomeText,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
+                    color = tokens.textPrimary,
+                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Text(
                     text = "View all",
-                    color = HomeCoral,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                    color = tokens.accent,
+                    style = KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium)
                 )
             }
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -496,7 +484,8 @@ private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
 
 @Composable
 private fun QuoteCard() {
-    HomeCardSurface(color = HomeCardWarm) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    HomeCardSurface(color = tokens.activeCardFill) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -504,10 +493,9 @@ private fun QuoteCard() {
         ) {
             Text(
                 text = "Little by little,\na lot becomes a lot. ♡",
-                color = HomeText,
-                fontSize = 15.sp,
+                color = tokens.textPrimary,
+                style = KuroType.bodyPrimary,
                 lineHeight = 22.sp,
-                fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
             SleepingCat(modifier = Modifier.size(88.dp))
@@ -517,38 +505,39 @@ private fun QuoteCard() {
 
 @Composable
 private fun SoundChip(isPlaying: Boolean, onClick: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(
         modifier = Modifier
             .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(KuroSpacing.xl))
             .background(Color.White.copy(alpha = 0.58f))
-            .border(1.dp, HomeBorder, RoundedCornerShape(24.dp))
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.xl))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = KuroSpacing.md, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = if (isPlaying) "Sound on  ♫" else "Sound off  ♫",
-            color = HomeMuted,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
+            color = tokens.textSecondary,
+            style = KuroType.labelStrong
         )
     }
 }
 
 @Composable
 private fun MetricColumn(label: String, value: String, modifier: Modifier = Modifier) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
-            color = HomeMuted,
-            fontSize = 11.sp,
+            color = tokens.textSecondary,
+            style = KuroType.labelMeta,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(KuroSpacing.xs))
         Text(
             text = value,
-            color = HomeText,
+            color = tokens.textPrimary,
             fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -558,15 +547,17 @@ private fun MetricColumn(label: String, value: String, modifier: Modifier = Modi
 @Composable
 private fun HomeCardSurface(
     modifier: Modifier = Modifier,
-    color: Color = HomeCard,
+    color: Color? = null,
     content: @Composable () -> Unit
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val bgColor = color ?: tokens.cardFill
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(color)
-            .border(1.dp, HomeBorder.copy(alpha = 0.60f), RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(bgColor)
+            .border(1.dp, tokens.cardBorder.copy(alpha = 0.60f), RoundedCornerShape(KuroSpacing.radiusMd))
             .padding(horizontal = 18.dp, vertical = 14.dp)
     ) {
         content()
@@ -580,13 +571,14 @@ private fun HomePrimaryButton(
     icon: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = modifier
             .height(54.dp)
-            .clip(RoundedCornerShape(30.dp))
-            .background(HomeCoral)
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(tokens.accent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = KuroSpacing.xl),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -602,46 +594,46 @@ private fun HomePrimaryButton(
         Text(
             text = text,
             color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.ExtraBold
+            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold)
         )
     }
 }
 
 @Composable
 private fun CodeTile(modifier: Modifier = Modifier) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(
         modifier = modifier
             .size(46.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(HomeCoralSoft),
+            .background(tokens.accentSoft),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "</>",
-            color = HomeCoral,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.ExtraBold
+            color = tokens.accent,
+            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold)
         )
     }
 }
 
 @Composable
 private fun PomodoroRing(progress: PomodoroProgress) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val total = progress.total.coerceAtLeast(1)
     val fraction = (progress.current.toFloat() / total.toFloat()).coerceIn(0f, 1f)
     Box(contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(64.dp)) {
             val stroke = 7.dp.toPx()
             drawArc(
-                color = HomeCoralSoft,
+                color = tokens.accentSoft,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
                 style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
             drawArc(
-                color = HomeCoral,
+                color = tokens.accent,
                 startAngle = -90f,
                 sweepAngle = 360f * fraction,
                 useCenter = false,
@@ -651,16 +643,14 @@ private fun PomodoroRing(progress: PomodoroProgress) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Pomodoro",
-                color = HomeMuted,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Medium,
+                color = tokens.textSecondary,
+                style = KuroType.labelMeta.copy(fontWeight = FontWeight.Medium),
                 textAlign = TextAlign.Center
             )
             Text(
                 text = "${progress.current.coerceAtLeast(1)} of $total",
-                color = HomeText,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                color = tokens.textPrimary,
+                style = KuroType.labelStrong,
                 textAlign = TextAlign.Center
             )
         }
@@ -669,6 +659,7 @@ private fun PomodoroRing(progress: PomodoroProgress) {
 
 @Composable
 private fun CycleDots(dots: com.endiar.kuropomodoro.model.CycleDotsState) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -684,9 +675,9 @@ private fun CycleDots(dots: com.endiar.kuropomodoro.model.CycleDotsState) {
                     .clip(CircleShape)
                     .background(
                         when {
-                            active -> HomeCoral
-                            completed -> HomeCoral.copy(alpha = 0.55f)
-                            else -> HomeBorder
+                            active -> tokens.accent
+                            completed -> tokens.accent.copy(alpha = 0.55f)
+                            else -> tokens.cardBorder
                         }
                     )
             )
@@ -696,13 +687,14 @@ private fun CycleDots(dots: com.endiar.kuropomodoro.model.CycleDotsState) {
 
 @Composable
 private fun CatAvatar(onClick: () -> Unit = {}) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(modifier = Modifier.size(64.dp).clickable(onClick = onClick)) {
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(CircleShape)
-                .background(HomeCard)
-                .border(1.dp, HomeBorder, CircleShape)
+                .background(tokens.cardFill)
+                .border(1.dp, tokens.cardBorder, CircleShape)
                 .padding(6.dp)
         ) {
             Image(
@@ -719,8 +711,8 @@ private fun CatAvatar(onClick: () -> Unit = {}) {
                 .align(Alignment.BottomEnd)
                 .size(16.dp)
                 .clip(CircleShape)
-                .background(HomeCoral)
-                .border(2.dp, HomeCream, CircleShape)
+                .background(tokens.accent)
+                .border(2.dp, tokens.pageBackground, CircleShape)
         )
     }
 }

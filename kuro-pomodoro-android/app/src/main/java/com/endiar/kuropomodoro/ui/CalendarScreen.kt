@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -66,7 +67,8 @@ import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
-import androidx.compose.material3.MaterialTheme
+import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
+import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import java.time.Instant
 import java.time.LocalDate
@@ -77,16 +79,8 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-private val JourneyPaper = Color(0xFFFFFBF7)
-private val JourneyInk = Color(0xFF292625)
-private val JourneyMuted = Color(0xFF77716C)
-private val JourneyFaint = Color(0xFFA7A09A)
-private val JourneyLine = Color(0xFFEDE3DA)
-private val JourneyCard = Color(0xFFFFFEFC)
-private val JourneyCoral = Color(0xFFE97852)
-private val JourneyOrange = Color(0xFFF5A33B)
+// Intentional brand color — no equivalent token (green productivity icon accent)
 private val JourneyGreen = Color(0xFF8BA05E)
-private val JourneyChip = Color(0xFFF0F4E8)
 
 private enum class JourneyPeriod(val label: String) {
     Week("This week"),
@@ -127,17 +121,17 @@ fun CalendarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp)
-                .padding(top = 20.dp, bottom = 112.dp)
+                .padding(horizontal = KuroSpacing.xl)
+                .padding(top = KuroSpacing.lg, bottom = 112.dp)
                 .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             JourneyHeader(Modifier.onSizeChanged { headerHeightPx = it.height })
             JourneySegmentedControl(selectedPeriod) { selectedPeriod = it }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
                 MetricCard(
                     icon = "T",
-                    iconColor = JourneyCoral,
+                    iconColor = tokens.accent,
                     title = selectedPeriod.label,
                     value = journeyMinutesLabel(summary.weekFocusMinutes),
                     note = summary.weekOverWeekPercent?.let { "${if (it >= 0) "+" else ""}$it% vs last week" } ?: "No last week yet",
@@ -152,7 +146,7 @@ fun CalendarScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
                 MetricCard(
                     icon = "A",
                     iconColor = JourneyGreen,
@@ -163,7 +157,7 @@ fun CalendarScreen(
                 )
                 MetricCard(
                     icon = "%",
-                    iconColor = JourneyCoral,
+                    iconColor = tokens.accent,
                     title = "Weekly goal",
                     value = "${summary.weeklyGoalPercent}%",
                     note = "${journeyMinutesLabel(summary.weekFocusMinutes)} / ${journeyMinutesLabel(summary.weeklyGoalMinutes)}",
@@ -210,26 +204,28 @@ fun CalendarScreen(
 
 @Composable
 private fun JourneyHeader(modifier: Modifier = Modifier) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Journey", color = JourneyInk, fontFamily = FontFamily.Serif, fontSize = 42.sp)
-            Text("Your focus journey.", color = JourneyMuted, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
+            // Intentional exception: 42sp Serif display heading — brand personality
+            Text("Journey", color = tokens.textPrimary, fontFamily = FontFamily.Serif, fontSize = 42.sp)
+            Text("Your focus journey.", color = tokens.textSecondary, style = KuroType.headingCard)
         }
         Surface(
-            modifier = Modifier.size(64.dp).shadow(8.dp, CircleShape),
+            modifier = Modifier.size(64.dp).shadow(KuroSpacing.sm, CircleShape),
             shape = CircleShape,
-            color = Color(0xFFFFEFE5),
+            color = tokens.accentSoft,
             border = BorderStroke(1.dp, Color.White)
         ) {
             Image(
                 painter = painterResource(R.drawable.cat_face),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.padding(4.dp)
+                modifier = Modifier.padding(KuroSpacing.xs)
             )
         }
     }
@@ -237,11 +233,12 @@ private fun JourneyHeader(modifier: Modifier = Modifier) {
 
 @Composable
 private fun JourneySegmentedControl(selected: JourneyPeriod, onSelected: (JourneyPeriod) -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Surface(
-        modifier = Modifier.fillMaxWidth().height(46.dp).shadow(8.dp, RoundedCornerShape(22.dp)),
-        shape = RoundedCornerShape(22.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, JourneyLine)
+        modifier = Modifier.fillMaxWidth().height(46.dp).shadow(KuroSpacing.sm, RoundedCornerShape(KuroSpacing.radiusPill)),
+        shape = RoundedCornerShape(KuroSpacing.radiusPill),
+        color = tokens.cardFill,
+        border = BorderStroke(1.dp, tokens.cardBorder)
     ) {
         Row(modifier = Modifier.padding(2.dp)) {
             JourneyPeriod.entries.forEach { period ->
@@ -250,13 +247,13 @@ private fun JourneySegmentedControl(selected: JourneyPeriod, onSelected: (Journe
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(if (active) Color(0xFFFFFBF9) else Color.Transparent)
-                        .border(if (active) 1.dp else 0.dp, if (active) Color(0xFFFFC9B6) else Color.Transparent, RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                        .background(if (active) tokens.activeCardFill else Color.Transparent)
+                        .border(if (active) 1.dp else 0.dp, if (active) tokens.borderSoft else Color.Transparent, RoundedCornerShape(KuroSpacing.radiusMd))
                         .clickable { onSelected(period) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(period.label, color = if (active) JourneyCoral else JourneyMuted, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(period.label, color = if (active) tokens.accent else tokens.textSecondary, style = KuroType.labelStrong)
                 }
             }
         }
@@ -273,14 +270,17 @@ private fun MetricCard(
     modifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null
 ) {
-    ReferenceCard(modifier = modifier.height(118.dp), contentPadding = PaddingValues(16.dp)) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    JourneyCard(modifier = modifier.height(118.dp), contentPadding = PaddingValues(KuroSpacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // Intentional: large icon letter, 30sp ExtraBold brand accent
             Text(icon, color = iconColor, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(KuroSpacing.md))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, color = JourneyInk, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-                Text(value, color = JourneyInk, fontFamily = FontFamily.Serif, fontSize = 30.sp)
-                Text(note, color = JourneyMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(title, color = tokens.textPrimary, style = KuroType.headingCard)
+                // Intentional: Serif large value, brand personality
+                Text(value, color = tokens.textPrimary, fontFamily = FontFamily.Serif, fontSize = 30.sp)
+                Text(note, color = tokens.textSecondary, style = KuroType.labelMeta)
             }
             trailing?.invoke()
         }
@@ -289,17 +289,19 @@ private fun MetricCard(
 
 @Composable
 private fun GoalRing(progress: Float) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Canvas(modifier = Modifier.size(46.dp)) {
         val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-        drawArc(JourneyLine, -90f, 360f, false, style = stroke, size = Size(size.width, size.height))
-        drawArc(JourneyOrange, -90f, 360f * progress.coerceIn(0f, 1f), false, style = stroke, size = Size(size.width, size.height))
+        drawArc(tokens.cardBorder, -90f, 360f, false, style = stroke, size = Size(size.width, size.height))
+        drawArc(tokens.accent, -90f, 360f * progress.coerceIn(0f, 1f), false, style = stroke, size = Size(size.width, size.height))
     }
 }
 
 @Composable
 private fun WeeklyFocusCard(summary: JourneySummary) {
-    ReferenceCard {
-        Text("Focus time this week", color = JourneyInk, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    JourneyCard {
+        Text("Focus time this week", color = tokens.textPrimary, style = KuroType.headingCard)
         Spacer(Modifier.height(14.dp))
         Row(modifier = Modifier.fillMaxWidth().height(104.dp), verticalAlignment = Alignment.Bottom) {
             ChartAxis()
@@ -317,10 +319,10 @@ private fun WeeklyFocusCard(summary: JourneySummary) {
                                 .width(20.dp)
                                 .height((80.dp * ratio).coerceAtLeast(if (bar.focusMinutes > 0) 8.dp else 2.dp))
                                 .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
-                                .background(if (index == 6) Color(0xFFF3B798) else JourneyCoral)
+                                .background(if (index == 6) tokens.accentSoft else tokens.accent)
                         )
-                        Spacer(Modifier.height(8.dp))
-                        Text(bar.dayLabel.take(3), color = JourneyMuted, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                        Spacer(Modifier.height(KuroSpacing.sm))
+                        Text(bar.dayLabel.take(3), color = tokens.textSecondary, style = KuroType.labelMeta)
                     }
                 }
             }
@@ -336,14 +338,15 @@ private fun WeeklyFocusCard(summary: JourneySummary) {
 
 @Composable
 private fun ChartAxis() {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         modifier = Modifier.width(34.dp).height(86.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.End
     ) {
-        Text("3h", color = JourneyMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Text("1.5h", color = JourneyMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Text("0", color = JourneyMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text("3h", color = tokens.textSecondary, style = KuroType.labelMeta)
+        Text("1.5h", color = tokens.textSecondary, style = KuroType.labelMeta)
+        Text("0", color = tokens.textSecondary, style = KuroType.labelMeta)
     }
 }
 
@@ -360,33 +363,33 @@ private fun FocusCalendarCard(
     onNextMonth: () -> Unit,
     onSelectedDate: (LocalDate) -> Unit
 ) {
-    ReferenceCard {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    JourneyCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Focus calendar", color = JourneyInk, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Focus calendar", color = tokens.textPrimary, style = KuroType.headingCard)
             Text(
                 "${displayMonth.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())} ${displayMonth.year}",
-                color = JourneyInk,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold
+                color = tokens.textPrimary,
+                style = KuroType.headingCard
             )
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("<", color = JourneyMuted, fontSize = 24.sp, modifier = Modifier.clickable { onPreviousMonth() })
-                Text(">", color = JourneyMuted, fontSize = 24.sp, modifier = Modifier.clickable { onNextMonth() })
+                Text("<", color = tokens.textSecondary, fontSize = 24.sp, modifier = Modifier.clickable { onPreviousMonth() })
+                Text(">", color = tokens.textSecondary, fontSize = 24.sp, modifier = Modifier.clickable { onNextMonth() })
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(KuroSpacing.md))
         Row(modifier = Modifier.fillMaxWidth()) {
             listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
-                Text(day, color = JourneyMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                Text(day, color = tokens.textSecondary, style = KuroType.labelMeta, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(KuroSpacing.sm))
         CalendarGrid(displayMonth, selectedDate, today, stamps, records, zone, onSelectedDate)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(KuroSpacing.md))
         SelectedDayStrip(summary)
     }
 }
@@ -436,23 +439,28 @@ private fun CalendarDayCell(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val bg = when {
-        selected -> JourneyCoral
-        today -> Color(0xFFF2EBDD)
-        hasFocus -> Color(0xFFFFF1E8)
+        selected -> tokens.accent
+        today -> tokens.activeCardFill
+        hasFocus -> tokens.accentSoft
         else -> Color.Transparent
     }
     val textColor = when {
-        selected -> Color.White
-        !inMonth -> JourneyFaint
-        else -> JourneyInk
+        selected -> tokens.accentOn
+        !inMonth -> tokens.textFaint
+        else -> tokens.textPrimary
     }
     Box(modifier = modifier.height(30.dp), contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier.size(28.dp).clip(CircleShape).background(bg).clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            Text(date.dayOfMonth.toString(), color = textColor, fontSize = 13.sp, fontWeight = if (selected || today) FontWeight.ExtraBold else FontWeight.SemiBold)
+            Text(
+                date.dayOfMonth.toString(),
+                color = textColor,
+                style = if (selected || today) KuroType.labelStrong else KuroType.bodySecondary
+            )
         }
         if (hasFocus && !selected) {
             Box(
@@ -460,7 +468,7 @@ private fun CalendarDayCell(
                     .align(Alignment.BottomCenter)
                     .size(4.dp)
                     .clip(CircleShape)
-                    .background(if (inMonth) JourneyOrange else JourneyFaint)
+                    .background(if (inMonth) tokens.accent else tokens.textFaint)
             )
         }
     }
@@ -468,11 +476,12 @@ private fun CalendarDayCell(
 
 @Composable
 private fun SelectedDayStrip(summary: JourneySummary) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFFFFBF4),
-        border = BorderStroke(1.dp, Color(0xFFF4E9DB))
+        shape = RoundedCornerShape(KuroSpacing.radiusMd),
+        color = tokens.activeCardFill,
+        border = BorderStroke(1.dp, tokens.cardBorder)
     ) {
         Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Image(
@@ -481,15 +490,14 @@ private fun SelectedDayStrip(summary: JourneySummary) {
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(width = 72.dp, height = 48.dp)
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(KuroSpacing.md))
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     "${summary.selectedDay.dateLabel} - ${summary.selectedDay.focusTimeLabel} - ${summary.selectedDay.focusSessions} sessions",
-                    color = JourneyInk,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    color = tokens.textPrimary,
+                    style = KuroType.bodyPrimary
                 )
-                Text("Tap a day to see details", color = JourneyMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Tap a day to see details", color = tokens.textSecondary, style = KuroType.bodySecondary)
             }
         }
     }
@@ -497,11 +505,12 @@ private fun SelectedDayStrip(summary: JourneySummary) {
 
 @Composable
 private fun TodayTimelineCard(rows: List<JourneyTimelineRow>, onRowClick: (JourneyTimelineRow) -> Unit) {
-    ReferenceCard {
-        Text("Today", color = JourneyInk, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    JourneyCard {
+        Text("Today", color = tokens.textPrimary, style = KuroType.headingCard)
         Spacer(Modifier.height(14.dp))
         if (rows.isEmpty()) {
-            Text("No focus records yet today.", color = JourneyMuted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("No focus records yet today.", color = tokens.textSecondary, style = KuroType.labelStrong)
         } else {
             rows.forEachIndexed { index, row ->
                 TimelineRow(row, first = index == 0, last = index == rows.lastIndex) { onRowClick(row) }
@@ -512,54 +521,61 @@ private fun TodayTimelineCard(rows: List<JourneyTimelineRow>, onRowClick: (Journ
 
 @Composable
 private fun TimelineRow(row: JourneyTimelineRow, first: Boolean, last: Boolean, onClick: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(KuroSpacing.radiusSm)).clickable(onClick = onClick).padding(vertical = KuroSpacing.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
         TimelineRail(first, last)
-        Text(row.timeLabel, color = JourneyMuted, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(82.dp))
+        Text(row.timeLabel, color = tokens.textSecondary, style = KuroType.labelStrong, modifier = Modifier.width(82.dp))
         val taskName = row.taskName?.takeIf { it.isNotBlank() }
         if (taskName == null) {
             Spacer(Modifier.weight(1f))
         } else {
-            Text(taskName, color = JourneyInk, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+            Text(taskName, color = tokens.textPrimary, style = KuroType.bodyPrimary, modifier = Modifier.weight(1f))
         }
-        Text(row.durationLabel, color = JourneyInk, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.width(8.dp))
+        Text(row.durationLabel, color = tokens.textPrimary, style = KuroType.bodySecondary)
+        Spacer(Modifier.width(KuroSpacing.sm))
         StatusPill(row.statusLabel)
     }
 }
 
 @Composable
 private fun TimelineRail(first: Boolean, last: Boolean) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(modifier = Modifier.width(28.dp).height(40.dp), contentAlignment = Alignment.Center) {
-        if (!first) Box(Modifier.align(Alignment.TopCenter).width(1.dp).height(18.dp).background(JourneyFaint))
-        if (!last) Box(Modifier.align(Alignment.BottomCenter).width(1.dp).height(18.dp).background(JourneyFaint))
-        Box(Modifier.size(11.dp).clip(CircleShape).background(Color.White).border(2.dp, JourneyFaint, CircleShape))
+        if (!first) Box(Modifier.align(Alignment.TopCenter).width(1.dp).height(18.dp).background(tokens.textFaint))
+        if (!last) Box(Modifier.align(Alignment.BottomCenter).width(1.dp).height(18.dp).background(tokens.textFaint))
+        Box(Modifier.size(11.dp).clip(CircleShape).background(tokens.cardFill).border(2.dp, tokens.textFaint, CircleShape))
     }
 }
 
 @Composable
 private fun StatusPill(label: String) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val complete = label == "Completed"
     Box(
-        modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(if (complete) JourneyChip else Color(0xFFFFF0E4)).padding(horizontal = 10.dp, vertical = 5.dp)
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (complete) tokens.accentSoft else tokens.activeCardFill)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
-        Text(label, color = if (complete) Color(0xFF6F8351) else JourneyCoral, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+        Text(label, color = if (complete) JourneyGreen else tokens.accent, style = KuroType.labelMeta)
     }
 }
 
 @Composable
-private fun ReferenceCard(
+private fun JourneyCard(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(18.dp),
+    contentPadding: PaddingValues = PaddingValues(KuroSpacing.lg),
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Surface(
-        modifier = modifier.fillMaxWidth().shadow(11.dp, RoundedCornerShape(18.dp)),
-        shape = RoundedCornerShape(18.dp),
-        color = JourneyCard,
-        border = BorderStroke(1.dp, JourneyLine)
+        modifier = modifier.fillMaxWidth().shadow(11.dp, RoundedCornerShape(KuroSpacing.radiusLg)),
+        shape = RoundedCornerShape(KuroSpacing.radiusLg),
+        color = tokens.cardFill,
+        border = BorderStroke(1.dp, tokens.cardBorder)
     ) {
         Column(modifier = Modifier.padding(contentPadding), content = content)
     }
@@ -568,6 +584,7 @@ private fun ReferenceCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onDelete: (Long) -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -578,15 +595,19 @@ private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onD
     val focusMinutes = record.completedFocusCount.coerceAtLeast(0) * record.focusMinutes.coerceAtLeast(0)
     val restMinutes = record.completedShortBreakCount * record.shortBreakMinutes + record.completedLongBreakCount * record.longBreakMinutes
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = JourneyPaper) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = tokens.pageBackground) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 34.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = KuroSpacing.xl).padding(bottom = 34.dp),
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Journey detail", color = JourneyInk, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("$start - $end", color = JourneyMuted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
+                    Text("Journey detail", color = tokens.textPrimary, style = KuroType.headingScreen)
+                    Text("$start - $end", color = tokens.textSecondary, style = KuroType.labelStrong)
                 }
                 StatusPill(if (record.status == SessionStatus.Completed) "Completed" else "Partial")
             }
@@ -598,21 +619,21 @@ private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onD
                 SheetStat("Rest", journeyMinutesLabel(restMinutes))
             }
             record.taskName?.takeIf { it.isNotBlank() }?.let {
-                Surface(shape = RoundedCornerShape(14.dp), color = Color.White, border = BorderStroke(1.dp, JourneyLine)) {
-                    Text(it, color = JourneyInk, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+                Surface(shape = RoundedCornerShape(14.dp), color = tokens.cardFill, border = BorderStroke(1.dp, tokens.cardBorder)) {
+                    Text(it, color = tokens.textPrimary, style = KuroType.bodyPrimary, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
                 }
             }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFFFFEFEA))
-                    .border(1.dp, Color(0xFFFFC6B8), RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+                    .background(tokens.destructive.copy(alpha = 0.10f))
+                    .border(1.dp, tokens.destructive.copy(alpha = 0.30f), RoundedCornerShape(KuroSpacing.radiusLg))
                     .clickable { showDeleteConfirm = true }
                     .padding(vertical = 15.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Delete Record", color = Color(0xFFBF4C35), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Delete Record", color = tokens.destructive, style = KuroType.bodyPrimary)
             }
         }
     }
@@ -620,35 +641,37 @@ private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onD
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete this record?", color = JourneyInk, fontWeight = FontWeight.ExtraBold) },
-            text = { Text("The session from $start to $end will be permanently removed.", color = JourneyMuted) },
+            title = { Text("Delete this record?", color = tokens.textPrimary, style = KuroType.headingCard) },
+            text = { Text("The session from $start to $end will be permanently removed.", color = tokens.textSecondary) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     scope.launch { sheetState.hide() }.invokeOnCompletion { onDelete(record.id) }
                 }) {
-                    Text("Delete", color = Color(0xFFBF4C35), fontWeight = FontWeight.ExtraBold)
+                    Text("Delete", color = tokens.destructive, style = KuroType.labelStrong)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel", color = JourneyMuted)
+                    Text("Cancel", color = tokens.textSecondary)
                 }
             },
-            containerColor = JourneyPaper
+            containerColor = tokens.pageBackground
         )
     }
 }
 
 @Composable
 private fun SheetStat(label: String, value: String) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(label, color = JourneyMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Text(value, color = JourneyInk, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold)
+        Text(label, color = tokens.textSecondary, style = KuroType.labelMeta)
+        Text(value, color = tokens.textPrimary, style = KuroType.headingCard)
     }
 }
 
 @Composable
 private fun SheetDivider() {
-    Box(modifier = Modifier.width(1.dp).height(36.dp).background(JourneyLine))
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(modifier = Modifier.width(1.dp).height(36.dp).background(tokens.cardBorder))
 }

@@ -78,6 +78,13 @@ private fun DebugScreen(
 ) {
     val clockOverride by debugRepo.clockOverride.collectAsStateWithLifecycle()
     val isPremiumOverride by debugRepo.isPremiumOverride.collectAsStateWithLifecycle()
+    var showCatalog by remember { mutableStateOf(false) }
+
+    if (showCatalog) {
+        ComponentCatalogScreen()
+        return
+    }
+
     val appState by appRepo.appState.collectAsStateWithLifecycle(
         initialValue = com.endiar.kuropomodoro.data.AppState(
             glassReadabilityMode = com.endiar.kuropomodoro.model.GlassReadabilityMode.Adaptive,
@@ -335,6 +342,22 @@ private fun DebugScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
                         )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Design System", style = MaterialTheme.typography.titleMedium)
+                        Button(
+                            onClick = { showCatalog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Open Component Catalog")
+                        }
                     }
                 }
 

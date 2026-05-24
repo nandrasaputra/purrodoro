@@ -74,18 +74,10 @@ import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
+import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
+import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
-
-private val ReferenceCream = Color(0xFFF9F5F0)   // near-white, slightly warm — matches reference BG
-private val ReferenceCard = Color(0xFFFFFFFF)     // pure white cards
-private val ReferenceCardWarm = Color(0xFFFFF8F2) // very light warm tint for inner surfaces
-private val ReferenceBorder = Color(0xFFEDE0D4)   // subtle warm border
-private val ReferenceTrack = Color(0xFFF5EEE8)    // near-invisible filter track
-private val ReferenceInk = Color(0xFF201714)
-private val ReferenceMuted = Color(0xFF786B64)
-private val ReferenceFaint = Color(0xFFA99B92)
-private val ReferenceCoral = Color(0xFFC96F51)
-private val ReferenceGreen = Color(0xFF8BA478)
+import com.endiar.kuropomodoro.ui.theme.Mint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,10 +146,10 @@ fun TodoScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = KuroSpacing.lg)
                 .padding(top = 18.dp, bottom = 100.dp)
                 .padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.md)
         ) {
             TasksReferenceHeader(
                 modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
@@ -200,9 +192,8 @@ fun TodoScreen(
             if (filteredActiveTasks.isNotEmpty()) {
                 Text(
                     text = "In Progress",
-                    color = ReferenceInk,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
+                    color = tokens.textPrimary,
+                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold),
                 )
                 filteredActiveTasks.forEach { task ->
                     SwipeableReferenceTaskCard(
@@ -219,9 +210,8 @@ fun TodoScreen(
             if (filteredCompletedTasks.isNotEmpty()) {
                 Text(
                     text = "Completed",
-                    color = ReferenceInk,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
+                    color = tokens.textPrimary,
+                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold),
                 )
                 filteredCompletedTasks.forEach { task ->
                     SwipeToDeleteReferenceCompletedTaskRow(
@@ -236,16 +226,15 @@ fun TodoScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .border(1.dp, Color(0xFFE53935).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+                        .border(1.dp, tokens.destructive.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
                         .clickable { onDeleteAllCompleted(selectedCategoryId) }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Delete Completed",
-                        color = Color(0xFFE53935).copy(alpha = 0.82f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
+                        color = tokens.destructive.copy(alpha = 0.82f),
+                        style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
             }
@@ -314,7 +303,7 @@ fun TodoScreen(
                 }) {
                     Text(
                         text = "Delete",
-                        color = Color(0xFFE53935),
+                        color = dialogTokens.destructive,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -361,6 +350,7 @@ private fun TasksReferenceHeader(
     modifier: Modifier = Modifier,
     onAddClick: () -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -381,15 +371,15 @@ private fun TasksReferenceHeader(
                         .width(26.dp)
                         .height(32.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(ReferenceCardWarm)
-                        .border(1.5.dp, ReferenceCoral.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
+                        .background(tokens.activeCardFill)
+                        .border(1.5.dp, tokens.accent.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
                         .padding(top = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(Modifier.width(14.dp).height(1.5.dp).background(ReferenceMuted.copy(alpha = 0.5f)))
-                    Box(Modifier.width(14.dp).height(1.5.dp).background(ReferenceMuted.copy(alpha = 0.5f)))
-                    Box(Modifier.width(10.dp).height(1.5.dp).background(ReferenceMuted.copy(alpha = 0.5f)))
+                    Box(Modifier.width(14.dp).height(1.5.dp).background(tokens.textSecondary.copy(alpha = 0.5f)))
+                    Box(Modifier.width(14.dp).height(1.5.dp).background(tokens.textSecondary.copy(alpha = 0.5f)))
+                    Box(Modifier.width(10.dp).height(1.5.dp).background(tokens.textSecondary.copy(alpha = 0.5f)))
                 }
                 // Clipboard clip/tab at top
                 Box(
@@ -399,21 +389,21 @@ private fun TasksReferenceHeader(
                         .width(14.dp)
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp))
-                        .background(ReferenceCoral)
+                        .background(tokens.accent)
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "Tasks",
-                    color = ReferenceInk,
+                    color = tokens.textPrimary,
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
                     lineHeight = 38.sp
                 )
                 Text(
                     text = "Organize your work your way.",
-                    color = ReferenceMuted,
-                    fontSize = 13.sp,
+                    color = tokens.textSecondary,
+                    style = KuroType.bodySecondary,
                 )
             }
         }
@@ -421,7 +411,7 @@ private fun TasksReferenceHeader(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(ReferenceCoral)
+                .background(tokens.accent)
                 .clickable(onClick = onAddClick)
                 .semantics { role = Role.Button; contentDescription = "Add task" },
             contentAlignment = Alignment.Center
@@ -436,12 +426,13 @@ private fun TaskFilterSegmentedRow(
     selected: TaskUiFilter,
     onSelected: (TaskUiFilter) -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
-            .background(ReferenceTrack)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(26.dp))
+            .background(tokens.segmentedTrack)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(26.dp))
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -451,16 +442,15 @@ private fun TaskFilterSegmentedRow(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(22.dp))
-                    .background(if (isSelected) ReferenceCard else Color.Transparent)
+                    .background(if (isSelected) tokens.cardFill else Color.Transparent)
                     .clickable { onSelected(filter) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = filter.label,
-                    color = if (isSelected) ReferenceCoral else ReferenceMuted,
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    color = if (isSelected) tokens.accent else tokens.textSecondary,
+                    style = if (isSelected) KuroType.labelStrong else KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium)
                 )
             }
         }
@@ -478,6 +468,7 @@ private fun CategoryFilterRow(
     onRenameCategory: (Category) -> Unit,
     onDeleteCategory: (Category) -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -516,9 +507,8 @@ private fun CategoryFilterRow(
         Spacer(Modifier.width(10.dp))
         Text(
             text = if (isEditMode) "Done" else "Edit",
-            color = ReferenceMuted,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
+            color = tokens.textSecondary,
+            style = KuroType.labelStrong,
             modifier = Modifier.clickable(onClick = onToggleEditMode)
         )
     }
@@ -533,12 +523,13 @@ private fun ReferenceCategoryPill(
     onDelete: (() -> Unit)? = null,
     accent: Boolean = false,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(contentAlignment = Alignment.TopStart) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(18.dp))
-                .background(if (selected) ReferenceInk else ReferenceCard)
-                .border(1.dp, if (accent) ReferenceCoral.copy(alpha = 0.45f) else ReferenceBorder, RoundedCornerShape(18.dp))
+                .background(if (selected) tokens.textPrimary else tokens.cardFill)
+                .border(1.dp, if (accent) tokens.accent.copy(alpha = 0.45f) else tokens.cardBorder, RoundedCornerShape(18.dp))
                 .clickable(onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center
@@ -547,20 +538,19 @@ private fun ReferenceCategoryPill(
                 text = label,
                 color = when {
                     selected -> Color.White
-                    accent -> ReferenceCoral
-                    else -> ReferenceMuted
+                    accent -> tokens.accent
+                    else -> tokens.textSecondary
                 },
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
+                style = KuroType.labelStrong
             )
         }
         if (isEditMode && onDelete != null) {
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFE53935))
-                    .clickable(onClick = onDelete),
+                    Box(
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clip(CircleShape)
+                            .background(tokens.destructive)
+                            .clickable(onClick = onDelete),
                 contentAlignment = Alignment.Center
             ) {
                 Text(text = "x", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -578,12 +568,13 @@ private fun InlineAddTaskCard(
     onCategoryChange: (Int?) -> Unit,
     onSubmit: () -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(ReferenceCard)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -595,16 +586,16 @@ private fun InlineAddTaskCard(
                 value = newTaskTitle,
                 onValueChange = onTitleChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text(text = "Add a focus task...", color = ReferenceFaint, fontSize = 14.sp) },
+                placeholder = { Text(text = "Add a focus task...", color = tokens.textFaint, fontSize = 14.sp) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { onSubmit() }),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = ReferenceInk,
-                    unfocusedTextColor = ReferenceInk,
-                    cursorColor = ReferenceCoral,
+                    focusedTextColor = tokens.textPrimary,
+                    unfocusedTextColor = tokens.textPrimary,
+                    cursorColor = tokens.accent,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 )
@@ -612,12 +603,12 @@ private fun InlineAddTaskCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(14.dp))
-                    .background(ReferenceCoral)
+                    .background(tokens.accent)
                     .clickable(onClick = onSubmit)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "Add", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Add", color = Color.White, style = KuroType.labelStrong)
             }
         }
         if (categories.isNotEmpty()) {
@@ -644,39 +635,39 @@ private fun InlineAddTaskCard(
 
 @Composable
 private fun ReferenceAddCategoryChoice(label: String, selected: Boolean, onClick: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) ReferenceCardWarm else Color.Transparent)
-            .border(1.dp, if (selected) ReferenceCoral.copy(alpha = 0.45f) else ReferenceBorder, RoundedCornerShape(14.dp))
+            .background(if (selected) tokens.activeCardFill else Color.Transparent)
+            .border(1.dp, if (selected) tokens.accent.copy(alpha = 0.45f) else tokens.cardBorder, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Text(
             text = label,
-            color = if (selected) ReferenceCoral else ReferenceMuted,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
+            color = if (selected) tokens.accent else tokens.textSecondary,
+            style = KuroType.labelMeta.copy(fontWeight = FontWeight.SemiBold)
         )
     }
 }
 
 @Composable
 private fun TasksOverviewCard(overview: TaskOverview) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(ReferenceCard)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text(
             text = "Overview",
-            color = ReferenceInk,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
+            color = tokens.textPrimary,
+            style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold)
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -712,18 +703,18 @@ private fun TasksOverviewCard(overview: TaskOverview) {
 
 @Composable
 private fun OverviewMetric(icon: String, value: String, label: String, modifier: Modifier = Modifier) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(text = icon, fontSize = 20.sp)
-        Text(text = value, color = ReferenceInk, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(text = value, color = tokens.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Text(
             text = label,
-            color = ReferenceMuted,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
+            color = tokens.textSecondary,
+            style = KuroType.labelMeta.copy(fontWeight = FontWeight.Medium),
             textAlign = TextAlign.Center
         )
     }
@@ -731,6 +722,7 @@ private fun OverviewMetric(icon: String, value: String, label: String, modifier:
 
 @Composable
 private fun TasksEmptyState(filter: TaskUiFilter) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val message = if (filter == TaskUiFilter.Archived) {
         "Archived tasks will appear here once archive support is available."
     } else {
@@ -740,13 +732,13 @@ private fun TasksEmptyState(filter: TaskUiFilter) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
-            .background(ReferenceCard)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(26.dp))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(26.dp))
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(text = if (filter == TaskUiFilter.Archived) "Nothing archived" else "No tasks here", color = ReferenceInk, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        Text(text = message, color = ReferenceMuted, fontSize = 13.sp)
+        Text(text = if (filter == TaskUiFilter.Archived) "Nothing archived" else "No tasks here", color = tokens.textPrimary, style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold))
+        Text(text = message, color = tokens.textSecondary, style = KuroType.bodySecondary)
     }
 }
 
@@ -759,12 +751,13 @@ private fun ReferenceTaskCard(
     onTapRow: (FocusTask) -> Unit,
     onFocusTask: (FocusTask) -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(ReferenceCard)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
             .clickable { onTapRow(task) }
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -785,13 +778,13 @@ private fun ReferenceTaskCard(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(ReferenceCardWarm)
-                        .border(1.dp, ReferenceBorder, RoundedCornerShape(14.dp)),
+                        .background(tokens.activeCardFill)
+                        .border(1.dp, tokens.cardBorder, RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = task.title.firstOrNull()?.uppercaseChar()?.toString() ?: "T",
-                        color = ReferenceCoral,
+                        color = tokens.accent,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Black
                     )
@@ -799,22 +792,21 @@ private fun ReferenceTaskCard(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = task.title,
-                        color = ReferenceInk,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        color = tokens.textPrimary,
+                        style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
                         lineHeight = 20.sp
                     )
                     Text(
                         text = taskMetadataLabel(task, categoryName),
-                        color = ReferenceMuted,
-                        fontSize = 13.sp
+                        color = tokens.textSecondary,
+                        style = KuroType.bodySecondary
                     )
                 }
             }
             // ⋮ opens detail sheet
             Text(
                 text = "⋮",
-                color = ReferenceFaint,
+                color = tokens.textFaint,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -837,17 +829,16 @@ private fun ReferenceTaskCard(
                         modifier = Modifier
                             .size(14.dp)
                             .clip(CircleShape)
-                            .background(if (index < task.completedSessions) ReferenceCoral else Color.White)
-                            .border(1.5.dp, if (index < task.completedSessions) ReferenceCoral else ReferenceBorder, CircleShape)
+                            .background(if (index < task.completedSessions) tokens.accent else Color.White)
+                            .border(1.5.dp, if (index < task.completedSessions) tokens.accent else tokens.cardBorder, CircleShape)
                     )
                 }
             }
             // N / M count in coral
             Text(
                 text = "${task.completedSessions.coerceAtMost(task.plannedSessions)} / ${task.plannedSessions.coerceAtLeast(1)}",
-                color = ReferenceCoral,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
+                color = tokens.accent,
+                style = KuroType.labelStrong
             )
         }
     }
@@ -861,12 +852,13 @@ private fun ReferenceCompletedTaskRow(
     onDeleteTask: (Int) -> Unit,
     onTapRow: (FocusTask) -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(ReferenceCard)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(20.dp))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(20.dp))
             .clickable { onTapRow(task) }
             .padding(14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -877,13 +869,13 @@ private fun ReferenceCompletedTaskRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(ReferenceCardWarm)
-                .border(1.dp, ReferenceBorder, RoundedCornerShape(12.dp)),
+                .background(tokens.activeCardFill)
+                .border(1.dp, tokens.cardBorder, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = task.title.firstOrNull()?.uppercaseChar()?.toString() ?: "T",
-                color = ReferenceMuted,
+                color = tokens.textSecondary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -891,19 +883,18 @@ private fun ReferenceCompletedTaskRow(
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = task.title,
-                color = ReferenceMuted,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
+                color = tokens.textSecondary,
+                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
                 textDecoration = TextDecoration.LineThrough
             )
-            Text(text = taskMetadataLabel(task, categoryName), color = ReferenceFaint, fontSize = 12.sp)
+            Text(text = taskMetadataLabel(task, categoryName), color = tokens.textFaint, style = KuroType.labelMeta)
         }
         // Green checkmark on the RIGHT
         Box(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(ReferenceGreen)
+                .background(Mint)
                 .clickable(role = Role.Checkbox) { onToggleTask(task.id) },
             contentAlignment = Alignment.Center
         ) {
@@ -934,6 +925,7 @@ private fun SwipeableReferenceTaskCard(
     onTapRow: (FocusTask) -> Unit,
     onFocusTask: (FocusTask) -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val scope = rememberCoroutineScope()
     var resetDismiss: (suspend () -> Unit)? = null
     val dismissState = rememberSwipeToDismissBoxState(
@@ -958,20 +950,21 @@ private fun SwipeableReferenceTaskCard(
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
-            val direction = dismissState.dismissDirection
-            val isLeading = direction == SwipeToDismissBoxValue.StartToEnd
-            val isTrailing = direction == SwipeToDismissBoxValue.EndToStart
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(30.dp))
-                    .background(
-                        when {
-                            isLeading -> ReferenceCoral
-                            isTrailing -> Color(0xFFE53935)
-                            else -> Color.Transparent
-                        }
-                    )
+                    val tokens = MaterialTheme.colorScheme.kuroTokens
+                    val direction = dismissState.dismissDirection
+                    val isLeading = direction == SwipeToDismissBoxValue.StartToEnd
+                    val isTrailing = direction == SwipeToDismissBoxValue.EndToStart
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(30.dp))
+                            .background(
+                                when {
+                                    isLeading -> tokens.accent
+                                    isTrailing -> tokens.destructive
+                                    else -> Color.Transparent
+                                }
+                            )
                     .padding(horizontal = 24.dp),
                 contentAlignment = if (isLeading) Alignment.CenterStart else Alignment.CenterEnd
             ) {
@@ -979,14 +972,12 @@ private fun SwipeableReferenceTaskCard(
                     isLeading -> Text(
                         text = "Focus with Kuro",
                         color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold)
                     )
                     isTrailing -> Text(
                         text = "Delete",
                         color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }
@@ -1036,12 +1027,13 @@ private fun SwipeToDeleteReferenceCompletedTaskRow(
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
-            val isTrailing = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(if (isTrailing) Color(0xFFE53935) else Color.Transparent)
+                    val tokens = MaterialTheme.colorScheme.kuroTokens
+                    val isTrailing = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(if (isTrailing) tokens.destructive else Color.Transparent)
                     .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
@@ -1049,8 +1041,7 @@ private fun SwipeToDeleteReferenceCompletedTaskRow(
                     Text(
                         text = "Delete",
                         color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }
@@ -1113,8 +1104,7 @@ private fun TaskDetailSheet(
             Text(
                 text = "Task Detail",
                 color = tokens.textPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
+                style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
@@ -1271,8 +1261,7 @@ private fun TaskDetailSheet(
                 Text(
                     text = "▶  Focus with Kuro",
                     color = tokens.accentOn,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold)
                 )
             }
         }
@@ -1329,7 +1318,7 @@ private fun CategoryNameSheet(
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = title, color = tokens.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(text = title, color = tokens.textPrimary, style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold))
             TextField(
                 value = name,
                 onValueChange = { name = it },
@@ -1372,7 +1361,7 @@ private fun CategoryNameSheet(
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "Confirm", color = tokens.accentOn, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Confirm", color = tokens.accentOn, style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold))
             }
         }
     }
@@ -1410,14 +1399,18 @@ internal fun PreSessionSheet(
             Text(
                 text = task.title,
                 color = tokens.textSecondary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                style = KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium)
             )
             Text(
                 text = "Start focus session",
                 color = tokens.textPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold)
+            )
+            Text(
+                text = "Task Detail",
+                color = tokens.textPrimary,
+                style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             Text(
@@ -1527,8 +1520,7 @@ internal fun PreSessionSheet(
                 Text(
                     text = "▶  Start Focus",
                     color = tokens.accentOn,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold)
                 )
             }
         }

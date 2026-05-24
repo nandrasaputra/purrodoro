@@ -63,6 +63,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
+import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.GlassTreatment
@@ -141,14 +143,14 @@ fun KuroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() 
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(KuroSpacing.radiusLg),
         colors = CardDefaults.cardColors(containerColor = tokens.cardFill),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
-                .border(1.dp, tokens.cardBorder, RoundedCornerShape(28.dp))
-                .padding(20.dp),
+                .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
+                .padding(KuroSpacing.lg),
             content = content,
         )
     }
@@ -202,7 +204,7 @@ fun KuroPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     Button(
         onClick = onClick,
         modifier = modifier.height(56.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(KuroSpacing.radiusMd),
         colors = ButtonDefaults.buttonColors(
             containerColor = tokens.interactiveFill,
             contentColor = tokens.interactiveText
@@ -379,8 +381,9 @@ private fun DockTabItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val iconColor = if (active) Color(0xFFD36B4F) else Color(0xFF717171)
-    val bgColor = if (active) Color(0xFFFFF3EC) else Color.Transparent
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val iconColor = if (active) tokens.accent else tokens.textMuted
+    val bgColor = if (active) tokens.accentSoft else Color.Transparent
 
     Box(
         modifier = modifier,
@@ -685,8 +688,9 @@ fun CycleDotsRow(
     isCurrentlyFocus: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val peach = Color(0xFFFF8B6F)
-    val peachMuted = Color(0xFFFF8B6F).copy(alpha = 0.25f)
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val peach = tokens.accent
+    val peachMuted = tokens.accent.copy(alpha = 0.25f)
     val currentDotSize = 12.dp
     val dotSize = 10.dp
     val strokeWidth = 1.5.dp
@@ -749,8 +753,7 @@ fun ScreenStickyBar(
             Text(
                 text = title,
                 color = tokens.textPrimary,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                style = KuroType.headingScreen,
             )
         }
         Box(
