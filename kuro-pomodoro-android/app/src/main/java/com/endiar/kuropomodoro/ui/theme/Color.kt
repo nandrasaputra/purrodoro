@@ -40,6 +40,9 @@ val CocoaFaint = Color(0xFFA89486)       // text-muted
 val CocoaFainter = Color(0xFFC9B9A8)     // text-faint
 val LightBorderSoft = Color(0x1F5F4638) // 12% cocoa — stepper outlines, segmented track
 
+// ── Destructive / error ────────────────────────────────────────────────────
+val DestructiveRed = Color(0xFFE53935)   // delete / swipe-to-dismiss / danger actions
+
 // ── Premium / locked accent ────────────────────────────────────────────────
 val LockedPurple = Color(0xFF7B4FBF)
 val LockedPurpleLight = Color(0xFF9B7FCC)

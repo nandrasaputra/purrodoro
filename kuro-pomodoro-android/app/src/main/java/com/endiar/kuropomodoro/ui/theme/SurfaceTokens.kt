@@ -33,6 +33,7 @@ data class KuroSurfaceTokens(
     val lockedText: Color,
     val interactiveFill: Color,   // button container + active tab/pill background
     val interactiveText: Color,   // text/icon color on interactiveFill
+    val destructive: Color,       // delete / danger actions
 )
 
 private val DarkTokens = KuroSurfaceTokens(
@@ -55,6 +56,7 @@ private val DarkTokens = KuroSurfaceTokens(
     lockedText = LockedPurpleText,
     interactiveFill = Peach,   // #FFB59E — Cocoa on Peach = 5.10:1 ✓
     interactiveText = Cocoa,
+    destructive = DestructiveRed,
 )
 
 private val LightTokens = KuroSurfaceTokens(
@@ -77,6 +79,7 @@ private val LightTokens = KuroSurfaceTokens(
     lockedText = LockedPurpleTextDark,
     interactiveFill = DeepCoral,  // #C64432 — White on DeepCoral = 4.91:1 ✓
     interactiveText = Color.White,
+    destructive = DestructiveRed,
 )
 
 /**

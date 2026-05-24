@@ -73,24 +73,16 @@ import com.endiar.kuropomodoro.model.currentStreak
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
+import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
+import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.theme.KuroSurfaceTokens
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.kuropomodoro.ui.theme.Mint
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-
-private val ReferenceCream = Color(0xFFF9F5F0)    // near-white BG
-private val ReferenceCard = Color(0xFFFFFFFF)      // pure white cards
-private val ReferenceCardWarm = Color(0xFFFFF8F2)  // very light warm inner surfaces
-private val ReferenceBorder = Color(0xFFEDE0D4)
-private val ReferenceTrack = Color(0xFFF5EEE8)     // near-invisible filter track
-private val ReferenceInk = Color(0xFF201714)
-private val ReferenceMuted = Color(0xFF786B64)
-private val ReferenceFaint = Color(0xFFA99B92)
-private val ReferenceCoral = Color(0xFFC96F51)
-private val ReferenceLeaf = Color(0xFF8BA478)
 
 // ─── Data transfer object ─────────────────────────────────────────────────────
 
@@ -155,8 +147,7 @@ fun HabitsScreen(
                 .padding(horizontal = 18.dp)
                 .padding(top = 10.dp, bottom = 100.dp)
                 .padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
+            verticalArrangement = Arrangement.spacedBy(18.dp),        ) {
             ReferenceHabitHeader(
                 modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
                 onAdd = { showAddSheet = true },
@@ -169,9 +160,8 @@ fun HabitsScreen(
 
             Text(
                 text = sectionTitle,
-                color = ReferenceInk,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
+                color = tokens.textPrimary,
+                style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
             )
 
             if (visibleHabits.isEmpty()) {
@@ -252,6 +242,7 @@ private fun ReferenceHabitHeader(
     modifier: Modifier = Modifier,
     onAdd: () -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -265,14 +256,14 @@ private fun ReferenceHabitHeader(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "Habits",
-                    color = ReferenceInk,
+                    color = tokens.textPrimary,
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "Small daily actions, big change.",
-                    color = ReferenceMuted,
-                    fontSize = 13.sp,
+                    color = tokens.textSecondary,
+                    style = KuroType.bodySecondary,
                 )
             }
         }
@@ -280,7 +271,7 @@ private fun ReferenceHabitHeader(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(ReferenceCoral)
+                .background(tokens.accent)
                 .clickable(onClick = onAdd),
             contentAlignment = Alignment.Center,
         ) {
@@ -291,6 +282,7 @@ private fun ReferenceHabitHeader(
 
 @Composable
 private fun LeafBadge() {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     // Flat leaf icon — no circle container, just the leaf shape on background
     Box(
         modifier = Modifier.size(40.dp),
@@ -302,7 +294,7 @@ private fun LeafBadge() {
                 .height(24.dp)
                 .rotate(-32f)
                 .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp))
-                .background(ReferenceLeaf),
+                .background(Mint),
         )
         Box(
             modifier = Modifier
@@ -311,7 +303,7 @@ private fun LeafBadge() {
                 .padding(top = 5.dp)
                 .rotate(34f)
                 .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp))
-                .background(ReferenceLeaf.copy(alpha = 0.74f)),
+                .background(Mint.copy(alpha = 0.74f)),
         )
     }
 }
@@ -321,12 +313,13 @@ private fun HabitFilterTabs(
     selectedFilter: HabitUiFilter,
     onSelected: (HabitUiFilter) -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(28.dp))
-            .background(ReferenceTrack)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(28.dp))
+            .background(tokens.segmentedTrack)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(28.dp))
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -336,16 +329,15 @@ private fun HabitFilterTabs(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (selected) ReferenceCard else Color.Transparent)
+                    .background(if (selected) tokens.cardFill else Color.Transparent)
                     .clickable { onSelected(filter) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = filter.label,
-                    color = if (selected) ReferenceCoral else ReferenceMuted,
-                    fontSize = 13.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (selected) tokens.accent else tokens.textSecondary,
+                    style = if (selected) KuroType.labelStrong else KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium),
                 )
             }
         }
@@ -357,12 +349,13 @@ private fun ReferenceEmptyHabitCard(
     filter: HabitUiFilter,
     onAdd: () -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(30.dp))
-            .background(ReferenceCard)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(30.dp))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(30.dp))
             .clickable(onClick = onAdd)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -371,20 +364,19 @@ private fun ReferenceEmptyHabitCard(
         LeafBadge()
         Text(
             text = if (filter == HabitUiFilter.All) "No habits yet" else "No ${filter.label.lowercase()} habits yet",
-            color = ReferenceInk,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
+            color = tokens.textPrimary,
+            style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
         )
         Text(
             text = "Add a small repeatable action and let Kuro keep you company.",
-            color = ReferenceMuted,
-            fontSize = 14.sp,
+            color = tokens.textSecondary,
+            style = KuroType.bodySecondary,
             textAlign = TextAlign.Center,
         )
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(18.dp))
-                .background(ReferenceCoral)
+                .background(tokens.accent)
                 .padding(horizontal = 22.dp, vertical = 11.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -403,14 +395,15 @@ private fun ReferenceHabitCard(
     onIncrement: () -> Unit,
     onStartPomodoro: () -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val accent = Color(habit.colorArgb.toInt())
     val streak = habit.currentStreak(today)
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(ReferenceCard)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
             .clickable(onClick = onEdit)
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -438,14 +431,13 @@ private fun ReferenceHabitCard(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = habit.name,
-                        color = ReferenceInk,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        color = tokens.textPrimary,
+                        style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
                     )
                     Text(
                         text = habitTargetScheduleLabel(habit, today),
-                        color = ReferenceMuted,
-                        fontSize = 12.sp,
+                        color = tokens.textSecondary,
+                        style = KuroType.labelMeta,
                     )
                 }
             }
@@ -453,15 +445,14 @@ private fun ReferenceHabitCard(
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
                     text = streak.toString(),
-                    color = ReferenceCoral,
+                    color = tokens.accent,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = habitStreakUnitLabel(habit),
-                    color = ReferenceFaint,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    color = tokens.textFaint,
+                    style = KuroType.labelMeta,
                 )
             }
         }
@@ -477,21 +468,21 @@ private fun ReferenceHabitCard(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(dot.label, color = ReferenceFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    Text(dot.label, color = tokens.textFaint, style = KuroType.labelMeta)
                     Box(
                         modifier = Modifier
                             .size(20.dp)
                             .clip(CircleShape)
                             .background(
                                 when {
-                                    dot.isCompleted -> ReferenceLeaf          // green for completed
-                                    dot.isScheduled -> ReferenceLeaf.copy(alpha = 0.25f)
-                                    else -> ReferenceBorder.copy(alpha = 0.6f)
+                                    dot.isCompleted -> Mint          // green for completed
+                                    dot.isScheduled -> Mint.copy(alpha = 0.25f)
+                                    else -> tokens.cardBorder.copy(alpha = 0.6f)
                                 },
                             )
                             .border(
                                 1.dp,
-                                if (dot.date == today) ReferenceInk.copy(alpha = 0.20f) else Color.Transparent,
+                                if (dot.date == today) tokens.textPrimary.copy(alpha = 0.20f) else Color.Transparent,
                                 CircleShape,
                             ),
                     )
@@ -509,6 +500,7 @@ private fun habitStreakUnitLabel(habit: Habit): String = when (habit.occurrence)
 
 @Composable
 private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val dots = monthlyHabitProgressDots(habits, today)
     val monthLabel = today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
     // Monday-first: DayOfWeek.MONDAY.value=1 → offset 0, SUNDAY.value=7 → offset 6
@@ -518,8 +510,8 @@ private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(ReferenceCard)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -528,17 +520,16 @@ private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
         ) {
-            Text("Monthly Progress", color = ReferenceInk, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(monthLabel, color = ReferenceMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text("Monthly Progress", color = tokens.textPrimary, style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold))
+            Text(monthLabel, color = tokens.textSecondary, style = KuroType.labelMeta.copy(fontWeight = FontWeight.Medium))
         }
         // Monday-first day headers
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
                 Text(
                     text = day,
-                    color = ReferenceFaint,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
+                    color = tokens.textFaint,
+                    style = KuroType.labelMeta,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                 )
@@ -555,9 +546,9 @@ private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
                                 .background(
                                     when {
                                         dot == null -> Color.Transparent
-                                        dot.isCompleted -> ReferenceLeaf        // green for completed
-                                        dot.date == today -> ReferenceLeaf.copy(alpha = 0.4f)
-                                        else -> ReferenceBorder
+                                        dot.isCompleted -> Mint        // green for completed
+                                        dot.date == today -> Mint.copy(alpha = 0.4f)
+                                        else -> tokens.cardBorder
                                     },
                                 ),
                         )
@@ -573,12 +564,13 @@ private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
 
 @Composable
 private fun HabitMotivationCard() {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(ReferenceCardWarm)
-            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .background(tokens.activeCardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(24.dp))
             .padding(18.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -593,15 +585,13 @@ private fun HabitMotivationCard() {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = "Consistency is the secret behind all progress.",
-                color = ReferenceInk,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
+                color = tokens.textPrimary,
+                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold),
             )
             Text(
                 text = "You're doing great! 🌟",
-                color = ReferenceCoral,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
+                color = tokens.accent,
+                style = KuroType.labelStrong,
             )
         }
     }
@@ -685,8 +675,7 @@ private fun HabitEditorSheet(
         Text(
             text = if (initial == null) "New Habit" else "Edit Habit",
             color = tokens.textPrimary,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
+            style = KuroType.headingCard.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
 
@@ -808,8 +797,7 @@ private fun HabitEditorSheet(
             Text(
                 text = if (initial == null) "Add Habit" else "Save Changes",
                 color = tokens.accentOn,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
+                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Bold),
             )
         }
 
@@ -819,16 +807,15 @@ private fun HabitEditorSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, Color(0xFFE53935).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .border(1.dp, tokens.destructive.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                     .clickable { showDeleteConfirm = true }
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "Delete Habit",
-                    color = Color(0xFFE53935).copy(alpha = 0.85f),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    color = tokens.destructive.copy(alpha = 0.85f),
+                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
                 )
             }
         }
@@ -895,7 +882,7 @@ private fun HabitEditorSheet(
             },
             confirmButton = {
                 TextButton(onClick = { showDeleteConfirm = false; onDelete() }) {
-                    Text("Delete", color = Color(0xFFE53935), fontWeight = FontWeight.SemiBold)
+                    Text("Delete", color = tokens.destructive, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -913,7 +900,7 @@ private fun HabitEditorSheet(
 
 @Composable
 private fun EditorLabel(text: String, tokens: KuroSurfaceTokens) {
-    Text(text = text, color = tokens.textMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
+    Text(text = text, color = tokens.textMuted, style = KuroType.labelMeta, letterSpacing = 1.sp)
 }
 
 @Composable
@@ -928,8 +915,7 @@ private fun PillChip(label: String, selected: Boolean, tokens: KuroSurfaceTokens
     ) {
         Text(
             text = label,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
+            style = KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium),
             color = if (selected) tokens.accent else tokens.textSecondary,
         )
     }

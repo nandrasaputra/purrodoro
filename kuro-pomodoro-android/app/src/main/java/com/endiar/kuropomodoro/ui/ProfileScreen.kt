@@ -31,6 +31,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -52,18 +53,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.TimerSettings
-
-private val CreamBg       = Color(0xFFFFF8F0)
-private val CardWhite     = Color(0xFFFFFFFF)
-private val SectionBrown  = Color(0xFFC07850)
-private val LabelDark     = Color(0xFF3C2F1E)
-private val ValueBrown    = Color(0xFF8B7355)
-private val SubtitleGray  = Color(0xFF9E9083)
-private val DividerColor  = Color(0xFFEDE5D8)
-private val IconBrown     = Color(0xFFC07850)
-private val SwitchThumb   = Color(0xFFFFFFFF)
-private val SwitchTrackOn = Color(0xFFC07850)
-private val SwitchTrackOff= Color(0xFFD9CFC4)
+import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
+import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +66,7 @@ fun ProfileScreen(
     notificationSoundEnabled: Boolean,
     onUpdateNotificationSound: (Boolean) -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -85,42 +78,43 @@ fun ProfileScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = LabelDark
+                            tint = tokens.textPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CreamBg,
-                    scrolledContainerColor = CreamBg
+                    containerColor = tokens.pageBackground,
+                    scrolledContainerColor = tokens.pageBackground
                 )
             )
         },
-        containerColor = CreamBg
+        containerColor = tokens.pageBackground
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = KuroSpacing.lg)
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(KuroSpacing.xs))
+            // Intentional exception: 34sp Bold screen title — matches design spec
             Text(
                 text = "Settings",
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Bold,
-                color = LabelDark
+                color = tokens.textPrimary
             )
             Text(
                 text = "Customize your focus experience.",
-                fontSize = 14.sp,
-                color = SubtitleGray,
-                modifier = Modifier.padding(top = 4.dp)
+                style = KuroType.labelStrong,
+                color = tokens.textSecondary,
+                modifier = Modifier.padding(top = KuroSpacing.xs)
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
             SectionLabel(title = "TIMER", icon = Icons.Outlined.Settings)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
             SettingsCard {
                 TappableRow(
                     icon = Icons.Outlined.DateRange,
@@ -159,10 +153,10 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
             SectionLabel(title = "NOTIFICATIONS", icon = Icons.Outlined.Notifications)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
             SettingsCard {
                 ToggleRow(
                     icon = Icons.Outlined.Notifications,
@@ -173,15 +167,15 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
             SectionLabel(title = "ABOUT", icon = Icons.Outlined.Info)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
             SettingsCard {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                        .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -189,17 +183,17 @@ fun ProfileScreen(
                         Icon(
                             imageVector = Icons.Outlined.Info,
                             contentDescription = null,
-                            tint = IconBrown,
+                            tint = tokens.accent,
                             modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = "Kuro Pomodoro", fontSize = 15.sp, color = LabelDark)
+                        Spacer(modifier = Modifier.width(KuroSpacing.md))
+                        Text(text = "Kuro Pomodoro", style = KuroType.bodyPrimary, color = tokens.textPrimary)
                     }
-                    Text(text = "v1.0", fontSize = 13.sp, color = ValueBrown)
+                    Text(text = "v1.0", style = KuroType.bodySecondary, color = tokens.textSecondary)
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(KuroSpacing.xxl))
         }
     }
 
@@ -237,18 +231,20 @@ fun ProfileScreen(
 
 @Composable
 private fun SectionLabel(title: String, icon: ImageVector) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(imageVector = icon, contentDescription = null, tint = SectionBrown, modifier = Modifier.size(16.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = tokens.accent, modifier = Modifier.size(16.dp))
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp, color = SectionBrown)
+        Text(text = title, style = KuroType.labelMeta, letterSpacing = 1.2.sp, color = tokens.accent)
     }
 }
 
 @Composable
 private fun SettingsCard(content: @Composable () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        shape = RoundedCornerShape(KuroSpacing.radiusMd),
+        colors = CardDefaults.cardColors(containerColor = tokens.cardFill),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier.fillMaxWidth()
     ) { content() }
@@ -256,46 +252,49 @@ private fun SettingsCard(content: @Composable () -> Unit) {
 
 @Composable
 private fun CardDivider() {
-    HorizontalDivider(modifier = Modifier.padding(start = 48.dp), color = DividerColor, thickness = 0.5.dp)
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    HorizontalDivider(modifier = Modifier.padding(start = 48.dp), color = tokens.divider, thickness = 0.5.dp)
 }
 
 @Composable
 private fun TappableRow(icon: ImageVector, label: String, value: String, onClick: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = IconBrown, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(text = label, fontSize = 15.sp, color = LabelDark, modifier = Modifier.weight(1f))
-        Text(text = value, fontSize = 13.sp, color = ValueBrown)
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(text = "›", fontSize = 18.sp, color = ValueBrown)
+        Icon(imageVector = icon, contentDescription = null, tint = tokens.accent, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(KuroSpacing.md))
+        Text(text = label, style = KuroType.bodyPrimary, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+        Text(text = value, style = KuroType.bodySecondary, color = tokens.textSecondary)
+        Spacer(modifier = Modifier.width(KuroSpacing.xs))
+        Text(text = "›", fontSize = 18.sp, color = tokens.textSecondary)
     }
 }
 
 @Composable
 private fun ToggleRow(icon: ImageVector, label: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = IconBrown, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(12.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = tokens.accent, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(KuroSpacing.md))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = label, fontSize = 15.sp, color = LabelDark)
-            Text(text = subtitle, fontSize = 12.sp, color = SubtitleGray, lineHeight = 16.sp)
+            Text(text = label, style = KuroType.bodyPrimary, color = tokens.textPrimary)
+            Text(text = subtitle, style = KuroType.labelMeta, color = tokens.textSecondary, lineHeight = 16.sp)
         }
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(KuroSpacing.sm))
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = SwitchThumb,
-                checkedTrackColor = SwitchTrackOn,
-                uncheckedThumbColor = SwitchThumb,
-                uncheckedTrackColor = SwitchTrackOff,
-                uncheckedBorderColor = SwitchTrackOff
+                checkedThumbColor = Color.White,
+                checkedTrackColor = tokens.accent,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = tokens.cardBorder,
+                uncheckedBorderColor = tokens.cardBorder
             )
         )
     }
@@ -306,11 +305,12 @@ private fun NumericEditDialog(
     title: String, value: Int, min: Int, max: Int, unit: String,
     onConfirm: (Int) -> Unit, onDismiss: () -> Unit
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     var current by remember(value) { mutableIntStateOf(value) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CreamBg,
-        title = { Text(text = title, fontWeight = FontWeight.SemiBold, color = LabelDark) },
+        containerColor = tokens.pageBackground,
+        title = { Text(text = title, style = KuroType.headingCard, color = tokens.textPrimary) },
         text = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -318,24 +318,24 @@ private fun NumericEditDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 IconButton(onClick = { if (current > min) current-- }, modifier = Modifier.size(40.dp)) {
-                    Text(text = "−", fontSize = 22.sp, color = if (current > min) SwitchTrackOn else Color(0xFFCCBBAA))
+                    Text(text = "−", fontSize = 22.sp, color = if (current > min) tokens.accent else tokens.textFaint)
                 }
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(text = "$current $unit", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = LabelDark)
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(KuroSpacing.md))
+                Text(text = "$current $unit", style = KuroType.headingCard, color = tokens.textPrimary)
+                Spacer(modifier = Modifier.width(KuroSpacing.md))
                 IconButton(onClick = { if (current < max) current++ }, modifier = Modifier.size(40.dp)) {
-                    Text(text = "+", fontSize = 22.sp, color = if (current < max) SwitchTrackOn else Color(0xFFCCBBAA))
+                    Text(text = "+", fontSize = 22.sp, color = if (current < max) tokens.accent else tokens.textFaint)
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(current) }) {
-                Text("OK", color = SwitchTrackOn, fontWeight = FontWeight.SemiBold)
+                Text("OK", color = tokens.accent, style = KuroType.labelStrong)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = ValueBrown.copy(alpha = 0.6f))
+                Text("Cancel", color = tokens.textSecondary)
             }
         }
     )
