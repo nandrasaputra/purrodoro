@@ -59,4 +59,14 @@ object KuroSpacing {
     val taskMenuTapPaddingH = 6.dp
     val taskMenuTapPaddingV = 2.dp
     val hairline = 1.5.dp
+
+    // Habits screen
+    val habitLeafBadge = 40.dp
+    val habitEmojiTile = 50.dp
+    val habitWeekDot = 20.dp
+    val habitMonthDot = 14.dp
+    val habitMotivationCat = 80.dp
+    val habitEditorEmojiButton = 52.dp
+    val habitColorSwatch = 28.dp
+    val habitColorSwatchRing = 2.5.dp
 }

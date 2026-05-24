@@ -51,7 +51,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.FocusTask
+import java.time.LocalDate
 import com.endiar.kuropomodoro.ui.components.KuroCard
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
@@ -384,3 +394,235 @@ fun KuroCompletedTaskRow(
     }
 }
 
+/** Habits empty-state card with CTA. */
+@Composable
+fun KuroHabitsEmptyState(
+    title: String,
+    message: String,
+    onAdd: () -> Unit,
+    modifier: Modifier = Modifier,
+    leading: (@Composable () -> Unit)? = null,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
+            .clickable(onClick = onAdd)
+            .padding(KuroSpacing.xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+    ) {
+        leading?.invoke()
+        Text(title, color = tokens.textPrimary, style = KuroType.headingCard)
+        Text(message, color = tokens.textSecondary, style = KuroType.bodySecondary, textAlign = TextAlign.Center)
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                .background(tokens.accent)
+                .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.sm),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("Add habit", color = tokens.accentOn, style = KuroType.labelStrong)
+        }
+    }
+}
+
+/** Week dot row on a habit card. */
+data class KuroHabitWeekDotUi(
+    val label: String,
+    val isScheduled: Boolean,
+    val isCompleted: Boolean,
+    val isToday: Boolean,
+)
+
+/** Calendar dot in the monthly habits progress card. */
+data class KuroHabitMonthDotUi(
+    val isCompleted: Boolean,
+    val isToday: Boolean,
+    val isPlaceholder: Boolean = false,
+)
+
+/** Single habit card with week progress dots. */
+@Composable
+fun KuroHabitCard(
+    name: String,
+    emoji: String,
+    accentColor: Color,
+    scheduleLabel: String,
+    streak: Int,
+    streakUnitLabel: String,
+    weekDots: List<KuroHabitWeekDotUi>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
+            .clickable(onClick = onClick)
+            .padding(KuroSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(KuroSpacing.habitEmojiTile)
+                        .clip(RoundedCornerShape(KuroSpacing.md))
+                        .background(accentColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = emoji, style = KuroType.habitEmoji)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
+                    Text(name, color = tokens.textPrimary, style = KuroType.headingCard)
+                    Text(scheduleLabel, color = tokens.textSecondary, style = KuroType.labelMeta)
+                }
+            }
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 4)) {
+                Text(streak.toString(), color = tokens.accent, style = KuroType.habitStreakValue)
+                Text(streakUnitLabel, color = tokens.textFaint, style = KuroType.labelMeta)
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            weekDots.forEach { dot ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+                ) {
+                    Text(dot.label, color = tokens.textFaint, style = KuroType.labelMeta)
+                    Box(
+                        modifier = Modifier
+                            .size(KuroSpacing.habitWeekDot)
+                            .clip(CircleShape)
+                            .background(
+                                when {
+                                    dot.isCompleted -> Mint
+                                    dot.isScheduled -> Mint.copy(alpha = 0.25f)
+                                    else -> tokens.cardBorder.copy(alpha = 0.6f)
+                                },
+                            )
+                            .border(
+                                1.dp,
+                                if (dot.isToday) tokens.textPrimary.copy(alpha = 0.20f) else Color.Transparent,
+                                CircleShape,
+                            ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Monthly habit completion heatmap card. */
+@Composable
+fun KuroMonthlyHabitProgressCard(
+    monthLabel: String,
+    rows: List<List<KuroHabitMonthDotUi>>,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
+            .padding(KuroSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Text("Monthly Progress", color = tokens.textPrimary, style = KuroType.headingCard)
+            Text(monthLabel, color = tokens.textSecondary, style = KuroType.labelMeta)
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
+                Text(
+                    day,
+                    color = tokens.textFaint,
+                    style = KuroType.labelMeta,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+        rows.forEach { rowDots ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                rowDots.forEach { dot ->
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (!dot.isPlaceholder) {
+                            Box(
+                                modifier = Modifier
+                                    .size(KuroSpacing.habitMonthDot)
+                                    .clip(CircleShape)
+                                    .background(
+                                        when {
+                                            dot.isCompleted -> Mint
+                                            dot.isToday -> Mint.copy(alpha = 0.4f)
+                                            else -> tokens.cardBorder
+                                        },
+                                    ),
+                            )
+                        }
+                    }
+                }
+                repeat(7 - rowDots.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+/** Motivational quote card with cat illustration. */
+@Composable
+fun KuroHabitMotivationCard(
+    quote: String,
+    encouragement: String,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+            .background(tokens.activeCardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
+            .padding(KuroSpacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            painter = painterResource(R.drawable.cat_face),
+            contentDescription = null,
+            modifier = Modifier.size(KuroSpacing.habitMotivationCat),
+            contentScale = ContentScale.Fit,
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+            Text(quote, color = tokens.textPrimary, style = KuroType.bodyPrimary)
+            Text(encouragement, color = tokens.accent, style = KuroType.labelStrong)
+        }
+    }
+}

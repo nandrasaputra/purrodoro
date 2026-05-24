@@ -51,6 +51,12 @@ object KuroType {
     /** Positive delta footnote on metric cards, e.g. "+18% vs last week" */
     val metricDeltaPositive = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
 
+    /** Habit card streak number */
+    val habitStreakValue = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold)
+
+    /** Habit emoji tile glyph */
+    val habitEmoji = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Normal)
+
     /** Settings row chevron, calendar nav arrows */
     val chevron = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Normal)
 
