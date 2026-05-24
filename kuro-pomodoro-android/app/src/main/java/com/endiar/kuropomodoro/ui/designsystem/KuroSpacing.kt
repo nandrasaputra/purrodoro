@@ -49,4 +49,14 @@ object KuroSpacing {
     val journeyCalendarRowGap = 5.dp
     val journeySelectedDayStripPaddingH = 14.dp
     val journeySelectedDayStripPaddingV = 10.dp
+
+    // Tasks screen
+    val taskLeadingTile = 46.dp
+    val taskCompletedLeadingTile = 40.dp
+    val taskCompletedCheck = 32.dp
+    val taskCycleDot = 14.dp
+    val taskChipDeleteBadge = 18.dp
+    val taskMenuTapPaddingH = 6.dp
+    val taskMenuTapPaddingV = 2.dp
+    val hairline = 1.5.dp
 }

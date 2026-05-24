@@ -37,6 +37,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -75,6 +76,8 @@ import com.endiar.kuropomodoro.ui.HabitDraft
 import com.endiar.kuropomodoro.ui.HomeTimerScreen
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
+import com.endiar.kuropomodoro.ui.StartFocusPrefill
+import com.endiar.kuropomodoro.ui.StartFocusSheet
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.continueTask
 import com.endiar.kuropomodoro.ui.homeStartTask
@@ -149,6 +152,8 @@ fun KuroPomodoroApp(
     val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
+    var showStartFocusSheet by rememberSaveable { mutableStateOf(false) }
+    var startFocusPrefill by remember { mutableStateOf<StartFocusPrefill?>(null) }
     var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) {
         mutableStateOf<FocusTask?>(
             null
@@ -361,14 +366,6 @@ fun KuroPomodoroApp(
                         onSkip = { timerConnection.controller.skip() },
                         onStartPause = {
                             when {
-                                !isStarted -> {
-                                    val taskToStart = homeStartTask(activeTask, homeContinueTask)
-                                    requestNotificationPermission()
-                                    isFocusMode = false
-                                    activeTask = taskToStart
-                                    timerConnection.controller.start(settings, taskToStart)
-                                }
-
                                 isRunning -> {
                                     isFocusMode = false
                                     timerConnection.controller.pause()
@@ -379,6 +376,14 @@ fun KuroPomodoroApp(
                                     timerConnection.controller.resume()
                                 }
                             }
+                        },
+                        onRequestStartFocus = {
+                            startFocusPrefill = null
+                            showStartFocusSheet = true
+                        },
+                        onContinueFocus = {
+                            startFocusPrefill = homeContinueTask?.let { StartFocusPrefill.Task(it.id) }
+                            showStartFocusSheet = true
                         },
                         onStop = {
                             timerConnection.controller.stop()
@@ -410,13 +415,15 @@ fun KuroPomodoroApp(
                             }
                         },
                         onDeleteCategory = { id -> scope.launch { repo.deleteCategory(id) } },
-                        onFocusTask = { task ->
-                            activeTask = task
+                        onFocusTask = { request ->
+                            activeTask = request.task
                             isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
-                            timerConnection.controller.start(settings, task)
+                            timerConnection.controller.start(settings, request.task, request.habitId)
                         },
+                        habits = appState.habits,
+                        onEditTimerSettings = { showProfile = true },
                         settings = settings,
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding,
@@ -497,6 +504,35 @@ fun KuroPomodoroApp(
                         },
                          contentPadding = screenContentPadding,
                      )
+                }
+            }
+
+            if (showStartFocusSheet) {
+                key(startFocusPrefill) {
+                    StartFocusSheet(
+                        settings = settings,
+                        tasks = tasks,
+                        habits = appState.habits,
+                        today = LocalDate.now(),
+                        prefill = startFocusPrefill,
+                        onDismiss = {
+                            showStartFocusSheet = false
+                            startFocusPrefill = null
+                        },
+                        onEditConfig = {
+                            showStartFocusSheet = false
+                            startFocusPrefill = null
+                            showProfile = true
+                        },
+                        onStartFocus = { request ->
+                            showStartFocusSheet = false
+                            startFocusPrefill = null
+                            requestNotificationPermission()
+                            isFocusMode = false
+                            activeTask = request.task
+                            timerConnection.controller.start(settings, request.task, request.habitId)
+                        },
+                    )
                 }
             }
 

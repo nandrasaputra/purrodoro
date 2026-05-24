@@ -87,6 +87,8 @@ fun HomeTimerScreen(
     backdropTime: LocalTime,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
+    onRequestStartFocus: () -> Unit,
+    onContinueFocus: () -> Unit = {},
     onStop: () -> Unit,
     onOpenSoundsSheet: () -> Unit,
     onOpenProfile: () -> Unit = {},
@@ -124,9 +126,13 @@ fun HomeTimerScreen(
                     onStop = onStop
                 )
             } else {
-                IdleHero(backdropTime = backdropTime, onStartPause = onStartPause)
+                IdleHero(backdropTime = backdropTime, onRequestStartFocus = onRequestStartFocus)
             }
-            ContinueCard(task = continueTask, progress = pomodoroProgress)
+            ContinueCard(
+                task = continueTask,
+                progress = pomodoroProgress,
+                onClick = onContinueFocus,
+            )
             TodayMetricsCard(metrics = todayMetrics)
             QuoteCard()
             SoundChip(isPlaying = isSoundPlaying, onClick = onOpenSoundsSheet)
@@ -207,14 +213,14 @@ private fun HeroImage(modifier: Modifier = Modifier, time: LocalTime) {
 }
 
 @Composable
-private fun IdleHero(backdropTime: LocalTime, onStartPause: () -> Unit) {
+private fun IdleHero(backdropTime: LocalTime, onRequestStartFocus: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxWidth()
     ) {
         HeroImage(modifier = Modifier.fillMaxWidth(), time = backdropTime)
         HomePrimaryButton(
             text = "Start Focus",
-            onClick = onStartPause,
+            onClick = onRequestStartFocus,
             icon = true,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -406,9 +412,9 @@ private fun ActiveTimerCard(
 }
 
 @Composable
-private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress) {
+private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress, onClick: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    HomeCardSurface {
+    HomeCardSurface(modifier = Modifier.clickable(onClick = onClick)) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = "📅", fontSize = 14.sp)
