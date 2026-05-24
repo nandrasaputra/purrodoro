@@ -8,8 +8,7 @@ enum class AppTab(val label: String, val symbol: String) {
     Timer("Focus", "Home"),
     Todo("Tasks", "Tasks"),
     Calendar("Journey", "Journey"),
-    Habits("Habits", "Habits"),
-    Profile("Me", "Me")
+    Habits("Habits", "Habits")
 }
 
 enum class TimerMode(val label: String, val defaultSeconds: Int, val accentName: String) {
