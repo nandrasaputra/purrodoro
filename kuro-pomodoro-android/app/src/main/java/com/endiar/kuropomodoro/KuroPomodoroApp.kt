@@ -328,6 +328,17 @@ fun KuroPomodoroApp(
                 )
             }
 
+            // For the cream-background tabs (Todo, Habits) paint the background
+            // edge-to-edge including behind the status bar, before the
+            // statusBarsPadding box constrains the content area below.
+            if (selectedTab == AppTab.Todo || selectedTab == AppTab.Habits) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFFF9F5F0))
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
