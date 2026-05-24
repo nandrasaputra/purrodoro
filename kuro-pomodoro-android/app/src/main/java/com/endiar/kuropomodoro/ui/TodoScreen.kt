@@ -109,6 +109,7 @@ fun TodoScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     val scrollState = rememberScrollState()
     var headerHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
@@ -147,7 +148,7 @@ fun TodoScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(ReferenceCream)
+            .background(tokens.pageBackground)
     ) {
         Column(
             modifier = Modifier
