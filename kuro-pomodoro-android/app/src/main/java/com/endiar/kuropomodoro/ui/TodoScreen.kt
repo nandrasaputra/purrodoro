@@ -73,35 +73,19 @@ import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.ui.components.GlassCard
-import com.endiar.kuropomodoro.ui.components.GlassPill
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
-import com.endiar.kuropomodoro.ui.theme.luminance
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-@Composable
-private fun tagPaletteFor(categoryId: Int?): Pair<Color, Color> {
-    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
-    val presets = if (isLight) listOf(
-        Pair(Color(0xFFEFE6FF), Color(0xFF5B3F8C)),
-        Pair(Color(0xFFDDF1E5), Color(0xFF3F7A4F)),
-        Pair(Color(0xFFFFE2D5), Color(0xFF8C432F)),
-        Pair(Color(0xFFDDE7F5), Color(0xFF3F567A)),
-        Pair(Color(0xFFFFD8DF), Color(0xFF8C3F4F)),
-    ) else listOf(
-        Pair(Color(0xFF3F2A4A), Color(0xFFD8C8FF)),
-        Pair(Color(0xFF1D3326), Color(0xFF9DD8B3)),
-        Pair(Color(0xFF4A2218), Color(0xFFFFB59E)),
-        Pair(Color(0xFF1F2A3F), Color(0xFFAFC6E0)),
-        Pair(Color(0xFF3A1F25), Color(0xFFFFB6C1)),
-    )
-    val idx = ((categoryId ?: 0).hashCode() and Int.MAX_VALUE) % presets.size
-    return presets[idx]
-}
-
+private val ReferenceCream = Color(0xFFF9F5F0)   // near-white, slightly warm — matches reference BG
+private val ReferenceCard = Color(0xFFFFFFFF)     // pure white cards
+private val ReferenceCardWarm = Color(0xFFFFF8F2) // very light warm tint for inner surfaces
+private val ReferenceBorder = Color(0xFFEDE0D4)   // subtle warm border
+private val ReferenceTrack = Color(0xFFF5EEE8)    // near-invisible filter track
+private val ReferenceInk = Color(0xFF201714)
+private val ReferenceMuted = Color(0xFF786B64)
+private val ReferenceFaint = Color(0xFFA99B92)
+private val ReferenceCoral = Color(0xFFC96F51)
+private val ReferenceGreen = Color(0xFF8BA478)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,19 +109,11 @@ fun TodoScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     overBackdrop: Boolean = true,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
     val scrollState = rememberScrollState()
     var headerHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val topPaddingPx = with(density) { 8.dp.roundToPx() }
     val showStickyBar by remember { derivedStateOf { scrollState.value > headerHeightPx + topPaddingPx } }
-
-    val filteredActiveTasks = tasks.filter { task ->
-        !task.completed && (selectedCategoryId == null || task.categoryId == selectedCategoryId)
-    }
-    val filteredCompletedTasks = tasks.filter { task ->
-        task.completed && (selectedCategoryId == null || task.categoryId == selectedCategoryId)
-    }
 
     var newTaskTitle by rememberSaveable { mutableStateOf("") }
     var addingTask by rememberSaveable { mutableStateOf(false) }
@@ -145,15 +121,18 @@ fun TodoScreen(
     var focusSheetTask by remember { mutableStateOf<FocusTask?>(null) }
     var detailSheetTask by remember { mutableStateOf<FocusTask?>(null) }
     var isEditMode by rememberSaveable { mutableStateOf(false) }
-    var completedExpanded by rememberSaveable { mutableStateOf(false) }
+    var selectedTaskFilter by rememberSaveable { mutableStateOf(TaskUiFilter.All) }
     var deleteCategoryTarget by remember { mutableStateOf<Category?>(null) }
     var addCategorySheetVisible by rememberSaveable { mutableStateOf(false) }
     var renameCategoryTarget by remember { mutableStateOf<Category?>(null) }
 
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val today = LocalDate.now()
-    val dateLabel = today.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))
+    val categoryFilteredTasks = tasks.filter { task -> selectedCategoryId == null || task.categoryId == selectedCategoryId }
+    val visibleTasks = filterTasksForUi(categoryFilteredTasks, selectedTaskFilter)
+    val filteredActiveTasks = visibleTasks.filterNot { it.completed }
+    val filteredCompletedTasks = visibleTasks.filter { it.completed }
+    val overview = taskOverview(categoryFilteredTasks, settings)
 
+    val keyboardController = LocalSoftwareKeyboardController.current
     val submitTask = {
         val title = newTaskTitle.trim()
         if (title.isNotEmpty()) {
@@ -165,339 +144,118 @@ fun TodoScreen(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-    Column(
-        modifier = Modifier
+    Box(
+        modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp)
-            .padding(top = 8.dp, bottom = 100.dp)
-            .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .background(ReferenceCream)
     ) {
-        // ── Header row ──────────────────────────────────────────────────
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged { headerHeightPx = it.height },
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp)
+                .padding(top = 18.dp, bottom = 100.dp)
+                .padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "To-Do",
-                    color = tokens.textPrimary,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = dateLabel,
-                    color = tokens.textSecondary,
-                    fontSize = 13.sp
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(tokens.accent)
-                    .clickable { addingTask = !addingTask },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "+", color = tokens.accentOn, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-            }
-        }
-
-        // ── Filter pill row ──────────────────────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CategoryPill(
-                    label = "All",
-                    selected = selectedCategoryId == null,
-                    isEditMode = false,
-                    onClick = { onCategorySelected(null) },
-                    glassTreatment = glassTreatment,
-                    overBackdrop = overBackdrop,
-                )
-                categories.forEach { category ->
-                    CategoryPill(
-                        label = category.name,
-                        selected = category.id == selectedCategoryId,
-                        isEditMode = isEditMode,
-                        onClick = {
-                            if (isEditMode) {
-                                renameCategoryTarget = category
-                            } else {
-                                onCategorySelected(category.id)
-                            }
-                        },
-                        onDelete = { deleteCategoryTarget = category },
-                        glassTreatment = glassTreatment,
-                        overBackdrop = overBackdrop,
-                    )
-                }
-                if (isEditMode) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .border(1.dp, tokens.accentSoft, RoundedCornerShape(20.dp))
-                            .clickable { addCategorySheetVisible = true }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "+ New",
-                            color = tokens.accent,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(20.dp)
-                    .background(tokens.borderSoft)
+            TasksReferenceHeader(
+                modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
+                onAddClick = { addingTask = !addingTask },
             )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = if (isEditMode) "Done" else "Edit",
-                color = tokens.textSecondary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { isEditMode = !isEditMode }
+
+            TaskFilterSegmentedRow(
+                selected = selectedTaskFilter,
+                onSelected = { selectedTaskFilter = it },
             )
-        }
 
-        // ── Inline add-task input ────────────────────────────────────────
-        if (addingTask) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(tokens.cardFill)
-                    .border(1.dp, tokens.borderSoft, RoundedCornerShape(18.dp))
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextField(
-                        value = newTaskTitle,
-                        onValueChange = { newTaskTitle = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = {
-                            Text(
-                                text = "Add a focus task…",
-                                color = tokens.textMuted,
-                                fontSize = 14.sp
-                            )
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { submitTask() }),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedTextColor = tokens.textPrimary,
-                            unfocusedTextColor = tokens.textPrimary,
-                            cursorColor = tokens.accent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(tokens.accent)
-                            .clickable { submitTask() }
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Text(text = "Add", color = tokens.accentOn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                if (categories.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(
-                                    if (newTaskCategoryId == null) tokens.accentSoft
-                                    else tokens.segmentedTrack
-                                )
-                                .border(
-                                    1.dp,
-                                    if (newTaskCategoryId == null) tokens.accent.copy(alpha = 0.60f)
-                                    else tokens.borderSoft,
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .clickable { newTaskCategoryId = null }
-                                .padding(horizontal = 10.dp, vertical = 5.dp)
-                        ) {
-                            Text(
-                                text = "None",
-                                color = if (newTaskCategoryId == null) tokens.accent else tokens.textSecondary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        categories.forEach { cat ->
-                            val isSelected = newTaskCategoryId == cat.id
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(
-                                        if (isSelected) tokens.accentSoft
-                                        else tokens.segmentedTrack
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) tokens.accent.copy(alpha = 0.60f)
-                                        else tokens.borderSoft,
-                                        RoundedCornerShape(14.dp)
-                                    )
-                                    .clickable { newTaskCategoryId = cat.id }
-                                    .padding(horizontal = 10.dp, vertical = 5.dp)
-                            ) {
-                                Text(
-                                    text = cat.name,
-                                    color = if (isSelected) tokens.accent else tokens.textSecondary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                }
+            CategoryFilterRow(
+                categories = categories,
+                selectedCategoryId = selectedCategoryId,
+                isEditMode = isEditMode,
+                onCategorySelected = onCategorySelected,
+                onToggleEditMode = { isEditMode = !isEditMode },
+                onAddCategory = { addCategorySheetVisible = true },
+                onRenameCategory = { renameCategoryTarget = it },
+                onDeleteCategory = { deleteCategoryTarget = it },
+            )
+
+            if (addingTask) {
+                InlineAddTaskCard(
+                    newTaskTitle = newTaskTitle,
+                    onTitleChange = { newTaskTitle = it },
+                    categories = categories,
+                    newTaskCategoryId = newTaskCategoryId,
+                    onCategoryChange = { newTaskCategoryId = it },
+                    onSubmit = submitTask,
+                )
             }
-        }
 
-        // ── Active tasks ────────────────────────────────────────────────
-        Text(
-            text = "UPCOMING",
-            color = tokens.textFaint,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.5.sp
-        )
+            TasksOverviewCard(overview = overview)
 
-        if (filteredActiveTasks.isEmpty()) {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
-            ) {
+            if (visibleTasks.isEmpty()) {
+                TasksEmptyState(filter = selectedTaskFilter)
+            }
+
+            if (filteredActiveTasks.isNotEmpty()) {
                 Text(
-                    text = "No tasks yet",
-                    color = tokens.textPrimary,
+                    text = "In Progress",
+                    color = ReferenceInk,
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold,
                 )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Tap + to add your first focus task.",
-                    color = tokens.textSecondary,
-                    fontSize = 13.sp
-                )
-            }
-        } else {
-            filteredActiveTasks.forEach { task ->
-                TaskGlassRow(
-                    task = task,
-                    active = false,
-                    showCategoryLabel = selectedCategoryId == null,
-                    categoryName = categories.firstOrNull { it.id == task.categoryId }?.name,
-                    onToggleTask = onToggleTask,
-                    onDeleteTask = onDeleteTask,
-                    onTapRow = { detailSheetTask = it },
-                    onFocusTask = { if (!task.completed) focusSheetTask = it },
-                    glassTreatment = glassTreatment,
-                    overBackdrop = overBackdrop,
-                )
-            }
-        }
-
-        // ── Completed section ───────────────────────────────────────────
-        if (filteredCompletedTasks.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { completedExpanded = !completedExpanded }
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "COMPLETED (${filteredCompletedTasks.size})",
-                    color = tokens.textFaint,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.5.sp
-                )
-                Text(
-                    text = if (completedExpanded) "▲" else "▼",
-                    color = tokens.textFaint,
-                    fontSize = 10.sp
-                )
-            }
-
-            if (completedExpanded) {
-                filteredCompletedTasks.forEach { task ->
-                    TaskGlassRow(
+                filteredActiveTasks.forEach { task ->
+                    SwipeableReferenceTaskCard(
                         task = task,
-                        active = false,
-                        showCategoryLabel = selectedCategoryId == null,
                         categoryName = categories.firstOrNull { it.id == task.categoryId }?.name,
-                        dimmed = true,
                         onToggleTask = onToggleTask,
                         onDeleteTask = onDeleteTask,
                         onTapRow = { detailSheetTask = it },
-                        onFocusTask = {},
-                        glassTreatment = glassTreatment,
-                        overBackdrop = overBackdrop,
+                        onFocusTask = { focusSheetTask = it },
+                    )
+                }
+            }
+
+            if (filteredCompletedTasks.isNotEmpty()) {
+                Text(
+                    text = "Completed",
+                    color = ReferenceInk,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                filteredCompletedTasks.forEach { task ->
+                    SwipeToDeleteReferenceCompletedTaskRow(
+                        task = task,
+                        categoryName = categories.firstOrNull { it.id == task.categoryId }?.name,
+                        onToggleTask = onToggleTask,
+                        onDeleteTask = onDeleteTask,
+                        onTapRow = { detailSheetTask = it },
                     )
                 }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, Color(0xFFE53935).copy(alpha = 0.40f), RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(18.dp))
+                        .border(1.dp, Color(0xFFE53935).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
                         .clickable { onDeleteAllCompleted(selectedCategoryId) }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Delete All Completed",
-                        color = Color(0xFFE53935).copy(alpha = 0.80f),
+                        text = "Delete Completed",
+                        color = Color(0xFFE53935).copy(alpha = 0.82f),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
         }
-    }
 
     AnimatedVisibility(
         visible = showStickyBar,
         enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { -it },
         exit = fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it },
     ) {
-        ScreenStickyBar(title = "To-Do")
+        ScreenStickyBar(title = "Tasks")
     }
     } // Box
 
@@ -598,62 +356,583 @@ fun TodoScreen(
 }
 
 @Composable
-private fun CategoryPill(
-    label: String,
-    selected: Boolean,
-    isEditMode: Boolean,
-    onClick: () -> Unit,
-    onDelete: (() -> Unit)? = null,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear,
-    overBackdrop: Boolean = true,
+private fun TasksReferenceHeader(
+    modifier: Modifier = Modifier,
+    onAddClick: () -> Unit,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(contentAlignment = Alignment.TopStart) {
-        GlassPill(
-            text = label,
-            selected = selected,
-            onClick = onClick,
-            glassTreatment = glassTreatment,
-            overBackdrop = overBackdrop,
-        )
-        if (isEditMode && onDelete != null) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Flat clipboard icon — no card box behind it
+            Box(
+                modifier = Modifier.size(44.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Clipboard body
+                Column(
+                    modifier = Modifier
+                        .width(26.dp)
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(ReferenceCardWarm)
+                        .border(1.5.dp, ReferenceCoral.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
+                        .padding(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(Modifier.width(14.dp).height(1.5.dp).background(ReferenceMuted.copy(alpha = 0.5f)))
+                    Box(Modifier.width(14.dp).height(1.5.dp).background(ReferenceMuted.copy(alpha = 0.5f)))
+                    Box(Modifier.width(10.dp).height(1.5.dp).background(ReferenceMuted.copy(alpha = 0.5f)))
+                }
+                // Clipboard clip/tab at top
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 2.dp)
+                        .width(14.dp)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(ReferenceCoral)
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Tasks",
+                    color = ReferenceInk,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 38.sp
+                )
+                Text(
+                    text = "Organize your work your way.",
+                    color = ReferenceMuted,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(ReferenceCoral)
+                .clickable(onClick = onAddClick)
+                .semantics { role = Role.Button; contentDescription = "Add task" },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = "+", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun TaskFilterSegmentedRow(
+    selected: TaskUiFilter,
+    onSelected: (TaskUiFilter) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .background(ReferenceTrack)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(26.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        TaskUiFilter.entries.forEach { filter ->
+            val isSelected = selected == filter
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .size(18.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFE53935))
-                    .clickable(onClick = onDelete),
+                    .weight(1f)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(if (isSelected) ReferenceCard else Color.Transparent)
+                    .clickable { onSelected(filter) }
+                    .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "×",
-                    color = tokens.accentOn,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 12.sp
+                    text = filter.label,
+                    color = if (isSelected) ReferenceCoral else ReferenceMuted,
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TaskGlassRow(
+private fun CategoryFilterRow(
+    categories: List<Category>,
+    selectedCategoryId: Int?,
+    isEditMode: Boolean,
+    onCategorySelected: (Int?) -> Unit,
+    onToggleEditMode: () -> Unit,
+    onAddCategory: () -> Unit,
+    onRenameCategory: (Category) -> Unit,
+    onDeleteCategory: (Category) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ReferenceCategoryPill(
+                label = "All",
+                selected = selectedCategoryId == null,
+                onClick = { onCategorySelected(null) }
+            )
+            categories.forEach { category ->
+                ReferenceCategoryPill(
+                    label = category.name,
+                    selected = category.id == selectedCategoryId,
+                    isEditMode = isEditMode,
+                    onClick = {
+                        if (isEditMode) onRenameCategory(category) else onCategorySelected(category.id)
+                    },
+                    onDelete = { onDeleteCategory(category) }
+                )
+            }
+            if (isEditMode) {
+                ReferenceCategoryPill(
+                    label = "+ New",
+                    selected = false,
+                    onClick = onAddCategory,
+                    accent = true,
+                )
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = if (isEditMode) "Done" else "Edit",
+            color = ReferenceMuted,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clickable(onClick = onToggleEditMode)
+        )
+    }
+}
+
+@Composable
+private fun ReferenceCategoryPill(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    isEditMode: Boolean = false,
+    onDelete: (() -> Unit)? = null,
+    accent: Boolean = false,
+) {
+    Box(contentAlignment = Alignment.TopStart) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(18.dp))
+                .background(if (selected) ReferenceInk else ReferenceCard)
+                .border(1.dp, if (accent) ReferenceCoral.copy(alpha = 0.45f) else ReferenceBorder, RoundedCornerShape(18.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                color = when {
+                    selected -> Color.White
+                    accent -> ReferenceCoral
+                    else -> ReferenceMuted
+                },
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        if (isEditMode && onDelete != null) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE53935))
+                    .clickable(onClick = onDelete),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "x", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun InlineAddTaskCard(
+    newTaskTitle: String,
+    onTitleChange: (String) -> Unit,
+    categories: List<Category>,
+    newTaskCategoryId: Int?,
+    onCategoryChange: (Int?) -> Unit,
+    onSubmit: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(ReferenceCard)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            TextField(
+                value = newTaskTitle,
+                onValueChange = onTitleChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text(text = "Add a focus task...", color = ReferenceFaint, fontSize = 14.sp) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedTextColor = ReferenceInk,
+                    unfocusedTextColor = ReferenceInk,
+                    cursorColor = ReferenceCoral,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(ReferenceCoral)
+                    .clickable(onClick = onSubmit)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "Add", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        if (categories.isNotEmpty()) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                ReferenceAddCategoryChoice(
+                    label = "None",
+                    selected = newTaskCategoryId == null,
+                    onClick = { onCategoryChange(null) },
+                )
+                categories.forEach { category ->
+                    ReferenceAddCategoryChoice(
+                        label = category.name,
+                        selected = newTaskCategoryId == category.id,
+                        onClick = { onCategoryChange(category.id) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReferenceAddCategoryChoice(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) ReferenceCardWarm else Color.Transparent)
+            .border(1.dp, if (selected) ReferenceCoral.copy(alpha = 0.45f) else ReferenceBorder, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    ) {
+        Text(
+            text = label,
+            color = if (selected) ReferenceCoral else ReferenceMuted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun TasksOverviewCard(overview: TaskOverview) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(ReferenceCard)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Overview",
+            color = ReferenceInk,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            OverviewMetric(
+                icon = "📋",
+                value = overview.total.toString(),
+                label = "Total",
+                modifier = Modifier.weight(1f)
+            )
+            OverviewMetric(
+                icon = "🕐",
+                value = overview.inProgress.toString(),
+                label = "In Progress",
+                modifier = Modifier.weight(1f)
+            )
+            OverviewMetric(
+                icon = "✅",
+                value = overview.completed.toString(),
+                label = "Completed",
+                modifier = Modifier.weight(1f)
+            )
+            OverviewMetric(
+                icon = "🕐",
+                value = overview.estimatedFocusTimeLabel,
+                label = "Est. Focus Time",
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun OverviewMetric(icon: String, value: String, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(text = icon, fontSize = 20.sp)
+        Text(text = value, color = ReferenceInk, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = label,
+            color = ReferenceMuted,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun TasksEmptyState(filter: TaskUiFilter) {
+    val message = if (filter == TaskUiFilter.Archived) {
+        "Archived tasks will appear here once archive support is available."
+    } else {
+        "Tap + to capture the next thing worth focusing on."
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .background(ReferenceCard)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(26.dp))
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(text = if (filter == TaskUiFilter.Archived) "Nothing archived" else "No tasks here", color = ReferenceInk, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text(text = message, color = ReferenceMuted, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun ReferenceTaskCard(
     task: FocusTask,
-    active: Boolean,
-    showCategoryLabel: Boolean,
     categoryName: String?,
-    dimmed: Boolean = false,
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
     onTapRow: (FocusTask) -> Unit,
     onFocusTask: (FocusTask) -> Unit,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear,
-    overBackdrop: Boolean = true,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(ReferenceCard)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(24.dp))
+            .clickable { onTapRow(task) }
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // ── Top row: icon tile + title/meta + ⋮ menu ──────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Icon tile — first character of task title
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(ReferenceCardWarm)
+                        .border(1.dp, ReferenceBorder, RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = task.title.firstOrNull()?.uppercaseChar()?.toString() ?: "T",
+                        color = ReferenceCoral,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = task.title,
+                        color = ReferenceInk,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 20.sp
+                    )
+                    Text(
+                        text = taskMetadataLabel(task, categoryName),
+                        color = ReferenceMuted,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+            // ⋮ opens detail sheet
+            Text(
+                text = "⋮",
+                color = ReferenceFaint,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { onTapRow(task) }
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+        }
+
+        // ── Bottom row: pomodoro dots left, N/M count right ───────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Pomodoro dots — 14dp, empty = white with border
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                repeat(task.plannedSessions.coerceAtLeast(1)) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(if (index < task.completedSessions) ReferenceCoral else Color.White)
+                            .border(1.5.dp, if (index < task.completedSessions) ReferenceCoral else ReferenceBorder, CircleShape)
+                    )
+                }
+            }
+            // N / M count in coral
+            Text(
+                text = "${task.completedSessions.coerceAtMost(task.plannedSessions)} / ${task.plannedSessions.coerceAtLeast(1)}",
+                color = ReferenceCoral,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReferenceCompletedTaskRow(
+    task: FocusTask,
+    categoryName: String?,
+    onToggleTask: (Int) -> Unit,
+    onDeleteTask: (Int) -> Unit,
+    onTapRow: (FocusTask) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(ReferenceCard)
+            .border(1.dp, ReferenceBorder, RoundedCornerShape(20.dp))
+            .clickable { onTapRow(task) }
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Icon tile — same style as active card
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(ReferenceCardWarm)
+                .border(1.dp, ReferenceBorder, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = task.title.firstOrNull()?.uppercaseChar()?.toString() ?: "T",
+                color = ReferenceMuted,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = task.title,
+                color = ReferenceMuted,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                textDecoration = TextDecoration.LineThrough
+            )
+            Text(text = taskMetadataLabel(task, categoryName), color = ReferenceFaint, fontSize = 12.sp)
+        }
+        // Green checkmark on the RIGHT
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(ReferenceGreen)
+                .clickable(role = Role.Checkbox) { onToggleTask(task.id) },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = "✓", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+private fun taskMetadataLabel(task: FocusTask, categoryName: String?): String {
+    val sessions = task.plannedSessions.coerceAtLeast(1)
+    val pomodorosPart = if (sessions == 1) "1 Pomodoro" else "$sessions Pomodoros"
+    val datePart = when {
+        categoryName != null -> categoryName
+        task.completed -> "Done"
+        task.completedSessions == 0 -> "Today"
+        else -> "Tomorrow"
+    }
+    return "$datePart · $pomodorosPart"
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableReferenceTaskCard(
+    task: FocusTask,
+    categoryName: String?,
+    onToggleTask: (Int) -> Unit,
+    onDeleteTask: (Int) -> Unit,
+    onTapRow: (FocusTask) -> Unit,
+    onFocusTask: (FocusTask) -> Unit,
+) {
     val scope = rememberCoroutineScope()
     var resetDismiss: (suspend () -> Unit)? = null
     val dismissState = rememberSwipeToDismissBoxState(
@@ -684,10 +963,10 @@ private fun TaskGlassRow(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(30.dp))
                     .background(
                         when {
-                            isLeading -> tokens.accent
+                            isLeading -> ReferenceCoral
                             isTrailing -> Color(0xFFE53935)
                             else -> Color.Transparent
                         }
@@ -697,86 +976,92 @@ private fun TaskGlassRow(
             ) {
                 when {
                     isLeading -> Text(
-                        text = "▶  Focus with Kuro",
-                        color = tokens.accentOn,
+                        text = "Focus with Kuro",
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                     isTrailing -> Text(
-                        text = "✕",
+                        text = "Delete",
                         color = Color.White,
-                        fontSize = 18.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         },
         content = {
-            val rowAlpha = if (dimmed) 0.50f else 1.0f
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                active = active,
-                glassTreatment = glassTreatment,
-                overBackdrop = overBackdrop,
+            ReferenceTaskCard(
+                task = task,
+                categoryName = categoryName,
+                onToggleTask = onToggleTask,
+                onDeleteTask = onDeleteTask,
+                onTapRow = onTapRow,
+                onFocusTask = onFocusTask,
+            )
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToDeleteReferenceCompletedTaskRow(
+    task: FocusTask,
+    categoryName: String?,
+    onToggleTask: (Int) -> Unit,
+    onDeleteTask: (Int) -> Unit,
+    onTapRow: (FocusTask) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var resetDismiss: (suspend () -> Unit)? = null
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onDeleteTask(task.id)
+                    true
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    scope.launch { resetDismiss?.invoke() }
+                    false
+                }
+                SwipeToDismissBoxValue.Settled -> false
+            }
+        },
+        positionalThreshold = { totalDistance -> totalDistance * 0.40f }
+    )
+    resetDismiss = { dismissState.reset() }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val isTrailing = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(if (isTrailing) Color(0xFFE53935) else Color.Transparent)
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onTapRow(task) },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    val checkFill = if (task.completed) tokens.accent.copy(alpha = rowAlpha) else tokens.segmentedTrack
-                    val checkBorder = if (task.completed) Color.Transparent else tokens.borderSoft
-                    Box(
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clip(CircleShape)
-                            .background(checkFill)
-                            .border(1.dp, checkBorder, CircleShape)
-                            .clickable(
-                                role = Role.Checkbox,
-                                onClickLabel = if (task.completed) "Unmark ${task.title}" else "Complete ${task.title}"
-                            ) { onToggleTask(task.id) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (task.completed) {
-                            Text(text = "✓", color = tokens.accentOn, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = task.title,
-                            color = if (task.completed) tokens.textMuted else tokens.textPrimary.copy(alpha = rowAlpha),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None
-                        )
-                        if (showCategoryLabel && categoryName != null) {
-                            val (tagBg, tagText) = tagPaletteFor(task.categoryId)
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(tagBg)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = categoryName,
-                                    color = tagText,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = "${task.minutes} min",
-                                color = tokens.textMuted.copy(alpha = rowAlpha),
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
+                if (isTrailing) {
+                    Text(
+                        text = "Delete",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
+        },
+        content = {
+            ReferenceCompletedTaskRow(
+                task = task,
+                categoryName = categoryName,
+                onToggleTask = onToggleTask,
+                onDeleteTask = onDeleteTask,
+                onTapRow = onTapRow,
+            )
         }
     )
 }
