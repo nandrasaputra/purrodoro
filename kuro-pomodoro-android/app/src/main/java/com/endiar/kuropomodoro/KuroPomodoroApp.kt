@@ -302,8 +302,8 @@ fun KuroPomodoroApp(
     )
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
-    val useCatBackdrop = selectedTab == AppTab.Timer
-    val overBackdrop = selectedTab == AppTab.Timer
+    val useCatBackdrop = false
+    val overBackdrop = false
 
     // Hoisted so it survives the CatBackdrop/KuroFlatSurface slot swap on tab
     // switches. Otherwise it resets to 0 on every return to the Timer tab,
