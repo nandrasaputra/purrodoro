@@ -697,26 +697,22 @@ private fun CycleDots(dots: com.endiar.kuropomodoro.model.CycleDotsState) {
 @Composable
 private fun CatAvatar() {
     Box(modifier = Modifier.size(64.dp)) {
-        Canvas(
+        Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(CircleShape)
                 .background(HomeCard)
                 .border(1.dp, HomeBorder, CircleShape)
+                .padding(6.dp)
         ) {
-            val fur = Color(0xFF2D2421)
-            val inner = Color(0xFFFFC7B5)
-            drawCircle(color = Color(0xFFFFE4D4), radius = size.minDimension * 0.42f, center = center)
-            drawCircle(color = fur, radius = size.minDimension * 0.24f, center = Offset(size.width * 0.50f, size.height * 0.52f))
-            drawCircle(color = fur, radius = size.minDimension * 0.10f, center = Offset(size.width * 0.34f, size.height * 0.38f))
-            drawCircle(color = fur, radius = size.minDimension * 0.10f, center = Offset(size.width * 0.66f, size.height * 0.38f))
-            drawCircle(color = inner, radius = size.minDimension * 0.055f, center = Offset(size.width * 0.34f, size.height * 0.38f))
-            drawCircle(color = inner, radius = size.minDimension * 0.055f, center = Offset(size.width * 0.66f, size.height * 0.38f))
-            drawCircle(color = Color.White, radius = size.minDimension * 0.035f, center = Offset(size.width * 0.42f, size.height * 0.50f))
-            drawCircle(color = Color.White, radius = size.minDimension * 0.035f, center = Offset(size.width * 0.58f, size.height * 0.50f))
-            drawCircle(color = HomeText, radius = size.minDimension * 0.016f, center = Offset(size.width * 0.42f, size.height * 0.50f))
-            drawCircle(color = HomeText, radius = size.minDimension * 0.016f, center = Offset(size.width * 0.58f, size.height * 0.50f))
-            drawCircle(color = HomeCoral, radius = size.minDimension * 0.025f, center = Offset(size.width * 0.50f, size.height * 0.57f))
+            Image(
+                painter = painterResource(id = R.drawable.cat_face),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+            )
         }
         Box(
             modifier = Modifier
