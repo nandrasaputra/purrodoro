@@ -7,7 +7,7 @@ import java.time.LocalTime
 enum class AppTab(val label: String, val symbol: String) {
     Timer("Focus", "Home"),
     Todo("Tasks", "Tasks"),
-    Calendar("Records", "Records"),
+    Calendar("Journey", "Journey"),
     Habits("Habits", "Habits"),
     Profile("Me", "Me")
 }

@@ -364,7 +364,7 @@ fun DashboardDock(
         ) { onNavigate(AppTab.Habits) }
         DockTabItem(
             icon = Icons.Default.DateRange,
-            label = "History",
+            label = "Journey",
             active = selectedTab == AppTab.Calendar,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Calendar) }
