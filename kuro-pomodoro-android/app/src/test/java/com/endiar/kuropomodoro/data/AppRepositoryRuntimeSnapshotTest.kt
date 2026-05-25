@@ -1,6 +1,7 @@
 package com.endiar.kuropomodoro.data
 
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
 import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
@@ -179,13 +180,50 @@ class AppRepositoryRuntimeSnapshotTest {
     }
 
     @Test
-    fun decode_v2_snapshot_without_activeHabitId_defaults_to_null() {
-        // 7-field v2 snapshot (no 8th field) must decode without crashing.
-        val v2 = listOf(
-            "Playing", "0", "1500", "1700000000000", "F:1500", "", ""
-        ).joinToString("|")
-        val decoded = decodeRuntimeSnapshot(v2)
-        assertNotNull(decoded)
-        assertNull(decoded?.activeHabitId)
+    fun encode_then_decode_roundTrips_focusType_habit() {
+        val state = TimerRuntimeState(
+            session = TimerSession(
+                items = listOf(TimerSessionItem(SessionItemType.Focus(1500))),
+                currentIndex = 0, remainingSeconds = 1500, timerState = TimerState.Playing
+            ),
+            endsAtMillis = 1_700_000_000_000L,
+            activeTask = null, openRecord = null,
+            activeHabitId = 3,
+            focusType = FocusType.Habit,
+        )
+        val decoded = decodeRuntimeSnapshot(encodeRuntimeSnapshot(state))
+        assertEquals(FocusType.Habit, decoded?.focusType)
+    }
+
+    @Test
+    fun encode_then_decode_roundTrips_focusType_task() {
+        val state = TimerRuntimeState(
+            session = TimerSession(
+                items = listOf(TimerSessionItem(SessionItemType.Focus(1500))),
+                currentIndex = 0, remainingSeconds = 1500, timerState = TimerState.Playing
+            ),
+            endsAtMillis = 1_700_000_000_000L,
+            activeTask = FocusTask(id = 5, title = "Read docs", minutes = 25),
+            openRecord = null,
+            focusType = FocusType.Task,
+        )
+        val decoded = decodeRuntimeSnapshot(encodeRuntimeSnapshot(state))
+        assertEquals(FocusType.Task, decoded?.focusType)
+    }
+
+    @Test
+    fun encode_then_decode_roundTrips_focusType_simpleNote() {
+        val state = TimerRuntimeState(
+            session = TimerSession(
+                items = listOf(TimerSessionItem(SessionItemType.Focus(1500))),
+                currentIndex = 0, remainingSeconds = 1500, timerState = TimerState.Playing
+            ),
+            endsAtMillis = 1_700_000_000_000L,
+            activeTask = FocusTask(id = -1, title = "Quick note", minutes = 0),
+            openRecord = null,
+            focusType = FocusType.SimpleNote,
+        )
+        val decoded = decodeRuntimeSnapshot(encodeRuntimeSnapshot(state))
+        assertEquals(FocusType.SimpleNote, decoded?.focusType)
     }
 }

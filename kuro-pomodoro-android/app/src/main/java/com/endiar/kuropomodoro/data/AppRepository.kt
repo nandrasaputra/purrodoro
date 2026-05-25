@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.HabitLog
@@ -358,8 +359,7 @@ internal fun decodeSessionRecords(raw: String): List<SessionRecord> {
 
 // --- Runtime snapshot encoding ---
 // Schema (single line, pipe-separated):
-//   v2 (7 fields): <timerState>|<currentIndex>|<remainingSeconds>|<endsAtMillisOrEmpty>|<itemsCsv>|<taskOrEmpty>|<openRecordOrEmpty>
-//   v3 (8 fields): same as v2 + |<activeHabitIdOrEmpty>
+//   v4 (9 fields): <timerState>|<currentIndex>|<remainingSeconds>|<endsAtMillisOrEmpty>|<itemsCsv>|<taskOrEmpty>|<openRecordOrEmpty>|<activeHabitIdOrEmpty>|<focusType>
 //
 // itemsCsv: comma-separated, each token is "F:<sec>", "S:<sec>", or "L:<sec>"
 // taskOrEmpty: "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>"
@@ -395,14 +395,15 @@ internal fun encodeRuntimeSnapshot(state: TimerRuntimeState): String {
         itemsCsv,
         taskField,
         recordField,
-        state.activeHabitId?.toString() ?: ""
+        state.activeHabitId?.toString() ?: "",
+        state.focusType.name,
     ).joinToString("|")
 }
 
 internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
     if (raw.isBlank()) return null
     return runCatching {
-        val parts = raw.split("|", limit = 8)
+        val parts = raw.split("|", limit = 9)
         val timerState = TimerState.valueOf(parts[0])
         val currentIndex = parts[1].toInt()
         val remainingSeconds = parts[2].toInt()
@@ -448,12 +449,17 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
             )
         }
         val activeHabitId = parts.getOrNull(7)?.takeIf { it.isNotBlank() }?.toIntOrNull()
+        val focusType = parts.getOrNull(8)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { runCatching { FocusType.valueOf(it) }.getOrNull() }
+            ?: FocusType.Empty
         TimerRuntimeState(
             session = TimerSession(items, currentIndex, remainingSeconds, timerState),
             endsAtMillis = endsAtMillis,
             activeTask = task,
             openRecord = record,
-            activeHabitId = activeHabitId
+            activeHabitId = activeHabitId,
+            focusType = focusType
         )
     }.getOrNull()
 }
