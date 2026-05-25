@@ -10,5 +10,4 @@ interface TimerController {
     fun resume()
     fun stop()
     fun skip()
-    fun dismissCompletion()
 }

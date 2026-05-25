@@ -70,13 +70,6 @@ class TimerConnection(private val context: Context) {
         override fun resume() = dispatchAction(TimerService.ACTION_RESUME) { it.resume() }
         override fun stop()   = dispatchAction(TimerService.ACTION_STOP)   { it.stop() }
         override fun skip()   = dispatchAction(TimerService.ACTION_SKIP)   { it.skip() }
-        override fun dismissCompletion() {
-            // Service may already be stopped (post-cycle, no foreground need). If the
-            // binder is alive, dispatch directly; otherwise clear our local mirror so
-            // the UI collapses to cold immediately without waking the service back up.
-            controllerRef?.let { it.dismissCompletion(); return }
-            _state.value = null
-        }
     }
 
     private inline fun dispatchAction(

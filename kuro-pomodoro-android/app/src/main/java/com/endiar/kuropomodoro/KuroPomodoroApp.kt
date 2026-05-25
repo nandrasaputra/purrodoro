@@ -613,7 +613,6 @@ fun KuroPomodoroApp(
                     },
                     confirmButton = {
                         TextButton(onClick = {
-                            timerConnection.controller.dismissCompletion()
                             scope.launch { repo.setPendingCycleCompletionAck(false) }
                         }) {
                             Text(
