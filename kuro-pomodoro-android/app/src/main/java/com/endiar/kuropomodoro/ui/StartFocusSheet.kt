@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
 import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.effectiveTarget
@@ -78,6 +79,7 @@ data class StartFocusRequest(
     val task: FocusTask?,
     val habitId: Int? = null,
     val settings: TimerSettings,
+    val focusType: FocusType = FocusType.Empty,
 )
 
 private enum class StartFocusSheetPage {
@@ -291,14 +293,20 @@ private fun buildStartFocusRequest(
     today: LocalDate,
     settings: TimerSettings,
 ): StartFocusRequest = when (intent) {
-    FocusIntent.Empty -> StartFocusRequest(task = null, settings = settings)
+    FocusIntent.Empty -> StartFocusRequest(
+        task = null,
+        settings = settings,
+        focusType = FocusType.Empty,
+    )
     FocusIntent.SimpleNote -> StartFocusRequest(
         task = FocusTask(id = -1, title = noteText.trim(), minutes = 0),
         settings = settings,
+        focusType = FocusType.SimpleNote,
     )
     FocusIntent.Task -> StartFocusRequest(
         task = tasks.first { it.id == selectedTaskId },
         settings = settings,
+        focusType = FocusType.Task,
     )
     FocusIntent.Habit -> {
         val habit = todayHabits.first { it.id == selectedHabitId }
@@ -314,6 +322,7 @@ private fun buildStartFocusRequest(
             ),
             habitId = habit.id,
             settings = settings,
+            focusType = FocusType.Habit,
         )
     }
 }
