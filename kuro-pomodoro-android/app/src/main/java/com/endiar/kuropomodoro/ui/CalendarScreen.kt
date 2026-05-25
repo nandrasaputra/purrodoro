@@ -28,17 +28,14 @@ import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.TrackChanges
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -563,12 +560,9 @@ private fun TimelineRail(first: Boolean, last: Boolean) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onDelete: (Long) -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
@@ -577,7 +571,7 @@ private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onD
     val focusMinutes = record.completedFocusCount.coerceAtLeast(0) * record.focusMinutes.coerceAtLeast(0)
     val restMinutes = record.completedShortBreakCount * record.shortBreakMinutes + record.completedLongBreakCount * record.longBreakMinutes
 
-    KuroBottomSheet(title = "Journey detail", onDismiss = onDismiss, sheetState = sheetState) {
+    KuroBottomSheet(title = "Journey detail", onDismiss = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -625,7 +619,7 @@ private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onD
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
-                    scope.launch { sheetState.hide() }.invokeOnCompletion { onDelete(record.id) }
+                    onDelete(record.id)
                 }) {
                     Text("Delete", color = tokens.destructive, style = KuroType.labelStrong)
                 }

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -90,16 +89,13 @@ import com.endiar.kuropomodoro.ui.components.CatBackdrop
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import com.endiar.kuropomodoro.ui.components.FocusModeMotion
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.endiar.kuropomodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.kuropomodoro.ui.components.glassTokens
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KuroPomodoroApp(
     repo: AppRepository,
@@ -638,15 +634,14 @@ fun KuroPomodoroApp(
 
             if (showSoundsSheet) {
                 val sheetTokens = glassTokens(GlassTreatment.Clear, false)
-                ModalBottomSheet(
-                    onDismissRequest = {
+                KuroAdaptiveBottomSheet(
+                    onDismiss = {
                         showSoundsSheet = false
                         premiumSheetMessage = null
                     },
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+                    horizontalPadding = 0.dp,
                     containerColor = sheetTokens.cardFill,
-                    contentColor = MaterialTheme.colorScheme.kuroTokens.textPrimary,
-                    contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
+                    contentKey = premiumSheetMessage,
                 ) {
                     premiumSheetMessage?.let { message ->
                         PremiumMessage(
@@ -675,10 +670,10 @@ fun KuroPomodoroApp(
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,
                     )
+                }
             }
 
         }
-    }
     }
 
     if (useCatBackdrop) {

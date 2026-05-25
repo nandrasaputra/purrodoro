@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -15,16 +14,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CropSquare
@@ -34,12 +29,9 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.StackedBarChart
 import androidx.compose.material.icons.outlined.TaskAlt
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -65,7 +57,10 @@ import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.model.progressOn
 import com.endiar.kuropomodoro.ui.components.KuroCard
+import com.endiar.kuropomodoro.ui.designsystem.KuroAdaptiveBottomSheet
+import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheetSubpageHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroInputField
+import com.endiar.kuropomodoro.ui.designsystem.KuroSelectionList
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroStepper
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
@@ -88,6 +83,8 @@ data class StartFocusRequest(
 private enum class StartFocusSheetPage {
     Confirm,
     EditConfig,
+    PickTask,
+    PickHabit,
 }
 
 sealed class StartFocusPrefill {
@@ -95,7 +92,12 @@ sealed class StartFocusPrefill {
     data class Habit(val habitId: Int) : StartFocusPrefill()
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private data class StartFocusPickerSnapshot(
+    val intent: FocusIntent,
+    val selectedTaskId: Int,
+    val selectedHabitId: Int,
+)
+
 @Composable
 fun StartFocusSheet(
     settings: TimerSettings,
@@ -106,9 +108,6 @@ fun StartFocusSheet(
     onStartFocus: (StartFocusRequest) -> Unit,
     prefill: StartFocusPrefill? = null,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
     val initialIntent = when (prefill) {
         is StartFocusPrefill.Task -> FocusIntent.Task
         is StartFocusPrefill.Habit -> FocusIntent.Habit
@@ -125,9 +124,58 @@ fun StartFocusSheet(
     var noteText by rememberSaveable { mutableStateOf("") }
     var selectedTaskId by rememberSaveable { mutableIntStateOf(initialTaskId) }
     var selectedHabitId by rememberSaveable { mutableIntStateOf(initialHabitId) }
+    var pickerDraftId by rememberSaveable { mutableIntStateOf(-1) }
+    var pickerSnapshot by remember { mutableStateOf<StartFocusPickerSnapshot?>(null) }
 
     val incompleteTasks = tasks.filter { !it.completed }
     val todayHabits = habits.filter { it.isScheduledOn(today) }
+
+    val sheetContentKey = page
+
+    fun resetTaskAndHabitSelections() {
+        selectedTaskId = -1
+        selectedHabitId = -1
+    }
+
+    fun restorePickerSnapshot() {
+        pickerSnapshot?.let { snapshot ->
+            intent = snapshot.intent
+            selectedTaskId = snapshot.selectedTaskId
+            selectedHabitId = snapshot.selectedHabitId
+        }
+        pickerSnapshot = null
+    }
+
+    fun openTaskPicker() {
+        pickerSnapshot = StartFocusPickerSnapshot(intent, selectedTaskId, selectedHabitId)
+        selectedHabitId = -1
+        if (intent != FocusIntent.Task) {
+            selectedTaskId = -1
+        }
+        pickerDraftId = selectedTaskId
+        page = StartFocusSheetPage.PickTask
+    }
+
+    fun openHabitPicker() {
+        pickerSnapshot = StartFocusPickerSnapshot(intent, selectedTaskId, selectedHabitId)
+        selectedTaskId = -1
+        if (intent != FocusIntent.Habit) {
+            selectedHabitId = -1
+        }
+        pickerDraftId = selectedHabitId
+        page = StartFocusSheetPage.PickHabit
+    }
+
+    fun onIntentClick(option: FocusIntent) {
+        when (option) {
+            FocusIntent.Task -> openTaskPicker()
+            FocusIntent.Habit -> openHabitPicker()
+            FocusIntent.Empty, FocusIntent.SimpleNote -> {
+                resetTaskAndHabitSelections()
+                intent = option
+            }
+        }
+    }
 
     fun canStart(): Boolean = when (intent) {
         FocusIntent.Empty -> true
@@ -136,75 +184,98 @@ fun StartFocusSheet(
         FocusIntent.Habit -> selectedHabitId >= 0 && todayHabits.any { it.id == selectedHabitId }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = tokens.cardFill,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(top = KuroSpacing.sm, bottom = KuroSpacing.xs)
-                    .size(width = 40.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(KuroSpacing.radiusPill))
-                    .background(tokens.cardBorder),
-            )
-        },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = KuroSpacing.xl)
-                .padding(bottom = KuroSpacing.xxl)
-                .navigationBarsPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            when (page) {
-                StartFocusSheetPage.Confirm -> {
-                    StartFocusConfirmContent(
+    KuroAdaptiveBottomSheet(
+        onDismiss = onDismiss,
+        contentKey = sheetContentKey,
+        footer = if (page == StartFocusSheetPage.Confirm) {
+            {
+                StartFocusConfirmButton(enabled = canStart(), onClick = {
+                    val request = buildStartFocusRequest(
                         intent = intent,
                         noteText = noteText,
                         selectedTaskId = selectedTaskId,
                         selectedHabitId = selectedHabitId,
-                        incompleteTasks = incompleteTasks,
+                        tasks = tasks,
                         todayHabits = todayHabits,
-                        sessionSettings = sessionSettings,
-                        canStart = canStart(),
-                        onIntentChange = { intent = it },
-                        onNoteChange = { noteText = it },
-                        onTaskSelect = { selectedTaskId = it },
-                        onHabitSelect = { selectedHabitId = it },
-                        onEditConfig = {
-                            sessionSettingsBeforeEdit = sessionSettings
-                            page = StartFocusSheetPage.EditConfig
-                        },
-                        onStartFocus = {
-                            val request = buildStartFocusRequest(
-                                intent = intent,
-                                noteText = noteText,
-                                selectedTaskId = selectedTaskId,
-                                selectedHabitId = selectedHabitId,
-                                tasks = tasks,
-                                todayHabits = todayHabits,
-                                today = today,
-                                settings = sessionSettings,
-                            )
-                            onStartFocus(request)
-                        },
-                    )
-                }
-
-                StartFocusSheetPage.EditConfig -> {
-                    StartFocusConfigEditorContent(
+                        today = today,
                         settings = sessionSettings,
-                        onSettingsChange = { sessionSettings = it },
-                        onBack = {
-                            sessionSettings = sessionSettingsBeforeEdit
-                            page = StartFocusSheetPage.Confirm
-                        },
-                        onDone = { page = StartFocusSheetPage.Confirm },
                     )
-                }
+                    onStartFocus(request)
+                })
+            }
+        } else {
+            null
+        },
+    ) {
+        when (page) {
+            StartFocusSheetPage.Confirm -> {
+                StartFocusConfirmContent(
+                    intent = intent,
+                    noteText = noteText,
+                    selectedTaskId = selectedTaskId,
+                    selectedHabitId = selectedHabitId,
+                    incompleteTasks = incompleteTasks,
+                    todayHabits = todayHabits,
+                    sessionSettings = sessionSettings,
+                    onIntentClick = ::onIntentClick,
+                    onNoteChange = { noteText = it },
+                    onEditConfig = {
+                        sessionSettingsBeforeEdit = sessionSettings
+                        page = StartFocusSheetPage.EditConfig
+                    },
+                )
+            }
+
+            StartFocusSheetPage.PickTask -> {
+                StartFocusPickerContent(
+                    title = "Choose a task",
+                    emptyMessage = "No open tasks yet. Add one from the Tasks tab.",
+                    options = incompleteTasks.map { it.id to it.title },
+                    draftSelectedId = pickerDraftId,
+                    onDraftSelect = { pickerDraftId = it },
+                    onBack = {
+                        restorePickerSnapshot()
+                        page = StartFocusSheetPage.Confirm
+                    },
+                    onConfirm = {
+                        selectedTaskId = pickerDraftId
+                        intent = FocusIntent.Task
+                        pickerSnapshot = null
+                        page = StartFocusSheetPage.Confirm
+                    },
+                )
+            }
+
+            StartFocusSheetPage.PickHabit -> {
+                StartFocusPickerContent(
+                    title = "Choose a habit",
+                    emptyMessage = "No habits scheduled for today.",
+                    options = todayHabits.map { it.id to "${it.emoji} ${it.name}" },
+                    draftSelectedId = pickerDraftId,
+                    onDraftSelect = { pickerDraftId = it },
+                    onBack = {
+                        restorePickerSnapshot()
+                        page = StartFocusSheetPage.Confirm
+                    },
+                    onConfirm = {
+                        selectedHabitId = pickerDraftId
+                        intent = FocusIntent.Habit
+                        pickerSnapshot = null
+                        page = StartFocusSheetPage.Confirm
+                    },
+                )
+            }
+
+            StartFocusSheetPage.EditConfig -> {
+                StartFocusConfigEditorContent(
+                    settings = sessionSettings,
+                    onSettingsChange = { sessionSettings = it },
+                    onBack = {
+                        sessionSettings = sessionSettingsBeforeEdit
+                        page = StartFocusSheetPage.Confirm
+                    },
+                    onDone = { page = StartFocusSheetPage.Confirm },
+                )
             }
         }
     }
@@ -256,13 +327,9 @@ private fun StartFocusConfirmContent(
     incompleteTasks: List<FocusTask>,
     todayHabits: List<Habit>,
     sessionSettings: TimerSettings,
-    canStart: Boolean,
-    onIntentChange: (FocusIntent) -> Unit,
+    onIntentClick: (FocusIntent) -> Unit,
     onNoteChange: (String) -> Unit,
-    onTaskSelect: (Int) -> Unit,
-    onHabitSelect: (Int) -> Unit,
     onEditConfig: () -> Unit,
-    onStartFocus: () -> Unit,
 ) {
     Image(
         painter = painterResource(id = R.drawable.cat_home_sleeping),
@@ -286,7 +353,7 @@ private fun StartFocusConfirmContent(
     )
     Spacer(Modifier.height(KuroSpacing.xl))
 
-    IntentSection(selected = intent, onSelect = onIntentChange)
+    IntentSection(selected = intent, onSelect = onIntentClick)
 
     when (intent) {
         FocusIntent.SimpleNote -> {
@@ -299,23 +366,23 @@ private fun StartFocusConfirmContent(
         }
 
         FocusIntent.Task -> {
-            Spacer(Modifier.height(KuroSpacing.md))
-            IntentPickerSection(
-                emptyMessage = "No open tasks yet. Add one from the Tasks tab.",
-                options = incompleteTasks.map { it.id to it.title },
-                selectedId = selectedTaskId,
-                onSelect = onTaskSelect,
-            )
+            incompleteTasks.firstOrNull { it.id == selectedTaskId }?.let { task ->
+                Spacer(Modifier.height(KuroSpacing.md))
+                SelectedIntentSummary(
+                    label = task.title,
+                    onChange = { onIntentClick(FocusIntent.Task) },
+                )
+            }
         }
 
         FocusIntent.Habit -> {
-            Spacer(Modifier.height(KuroSpacing.md))
-            IntentPickerSection(
-                emptyMessage = "No habits scheduled for today.",
-                options = todayHabits.map { it.id to "${it.emoji} ${it.name}" },
-                selectedId = selectedHabitId,
-                onSelect = onHabitSelect,
-            )
+            todayHabits.firstOrNull { it.id == selectedHabitId }?.let { habit ->
+                Spacer(Modifier.height(KuroSpacing.md))
+                SelectedIntentSummary(
+                    label = "${habit.emoji} ${habit.name}",
+                    onChange = { onIntentClick(FocusIntent.Habit) },
+                )
+            }
         }
 
         FocusIntent.Empty -> Unit
@@ -326,8 +393,65 @@ private fun StartFocusConfirmContent(
         settings = sessionSettings,
         onEdit = onEditConfig,
     )
-    Spacer(Modifier.height(KuroSpacing.xl))
-    StartFocusConfirmButton(enabled = canStart, onClick = onStartFocus)
+}
+
+@Composable
+private fun StartFocusPickerContent(
+    title: String,
+    emptyMessage: String,
+    options: List<Pair<Int, String>>,
+    draftSelectedId: Int,
+    onDraftSelect: (Int) -> Unit,
+    onBack: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val canConfirm = draftSelectedId >= 0 && options.any { it.first == draftSelectedId }
+
+    KuroBottomSheetSubpageHeader(
+        title = title,
+        onBack = onBack,
+        actionLabel = "OK",
+        onAction = onConfirm,
+        actionEnabled = canConfirm,
+    )
+    KuroSelectionList(
+        emptyMessage = emptyMessage,
+        options = options,
+        selectedId = draftSelectedId,
+        onSelect = onDraftSelect,
+    )
+}
+
+@Composable
+private fun SelectedIntentSummary(
+    label: String,
+    onChange: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(tokens.accentSoft)
+            .border(1.dp, tokens.accent.copy(alpha = 0.35f), RoundedCornerShape(KuroSpacing.radiusMd))
+            .clickable(onClick = onChange)
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = KuroType.bodyPrimary,
+            color = tokens.textPrimary,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = "Change",
+            style = KuroType.labelStrong,
+            color = tokens.accent,
+        )
+    }
 }
 
 @Composable
@@ -339,39 +463,12 @@ private fun StartFocusConfigEditorContent(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = KuroSpacing.sm, bottom = KuroSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Back",
-            tint = tokens.textPrimary,
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onBack)
-                .padding(2.dp),
-        )
-        Spacer(Modifier.width(KuroSpacing.sm))
-        Text(
-            text = "Edit config",
-            style = KuroType.headingCard,
-            color = tokens.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = "Done",
-            style = KuroType.labelStrong,
-            color = tokens.accent,
-            modifier = Modifier
-                .clip(RoundedCornerShape(KuroSpacing.radiusSm))
-                .clickable(onClick = onDone)
-                .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.xs),
-        )
-    }
+    KuroBottomSheetSubpageHeader(
+        title = "Edit config",
+        onBack = onBack,
+        actionLabel = "Done",
+        onAction = onDone,
+    )
 
     Text(
         text = "Changes apply to this session only.",
@@ -605,64 +702,6 @@ private fun IntentChip(
                     tint = Color.White,
                     modifier = Modifier.size(10.dp),
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun IntentPickerSection(
-    emptyMessage: String,
-    options: List<Pair<Int, String>>,
-    selectedId: Int,
-    onSelect: (Int) -> Unit,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    if (options.isEmpty()) {
-        Text(
-            text = emptyMessage,
-            style = KuroType.bodySecondary,
-            color = tokens.textSecondary,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        return
-    }
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-    ) {
-        options.forEach { (id, label) ->
-            val selected = id == selectedId
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-                    .background(if (selected) tokens.accentSoft else tokens.pageBackground)
-                    .border(
-                        1.dp,
-                        if (selected) tokens.accent.copy(alpha = 0.35f) else tokens.cardBorder,
-                        RoundedCornerShape(KuroSpacing.radiusMd),
-                    )
-                    .clickable { onSelect(id) }
-                    .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = label,
-                    style = KuroType.bodyPrimary,
-                    color = tokens.textPrimary,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (selected) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = tokens.accent,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
             }
         }
     }
