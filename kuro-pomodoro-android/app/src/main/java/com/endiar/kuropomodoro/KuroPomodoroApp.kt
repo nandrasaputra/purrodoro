@@ -55,6 +55,7 @@ import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.Category
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.PremiumOverride
@@ -388,7 +389,8 @@ fun KuroPomodoroApp(
                         },
                         onOpenSoundsSheet = { showSoundsSheet = true },
                         onOpenProfile = { showProfile = true },
-                        contentPadding = screenContentPadding
+                        contentPadding = screenContentPadding,
+                        activeFocusType = runtimeState?.focusType ?: FocusType.Empty,
                     )
 
                     AppTab.Todo -> TodoScreen(
@@ -416,7 +418,7 @@ fun KuroPomodoroApp(
                             isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
-                            timerConnection.controller.start(request.settings, request.task, request.habitId)
+                            timerConnection.controller.start(request.settings, request.task, request.habitId, request.focusType)
                         },
                         habits = appState.habits,
                         settings = settings,
@@ -495,7 +497,7 @@ fun KuroPomodoroApp(
                             isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
-                            timerConnection.controller.start(settings, syntheticTask, habit.id)
+                            timerConnection.controller.start(settings, syntheticTask, habit.id, FocusType.Habit)
                         },
                          contentPadding = screenContentPadding,
                      )
@@ -520,7 +522,7 @@ fun KuroPomodoroApp(
                             requestNotificationPermission()
                             isFocusMode = false
                             activeTask = request.task
-                            timerConnection.controller.start(request.settings, request.task, request.habitId)
+                            timerConnection.controller.start(request.settings, request.task, request.habitId, request.focusType)
                         },
                     )
                 }
