@@ -27,6 +27,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.CropSquare
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -53,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
 import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
@@ -76,6 +81,7 @@ fun HomeTimerScreen(
     isStarted: Boolean,
     activeTask: FocusTask?,
     continueTask: FocusTask?,
+    activeFocusType: FocusType = FocusType.Empty,
     greeting: HomeGreeting,
     todayMetrics: TodayFocusMetrics,
     cycleItems: List<TimerSessionItem>,
@@ -115,6 +121,7 @@ fun HomeTimerScreen(
                     remainingSeconds = remainingSeconds,
                     isRunning = isRunning,
                     activeTask = activeTask,
+                    activeFocusType = activeFocusType,
                     cycleItems = cycleItems,
                     cycleIndex = cycleIndex,
                     currentTimerState = currentTimerState,
@@ -237,6 +244,7 @@ private fun ActiveHero(
     remainingSeconds: Int,
     isRunning: Boolean,
     activeTask: FocusTask?,
+    activeFocusType: FocusType,
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
     currentTimerState: TimerState,
@@ -254,6 +262,7 @@ private fun ActiveHero(
             remainingSeconds = remainingSeconds,
             isRunning = isRunning,
             activeTask = activeTask,
+            activeFocusType = activeFocusType,
             cycleItems = cycleItems,
             cycleIndex = cycleIndex,
             currentTimerState = currentTimerState,
@@ -275,6 +284,7 @@ private fun ActiveTimerCard(
     remainingSeconds: Int,
     isRunning: Boolean,
     activeTask: FocusTask?,
+    activeFocusType: FocusType,
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
     currentTimerState: TimerState,
@@ -301,7 +311,7 @@ private fun ActiveTimerCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CodeTile()
+                FocusTypeIcon(focusType = activeFocusType)
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -312,7 +322,7 @@ private fun ActiveTimerCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Deep Work",
+                        text = focusTypeLabel(activeFocusType),
                         color = tokens.textSecondary,
                         style = KuroType.labelStrong
                     )
@@ -606,6 +616,31 @@ private fun HomePrimaryButton(
 }
 
 @Composable
+private fun FocusTypeIcon(focusType: FocusType, modifier: Modifier = Modifier) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val icon = when (focusType) {
+        FocusType.Task -> Icons.Outlined.TaskAlt
+        FocusType.Habit -> Icons.Outlined.Spa
+        FocusType.SimpleNote -> Icons.Outlined.EditNote
+        FocusType.Empty -> Icons.Outlined.CropSquare
+    }
+    Box(
+        modifier = modifier
+            .size(46.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(tokens.accentSoft),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tokens.accent,
+            modifier = Modifier.size(22.dp)
+        )
+    }
+}
+
+@Composable
 private fun CodeTile(modifier: Modifier = Modifier) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(
@@ -621,6 +656,13 @@ private fun CodeTile(modifier: Modifier = Modifier) {
             style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold)
         )
     }
+}
+
+private fun focusTypeLabel(focusType: FocusType): String = when (focusType) {
+    FocusType.Task -> "Task"
+    FocusType.Habit -> "Habit"
+    FocusType.SimpleNote -> "Simple Note"
+    FocusType.Empty -> "Focus"
 }
 
 @Composable
