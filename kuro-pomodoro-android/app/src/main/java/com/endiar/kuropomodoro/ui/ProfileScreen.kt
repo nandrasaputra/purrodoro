@@ -44,7 +44,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.ui.components.AppearanceModeToggle
 import com.endiar.kuropomodoro.ui.components.KuroCard
 import com.endiar.kuropomodoro.ui.designsystem.KuroDivider
 import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
@@ -61,6 +63,8 @@ fun ProfileScreen(
     onUpdateSettings: (TimerSettings) -> Unit,
     notificationSoundEnabled: Boolean,
     onUpdateNotificationSound: (Boolean) -> Unit,
+    appearanceMode: AppearanceMode = AppearanceMode.Auto,
+    onUpdateAppearanceMode: (AppearanceMode) -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
@@ -159,6 +163,45 @@ fun ProfileScreen(
                     checked = notificationSoundEnabled,
                     onCheckedChange = onUpdateNotificationSound,
                 )
+            }
+
+            Spacer(modifier = Modifier.height(KuroSpacing.xl))
+
+            KuroSectionHeader(title = "APPEARANCE")
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            KuroCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = null,
+                            tint = tokens.accent,
+                            modifier = Modifier.size(KuroSpacing.lg),
+                        )
+                        Spacer(modifier = Modifier.width(KuroSpacing.md))
+                        Column {
+                            Text(
+                                text = "Theme",
+                                style = KuroType.bodyPrimary,
+                                color = tokens.textPrimary,
+                            )
+                            Text(
+                                text = "Choose light, dark, or follow system",
+                                style = KuroType.labelMeta,
+                                color = tokens.textSecondary,
+                            )
+                        }
+                    }
+                    AppearanceModeToggle(
+                        mode = appearanceMode,
+                        onModeChanged = onUpdateAppearanceMode,
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
