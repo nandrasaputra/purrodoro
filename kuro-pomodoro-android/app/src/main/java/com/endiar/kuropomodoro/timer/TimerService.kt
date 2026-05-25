@@ -54,7 +54,6 @@ class TimerService : Service() {
         override fun resume() { scope.launch { doResume() } }
         override fun stop()   { scope.launch { doStop() } }
         override fun skip()   { scope.launch { doSkip() } }
-        override fun dismissCompletion() { scope.launch { doDismissCompletion() } }
     }
 
     inner class LocalBinder : Binder() {
