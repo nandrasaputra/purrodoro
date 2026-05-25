@@ -186,6 +186,8 @@ enum class GlassTreatment {
     Readable
 }
 
+enum class FocusType { Task, Habit, SimpleNote, Empty }
+
 fun glassTreatmentFor(
     mode: GlassReadabilityMode,
     time: LocalTime = LocalTime.now()
