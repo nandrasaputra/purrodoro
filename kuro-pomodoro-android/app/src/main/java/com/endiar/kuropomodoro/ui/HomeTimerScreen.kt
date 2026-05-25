@@ -307,15 +307,22 @@ private fun ActiveTimerCard(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            val rawTitle = activeTask?.title ?: timerMode.label
+            val (displayEmoji, displayTitle) = if (activeFocusType == FocusType.Habit) {
+                val parts = rawTitle.split(" ", limit = 2)
+                if (parts.size == 2) parts[0] to parts[1] else null to rawTitle
+            } else {
+                null to rawTitle
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FocusTypeIcon(focusType = activeFocusType)
+                FocusTypeIcon(focusType = activeFocusType, emojiOverride = displayEmoji)
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = activeTask?.title ?: timerMode.label,
+                        text = displayTitle,
                         color = tokens.textPrimary,
                         style = KuroType.headingCard,
                         maxLines = 1,
@@ -616,14 +623,12 @@ private fun HomePrimaryButton(
 }
 
 @Composable
-private fun FocusTypeIcon(focusType: FocusType, modifier: Modifier = Modifier) {
+private fun FocusTypeIcon(
+    focusType: FocusType,
+    emojiOverride: String? = null,
+    modifier: Modifier = Modifier
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val icon = when (focusType) {
-        FocusType.Task -> Icons.Outlined.TaskAlt
-        FocusType.Habit -> Icons.Outlined.Spa
-        FocusType.SimpleNote -> Icons.Outlined.EditNote
-        FocusType.Empty -> Icons.Outlined.CropSquare
-    }
     Box(
         modifier = modifier
             .size(46.dp)
@@ -631,12 +636,25 @@ private fun FocusTypeIcon(focusType: FocusType, modifier: Modifier = Modifier) {
             .background(tokens.accentSoft),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tokens.accent,
-            modifier = Modifier.size(22.dp)
-        )
+        if (emojiOverride != null) {
+            Text(
+                text = emojiOverride,
+                fontSize = 22.sp,
+            )
+        } else {
+            val icon = when (focusType) {
+                FocusType.Task -> Icons.Outlined.TaskAlt
+                FocusType.Habit -> Icons.Outlined.Spa
+                FocusType.SimpleNote -> Icons.Outlined.EditNote
+                FocusType.Empty -> Icons.Outlined.CropSquare
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tokens.accent,
+                modifier = Modifier.size(22.dp)
+            )
+        }
     }
 }
 
