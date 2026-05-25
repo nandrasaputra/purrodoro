@@ -14,6 +14,7 @@ data class TimerRuntimeState(
     val activeTask: FocusTask?,
     val openRecord: SessionRecord?,
     val activeHabitId: Int? = null,
+    val focusType: FocusType = FocusType.Empty,
 ) {
     val isActive: Boolean get() = session.timerState != TimerState.Idle
 }
