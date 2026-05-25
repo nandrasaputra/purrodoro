@@ -26,10 +26,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.outlined.CropSquare
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -49,7 +56,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,7 +71,6 @@ import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
 import androidx.compose.material3.MaterialTheme
 import com.endiar.kuropomodoro.R
-import com.endiar.kuropomodoro.model.cycleDotsState
 import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
@@ -93,6 +98,7 @@ fun HomeTimerScreen(
     backdropTime: LocalTime,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
+    onEnterFocusMode: () -> Unit = {},
     onRequestStartFocus: () -> Unit,
     onContinueFocus: () -> Unit = {},
     onStop: () -> Unit,
@@ -126,10 +132,10 @@ fun HomeTimerScreen(
                     cycleIndex = cycleIndex,
                     currentTimerState = currentTimerState,
                     timerSettings = timerSettings,
-                    pomodoroProgress = pomodoroProgress,
                     backdropTime = backdropTime,
                     onSkip = onSkip,
                     onStartPause = onStartPause,
+                    onEnterFocusMode = onEnterFocusMode,
                     onStop = onStop
                 )
             } else {
@@ -249,10 +255,10 @@ private fun ActiveHero(
     cycleIndex: Int,
     currentTimerState: TimerState,
     timerSettings: TimerSettings,
-    pomodoroProgress: PomodoroProgress,
     backdropTime: LocalTime,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
+    onEnterFocusMode: () -> Unit,
     onStop: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -267,9 +273,9 @@ private fun ActiveHero(
             cycleIndex = cycleIndex,
             currentTimerState = currentTimerState,
             timerSettings = timerSettings,
-            pomodoroProgress = pomodoroProgress,
             onSkip = onSkip,
             onStartPause = onStartPause,
+            onEnterFocusMode = onEnterFocusMode,
             onStop = onStop,
             modifier = Modifier
                 .offset(y = (-72).dp)
@@ -289,30 +295,45 @@ private fun ActiveTimerCard(
     cycleIndex: Int,
     currentTimerState: TimerState,
     timerSettings: TimerSettings,
-    pomodoroProgress: PomodoroProgress,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
+    onEnterFocusMode: () -> Unit,
     onStop: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dots = cycleDotsState(cycleItems, cycleIndex, currentTimerState, timerSettings)
     val currentType = cycleItems.getOrNull(cycleIndex)?.type
     val isBreak = currentType is SessionItemType.ShortBreak || currentType is SessionItemType.LongBreak
     val isFocus = currentType is SessionItemType.Focus
     var showStopConfirmDialog by remember { mutableStateOf(false) }
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
+    // Pause pulse animation
+    val infiniteTransition = rememberInfiniteTransition(label = "pausePulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(850),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+    val timeAlpha = if (currentTimerState == TimerState.Paused) pulseAlpha else 1f
+
     HomeCardSurface(modifier = modifier, color = tokens.cardFill) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            val rawTitle = activeTask?.title ?: timerMode.label
-            val (displayEmoji, displayTitle) = if (activeFocusType == FocusType.Habit) {
-                val parts = rawTitle.split(" ", limit = 2)
-                if (parts.size == 2) parts[0] to parts[1] else null to rawTitle
-            } else {
-                null to rawTitle
+            // Title: keep task/habit name; only show rawTitle for empty/simple-note focus
+            val (displayEmoji, displayTitle) = when {
+                activeFocusType == FocusType.Habit && activeTask != null -> {
+                    val parts = activeTask.title.split(" ", limit = 2)
+                    if (parts.size == 2) parts[0] to parts[1] else null to activeTask.title
+                }
+                activeTask != null -> null to activeTask.title
+                isBreak -> null to "Taking a break"
+                else -> null to timerMode.label
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -329,43 +350,39 @@ private fun ActiveTimerCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = focusTypeLabel(activeFocusType),
+                        text = if (isBreak) timerMode.label else focusTypeLabel(activeFocusType),
                         color = tokens.textSecondary,
                         style = KuroType.labelStrong
                     )
                 }
-                Text(
-                    text = "✎ Edit",
-                    color = tokens.accent,
-                    style = KuroType.labelStrong
-                )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = formatSeconds(remainingSeconds),
-                        color = tokens.textPrimary,
-                        fontSize = 44.sp,
-                        lineHeight = 48.sp,
-                        fontWeight = FontWeight.Light
-                    )
-                    Text(
-                        text = "remaining",
-                        color = tokens.textSecondary,
-                        style = KuroType.labelStrong
-                    )
-                }
-                PomodoroRing(progress = pomodoroProgress)
-            }
-            CycleDots(dots = dots)
-            HomePrimaryButton(
-                text = if (isRunning) "Pause Focus" else "Resume Focus",
+            // Large centered serif timer
+            Text(
+                text = formatSeconds(remainingSeconds),
+                color = tokens.textPrimary.copy(alpha = timeAlpha),
+                fontSize = 72.sp,
+                lineHeight = 76.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = FontFamily.Serif,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = "remaining",
+                color = tokens.textSecondary,
+                style = KuroType.labelStrong,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            FullCycleDots(
+                cycleItems = cycleItems,
+                cycleIndex = cycleIndex,
+                currentTimerState = currentTimerState
+            )
+            OpenFocusModeRow(onClick = onEnterFocusMode)
+            ActiveFocusButton(
+                isRunning = isRunning,
                 onClick = onStartPause,
-                icon = !isRunning,
                 modifier = Modifier.fillMaxWidth()
             )
             Row(
@@ -376,13 +393,14 @@ private fun ActiveTimerCard(
                 TextButton(onClick = {
                     if (isFocus) showStopConfirmDialog = true else onStop()
                 }) {
-                    Text(
-                        text = "■",
-                        color = tokens.textSecondary,
-                        style = KuroType.labelMeta
+                    Icon(
+                        imageVector = Icons.Outlined.StopCircle,
+                        contentDescription = null,
+                        tint = tokens.textSecondary,
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(Modifier.width(5.dp))
-                    Text("Stop", color = tokens.textSecondary, fontWeight = FontWeight.Bold)
+                    Text("Stop session", color = tokens.textSecondary, fontWeight = FontWeight.Bold)
                 }
                 if (isBreak) {
                     TextButton(onClick = onSkip) {
@@ -623,6 +641,80 @@ private fun HomePrimaryButton(
 }
 
 @Composable
+private fun OpenFocusModeRow(onClick: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
+            .clickable(onClick = onClick)
+            .padding(horizontal = KuroSpacing.md, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Spa,
+            contentDescription = null,
+            tint = tokens.accent,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = "Open Focus Mode",
+            color = tokens.textPrimary,
+            style = KuroType.bodyPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = tokens.textSecondary,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
+private fun ActiveFocusButton(
+    isRunning: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = modifier
+            .height(58.dp)
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(tokens.accent)
+            .clickable(onClick = onClick)
+            .padding(start = 8.dp, end = 24.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.25f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Text(
+            text = if (isRunning) "Pause Focus" else "Resume Focus",
+            color = Color.White,
+            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold)
+        )
+    }
+}
+
+@Composable
 private fun FocusTypeIcon(
     focusType: FocusType,
     emojiOverride: String? = null,
@@ -683,66 +775,35 @@ private fun focusTypeLabel(focusType: FocusType): String = when (focusType) {
     FocusType.Empty -> "Focus"
 }
 
-@Composable
-private fun PomodoroRing(progress: PomodoroProgress) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    val total = progress.total.coerceAtLeast(1)
-    val fraction = (progress.current.toFloat() / total.toFloat()).coerceIn(0f, 1f)
-    Box(contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.size(64.dp)) {
-            val stroke = 7.dp.toPx()
-            drawArc(
-                color = tokens.accentSoft,
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                style = Stroke(width = stroke, cap = StrokeCap.Round)
-            )
-            drawArc(
-                color = tokens.accent,
-                startAngle = -90f,
-                sweepAngle = 360f * fraction,
-                useCenter = false,
-                style = Stroke(width = stroke, cap = StrokeCap.Round)
-            )
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "Pomodoro",
-                color = tokens.textSecondary,
-                style = KuroType.labelMeta.copy(fontWeight = FontWeight.Medium),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "${progress.current.coerceAtLeast(1)} of $total",
-                color = tokens.textPrimary,
-                style = KuroType.labelStrong,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
 
 @Composable
-private fun CycleDots(dots: com.endiar.kuropomodoro.model.CycleDotsState) {
+private fun FullCycleDots(
+    cycleItems: List<TimerSessionItem>,
+    cycleIndex: Int,
+    currentTimerState: TimerState
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    // Collect original indices of focus-only items
+    val focusIndices = cycleItems.mapIndexedNotNull { index, item ->
+        if (item.type is SessionItemType.Focus) index else null
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(dots.totalFocusSessions.coerceAtLeast(1)) { index ->
-            val completed = index < dots.completedFocusSessions
-            val active = dots.isCurrentlyFocus && index == dots.completedFocusSessions
+        focusIndices.forEach { originalIndex ->
+            val isActive = originalIndex == cycleIndex && currentTimerState != TimerState.Idle
+            val isPast = originalIndex < cycleIndex
             Box(
                 modifier = Modifier
                     .padding(horizontal = 5.dp)
-                    .size(if (active) 13.dp else 10.dp)
+                    .size(if (isActive) 13.dp else 10.dp)
                     .clip(CircleShape)
                     .background(
                         when {
-                            active -> tokens.accent
-                            completed -> tokens.accent.copy(alpha = 0.55f)
+                            isActive -> tokens.accent
+                            isPast -> tokens.accent.copy(alpha = 0.55f)
                             else -> tokens.cardBorder
                         }
                     )

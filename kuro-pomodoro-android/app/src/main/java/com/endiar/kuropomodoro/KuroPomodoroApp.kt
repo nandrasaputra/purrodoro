@@ -361,6 +361,7 @@ fun KuroPomodoroApp(
                         isSoundPlaying = isSoundPlaying,
                         backdropTime = backdropTime,
                         onSkip = { timerConnection.controller.skip() },
+                        onEnterFocusMode = { isFocusMode = true },
                         onStartPause = {
                             when {
                                 isRunning -> {
