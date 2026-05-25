@@ -7,6 +7,7 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
 import com.endiar.kuropomodoro.model.TimerRuntimeState
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
@@ -45,7 +46,7 @@ class TimerConnection(private val context: Context) {
 
     private var controllerRef: TimerController? = null
 
-    private data class PendingStart(val settings: TimerSettings, val task: FocusTask?, val activeHabitId: Int?)
+    private data class PendingStart(val settings: TimerSettings, val task: FocusTask?, val activeHabitId: Int?, val focusType: FocusType)
     private var pendingStart: PendingStart? = null
 
     /**
@@ -53,13 +54,13 @@ class TimerConnection(private val context: Context) {
      * falls back to an intent dispatch otherwise.
      */
     val controller: TimerController = object : TimerController {
-        override fun start(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?) {
+        override fun start(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?, focusType: FocusType) {
             val bound = controllerRef
             if (bound != null) {
-                bound.start(settings, task, activeHabitId)
+                bound.start(settings, task, activeHabitId, focusType)
                 return
             }
-            pendingStart = PendingStart(settings, task, activeHabitId)
+            pendingStart = PendingStart(settings, task, activeHabitId, focusType)
             val intent = Intent(context, TimerService::class.java)
                 .setAction(TimerService.ACTION_START)
             safeStartForegroundService(intent)
@@ -123,7 +124,7 @@ class TimerConnection(private val context: Context) {
             }
             // Flush a buffered start() if one was queued before the binder arrived.
             pendingStart?.let { ps ->
-                lb.controller.start(ps.settings, ps.task, ps.activeHabitId)
+                lb.controller.start(ps.settings, ps.task, ps.activeHabitId, ps.focusType)
                 pendingStart = null
             }
         }
