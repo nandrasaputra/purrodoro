@@ -9,26 +9,33 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
@@ -115,39 +122,148 @@ fun KuroFilterBar(
 }
 
 // ── KuroBottomSheet ───────────────────────────────────────────────────────────
-// Standard bottom sheet with drag handle, title, and padded content.
+// Standard bottom sheet with title and padded content.
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KuroBottomSheet(
     title: String,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    contentKey: Any? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = tokens.cardFill,
+    KuroAdaptiveBottomSheet(
+        onDismiss = onDismiss,
         modifier = modifier,
+        contentKey = contentKey,
     ) {
-        Column(
+        Text(
+            text = title,
+            style = KuroType.headingCard,
+            color = tokens.textPrimary,
             modifier = Modifier
-                .padding(horizontal = KuroSpacing.xl)
-                .padding(top = KuroSpacing.md, bottom = KuroSpacing.xxl)
-                .navigationBarsPadding(),
-        ) {
-            Text(
-                text = title,
-                style = KuroType.headingCard,
-                color = tokens.textPrimary,
+                .fillMaxWidth()
+                .padding(bottom = KuroSpacing.lg),
+        )
+        content()
+    }
+}
+
+/** Back + title + trailing text action for sub-pages inside a bottom sheet. */
+@Composable
+fun KuroBottomSheetSubpageHeader(
+    title: String,
+    onBack: () -> Unit,
+    actionLabel: String,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier,
+    actionEnabled: Boolean = true,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = KuroSpacing.sm, bottom = KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = tokens.textPrimary,
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onBack)
+                .padding(2.dp),
+        )
+        Spacer(Modifier.width(KuroSpacing.sm))
+        Text(
+            text = title,
+            style = KuroType.headingCard,
+            color = tokens.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = actionLabel,
+            style = KuroType.labelStrong,
+            color = if (actionEnabled) tokens.accent else tokens.accent.copy(alpha = 0.45f),
+            modifier = Modifier
+                .clip(RoundedCornerShape(KuroSpacing.radiusSm))
+                .clickable(enabled = actionEnabled, onClick = onAction)
+                .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.xs),
+        )
+    }
+}
+
+/** Selectable option list for bottom-sheet pickers. */
+@Composable
+fun KuroSelectionList(
+    emptyMessage: String,
+    options: List<Pair<Int, String>>,
+    selectedId: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    maxHeight: Dp? = null,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    if (options.isEmpty()) {
+        Text(
+            text = emptyMessage,
+            style = KuroType.bodySecondary,
+            color = tokens.textSecondary,
+            modifier = modifier.fillMaxWidth(),
+        )
+        return
+    }
+
+    val listModifier = modifier
+        .fillMaxWidth()
+        .let { base ->
+            if (maxHeight != null) {
+                base.heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+            } else {
+                base
+            }
+        }
+
+    Column(
+        modifier = listModifier,
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        options.forEach { (id, label) ->
+            val selected = id == selectedId
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = KuroSpacing.lg),
-            )
-            content()
+                    .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                    .background(if (selected) tokens.accentSoft else tokens.pageBackground)
+                    .border(
+                        1.dp,
+                        if (selected) tokens.accent.copy(alpha = 0.35f) else tokens.cardBorder,
+                        RoundedCornerShape(KuroSpacing.radiusMd),
+                    )
+                    .clickable { onSelect(id) }
+                    .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = label,
+                    style = KuroType.bodyPrimary,
+                    color = tokens.textPrimary,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = tokens.accent,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
     }
 }
