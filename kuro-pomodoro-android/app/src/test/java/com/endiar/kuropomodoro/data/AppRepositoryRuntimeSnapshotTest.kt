@@ -177,6 +177,7 @@ class AppRepositoryRuntimeSnapshotTest {
         )
         val decoded = decodeRuntimeSnapshot(encodeRuntimeSnapshot(state))
         assertEquals(7, decoded?.activeHabitId)
+        assertEquals(FocusType.Empty, decoded?.focusType)
     }
 
     @Test
