@@ -537,6 +537,8 @@ fun KuroPomodoroApp(
                     onUpdateSettings = { persistSettings(it) },
                     notificationSoundEnabled = notificationSoundEnabled,
                     onUpdateNotificationSound = { persistNotificationSoundEnabled(it) },
+                    appearanceMode = appearanceMode,
+                    onUpdateAppearanceMode = { persistAppearanceMode(it) },
                 )
             }
 
