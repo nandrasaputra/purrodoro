@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
 import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
@@ -46,8 +47,8 @@ class TimerService : Service() {
     private lateinit var alarmManager: AlarmManager
 
     private val controllerImpl: TimerController = object : TimerController {
-        override fun start(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?) {
-            scope.launch { startCycle(settings, task, activeHabitId) }
+        override fun start(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?, focusType: FocusType) {
+            scope.launch { startCycle(settings, task, activeHabitId, focusType) }
         }
         override fun pause()  { scope.launch { doPause() } }
         override fun resume() { scope.launch { doResume() } }
@@ -116,7 +117,7 @@ class TimerService : Service() {
 
     // --- Transitions ---
 
-    private suspend fun startCycle(settings: TimerSettings, task: FocusTask?, activeHabitId: Int? = null) {
+    private suspend fun startCycle(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?, focusType: FocusType = FocusType.Empty) {
         val items = buildCycle(settings)
         val firstSeconds = items.first().type.seconds()
         val now = System.currentTimeMillis()
@@ -138,6 +139,7 @@ class TimerService : Service() {
             activeTask = task,
             openRecord = record,
             activeHabitId = activeHabitId,
+            focusType = focusType,
         )
         updateState(state)
         scheduleAlarm(state)
