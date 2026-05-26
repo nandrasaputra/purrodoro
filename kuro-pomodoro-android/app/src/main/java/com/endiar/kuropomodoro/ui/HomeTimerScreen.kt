@@ -349,11 +349,18 @@ private fun ActiveTimerCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = if (isBreak) timerMode.label else focusTypeLabel(activeFocusType),
-                        color = tokens.textSecondary,
-                        style = KuroType.labelStrong
-                    )
+                    val subtitle = when {
+                        isBreak -> timerMode.label
+                        activeFocusType == FocusType.Empty -> null
+                        else -> focusTypeLabel(activeFocusType)
+                    }
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            color = tokens.textSecondary,
+                            style = KuroType.labelStrong
+                        )
+                    }
                 }
             }
             // Large centered serif timer
