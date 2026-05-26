@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,9 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.data.AppState
@@ -87,6 +84,7 @@ import com.endiar.kuropomodoro.ui.todayFocusMetrics
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.progressOn
 import com.endiar.kuropomodoro.ui.components.CatBackdrop
+import com.endiar.kuropomodoro.ui.components.CycleCompleteDialog
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import com.endiar.kuropomodoro.ui.components.FocusModeMotion
@@ -124,6 +122,14 @@ fun KuroPomodoroApp(
         .collectAsStateWithLifecycle(initialValue = false)
     val cycleCompletionVariant = remember(pendingCycleAck) {
         if (pendingCycleAck) CycleCompletionCopy.variants.random() else null
+    }
+
+    // Snapshot the runtime data once when the dialog first appears, so a
+    // late `_state` clear from TimerService doesn't blank out the stats /
+    // intent row while the dialog is on screen.
+    var cycleCompleteSnapshot by remember { mutableStateOf<CycleCompleteSnapshot?>(null) }
+    LaunchedEffect(pendingCycleAck) {
+        if (!pendingCycleAck) cycleCompleteSnapshot = null
     }
 
     var settings by remember(appState.settings) { mutableStateOf(appState.settings) }
@@ -599,38 +605,28 @@ fun KuroPomodoroApp(
             }
 
             if (pendingCycleAck && cycleCompletionVariant != null) {
-                AlertDialog(
-                    onDismissRequest = { /* non-cancelable */ },
-                    title = {
-                        Text(
-                            text = cycleCompletionVariant.title,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                val snapshot = cycleCompleteSnapshot ?: deriveCycleCompleteSnapshot(
+                    runtimeState = runtimeState,
+                    settings = settings,
+                ).also { cycleCompleteSnapshot = it }
+
+                CycleCompleteDialog(
+                    title = cycleCompletionVariant.title,
+                    body = cycleCompletionVariant.body,
+                    focusMinutesTotal = snapshot.focusMinutesTotal,
+                    focusSessionsCompleted = snapshot.focusSessionsCompleted,
+                    focusType = snapshot.focusType,
+                    intentEmoji = snapshot.intentEmoji,
+                    intentLabel = snapshot.intentLabel,
+                    confirmLabel = CycleCompletionCopy.buttonLabel,
+                    secondaryLabel = "View Journey",
+                    onConfirm = {
+                        scope.launch { repo.setPendingCycleCompletionAck(false) }
                     },
-                    text = {
-                        Text(
-                            text = cycleCompletionVariant.body,
-                            color = Color.White.copy(alpha = 0.75f)
-                        )
+                    onSecondary = {
+                        scope.launch { repo.setPendingCycleCompletionAck(false) }
+                        selectedTab = AppTab.Calendar
                     },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            scope.launch { repo.setPendingCycleCompletionAck(false) }
-                        }) {
-                            Text(
-                                text = CycleCompletionCopy.buttonLabel,
-                                color = Color(0xFFFF8B6F),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    },
-                    properties = DialogProperties(
-                        dismissOnBackPress = false,
-                        dismissOnClickOutside = false
-                    ),
-                    containerColor = Color(0xFF2A2035),
-                    shape = RoundedCornerShape(20.dp)
                 )
             }
 
@@ -714,6 +710,67 @@ private val AppTabSaver = Saver<AppTab, String>(
     save = { it.name },
     restore = { name -> AppTab.entries.firstOrNull { it.name == name } ?: AppTab.Timer }
 )
+
+private data class CycleCompleteSnapshot(
+    val focusMinutesTotal: Int,
+    val focusSessionsCompleted: Int,
+    val focusType: FocusType,
+    val intentEmoji: String?,
+    val intentLabel: String?,
+)
+
+/**
+ * Build a snapshot of the just-finished cycle for the completion dialog.
+ *
+ * Prefers the (still-preserved) runtime cycleItems for stats since they
+ * reflect what was actually run; falls back to current [TimerSettings]
+ * when the runtime has already been cleared (e.g. after a process kill).
+ *
+ * Intent label is only populated for non-Empty FocusType + non-null task.
+ * For Habit, the leading emoji is split out of the title so the receipt
+ * can show it as an icon instead of repeating it inline.
+ */
+private fun deriveCycleCompleteSnapshot(
+    runtimeState: com.endiar.kuropomodoro.model.TimerRuntimeState?,
+    settings: TimerSettings,
+): CycleCompleteSnapshot {
+    val focusType = runtimeState?.focusType ?: FocusType.Empty
+    val task = runtimeState?.activeTask
+    val items = runtimeState?.session?.items.orEmpty()
+
+    val runtimeFocusCount = items.count { it.type is SessionItemType.Focus }
+    val runtimeFocusSeconds = items
+        .mapNotNull { (it.type as? SessionItemType.Focus)?.seconds }
+        .sum()
+
+    val focusSessionsCompleted = if (runtimeFocusCount > 0) {
+        runtimeFocusCount
+    } else {
+        settings.focusSessionsPerCycle.coerceAtLeast(1)
+    }
+    val focusMinutesTotal = if (runtimeFocusSeconds > 0) {
+        runtimeFocusSeconds / 60
+    } else {
+        settings.focusMinutes * focusSessionsCompleted
+    }
+
+    val (intentEmoji, intentLabel) = when {
+        focusType == FocusType.Empty || task == null -> null to null
+        focusType == FocusType.Habit -> {
+            val parts = task.title.split(" ", limit = 2)
+            if (parts.size == 2) parts[0] to parts[1] else null to task.title
+        }
+        else -> null to task.title
+    }
+
+    return CycleCompleteSnapshot(
+        focusMinutesTotal = focusMinutesTotal,
+        focusSessionsCompleted = focusSessionsCompleted,
+        focusType = focusType,
+        intentEmoji = intentEmoji,
+        intentLabel = intentLabel,
+    )
+}
 
 private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(
     save = { task ->
