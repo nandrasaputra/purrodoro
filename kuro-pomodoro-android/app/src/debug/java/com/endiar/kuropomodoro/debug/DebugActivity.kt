@@ -273,6 +273,30 @@ private fun DebugScreen(
 
                 HorizontalDivider()
 
+                // --- Cycle Complete Dialog ---
+                SectionTitle("CYCLE COMPLETE DIALOG")
+                Text(
+                    "Flips the persisted pendingCycleCompletionAck flag so the dialog appears next time the home is in foreground.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Button(
+                    onClick = {
+                        scope.launch {
+                            appRepo.setPendingCycleCompletionAck(true)
+                            snackbarHostState.showSnackbar(
+                                message = "Dialog armed — return to Home tab",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Trigger cycle complete")
+                }
+
+                HorizontalDivider()
+
                 // --- Process ---
                 SectionTitle("PROCESS")
                 Button(
