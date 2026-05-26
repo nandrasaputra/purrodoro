@@ -82,6 +82,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_NOTIFICATION_SOUND = booleanPreferencesKey("notification_sound_enabled")
         private val KEY_HABITS = stringPreferencesKey("habits_json")
         private val KEY_NEXT_HABIT_ID = intPreferencesKey("next_habit_id")
+        private val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -100,6 +101,28 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
 
     val pendingCycleCompletionAckFlow: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_PENDING_CYCLE_ACK] ?: false
+    }
+
+    /**
+     * True once the user has finished or skipped onboarding.
+     *
+     * For a brand-new install the key is absent and we resolve to false so the
+     * onboarding flow plays. For users upgrading from a build that predates
+     * onboarding, we treat existing tasks / habits / session records as proof
+     * they've already learned the app, so they don't get an unexpected first-run
+     * flow on next launch.
+     */
+    val hasSeenOnboardingFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_HAS_SEEN_ONBOARDING] ?: hasPriorAppUsage(prefs)
+    }
+
+    private fun hasPriorAppUsage(prefs: Preferences): Boolean {
+        val records = prefs[KEY_SESSION_RECORDS]
+        val tasks = prefs[KEY_TASKS]
+        val habits = prefs[KEY_HABITS]
+        fun nonEmpty(value: String?): Boolean =
+            !value.isNullOrBlank() && value != "[]"
+        return nonEmpty(records) || nonEmpty(tasks) || nonEmpty(habits)
     }
 
     val appState: Flow<AppState> = dataStore.data.map { prefs ->
@@ -151,6 +174,9 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setIsPremium(value: Boolean) = dataStore.edit { it[KEY_IS_PREMIUM] = value }
     suspend fun setPendingCycleCompletionAck(value: Boolean) =
         dataStore.edit { it[KEY_PENDING_CYCLE_ACK] = value }
+
+    suspend fun setHasSeenOnboarding(value: Boolean) =
+        dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = value }
 
     suspend fun appendSessionRecord(record: SessionRecord) = dataStore.edit { prefs ->
         val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")

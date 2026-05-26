@@ -5,7 +5,6 @@ import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.endiar.kuropomodoro.model.AppClock
 
@@ -16,27 +15,17 @@ class KuroDebugApplication : Application() {
         AppClock.source = debugRepo
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // On API 33+ we need runtime permission before posting notifications.
-            // Request it from the first activity that starts, then (re-)post once resumed.
+            // On API 33+ posting notifications needs runtime permission. We
+            // intentionally do NOT auto-prompt on activity create — that used
+            // to interrupt the very first frame of onboarding with a system
+            // dialog. Instead, post the dev notification opportunistically
+            // each time an activity resumes IF permission is already granted
+            // (either pre-granted, or just granted by the user via Kuro's
+            // onboarding flow). If the user never grants it, the dev
+            // notification simply never appears in debug builds — accept that
+            // tradeoff in favour of a clean first-run experience.
             registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-                private var permissionRequested = false
-
-                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
-                    if (!permissionRequested) {
-                        permissionRequested = true
-                        val permission = android.Manifest.permission.POST_NOTIFICATIONS
-                        if (ContextCompat.checkSelfPermission(activity, permission)
-                            != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            ActivityCompat.requestPermissions(activity, arrayOf(permission), 0)
-                        }
-                    }
-                }
-
                 override fun onActivityResumed(activity: Activity) {
-                    // Re-post every time an activity resumes — if permission was just granted
-                    // this will make the notification appear; subsequent calls are no-ops
-                    // (NotificationManager.notify with same ID just updates the existing one).
                     val permission = android.Manifest.permission.POST_NOTIFICATIONS
                     if (ContextCompat.checkSelfPermission(activity, permission)
                         == PackageManager.PERMISSION_GRANTED
@@ -45,6 +34,7 @@ class KuroDebugApplication : Application() {
                     }
                 }
 
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
                 override fun onActivityStarted(activity: Activity) {}
                 override fun onActivityPaused(activity: Activity) {}
                 override fun onActivityStopped(activity: Activity) {}

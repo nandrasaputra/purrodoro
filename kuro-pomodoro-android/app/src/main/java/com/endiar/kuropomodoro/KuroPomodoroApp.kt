@@ -77,6 +77,7 @@ import com.endiar.kuropomodoro.ui.StartFocusPrefill
 import com.endiar.kuropomodoro.ui.StartFocusSheet
 import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.continueTask
+import com.endiar.kuropomodoro.ui.onboarding.OnboardingScreen
 import com.endiar.kuropomodoro.ui.homeStartTask
 import com.endiar.kuropomodoro.ui.homeGreetingFor
 import com.endiar.kuropomodoro.ui.pomodoroProgress
@@ -120,6 +121,12 @@ fun KuroPomodoroApp(
 
     val pendingCycleAck by repo.pendingCycleCompletionAckFlow
         .collectAsStateWithLifecycle(initialValue = false)
+
+    // Default to `true` so returning users never get a flash of onboarding while
+    // DataStore loads. Brand-new users may briefly see Home before the real
+    // `false` value arrives — acceptable for a one-time flow.
+    val hasSeenOnboarding by repo.hasSeenOnboardingFlow
+        .collectAsStateWithLifecycle(initialValue = true)
     val cycleCompletionVariant = remember(pendingCycleAck) {
         if (pendingCycleAck) CycleCompletionCopy.variants.random() else null
     }
@@ -166,6 +173,22 @@ fun KuroPomodoroApp(
     var showProfile by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
+
+    // First-run gate: replace the entire app surface with the onboarding flow
+    // until the user finishes (or skips) it. Both completion paths just mark
+    // the flag and drop the user on Home — they choose when to start their
+    // first focus from the home screen's prominent CTA. Tapping "Turn on
+    // notifications" additionally fires the Android system permission ask.
+    if (!hasSeenOnboarding) {
+        OnboardingScreen(
+            onSkip = { scope.launch { repo.setHasSeenOnboarding(true) } },
+            onAllowNotifications = {
+                scope.launch { repo.setHasSeenOnboarding(true) }
+                requestNotificationPermission()
+            },
+        )
+        return
+    }
 
     fun persistSettings(v: TimerSettings) {
         settings = v; scope.launch { repo.setSettings(v) }

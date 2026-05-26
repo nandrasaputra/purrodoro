@@ -297,6 +297,34 @@ private fun DebugScreen(
 
                 HorizontalDivider()
 
+                // --- Onboarding ---
+                SectionTitle("ONBOARDING")
+                Text(
+                    "Resets the first-run flag and restarts the app so onboarding plays again. Existing tasks, habits, and history are kept.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Button(
+                    onClick = {
+                        scope.launch {
+                            appRepo.setHasSeenOnboarding(false)
+                            val result = snackbarHostState.showSnackbar(
+                                message = "Onboarding flag reset",
+                                actionLabel = "Restart",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                onRestartApp()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Replay onboarding")
+                }
+
+                HorizontalDivider()
+
                 // --- Process ---
                 SectionTitle("PROCESS")
                 Button(
