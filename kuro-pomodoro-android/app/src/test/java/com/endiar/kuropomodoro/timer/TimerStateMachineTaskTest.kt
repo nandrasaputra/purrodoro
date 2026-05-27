@@ -160,4 +160,40 @@ class TimerStateMachineTaskTest {
         // No tasks were ever stored.
         assertEquals(emptyList<FocusTask>(), repo.appState.first().tasks)
     }
+
+    @Test
+    fun `cycle end raises pendingCycleCompletionAck flag`() = runTest {
+        // Regression: the alarm-receiver path (and the foreground tick path) both
+        // flow through applyTimerComplete. Without this write, completing a cycle
+        // while the service was killed by the OS would silently swallow the
+        // completion dialog — see TimerAlarmReceiver and TimerService.startTicking.
+        val repo = makeRepo()
+        assertFalse(repo.pendingCycleCompletionAckFlow.first())
+
+        val endsAt = 1_718_000_000_000L
+        val next = TimerStateMachine.applyTimerComplete(
+            snapshot(currentIndex = 1, task = null, endsAt = endsAt),
+            settings, endsAt + 1000L, repo, utc,
+        )
+
+        assertEquals(TimerState.Idle, next.session.timerState)
+        assertTrue(
+            "completion-dialog ack flag must be raised on cycle end",
+            repo.pendingCycleCompletionAckFlow.first()
+        )
+    }
+
+    @Test
+    fun `mid-cycle segment completion does not raise pendingCycleCompletionAck`() = runTest {
+        // Sanity: only end-of-cycle should set the flag, not every Focus/Break finish.
+        val repo = makeRepo()
+
+        val endsAt = 1_718_000_000_000L
+        TimerStateMachine.applyTimerComplete(
+            snapshot(currentIndex = 0, task = null, endsAt = endsAt),
+            settings, endsAt + 1000L, repo, utc,
+        )
+
+        assertFalse(repo.pendingCycleCompletionAckFlow.first())
+    }
 }
