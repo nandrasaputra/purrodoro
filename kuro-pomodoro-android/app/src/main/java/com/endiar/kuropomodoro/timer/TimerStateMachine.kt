@@ -101,6 +101,13 @@ object TimerStateMachine {
                 openRecord = null
             )
             repo.setRuntimeSnapshot(null)
+            // Single source of truth for the completion-dialog ack flag: any path
+            // that lands on the natural end-of-cycle (foreground tick OR backstop
+            // alarm replay after the service was killed) flips the flag here so
+            // the dialog shows next time the UI is foregrounded. The skip-to-end
+            // shortcut in TimerService.doSkip handles its own write via
+            // finishCycleAndStop because it doesn't route through this function.
+            repo.setPendingCycleCompletionAck(true)
             return resetState
         }
 

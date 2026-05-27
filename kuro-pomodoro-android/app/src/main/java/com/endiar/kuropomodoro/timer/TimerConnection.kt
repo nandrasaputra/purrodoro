@@ -171,6 +171,15 @@ class TimerConnection(private val context: Context) {
                             }
                         }
 
+                        // Reconciler crossed the end of the cycle while the process was
+                        // dead — treat it identically to a foreground completion so the
+                        // user still gets the completion dialog on next open.
+                        if (result.state.session.timerState == TimerState.Idle &&
+                            result.closedRecords.isNotEmpty()
+                        ) {
+                            repo.setPendingCycleCompletionAck(true)
+                        }
+
                         if (result.state.session.timerState == TimerState.Playing) {
                             val intent = Intent(context, TimerService::class.java)
                                 .setAction(TimerService.ACTION_ALARM_FIRED)
