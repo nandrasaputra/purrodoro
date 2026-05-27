@@ -455,6 +455,10 @@ fun KuroPomodoroApp(
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding,
                         overBackdrop = overBackdrop,
+                        // Quiet "this task is currently focused" indicator on the
+                        // Tasks list. Synthetic habit tasks have negative ids so
+                        // they intentionally never match a real FocusTask row here.
+                        liveTaskId = runtimeState?.activeTask?.id?.takeIf { it > 0 },
                     )
 
                     AppTab.Calendar -> CalendarScreen(

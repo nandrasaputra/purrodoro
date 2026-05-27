@@ -3,7 +3,6 @@ package com.endiar.kuropomodoro.ui
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.HabitOccurrence
-import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.model.isTargetMetOn
 import java.time.LocalDate
@@ -11,36 +10,48 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 
+/**
+ * Status filter values for the Tasks screen.
+ *
+ * "Done" replaces the older "Completed" terminology — shorter, casual, matches
+ * the segmented control in the redesign.
+ *
+ * Archived stays as a placeholder for the unbuilt archive feature; selecting
+ * it currently yields an empty list and a tailored empty state.
+ */
 enum class TaskUiFilter(val label: String) {
     All("All"),
     Active("Active"),
-    Completed("Completed"),
+    Done("Done"),
     Archived("Archived"),
 }
 
+/**
+ * Aggregate counts used to render counts inline on the status filter labels
+ * (e.g. "All 6 / Active 4 / Done 2"), scoped by the currently selected category.
+ *
+ * Estimated-focus-time is intentionally absent: tasks are decoupled from per-task
+ * pomodoro plans now, so multiplying [FocusTask.plannedSessions] by focus minutes
+ * would invent a target the user never set.
+ */
 data class TaskOverview(
     val total: Int,
     val inProgress: Int,
     val completed: Int,
-    val estimatedFocusTimeLabel: String,
 )
 
 fun filterTasksForUi(tasks: List<FocusTask>, filter: TaskUiFilter): List<FocusTask> = when (filter) {
     TaskUiFilter.All -> tasks
     TaskUiFilter.Active -> tasks.filterNot { it.completed }
-    TaskUiFilter.Completed -> tasks.filter { it.completed }
+    TaskUiFilter.Done -> tasks.filter { it.completed }
     TaskUiFilter.Archived -> emptyList()
 }
 
-fun taskOverview(tasks: List<FocusTask>, settings: TimerSettings): TaskOverview {
-    val totalMinutes = tasks.sumOf { it.plannedSessions.coerceAtLeast(1) * settings.focusMinutes.coerceAtLeast(1) }
-    return TaskOverview(
-        total = tasks.size,
-        inProgress = tasks.count { !it.completed },
-        completed = tasks.count { it.completed },
-        estimatedFocusTimeLabel = formatDurationMinutes(totalMinutes),
-    )
-}
+fun taskOverview(tasks: List<FocusTask>): TaskOverview = TaskOverview(
+    total = tasks.size,
+    inProgress = tasks.count { !it.completed },
+    completed = tasks.count { it.completed },
+)
 
 enum class HabitUiFilter(val label: String) {
     All("All"),
@@ -93,16 +104,5 @@ fun monthlyHabitProgressDots(habits: List<Habit>, monthDate: LocalDate): List<Mo
             date = date,
             isCompleted = habits.any { it.isTargetMetOn(date) },
         )
-    }
-}
-
-fun formatDurationMinutes(totalMinutes: Int): String {
-    val safe = totalMinutes.coerceAtLeast(0)
-    val hours = safe / 60
-    val minutes = safe % 60
-    return when {
-        hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
-        hours > 0 -> "${hours}h"
-        else -> "${minutes}m"
     }
 }

@@ -6,7 +6,6 @@ import com.endiar.kuropomodoro.model.HabitLogState
 import com.endiar.kuropomodoro.model.HabitOccurrence
 import com.endiar.kuropomodoro.model.HabitTargetType
 import com.endiar.kuropomodoro.model.TimeBlock
-import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.withLog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,23 +26,22 @@ class TaskHabitDisplayModelsTest {
 
         assertEquals(tasks, filterTasksForUi(tasks, TaskUiFilter.All))
         assertEquals(listOf(active), filterTasksForUi(tasks, TaskUiFilter.Active))
-        assertEquals(listOf(done), filterTasksForUi(tasks, TaskUiFilter.Completed))
+        assertEquals(listOf(done), filterTasksForUi(tasks, TaskUiFilter.Done))
         assertEquals(emptyList<FocusTask>(), filterTasksForUi(tasks, TaskUiFilter.Archived))
     }
 
     @Test
-    fun taskOverviewCountsAndEstimatesFocusTime() {
+    fun taskOverviewCountsByCompletion() {
         val tasks = listOf(
-            FocusTask(id = 1, title = "Compose Migration", minutes = 25, plannedSessions = 5, completedSessions = 2),
-            FocusTask(id = 2, title = "Fix UI Bugs", minutes = 25, completed = true, plannedSessions = 3, completedSessions = 3),
+            FocusTask(id = 1, title = "Compose Migration", minutes = 25),
+            FocusTask(id = 2, title = "Fix UI Bugs", minutes = 25, completed = true),
         )
 
-        val overview = taskOverview(tasks, TimerSettings(focusMinutes = 25))
+        val overview = taskOverview(tasks)
 
         assertEquals(2, overview.total)
         assertEquals(1, overview.inProgress)
         assertEquals(1, overview.completed)
-        assertEquals("3h 20m", overview.estimatedFocusTimeLabel)
     }
 
     @Test

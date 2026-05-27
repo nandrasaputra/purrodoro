@@ -126,7 +126,7 @@ fun KuroFilterBar(
 
 @Composable
 fun KuroBottomSheet(
-    title: String,
+    title: String?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     contentKey: Any? = null,
@@ -138,14 +138,19 @@ fun KuroBottomSheet(
         modifier = modifier,
         contentKey = contentKey,
     ) {
-        Text(
-            text = title,
-            style = KuroType.headingCard,
-            color = tokens.textPrimary,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = KuroSpacing.lg),
-        )
+        // The detail sheet redesign inlines its own chrome (close X / TASK / trash)
+        // and so opts out of the default headline by passing title = null. Other
+        // sheets keep the default centered title for stylistic consistency.
+        if (title != null) {
+            Text(
+                text = title,
+                style = KuroType.headingCard,
+                color = tokens.textPrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = KuroSpacing.lg),
+            )
+        }
         content()
     }
 }
@@ -278,6 +283,8 @@ fun KuroInputField(
     placeholder: String,
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: androidx.compose.foundation.text.KeyboardActions =
+        androidx.compose.foundation.text.KeyboardActions.Default,
     singleLine: Boolean = true,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -287,6 +294,7 @@ fun KuroInputField(
         placeholder = { Text(placeholder, style = KuroType.bodyPrimary, color = tokens.textFaint) },
         singleLine = singleLine,
         keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
         shape = RoundedCornerShape(KuroSpacing.radiusMd),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = tokens.cardFill,
