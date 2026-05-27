@@ -217,6 +217,7 @@ fun KuroTaskCard(
     onToggleComplete: () -> Unit,
     modifier: Modifier = Modifier,
     isLive: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
@@ -259,6 +260,9 @@ fun KuroTaskCard(
                     style = KuroType.labelMeta,
                 )
             }
+        }
+        if (trailing != null) {
+            trailing()
         }
     }
 }

@@ -33,6 +33,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CropSquare
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Spa
@@ -53,9 +54,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -117,11 +119,28 @@ fun HomeTimerScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(contentPadding)
                 .padding(horizontal = KuroSpacing.lg)
-                .padding(top = 18.dp, bottom = KuroSpacing.xl),
+                // dockClearance keeps the last content row (e.g. the
+                // AutoCompleteTip while a cycle is running) above the
+                // floating dock instead of being half-hidden behind it.
+                .padding(top = 18.dp, bottom = KuroSpacing.dockClearance),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             HomeHeader(greeting = greeting, onOpenProfile = onOpenProfile)
             if (isStarted) {
+                // Auto-complete tip rides along with the ActiveHero (rendered
+                // inside its Column at the bottom) so it can't be pushed off
+                // the visible area by the floating dock — the hero owns the
+                // entire "what's happening" region of the screen.
+                val autoCompleteMessage: String? = when {
+                    activeFocusType == FocusType.Task &&
+                        activeTask != null && activeTask.id > 0 ->
+                        "Finish the Pomodoro — Kuro ticks this."
+
+                    activeFocusType == FocusType.Habit ->
+                        "Finish the Pomodoro — Kuro counts today."
+
+                    else -> null
+                }
                 ActiveHero(
                     timerMode = timerMode,
                     remainingSeconds = remainingSeconds,
@@ -136,7 +155,8 @@ fun HomeTimerScreen(
                     onSkip = onSkip,
                     onStartPause = onStartPause,
                     onEnterFocusMode = onEnterFocusMode,
-                    onStop = onStop
+                    onStop = onStop,
+                    autoCompleteMessage = autoCompleteMessage,
                 )
             } else {
                 IdleHero(backdropTime = backdropTime, onRequestStartFocus = onRequestStartFocus)
@@ -259,7 +279,8 @@ private fun ActiveHero(
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
     onEnterFocusMode: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    autoCompleteMessage: String? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         HeroImage(modifier = Modifier.fillMaxWidth(), time = backdropTime)
@@ -281,6 +302,20 @@ private fun ActiveHero(
                 .offset(y = (-72).dp)
                 .padding(horizontal = 12.dp)
         )
+        // The tip rides up by -64.dp so its top edge sits just under the
+        // timer card (the card itself is offset by -72.dp). Without this
+        // shift the tip lands well below the visual bottom of the card and
+        // gets clipped by the floating dock on shorter screens. The message
+        // is intentionally short so it fits on one line and the tip stays
+        // a compact, non-obtrusive 44.dp pill.
+        if (autoCompleteMessage != null) {
+            AutoCompleteTip(
+                message = autoCompleteMessage,
+                modifier = Modifier
+                    .offset(y = (-64).dp)
+                    .padding(horizontal = 12.dp),
+            )
+        }
     }
 }
 
@@ -588,6 +623,56 @@ private fun MetricColumn(label: String, value: String, modifier: Modifier = Modi
             color = tokens.textPrimary,
             fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+/**
+ * Quiet "Kuro will mark this done" tip that appears under the active hero when
+ * a real task or habit is attached to the running cycle. Communicates the
+ * automatic completion behaviour at exactly the moment it becomes relevant —
+ * the user is about to spend time focusing.
+ *
+ * The icon is a sparkle (`AutoAwesome`) rather than a check mark: the tip
+ * describes a *future* automatic action, and a check mark would mis-read
+ * as "already done" the moment the cycle starts.
+ */
+@Composable
+private fun AutoCompleteTip(
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(tokens.accentSoft.copy(alpha = 0.55f))
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
+            .padding(horizontal = KuroSpacing.md, vertical = 10.dp)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(tokens.accent),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.AutoAwesome,
+                contentDescription = null,
+                tint = tokens.accentOn,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+        Text(
+            text = message,
+            color = tokens.textPrimary,
+            style = KuroType.bodySecondary,
+            modifier = Modifier.weight(1f),
         )
     }
 }

@@ -459,6 +459,14 @@ fun KuroPomodoroApp(
                         // Tasks list. Synthetic habit tasks have negative ids so
                         // they intentionally never match a real FocusTask row here.
                         liveTaskId = runtimeState?.activeTask?.id?.takeIf { it > 0 },
+                        // Hero's "Open" action when a cycle is live jumps to the
+                        // Home tab so the user can see / control the running
+                        // timer instead of re-opening the configure sheet.
+                        onSwitchToHome = { selectedTab = AppTab.Timer },
+                        // Blocks "Focus with Kuro" / swipe-to-focus from a
+                        // second task while any Pomodoro (task or habit) is
+                        // already running or paused.
+                        isFocusActive = isStarted,
                     )
 
                     AppTab.Calendar -> CalendarScreen(
@@ -808,7 +816,9 @@ private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(
             task.minutes,
             task.completed,
             task.plannedSessions,
-            task.completedSessions
+            task.completedSessions,
+            task.priority.name,
+            task.dueDate?.toString()
         )
     },
     restore = { list ->
@@ -819,7 +829,12 @@ private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(
             minutes = (list[2] as Number).toInt(),
             completed = list[3] as Boolean,
             plannedSessions = (list[4] as Number).toInt(),
-            completedSessions = (list[5] as Number).toInt()
+            completedSessions = (list[5] as Number).toInt(),
+            priority = (list.getOrNull(6) as? String)
+                ?.let { runCatching { com.endiar.kuropomodoro.model.TaskPriority.valueOf(it) }.getOrNull() }
+                ?: com.endiar.kuropomodoro.model.TaskPriority.Normal,
+            dueDate = (list.getOrNull(7) as? String)
+                ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
         )
     }
 )
