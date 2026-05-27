@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -122,7 +123,7 @@ fun TodoScreen(
     categories: List<Category>,
     selectedCategoryId: Int?,
     onCategorySelected: (Int?) -> Unit,
-    onAddTask: (String, Int?) -> Unit,
+    onAddTask: (String, Int?, TaskPriority, LocalDate?) -> Unit,
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
     onUpdateTask: (FocusTask) -> Unit,
@@ -151,9 +152,11 @@ fun TodoScreen(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
-    var newTaskTitle by rememberSaveable { mutableStateOf("") }
-    var addingTask by rememberSaveable { mutableStateOf(false) }
-    var newTaskCategoryId by rememberSaveable { mutableStateOf(selectedCategoryId) }
+    // Driven by the FAB: when true, the AddTaskSheet bottom sheet is shown
+    // over the Tasks list. The sheet owns its own input state so dismissing
+    // it discards the in-progress draft.
+    var addTaskSheetVisible by rememberSaveable { mutableStateOf(false) }
+    var addTaskSheetCategoryId by rememberSaveable { mutableStateOf(selectedCategoryId) }
     var focusSheetTask by remember { mutableStateOf<FocusTask?>(null) }
     var detailSheetTask by remember { mutableStateOf<FocusTask?>(null) }
     // Default to Active: the new tabbed filter makes "what's left to do" the
@@ -210,16 +213,6 @@ fun TodoScreen(
     val activeRowsForList = filteredActiveTasks.filterNot { it.id == heroTaskId }
 
     val keyboardController = LocalSoftwareKeyboardController.current
-    val submitTask = {
-        val title = newTaskTitle.trim()
-        if (title.isNotEmpty()) {
-            onAddTask(title, newTaskCategoryId)
-            newTaskTitle = ""
-            addingTask = false
-            newTaskCategoryId = selectedCategoryId
-            keyboardController?.hide()
-        }
-    }
 
     KuroScreenScaffold(
         stickyTitle = "Tasks",
@@ -267,18 +260,6 @@ fun TodoScreen(
                     deleteCategoryTarget = it
                 },
             )
-
-            if (addingTask) {
-                InlineAddTaskCard(
-                    newTaskTitle = newTaskTitle,
-                    onTitleChange = { newTaskTitle = it },
-                    categories = categories,
-                    newTaskCategoryId = newTaskCategoryId,
-                    onCategoryChange = { newTaskCategoryId = it },
-                    onSubmit = submitTask,
-                    onAddCategory = { addCategorySheetVisible = true },
-                )
-            }
 
             nextFocus?.let { hero ->
                 val heroIsLive = hero.id == liveTaskId
@@ -359,8 +340,8 @@ fun TodoScreen(
 
         TasksFab(
             onClick = {
-                addingTask = true
-                newTaskCategoryId = selectedCategoryId
+                addTaskSheetCategoryId = selectedCategoryId
+                addTaskSheetVisible = true
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -369,6 +350,23 @@ fun TodoScreen(
                 // elsewhere as the "safe area above the dock".
                 .padding(bottom = KuroSpacing.dockClearance + KuroSpacing.sm)
                 .padding(contentPadding),
+        )
+    }
+
+    if (addTaskSheetVisible) {
+        AddTaskSheet(
+            categories = categories,
+            defaultCategoryId = addTaskSheetCategoryId,
+            onDismiss = {
+                addTaskSheetVisible = false
+                keyboardController?.hide()
+            },
+            onAdd = { title, categoryId, priority, dueDate ->
+                onAddTask(title, categoryId, priority, dueDate)
+                addTaskSheetVisible = false
+                keyboardController?.hide()
+            },
+            onAddCategory = { addCategorySheetVisible = true },
         )
     }
 
@@ -758,70 +756,174 @@ private fun DoneSectionHeader(
     }
 }
 
-// ─── Inline add card ───────────────────────────────────────────────────────
+// ─── Add task bottom sheet ─────────────────────────────────────────────────
+
+/**
+ * Bottom sheet for capturing a new task. Replaces the older inline add card
+ * triggered by the FAB.
+ *
+ * Layout mirrors the Variation 1 reference mockup:
+ *  - Title row: "New task" heading + circular close affordance.
+ *  - Labelled title input that auto-focuses (keyboard opens immediately).
+ *  - Category chips row (reuses [AddCategoryChoice]) with a trailing "+ New"
+ *    accent chip routed back to the category-create sheet.
+ *  - Priority + Due date rows that reuse the same components as the detail
+ *    sheet, so the visual rhythm is consistent across "create" and "edit".
+ *  - Coral primary "Add task" button at the bottom; disabled until the title
+ *    has non-whitespace text.
+ *
+ * The sheet owns its own draft state and dismissing it (close X, scrim tap,
+ * back press) discards the draft.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddTaskSheet(
+    categories: List<Category>,
+    defaultCategoryId: Int?,
+    onDismiss: () -> Unit,
+    onAdd: (title: String, categoryId: Int?, priority: TaskPriority, dueDate: LocalDate?) -> Unit,
+    onAddCategory: () -> Unit,
+) {
+    var title by rememberSaveable { mutableStateOf("") }
+    var categoryId by rememberSaveable { mutableStateOf(defaultCategoryId) }
+    var priority by rememberSaveable { mutableStateOf(TaskPriority.Normal) }
+    var dueDate by rememberSaveable(stateSaver = LocalDateSaver) { mutableStateOf<LocalDate?>(null) }
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+
+    val titleFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { titleFocusRequester.requestFocus() }
+
+    val canSubmit = title.trim().isNotEmpty()
+    val submit: () -> Unit = {
+        val trimmed = title.trim()
+        if (trimmed.isNotEmpty()) {
+            onAdd(trimmed, categoryId, priority, dueDate)
+        }
+    }
+
+    KuroBottomSheet(title = null, onDismiss = onDismiss) {
+        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
+            AddTaskSheetHeader(onClose = onDismiss)
+
+            AddTaskTitleField(
+                title = title,
+                onTitleChange = { title = it },
+                focusRequester = titleFocusRequester,
+                onSubmitIme = { if (canSubmit) submit() },
+            )
+
+            AddTaskCategorySection(
+                categories = categories,
+                selectedId = categoryId,
+                onSelect = { categoryId = it },
+                onAddCategory = onAddCategory,
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                PriorityListRow(selected = priority, onSelect = { priority = it })
+                DueDateListRow(
+                    dueDate = dueDate,
+                    onPick = { showDatePicker = true },
+                    onClear = { dueDate = null },
+                )
+            }
+
+            AddTaskPrimaryButton(enabled = canSubmit, onClick = submit)
+        }
+    }
+
+    if (showDatePicker) {
+        DueDatePickerDialog(
+            initial = dueDate,
+            onDismiss = { showDatePicker = false },
+            onConfirm = { picked ->
+                dueDate = picked
+                showDatePicker = false
+            },
+        )
+    }
+}
 
 @Composable
-private fun InlineAddTaskCard(
-    newTaskTitle: String,
+private fun AddTaskSheetHeader(onClose: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "New task",
+            color = tokens.textPrimary,
+            style = KuroType.headingCard,
+            modifier = Modifier.weight(1f),
+        )
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.xxl)
+                .clip(CircleShape)
+                .background(tokens.segmentedTrack)
+                .clickable(onClick = onClose)
+                .semantics { role = Role.Button; contentDescription = "Close" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = "✕", color = tokens.textSecondary, style = KuroType.labelStrong)
+        }
+    }
+}
+
+@Composable
+private fun AddTaskTitleField(
+    title: String,
     onTitleChange: (String) -> Unit,
+    focusRequester: FocusRequester,
+    onSubmitIme: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+        Text(
+            text = "What will you focus on?",
+            color = tokens.textSecondary,
+            style = KuroType.labelMeta,
+        )
+        KuroInputField(
+            value = title,
+            onValueChange = onTitleChange,
+            placeholder = "Design onboarding flow",
+            modifier = Modifier.focusRequester(focusRequester),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onSubmitIme() }),
+        )
+    }
+}
+
+@Composable
+private fun AddTaskCategorySection(
     categories: List<Category>,
-    newTaskCategoryId: Int?,
-    onCategoryChange: (Int?) -> Unit,
-    onSubmit: () -> Unit,
+    selectedId: Int?,
+    onSelect: (Int?) -> Unit,
     onAddCategory: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
-            .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
-            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-        ) {
-            KuroInputField(
-                value = newTaskTitle,
-                onValueChange = onTitleChange,
-                placeholder = "Add a focus task...",
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(focusRequester),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
-            )
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(KuroSpacing.radiusSm))
-                    .background(tokens.accent)
-                    .clickable(onClick = onSubmit)
-                    .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = "Add", color = tokens.accentOn, style = KuroType.labelStrong)
-            }
-        }
+    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+        Text(
+            text = "Category",
+            color = tokens.textSecondary,
+            style = KuroType.labelMeta,
+        )
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
             AddCategoryChoice(
                 label = "None",
-                selected = newTaskCategoryId == null,
-                onClick = { onCategoryChange(null) },
+                selected = selectedId == null,
+                onClick = { onSelect(null) },
             )
             categories.forEach { category ->
                 AddCategoryChoice(
                     label = category.name,
-                    selected = newTaskCategoryId == category.id,
-                    onClick = { onCategoryChange(category.id) },
+                    selected = selectedId == category.id,
+                    onClick = { onSelect(category.id) },
                 )
             }
             AddCategoryChoice(
@@ -831,6 +933,46 @@ private fun InlineAddTaskCard(
                 accent = true,
             )
         }
+    }
+}
+
+/**
+ * Coral pill primary button for the add-task sheet. Patterned after
+ * [FocusWithKuroButton] so the two main calls-to-action across task surfaces
+ * (Add task / Focus with Kuro) share the same shape, height, and motion.
+ */
+@Composable
+private fun AddTaskPrimaryButton(enabled: Boolean, onClick: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val fill = if (enabled) tokens.accent else tokens.accent.copy(alpha = 0.35f)
+    val contentColor = if (enabled) tokens.accentOn else tokens.accentOn.copy(alpha = 0.7f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(fill)
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = "Add task"
+            }
+            .padding(horizontal = KuroSpacing.xl),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Add,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(KuroSpacing.sm))
+        Text(
+            text = "Add task",
+            color = contentColor,
+            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold),
+        )
     }
 }
 
@@ -1826,10 +1968,12 @@ private fun NextFocusHeroCard(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Image(
-                painter = painterResource(id = R.drawable.cat_face),
+                painter = painterResource(id = R.drawable.cat_checklist),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(72.dp),
+                modifier = Modifier
+                    .width(92.dp)
+                    .height(72.dp),
             )
             Column(
                 modifier = Modifier.weight(1f),
