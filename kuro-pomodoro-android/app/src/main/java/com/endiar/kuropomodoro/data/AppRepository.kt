@@ -141,7 +141,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
                 shortBreakMinutes = prefs[KEY_SHORT_MIN] ?: 5,
                 longBreakMinutes = prefs[KEY_LONG_MIN] ?: 15,
                 autoStartNextSession = prefs[KEY_AUTO_START_NEXT_SESSION] ?: false,
-                focusSessionsPerCycle = prefs[KEY_CYCLE_SIZE] ?: 4
+                focusSessionsPerCycle = (prefs[KEY_CYCLE_SIZE] ?: 4)
+                    .coerceIn(1, TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE)
             ),
             nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 1,
             stamps = decodeStamps(prefs[KEY_STAMPS] ?: ""),

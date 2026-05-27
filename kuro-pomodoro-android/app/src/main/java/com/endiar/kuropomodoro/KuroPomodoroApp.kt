@@ -100,7 +100,8 @@ import kotlinx.coroutines.launch
 fun KuroPomodoroApp(
     repo: AppRepository,
     timerConnection: TimerConnection,
-    requestNotificationPermission: () -> Unit
+    requestNotificationPermission: () -> Unit,
+    autoOpenStartFocus: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
 ) {
     val appState by repo.appState.collectAsStateWithLifecycle(
         initialValue = AppState(
@@ -173,6 +174,22 @@ fun KuroPomodoroApp(
     var showProfile by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
+
+    // Bridge from the Quick Start widget: when the host activity receives a
+    // launch intent with EXTRA_AUTO_OPEN_START_FOCUS we surface the existing
+    // Start Focus sheet automatically, but only when no cycle is in flight —
+    // otherwise the widget's "Open Timer" semantic is preserved.
+    if (autoOpenStartFocus != null) {
+        LaunchedEffect(autoOpenStartFocus) {
+            autoOpenStartFocus.collect {
+                if (runtimeState == null) {
+                    startFocusPrefill = null
+                    showStartFocusSheet = true
+                    selectedTab = AppTab.Timer
+                }
+            }
+        }
+    }
 
     // First-run gate: replace the entire app surface with the onboarding flow
     // until the user finishes (or skips) it. Both completion paths just mark

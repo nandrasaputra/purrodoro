@@ -552,14 +552,14 @@ private fun StartFocusConfigEditorContent(
             value = settings.focusSessionsPerCycle,
             unit = "",
             min = 1,
-            max = 10,
+            max = TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE,
             onDecrement = {
                 if (settings.focusSessionsPerCycle > 1) {
                     onSettingsChange(settings.copy(focusSessionsPerCycle = settings.focusSessionsPerCycle - 1))
                 }
             },
             onIncrement = {
-                if (settings.focusSessionsPerCycle < 10) {
+                if (settings.focusSessionsPerCycle < TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE) {
                     onSettingsChange(settings.copy(focusSessionsPerCycle = settings.focusSessionsPerCycle + 1))
                 }
             },

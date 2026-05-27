@@ -23,6 +23,7 @@ import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.buildCycle
 import com.endiar.kuropomodoro.model.seconds
 import com.endiar.kuropomodoro.model.shouldStampStopAsFocus
+import com.endiar.kuropomodoro.widget.WidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -236,6 +237,7 @@ class TimerService : Service() {
         stopTicking()
         repo.setRuntimeSnapshot(null)
         _state.value = null
+        WidgetUpdater.refreshAll(applicationContext)
         NotificationManagerCompat.from(applicationContext).notify(
             TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
             TimerNotification.buildCompletionNotification(applicationContext, TimerNotification.CompletionKind.Stopped)
@@ -259,6 +261,7 @@ class TimerService : Service() {
         if (current.session.timerState != TimerState.Idle) return
         _state.value = null
         repo.setRuntimeSnapshot(null)
+        WidgetUpdater.refreshAll(applicationContext)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -381,6 +384,7 @@ class TimerService : Service() {
         _state.value = state
         repo.setRuntimeSnapshot(state)
         refreshOngoingNotification(state, System.currentTimeMillis())
+        WidgetUpdater.refreshAll(applicationContext)
     }
 
     private suspend fun closeOpenRecord(status: SessionStatus, endedAt: Long) {
@@ -422,6 +426,7 @@ class TimerService : Service() {
         repo.setPendingCycleCompletionAck(true)
         _state.value = resetState
         cancelAlarm()
+        WidgetUpdater.refreshAll(applicationContext)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

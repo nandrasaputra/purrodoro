@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Kuro Pomodoro</string>
+    <string name="widget_quick_start_label">Quick Start Kuro</string>
+    <string name="widget_quick_start_description">Start a calm focus session straight from your home screen.</string>
+    <string name="widget_today_label">Today With Kuro</string>
+    <string name="widget_today_description">See your focus sessions for today and a soft word from Kuro.</string>
 </resources>
