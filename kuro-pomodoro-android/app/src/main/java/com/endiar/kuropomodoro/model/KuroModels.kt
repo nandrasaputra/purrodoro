@@ -108,7 +108,16 @@ data class TimerSettings(
         }
     }
 
-    fun updateCycleSize(n: Int): TimerSettings = copy(focusSessionsPerCycle = n.coerceIn(1, 10))
+    fun updateCycleSize(n: Int): TimerSettings = copy(focusSessionsPerCycle = n.coerceIn(1, MAX_FOCUS_SESSIONS_PER_CYCLE))
+
+    companion object {
+        /**
+         * Hard cap for [focusSessionsPerCycle]. Aligns the in-app stepper, the
+         * Today widget's dot row, and the persisted snapshot clamp so the
+         * dot count never overflows the widget's fixed 4-dot layout.
+         */
+        const val MAX_FOCUS_SESSIONS_PER_CYCLE: Int = 4
+    }
 }
 
 /**

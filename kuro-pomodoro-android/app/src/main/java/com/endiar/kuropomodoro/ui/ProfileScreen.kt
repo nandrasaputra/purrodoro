@@ -256,7 +256,7 @@ fun ProfileScreen(
         "cycle" -> NumericEditDialog(
             title = "Long break after",
             value = settings.focusSessionsPerCycle,
-            min = 1, max = 10, unit = "sessions",
+            min = 1, max = TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE, unit = "sessions",
             onConfirm = { onUpdateSettings(settings.copy(focusSessionsPerCycle = it)); editingField = null },
             onDismiss = { editingField = null }
         )
