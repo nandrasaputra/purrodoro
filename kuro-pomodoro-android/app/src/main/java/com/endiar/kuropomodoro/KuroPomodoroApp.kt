@@ -232,11 +232,19 @@ fun KuroPomodoroApp(
         scope.launch { repo.setNotificationSoundEnabled(v) }
     }
 
-    val addTask: (String, Int?) -> Unit = { title, categoryId ->
-        val newTask = FocusTask(nextTaskId, title, settings.focusMinutes, categoryId = categoryId)
-        persistTasks(tasks + newTask)
-        persistNextTaskId(nextTaskId + 1)
-    }
+    val addTask: (String, Int?, com.endiar.kuropomodoro.model.TaskPriority, LocalDate?) -> Unit =
+        { title, categoryId, priority, dueDate ->
+            val newTask = FocusTask(
+                id = nextTaskId,
+                title = title,
+                minutes = settings.focusMinutes,
+                categoryId = categoryId,
+                priority = priority,
+                dueDate = dueDate,
+            )
+            persistTasks(tasks + newTask)
+            persistNextTaskId(nextTaskId + 1)
+        }
     val toggleTask: (Int) -> Unit = { taskId ->
         persistTasks(tasks.map { if (it.id == taskId) it.toggleCompleted() else it })
     }
