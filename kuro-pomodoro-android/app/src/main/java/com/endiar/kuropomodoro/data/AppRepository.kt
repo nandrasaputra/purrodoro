@@ -25,6 +25,7 @@ import com.endiar.kuropomodoro.model.TimeBlock
 import com.endiar.kuropomodoro.model.TimerRuntimeState
 import com.endiar.kuropomodoro.model.TimerSession
 import com.endiar.kuropomodoro.model.TimerSessionItem
+import com.endiar.kuropomodoro.model.TaskPriority
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.incrementProgress
@@ -502,13 +503,23 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
 }
 
 // --- Task encoding ---
-// Each task: "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>:<categoryIdOrEmpty>"
+//
+// v1 schema (7 fields):
+//   "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>:<categoryIdOrEmpty>"
+//
+// v2 schema (9 fields, adds priority + dueDate):
+//   "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>:<categoryIdOrEmpty>:<priorityTag>:<dueDateIsoOrEmpty>"
+//
+// Decoder accepts both — missing v2 fields fall back to Normal priority and no due date,
+// so existing installs read cleanly without a migration step.
 internal fun encodeTasks(tasks: List<FocusTask>): String =
     if (tasks.isEmpty()) "[]"
     else tasks.joinToString("\n") { t ->
         val encodedTitle = URLEncoder.encode(t.title, "UTF-8")
         val catField = t.categoryId?.toString() ?: ""
-        "${t.id}:$encodedTitle:${t.minutes}:${t.completed}:${t.plannedSessions}:${t.completedSessions}:$catField"
+        val priorityField = t.priority.storageTag
+        val dueField = t.dueDate?.toString() ?: ""
+        "${t.id}:$encodedTitle:${t.minutes}:${t.completed}:${t.plannedSessions}:${t.completedSessions}:$catField:$priorityField:$dueField"
     }
 
 internal fun decodeTasks(raw: String): List<FocusTask> {
@@ -516,7 +527,7 @@ internal fun decodeTasks(raw: String): List<FocusTask> {
     if (raw == "[]") return emptyList()
     return runCatching {
         raw.split("\n").map { line ->
-            val p = line.split(":", limit = 7)
+            val p = line.split(":", limit = 9)
             FocusTask(
                 id = p[0].toInt(),
                 title = URLDecoder.decode(p[1], "UTF-8"),
@@ -524,7 +535,10 @@ internal fun decodeTasks(raw: String): List<FocusTask> {
                 completed = p[3].toBoolean(),
                 plannedSessions = p[4].toInt(),
                 completedSessions = p[5].toInt(),
-                categoryId = p.getOrNull(6)?.takeIf { it.isNotBlank() }?.toInt()
+                categoryId = p.getOrNull(6)?.takeIf { it.isNotBlank() }?.toInt(),
+                priority = TaskPriority.fromStorageTag(p.getOrNull(7)),
+                dueDate = p.getOrNull(8)?.takeIf { it.isNotBlank() }
+                    ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
             )
         }
     }.getOrElse { emptyList() }

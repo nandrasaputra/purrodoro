@@ -5,10 +5,12 @@ import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.HabitLogState
 import com.endiar.kuropomodoro.model.HabitOccurrence
 import com.endiar.kuropomodoro.model.HabitTargetType
+import com.endiar.kuropomodoro.model.TaskPriority
 import com.endiar.kuropomodoro.model.TimeBlock
 import com.endiar.kuropomodoro.model.withLog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
@@ -68,6 +70,114 @@ class TaskHabitDisplayModelsTest {
         assertTrue(dots[5].isCompleted)
         assertFalse(dots[6].isCompleted)
         assertTrue(dots.all { it.isScheduled })
+    }
+
+    @Test
+    fun nextFocusFavorsOverdueOverTodayAndPriority() {
+        val tasks = listOf(
+            // High priority but not due → behind today's normal task
+            FocusTask(id = 1, title = "High no date", minutes = 25, priority = TaskPriority.High),
+            // Due today, normal priority
+            FocusTask(id = 2, title = "Today normal", minutes = 25, dueDate = today),
+            // Overdue → wins
+            FocusTask(
+                id = 3, title = "Overdue", minutes = 25,
+                dueDate = today.minusDays(1), priority = TaskPriority.Low,
+            ),
+            // Tomorrow normal
+            FocusTask(id = 4, title = "Tomorrow", minutes = 25, dueDate = today.plusDays(1)),
+        )
+
+        val pick = nextFocusTask(tasks, today)
+
+        assertEquals(3, pick?.id)
+    }
+
+    @Test
+    fun nextFocusBreaksTiesByPriorityThenInsertionOrder() {
+        val tasks = listOf(
+            FocusTask(id = 1, title = "Today normal", minutes = 25, dueDate = today),
+            FocusTask(
+                id = 2, title = "Today high", minutes = 25,
+                dueDate = today, priority = TaskPriority.High,
+            ),
+            FocusTask(
+                id = 3, title = "Today high later", minutes = 25,
+                dueDate = today, priority = TaskPriority.High,
+            ),
+        )
+
+        val pick = nextFocusTask(tasks, today)
+
+        assertEquals(2, pick?.id)
+    }
+
+    @Test
+    fun nextFocusIgnoresCompletedTasks() {
+        val tasks = listOf(
+            FocusTask(
+                id = 1, title = "Done overdue", minutes = 25, completed = true,
+                dueDate = today.minusDays(2), priority = TaskPriority.High,
+            ),
+            FocusTask(id = 2, title = "Active", minutes = 25),
+        )
+
+        val pick = nextFocusTask(tasks, today)
+
+        assertEquals(2, pick?.id)
+    }
+
+    @Test
+    fun nextFocusReturnsNullWhenAllDone() {
+        val tasks = listOf(
+            FocusTask(id = 1, title = "Done", minutes = 25, completed = true),
+            FocusTask(id = 2, title = "Done too", minutes = 25, completed = true),
+        )
+
+        assertNull(nextFocusTask(tasks, today))
+    }
+
+    @Test
+    fun taskUrgencyBadgeReflectsDueDateThenHigh() {
+        val today = this.today
+        assertEquals(
+            TaskUrgencyBadge.Overdue,
+            taskUrgencyBadge(
+                FocusTask(1, "x", 25, dueDate = today.minusDays(2)),
+                today,
+            ),
+        )
+        assertEquals(
+            TaskUrgencyBadge.Today,
+            taskUrgencyBadge(FocusTask(1, "x", 25, dueDate = today), today),
+        )
+        assertEquals(
+            TaskUrgencyBadge.Tomorrow,
+            taskUrgencyBadge(FocusTask(1, "x", 25, dueDate = today.plusDays(1)), today),
+        )
+        assertEquals(
+            TaskUrgencyBadge.HighNoDate,
+            taskUrgencyBadge(
+                FocusTask(1, "x", 25, priority = TaskPriority.High),
+                today,
+            ),
+        )
+        assertNull(
+            taskUrgencyBadge(
+                FocusTask(1, "x", 25, priority = TaskPriority.Normal),
+                today,
+            ),
+        )
+    }
+
+    @Test
+    fun heroDueLabelHumanizesRelativeDates() {
+        assertEquals("Due today", heroDueLabel(today, today))
+        assertEquals("Due tomorrow", heroDueLabel(today.plusDays(1), today))
+        assertEquals("Due in 3 days", heroDueLabel(today.plusDays(3), today))
+        assertEquals("Overdue by 1 day", heroDueLabel(today.minusDays(1), today))
+        assertEquals("Overdue by 4 days", heroDueLabel(today.minusDays(4), today))
+        assertNull(heroDueLabel(null, today))
     }
 
     @Test

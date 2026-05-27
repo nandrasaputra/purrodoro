@@ -2,7 +2,9 @@ package com.endiar.kuropomodoro.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.endiar.kuropomodoro.model.AppearanceMode
+import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.GlassReadabilityMode
+import com.endiar.kuropomodoro.model.TaskPriority
 import com.endiar.kuropomodoro.model.TimerSettings
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -134,5 +136,44 @@ class AppRepositoryTest {
         val repo = makeRepo()
         repo.setAppearanceMode(AppearanceMode.Dark)
         assertEquals(AppearanceMode.Dark, repo.appState.first().appearanceMode)
+    }
+
+    @Test
+    fun `task encoding round-trips priority and due date`() {
+        val tasks = listOf(
+            FocusTask(
+                id = 1,
+                title = "Design onboarding",
+                minutes = 25,
+                priority = TaskPriority.High,
+                dueDate = LocalDate.of(2026, 5, 27),
+            ),
+            FocusTask(
+                id = 2,
+                title = "Tidy desk",
+                minutes = 25,
+                priority = TaskPriority.Low,
+                dueDate = null,
+            ),
+            FocusTask(id = 3, title = "Default everything", minutes = 25),
+        )
+
+        val decoded = decodeTasks(encodeTasks(tasks))
+
+        assertEquals(tasks, decoded)
+    }
+
+    @Test
+    fun `task decoder accepts legacy v1 rows without priority or due date`() {
+        // v1 format has 7 colon-separated fields (no priority, no due date).
+        val v1 = "7:Refine%20task%20screen:25:false:1:0:"
+        val decoded = decodeTasks(v1)
+
+        assertEquals(1, decoded.size)
+        val task = decoded.first()
+        assertEquals(7, task.id)
+        assertEquals("Refine task screen", task.title)
+        assertEquals(TaskPriority.Normal, task.priority)
+        assertEquals(null, task.dueDate)
     }
 }

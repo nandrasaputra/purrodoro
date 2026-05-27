@@ -40,6 +40,28 @@ data class TimerSession(
     val currentItem: TimerSessionItem? get() = items.getOrNull(currentIndex)
 }
 
+enum class TaskPriority(val label: String) {
+    Low("Low"),
+    Normal("Normal"),
+    High("High");
+
+    /** Single-character tag used in persistence to keep the storage format compact. */
+    val storageTag: String
+        get() = when (this) {
+            Low -> "L"
+            Normal -> "N"
+            High -> "H"
+        }
+
+    companion object {
+        fun fromStorageTag(tag: String?): TaskPriority = when (tag) {
+            "L" -> Low
+            "H" -> High
+            else -> Normal
+        }
+    }
+}
+
 data class FocusTask(
     val id: Int,
     val title: String,
@@ -47,7 +69,9 @@ data class FocusTask(
     val completed: Boolean = false,
     val plannedSessions: Int = 1,
     val completedSessions: Int = 0,
-    val categoryId: Int? = null
+    val categoryId: Int? = null,
+    val priority: TaskPriority = TaskPriority.Normal,
+    val dueDate: LocalDate? = null
 ) {
     fun toggleCompleted(): FocusTask = copy(completed = !completed)
 }
