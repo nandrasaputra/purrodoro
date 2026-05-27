@@ -21,9 +21,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import com.composables.icons.lucide.ArrowLeft
+import com.composables.icons.lucide.Check
+import com.composables.icons.lucide.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -173,7 +173,7 @@ fun KuroBottomSheetSubpageHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            imageVector = Lucide.ArrowLeft,
             contentDescription = "Back",
             tint = tokens.textPrimary,
             modifier = Modifier
@@ -262,7 +262,7 @@ fun KuroSelectionList(
                 )
                 if (selected) {
                     Icon(
-                        imageVector = Icons.Default.Check,
+                        imageVector = Lucide.Check,
                         contentDescription = null,
                         tint = tokens.accent,
                         modifier = Modifier.size(18.dp),

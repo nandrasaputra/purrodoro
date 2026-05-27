@@ -23,13 +23,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Flag
+import com.composables.icons.lucide.CalendarDays
+import com.composables.icons.lucide.ChevronRight
+import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Flag
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Play
+import com.composables.icons.lucide.Plus
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -962,7 +962,7 @@ private fun AddTaskPrimaryButton(enabled: Boolean, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.Center,
     ) {
         Icon(
-            imageVector = Icons.Filled.Add,
+            imageVector = Lucide.Plus,
             contentDescription = null,
             tint = contentColor,
             modifier = Modifier.size(20.dp),
@@ -1558,7 +1558,7 @@ private fun DetailListRow(
             trailing()
         } else {
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                imageVector = Lucide.ChevronRight,
                 contentDescription = null,
                 tint = tokens.textMuted,
                 modifier = Modifier.size(20.dp),
@@ -1582,7 +1582,7 @@ private fun PriorityListRow(
     val valueColor = if (selected == TaskPriority.High) tokens.accent else tokens.textSecondary
     Box {
         DetailListRow(
-            icon = Icons.Outlined.Flag,
+            icon = Lucide.Flag,
             iconTint = if (selected == TaskPriority.High) tokens.accent else tokens.textSecondary,
             label = "Priority",
             valueText = selected.label,
@@ -1633,7 +1633,7 @@ private fun DueDateListRow(
         else -> tokens.accent
     }
     DetailListRow(
-        icon = Icons.Outlined.CalendarMonth,
+        icon = Lucide.CalendarDays,
         iconTint = if (dueDate != null) tokens.accent else tokens.textSecondary,
         label = "Due date",
         valueText = label,
@@ -1756,7 +1756,7 @@ private fun FocusWithKuroButton(
         horizontalArrangement = Arrangement.Center,
     ) {
         Icon(
-            imageVector = Icons.Filled.PlayArrow,
+            imageVector = Lucide.Play,
             contentDescription = null,
             tint = contentColor,
             modifier = Modifier.size(20.dp),
@@ -1902,7 +1902,7 @@ private fun UrgencyChip(badge: TaskUrgencyBadge) {
     ) {
         if (showFlag) {
             Icon(
-                imageVector = Icons.Outlined.Flag,
+                imageVector = Lucide.Flag,
                 contentDescription = null,
                 tint = textColor,
                 modifier = Modifier.size(12.dp),
@@ -2003,7 +2003,7 @@ private fun NextFocusHeroCard(
                         modifier = Modifier.weight(1f),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.AccessTime,
+                            imageVector = Lucide.Clock,
                             contentDescription = null,
                             tint = tokens.textSecondary,
                             modifier = Modifier.size(14.dp),
@@ -2079,7 +2079,7 @@ private fun HeroMetadataRow(
                 horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
+                    imageVector = Lucide.CalendarDays,
                     contentDescription = null,
                     tint = dueText,
                     modifier = Modifier.size(12.dp),
@@ -2094,7 +2094,7 @@ private fun HeroMetadataRow(
                 horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Flag,
+                    imageVector = Lucide.Flag,
                     contentDescription = null,
                     tint = tokens.accent,
                     modifier = Modifier.size(12.dp),
@@ -2145,7 +2145,7 @@ private fun StartPill(
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
     ) {
         Icon(
-            imageVector = Icons.Filled.PlayArrow,
+            imageVector = Lucide.Play,
             contentDescription = null,
             tint = contentColor,
             modifier = Modifier.size(18.dp),

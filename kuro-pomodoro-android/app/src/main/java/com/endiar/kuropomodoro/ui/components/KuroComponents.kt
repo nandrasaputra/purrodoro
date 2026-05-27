@@ -53,13 +53,12 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
+import com.composables.icons.lucide.Calendar
+import com.composables.icons.lucide.CircleCheck
+import com.composables.icons.lucide.House
+import com.composables.icons.lucide.List
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Play
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -347,25 +346,25 @@ fun DashboardDock(
         verticalAlignment = Alignment.CenterVertically
     ) {
         DockTabItem(
-            icon = if (isRunning) Icons.Default.PlayArrow else Icons.Default.Home,
+            icon = if (isRunning) Lucide.Play else Lucide.House,
             label = "Home",
             active = selectedTab == AppTab.Timer,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Timer) }
         DockTabItem(
-            icon = Icons.Default.List,
+            icon = Lucide.List,
             label = "TASKS",
             active = selectedTab == AppTab.Todo,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Todo) }
         DockTabItem(
-            icon = Icons.Default.CheckCircle,
+            icon = Lucide.CircleCheck,
             label = "Habits",
             active = selectedTab == AppTab.Habits,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Habits) }
         DockTabItem(
-            icon = Icons.Default.DateRange,
+            icon = Lucide.Calendar,
             label = "Journey",
             active = selectedTab == AppTab.Calendar,
             modifier = Modifier.weight(1f)

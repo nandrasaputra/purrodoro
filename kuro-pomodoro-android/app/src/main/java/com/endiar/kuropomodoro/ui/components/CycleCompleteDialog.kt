@@ -25,11 +25,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CropSquare
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Spa
-import androidx.compose.material.icons.outlined.TaskAlt
+import com.composables.icons.lucide.CircleCheck
+import com.composables.icons.lucide.Leaf
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.NotebookPen
+import com.composables.icons.lucide.Square
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -455,10 +455,10 @@ private fun IntentLeading(focusType: FocusType, emojiOverride: String?) {
             Text(text = emojiOverride, fontSize = 18.sp)
         } else {
             val icon = when (focusType) {
-                FocusType.Task -> Icons.Outlined.TaskAlt
-                FocusType.Habit -> Icons.Outlined.Spa
-                FocusType.SimpleNote -> Icons.Outlined.EditNote
-                FocusType.Empty -> Icons.Outlined.CropSquare
+                FocusType.Task -> Lucide.CircleCheck
+                FocusType.Habit -> Lucide.Leaf
+                FocusType.SimpleNote -> Lucide.NotebookPen
+                FocusType.Empty -> Lucide.Square
             }
             Icon(
                 imageVector = icon,
