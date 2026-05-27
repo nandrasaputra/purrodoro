@@ -50,10 +50,13 @@ object TimerStateMachine {
                 openRecord = openRecord?.copy(
                     completedFocusCount = openRecord.completedFocusCount + 1
                 )
-                activeTask?.let { repo.incrementTaskCompletedSessions(it.id) }
+                // Real tasks no longer carry a per-task pomodoro target — completion
+                // is binary and triggered by cycle success below, not by segment finish.
+                // Habits keep their own progress model: the synthetic FocusTask (negative id)
+                // is the carrier, and we still bump its display counter so any in-flight UI
+                // that reads `activeTask.completedSessions` for habit cycles stays in sync.
                 snapshot.activeHabitId?.let { habitId ->
                     repo.incrementHabitProgress(habitId, date)
-                    // Keep UI counter in sync for display during the cycle.
                     activeTask = activeTask?.copy(completedSessions = (activeTask?.completedSessions ?: 0) + 1)
                 }
             }
@@ -78,6 +81,14 @@ object TimerStateMachine {
                         status = SessionStatus.Completed
                     )
                 )
+            }
+            // Auto-complete the attached real task on a successful cycle finish.
+            // Habits use the synthetic FocusTask wrapper (negative id) and are
+            // credited via incrementHabitProgress above — they don't get
+            // setTaskCompleted, since there's no real `FocusTask` row to mark.
+            activeTask?.takeIf { it.id > 0 && !it.completed }?.let { task ->
+                repo.setTaskCompleted(task.id, true)
+                activeTask = task.copy(completed = true)
             }
             val resetState = snapshot.copy(
                 session = snapshot.session.copy(

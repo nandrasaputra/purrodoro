@@ -53,11 +53,19 @@ object KuroSpacing {
     // Tasks screen
     val taskLeadingTile = 46.dp
     val taskCompletedLeadingTile = 40.dp
-    val taskCompletedCheck = 32.dp
+    val taskCompletedCheck = 22.dp
     val taskCycleDot = 14.dp
     val taskChipDeleteBadge = 18.dp
     val taskMenuTapPaddingH = 6.dp
     val taskMenuTapPaddingV = 2.dp
+    /** Outer hit-target around the leading checkbox on a task row. */
+    val taskCheckbox = 22.dp
+    /** Outer container around the category color dot (carries the live ring). */
+    val taskCategoryDotRing = 18.dp
+    /** Inner color dot tied to the category. */
+    val taskCategoryDot = 8.dp
+    /** Floating "+ add task" button on the Tasks tab. */
+    val taskFab = 52.dp
     val hairline = 1.5.dp
 
     // Habits screen

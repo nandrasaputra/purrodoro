@@ -240,10 +240,21 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         if (selected == id) prefs.remove(KEY_SELECTED_CATEGORY_ID)
     }
 
-    suspend fun incrementTaskCompletedSessions(taskId: Int) = dataStore.edit { prefs ->
+    /**
+     * Sets the completed flag on a single task by id.
+     *
+     * Used by the cycle-end auto-complete path in [TimerStateMachine] (and the
+     * skip-final mirror in TimerService.doSkip) when a real task ([FocusTask.id] > 0)
+     * has been attached to a Pomodoro cycle that finished successfully.
+     *
+     * Replaces the now-removed `incrementTaskCompletedSessions`: tasks no longer
+     * carry a per-task pomodoro target, so per-segment session counting against
+     * the task is gone — completion is binary and triggered by cycle success.
+     */
+    suspend fun setTaskCompleted(taskId: Int, completed: Boolean) = dataStore.edit { prefs ->
         val existing = decodeTasks(prefs[KEY_TASKS] ?: "")
         prefs[KEY_TASKS] = encodeTasks(
-            existing.map { if (it.id == taskId) it.copy(completedSessions = it.completedSessions + 1) else it }
+            existing.map { if (it.id == taskId) it.copy(completed = completed) else it }
         )
     }
 

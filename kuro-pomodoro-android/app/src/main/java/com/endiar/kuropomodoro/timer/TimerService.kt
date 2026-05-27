@@ -190,8 +190,13 @@ class TimerService : Service() {
         if (nextIndex >= current.session.items.size) {
             // User skipped the final break — semantically the cycle is complete.
             // Mirror the natural end-of-cycle path (see startTicking) so behavior
-            // is identical regardless of how the cycle ended.
+            // is identical regardless of how the cycle ended, including the
+            // auto-complete of an attached real task. Habits keep their own
+            // progress model and are not auto-completed here.
             closeOpenRecord(SessionStatus.Completed, now)
+            current.activeTask?.takeIf { it.id > 0 && !it.completed }?.let { task ->
+                repo.setTaskCompleted(task.id, true)
+            }
             repo.setRuntimeSnapshot(null)
             finishCycleAndStop(buildResetState(current))
             return

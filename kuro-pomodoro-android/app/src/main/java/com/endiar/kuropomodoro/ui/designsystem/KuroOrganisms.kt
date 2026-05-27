@@ -180,50 +180,6 @@ fun KuroJourneyMetricCard(
     }
 }
 
-/** Tasks overview metrics card. */
-@Composable
-fun KuroTasksOverviewCard(
-    total: Int,
-    inProgress: Int,
-    completed: Int,
-    estimatedFocusTimeLabel: String,
-    modifier: Modifier = Modifier,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    KuroCard(modifier = modifier) {
-        Text(text = "Overview", color = tokens.textPrimary, style = KuroType.headingCard)
-        Spacer(Modifier.height(KuroSpacing.md))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-        ) {
-            KuroTasksOverviewMetric("📋", total.toString(), "Total", Modifier.weight(1f))
-            KuroTasksOverviewMetric("🕐", inProgress.toString(), "In Progress", Modifier.weight(1f))
-            KuroTasksOverviewMetric("✅", completed.toString(), "Completed", Modifier.weight(1f))
-            KuroTasksOverviewMetric("🕐", estimatedFocusTimeLabel, "Est. Focus Time", Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun KuroTasksOverviewMetric(
-    icon: String,
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
-    ) {
-        Text(text = icon, style = KuroType.metricValue)
-        Text(text = value, color = tokens.textPrimary, style = KuroType.metricValue)
-        Text(text = label, color = tokens.textSecondary, style = KuroType.labelMeta, textAlign = TextAlign.Center)
-    }
-}
-
 /** Tasks empty-state card. */
 @Composable
 fun KuroTasksEmptyState(
@@ -239,105 +195,86 @@ fun KuroTasksEmptyState(
     }
 }
 
-/** Active in-progress task card. */
+/**
+ * Active in-progress task row.
+ *
+ * Decoupled from Pomodoro after the redesign: no per-task pomodoro target, no
+ * dot row, no `X / Y` counter. The row reads as a calm todo: leading checkbox,
+ * a category color dot for scanning, title, optional category subtitle.
+ *
+ * [subtitle] is null when the surrounding screen has filtered to a single
+ * category (printing the category name on every row would be noise).
+ *
+ * [isLive] paints a 1.5dp accent ring around the color dot — the quiet "this
+ * task is currently attached to a running Pomodoro" cue. No timer text, no
+ * pill; just enough for users to find the live task at a glance.
+ */
 @Composable
 fun KuroTaskCard(
     task: FocusTask,
-    subtitle: String,
+    subtitle: String?,
     onTap: () -> Unit,
+    onToggleComplete: () -> Unit,
     modifier: Modifier = Modifier,
+    isLive: Boolean = false,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
             .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
             .clickable(onClick = onTap)
-            .padding(KuroSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md - KuroSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md - KuroSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.taskCheckbox)
+                .clip(CircleShape)
+                .background(tokens.cardFill)
+                .border(KuroSpacing.hairline + KuroSpacing.hairline / 5, tokens.accent, CircleShape)
+                .clickable(role = Role.Checkbox) { onToggleComplete() }
+                .semantics { role = Role.Checkbox },
+        )
+        CategoryColorDot(
+            color = categoryColorFor(task.categoryId, fallback = tokens.textMuted),
+            isLive = isLive,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(KuroSpacing.taskLeadingTile)
-                        .clip(RoundedCornerShape(KuroSpacing.radiusSm))
-                        .background(tokens.activeCardFill)
-                        .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusSm)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = task.title.firstOrNull()?.uppercaseChar()?.toString() ?: "T",
-                        color = tokens.accent,
-                        style = KuroType.metricValue,
-                    )
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
-                    Text(text = task.title, color = tokens.textPrimary, style = KuroType.headingCard)
-                    Text(text = subtitle, color = tokens.textSecondary, style = KuroType.bodySecondary)
-                }
-            }
             Text(
-                text = "⋮",
-                color = tokens.textFaint,
-                style = KuroType.metricValue,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable(onClick = onTap)
-                    .padding(
-                        horizontal = KuroSpacing.taskMenuTapPaddingH,
-                        vertical = KuroSpacing.taskMenuTapPaddingV,
-                    ),
+                text = task.title,
+                color = tokens.textPrimary,
+                style = KuroType.bodyPrimary,
             )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                repeat(task.plannedSessions.coerceAtLeast(1)) { index ->
-                    val filled = index < task.completedSessions
-                    Box(
-                        modifier = Modifier
-                            .size(KuroSpacing.taskCycleDot)
-                            .clip(CircleShape)
-                            .background(if (filled) tokens.accent else tokens.cardFill)
-                            .border(
-                                KuroSpacing.hairline,
-                                if (filled) tokens.accent else tokens.cardBorder,
-                                CircleShape,
-                            ),
-                    )
-                }
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    color = tokens.textSecondary,
+                    style = KuroType.labelMeta,
+                )
             }
-            Text(
-                text = "${task.completedSessions.coerceAtMost(task.plannedSessions)} / ${task.plannedSessions.coerceAtLeast(1)}",
-                color = tokens.accent,
-                style = KuroType.labelStrong,
-            )
         }
     }
 }
 
-/** Completed task row. */
+/**
+ * Completed task row.
+ *
+ * Mint check is the dominant glyph (this row IS a "done" stamp). The category
+ * color dot still renders, but at reduced opacity so it doesn't compete with
+ * the strikethrough title. Title is single-line strikethrough; subtitle hides
+ * when the screen is filtered to a single category.
+ */
 @Composable
 fun KuroCompletedTaskRow(
     task: FocusTask,
-    subtitle: String,
+    subtitle: String?,
     onTap: () -> Unit,
     onToggleComplete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -350,36 +287,10 @@ fun KuroCompletedTaskRow(
             .background(tokens.cardFill)
             .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
             .clickable(onClick = onTap)
-            .padding(KuroSpacing.md),
-        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md - KuroSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md - KuroSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(KuroSpacing.taskCompletedLeadingTile)
-                .clip(RoundedCornerShape(KuroSpacing.radiusSm))
-                .background(tokens.activeCardFill)
-                .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusSm)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = task.title.firstOrNull()?.uppercaseChar()?.toString() ?: "T",
-                color = tokens.textSecondary,
-                style = KuroType.headingCard,
-            )
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
-        ) {
-            Text(
-                text = task.title,
-                color = tokens.textSecondary,
-                style = KuroType.bodyPrimary,
-                textDecoration = TextDecoration.LineThrough,
-            )
-            Text(text = subtitle, color = tokens.textFaint, style = KuroType.labelMeta)
-        }
         Box(
             modifier = Modifier
                 .size(KuroSpacing.taskCompletedCheck)
@@ -391,6 +302,62 @@ fun KuroCompletedTaskRow(
         ) {
             Text(text = "✓", color = tokens.accentOn, style = KuroType.labelStrong)
         }
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.taskCategoryDot)
+                .clip(CircleShape)
+                .background(
+                    categoryColorFor(task.categoryId, fallback = tokens.textMuted)
+                        .copy(alpha = 0.55f),
+                ),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
+        ) {
+            Text(
+                text = task.title,
+                color = tokens.textSecondary,
+                style = KuroType.bodyPrimary,
+                textDecoration = TextDecoration.LineThrough,
+            )
+            if (subtitle != null) {
+                Text(text = subtitle, color = tokens.textFaint, style = KuroType.labelMeta)
+            }
+        }
+    }
+}
+
+/**
+ * Small color dot used to denote a task's category on the list rows.
+ *
+ * When [isLive] is true, an accent ring is drawn around the dot — the running-
+ * task indicator. Scoped to this file so the dot's geometry stays consistent
+ * across active and completed cards, but [categoryColorFor] is exported for
+ * other callsites that want to surface category colors elsewhere (e.g.
+ * inline-add chips, detail sheet preview).
+ */
+@Composable
+private fun CategoryColorDot(color: Color, isLive: Boolean) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(
+        modifier = Modifier.size(KuroSpacing.taskCategoryDotRing),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isLive) {
+            Box(
+                modifier = Modifier
+                    .size(KuroSpacing.taskCategoryDotRing)
+                    .clip(CircleShape)
+                    .border(KuroSpacing.hairline, tokens.accent, CircleShape),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.taskCategoryDot)
+                .clip(CircleShape)
+                .background(color),
+        )
     }
 }
 
