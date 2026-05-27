@@ -23,11 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material.icons.outlined.TrackChanges
+import com.composables.icons.lucide.Calendar
+import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Target
+import com.composables.icons.lucide.Timer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -139,7 +139,7 @@ fun CalendarScreen(
                     title = selectedPeriod.label,
                     value = journeyMinutesLabel(summary.weekFocusMinutes),
                     note = weekNote,
-                    icon = Icons.Outlined.Schedule,
+                    icon = Lucide.Clock,
                     iconTint = tokens.accent,
                     iconBackground = tokens.accentSoft,
                     noteColor = weekNoteColor,
@@ -149,7 +149,7 @@ fun CalendarScreen(
                     title = "Focus days",
                     value = "${summary.focusDays} / 7",
                     note = "You focused on ${summary.focusDays} days",
-                    icon = Icons.Outlined.DateRange,
+                    icon = Lucide.Calendar,
                     iconTint = JourneyGreen,
                     iconBackground = JourneyGreen.copy(alpha = 0.14f),
                     modifier = Modifier.weight(1f),
@@ -160,7 +160,7 @@ fun CalendarScreen(
                     title = "Daily average",
                     value = journeyMinutesLabel(summary.dailyAverageMinutes),
                     note = "Goal 1h 30m",
-                    icon = Icons.Outlined.Timer,
+                    icon = Lucide.Timer,
                     iconTint = JourneyGreen,
                     iconBackground = JourneyGreen.copy(alpha = 0.14f),
                     modifier = Modifier.weight(1f),
@@ -169,7 +169,7 @@ fun CalendarScreen(
                     title = "Weekly goal",
                     value = "${summary.weeklyGoalPercent}%",
                     note = "${journeyMinutesLabel(summary.weekFocusMinutes)} / ${journeyMinutesLabel(summary.weeklyGoalMinutes)}",
-                    icon = Icons.Outlined.TrackChanges,
+                    icon = Lucide.Target,
                     iconTint = tokens.accent,
                     iconBackground = tokens.accentSoft,
                     trailing = { GoalRing(summary.weeklyGoalPercent / 100f) },

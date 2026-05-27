@@ -24,21 +24,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.CropSquare
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Spa
-import androidx.compose.material.icons.outlined.StopCircle
-import androidx.compose.material.icons.outlined.TaskAlt
+import com.composables.icons.lucide.ChevronRight
+import com.composables.icons.lucide.CircleCheck
+import com.composables.icons.lucide.CircleStop
+import com.composables.icons.lucide.Leaf
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.NotebookPen
+import com.composables.icons.lucide.Pause
+import com.composables.icons.lucide.Play
+import com.composables.icons.lucide.Sparkles
+import com.composables.icons.lucide.Square
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -436,7 +436,7 @@ private fun ActiveTimerCard(
                     if (isFocus) showStopConfirmDialog = true else onStop()
                 }) {
                     Icon(
-                        imageVector = Icons.Outlined.StopCircle,
+                        imageVector = Lucide.CircleStop,
                         contentDescription = null,
                         tint = tokens.textSecondary,
                         modifier = Modifier.size(15.dp)
@@ -525,7 +525,7 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress, onClick: 
                     )
                 }
                 Icon(
-                    imageVector = Icons.Default.KeyboardArrowRight,
+                    imageVector = Lucide.ChevronRight,
                     contentDescription = null,
                     tint = tokens.textSecondary,
                     modifier = Modifier.size(20.dp)
@@ -662,7 +662,7 @@ private fun AutoCompleteTip(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Outlined.AutoAwesome,
+                imageVector = Lucide.Sparkles,
                 contentDescription = null,
                 tint = tokens.accentOn,
                 modifier = Modifier.size(14.dp),
@@ -717,7 +717,7 @@ private fun HomePrimaryButton(
     ) {
         if (icon) {
             Icon(
-                imageVector = Icons.Default.PlayArrow,
+                imageVector = Lucide.Play,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(22.dp)
@@ -745,7 +745,7 @@ private fun OpenFocusModeRow(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Outlined.Spa,
+            imageVector = Lucide.Leaf,
             contentDescription = null,
             tint = tokens.accent,
             modifier = Modifier.size(18.dp)
@@ -758,7 +758,7 @@ private fun OpenFocusModeRow(onClick: () -> Unit) {
             modifier = Modifier.weight(1f)
         )
         Icon(
-            imageVector = Icons.Default.KeyboardArrowRight,
+            imageVector = Lucide.ChevronRight,
             contentDescription = null,
             tint = tokens.textSecondary,
             modifier = Modifier.size(20.dp)
@@ -791,7 +791,7 @@ private fun ActiveFocusButton(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                imageVector = if (isRunning) Lucide.Pause else Lucide.Play,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(22.dp)
@@ -827,10 +827,10 @@ private fun FocusTypeIcon(
             )
         } else {
             val icon = when (focusType) {
-                FocusType.Task -> Icons.Outlined.TaskAlt
-                FocusType.Habit -> Icons.Outlined.Spa
-                FocusType.SimpleNote -> Icons.Outlined.EditNote
-                FocusType.Empty -> Icons.Outlined.CropSquare
+                FocusType.Task -> Lucide.CircleCheck
+                FocusType.Habit -> Lucide.Leaf
+                FocusType.SimpleNote -> Lucide.NotebookPen
+                FocusType.Empty -> Lucide.Square
             }
             Icon(
                 imageVector = icon,

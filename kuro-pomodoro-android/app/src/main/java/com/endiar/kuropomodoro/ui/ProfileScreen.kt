@@ -13,16 +13,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Settings
+import com.composables.icons.lucide.ArrowLeft
+import com.composables.icons.lucide.Bell
+import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Coffee
+import com.composables.icons.lucide.Info
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Play
+import com.composables.icons.lucide.RefreshCw
+import com.composables.icons.lucide.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -76,7 +75,7 @@ fun ProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Lucide.ArrowLeft,
                             contentDescription = "Back",
                             tint = tokens.textPrimary
                         )
@@ -115,35 +114,35 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
                 TappableRow(
-                    icon = Icons.Outlined.DateRange,
+                    icon = Lucide.Clock,
                     label = "Focus time",
                     value = "${settings.focusMinutes} min",
                     onClick = { editingField = "focus" },
                 )
                 KuroDivider()
                 TappableRow(
-                    icon = Icons.Outlined.FavoriteBorder,
+                    icon = Lucide.Coffee,
                     label = "Short break",
                     value = "${settings.shortBreakMinutes} min",
                     onClick = { editingField = "short" },
                 )
                 KuroDivider()
                 TappableRow(
-                    icon = Icons.Outlined.Favorite,
+                    icon = Lucide.Coffee,
                     label = "Long break",
                     value = "${settings.longBreakMinutes} min",
                     onClick = { editingField = "long" },
                 )
                 KuroDivider()
                 TappableRow(
-                    icon = Icons.Outlined.Refresh,
+                    icon = Lucide.RefreshCw,
                     label = "Long break after",
                     value = "${settings.focusSessionsPerCycle} sessions",
                     onClick = { editingField = "cycle" },
                 )
                 KuroDivider()
                 ToggleRow(
-                    icon = Icons.Outlined.PlayArrow,
+                    icon = Lucide.Play,
                     label = "Auto-start next session",
                     subtitle = "Automatically continue to the next session",
                     checked = settings.autoStartNextSession,
@@ -157,7 +156,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
                 ToggleRow(
-                    icon = Icons.Outlined.Notifications,
+                    icon = Lucide.Bell,
                     label = "Enable notification sound",
                     subtitle = "Play sound when session ends",
                     checked = notificationSoundEnabled,
@@ -178,7 +177,7 @@ fun ProfileScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Outlined.Settings,
+                            imageVector = Lucide.Settings,
                             contentDescription = null,
                             tint = tokens.accent,
                             modifier = Modifier.size(KuroSpacing.lg),
@@ -216,7 +215,7 @@ fun ProfileScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Outlined.Info,
+                            imageVector = Lucide.Info,
                             contentDescription = null,
                             tint = tokens.accent,
                             modifier = Modifier.size(KuroSpacing.lg),

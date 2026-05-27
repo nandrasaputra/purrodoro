@@ -19,16 +19,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.CropSquare
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.LocalCafe
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Spa
-import androidx.compose.material.icons.outlined.StackedBarChart
-import androidx.compose.material.icons.outlined.TaskAlt
+import com.composables.icons.lucide.ChartColumn
+import com.composables.icons.lucide.Check
+import com.composables.icons.lucide.CircleCheck
+import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Coffee
+import com.composables.icons.lucide.Leaf
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.NotebookPen
+import com.composables.icons.lucide.Play
+import com.composables.icons.lucide.Square
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -490,7 +490,7 @@ private fun StartFocusConfigEditorContent(
 
     KuroCard(modifier = Modifier.fillMaxWidth()) {
         SessionConfigStepperRow(
-            icon = Icons.Outlined.AccessTime,
+            icon = Lucide.Clock,
             label = "Focus",
             value = settings.focusMinutes,
             unit = "min",
@@ -509,7 +509,7 @@ private fun StartFocusConfigEditorContent(
         )
         SessionConfigDivider()
         SessionConfigStepperRow(
-            icon = Icons.Outlined.LocalCafe,
+            icon = Lucide.Coffee,
             label = "Short break",
             value = settings.shortBreakMinutes,
             unit = "min",
@@ -528,7 +528,7 @@ private fun StartFocusConfigEditorContent(
         )
         SessionConfigDivider()
         SessionConfigStepperRow(
-            icon = Icons.Outlined.LocalCafe,
+            icon = Lucide.Coffee,
             label = "Long break",
             value = settings.longBreakMinutes,
             unit = "min",
@@ -547,7 +547,7 @@ private fun StartFocusConfigEditorContent(
         )
         SessionConfigDivider()
         SessionConfigStepperRow(
-            icon = Icons.Outlined.StackedBarChart,
+            icon = Lucide.ChartColumn,
             label = "Sessions",
             value = settings.focusSessionsPerCycle,
             unit = "",
@@ -706,7 +706,7 @@ private fun IntentChip(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = Lucide.Check,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(10.dp),
@@ -755,14 +755,14 @@ private fun DefaultConfigSection(
         ) {
             ConfigGridRow {
                 ConfigCell(
-                    icon = Icons.Outlined.AccessTime,
+                    icon = Lucide.Clock,
                     label = "Focus",
                     value = "${settings.focusMinutes} min",
                     modifier = Modifier.weight(1f),
                 )
                 ConfigGridDividerVertical()
                 ConfigCell(
-                    icon = Icons.Outlined.LocalCafe,
+                    icon = Lucide.Coffee,
                     label = "Short break",
                     value = "${settings.shortBreakMinutes} min",
                     modifier = Modifier.weight(1f),
@@ -771,14 +771,14 @@ private fun DefaultConfigSection(
             ConfigGridDividerHorizontal()
             ConfigGridRow {
                 ConfigCell(
-                    icon = Icons.Outlined.LocalCafe,
+                    icon = Lucide.Coffee,
                     label = "Long break",
                     value = "${settings.longBreakMinutes} min",
                     modifier = Modifier.weight(1f),
                 )
                 ConfigGridDividerVertical()
                 ConfigCell(
-                    icon = Icons.Outlined.StackedBarChart,
+                    icon = Lucide.ChartColumn,
                     label = "Sessions",
                     value = settings.focusSessionsPerCycle.toString(),
                     modifier = Modifier.weight(1f),
@@ -875,7 +875,7 @@ private fun StartFocusConfirmButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Outlined.PlayArrow,
+            imageVector = Lucide.Play,
             contentDescription = null,
             tint = Color.White,
             modifier = Modifier.size(22.dp),
@@ -890,8 +890,8 @@ private fun StartFocusConfirmButton(
 }
 
 private fun intentIcon(intent: FocusIntent): ImageVector = when (intent) {
-    FocusIntent.Habit -> Icons.Outlined.Spa
-    FocusIntent.Task -> Icons.Outlined.TaskAlt
-    FocusIntent.SimpleNote -> Icons.Outlined.EditNote
-    FocusIntent.Empty -> Icons.Outlined.CropSquare
+    FocusIntent.Habit -> Lucide.Leaf
+    FocusIntent.Task -> Lucide.CircleCheck
+    FocusIntent.SimpleNote -> Lucide.NotebookPen
+    FocusIntent.Empty -> Lucide.Square
 }
