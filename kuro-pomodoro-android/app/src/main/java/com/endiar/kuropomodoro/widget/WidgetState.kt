@@ -38,6 +38,8 @@ data class QuickStartWidgetState(
 /** What the Today With Kuro widget renders. */
 data class TodayWidgetState(
     val focusCount: Int,
+    val targetDots: Int,
+    val filledDots: Int,
     val encouragement: String,
 )
 
@@ -108,10 +110,9 @@ object WidgetState {
     /**
      * Derives the Today widget state.
      *
-     * The goal threshold for the "Goal reached" copy still tracks the user's
-     * [TimerSettings.focusSessionsPerCycle] (1..4) so the encouragement keeps
-     * meaning for users with shorter cycles, even though the dot row was
-     * removed from the visual.
+     * Dot row size is the user's [TimerSettings.focusSessionsPerCycle] (1..4).
+     * Filled dots are `min(focusCount, target)` so going past the goal does
+     * not visually wrap.
      */
     fun today(
         focusCountToday: Int,
@@ -119,6 +120,7 @@ object WidgetState {
     ): TodayWidgetState {
         val target = settings.focusSessionsPerCycle.coerceIn(1, TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE)
         val safeCount = focusCountToday.coerceAtLeast(0)
+        val filled = safeCount.coerceAtMost(target)
         val encouragement = when {
             safeCount <= 0 -> "A soft start is enough"
             safeCount == 1 -> "Kuro saw your first focus"
@@ -127,6 +129,8 @@ object WidgetState {
         }
         return TodayWidgetState(
             focusCount = safeCount,
+            targetDots = target,
+            filledDots = filled,
             encouragement = encouragement,
         )
     }

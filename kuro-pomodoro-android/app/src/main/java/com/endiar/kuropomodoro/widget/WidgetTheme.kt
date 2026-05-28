@@ -1,29 +1,32 @@
 package com.endiar.kuropomodoro.widget
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
+import androidx.glance.color.ColorProvider
 import androidx.glance.text.FontWeight
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
-import com.endiar.kuropomodoro.R
 
 /**
  * Centralised Glance color + text styles for the Kuro widgets.
  *
- * Color providers point at `@color/widget_*` resources, which have a
- * `values-night/` override, so light and dark schemes are handled by the
- * Android resource framework without per-composable branching.
+ * Glance's resource-Int `ColorProvider` is library-internal and not safe to
+ * use from app code (it can resolve in the wrong process when the launcher
+ * hosts the widget — see Glance's color guidance). We instead pin literal
+ * day/night values that mirror the `@color/widget_*` resources, keeping the
+ * widget look identical across light and dark while staying on the public
+ * Glance API.
  */
 object WidgetTheme {
 
-    val cardFill = ColorProvider(R.color.widget_card_fill)
-    val cardBorder = ColorProvider(R.color.widget_card_border)
-    val pageBg = ColorProvider(R.color.widget_page_bg)
-    val textPrimary = ColorProvider(R.color.widget_text_primary)
-    val textSecondary = ColorProvider(R.color.widget_text_secondary)
-    val textMuted = ColorProvider(R.color.widget_text_muted)
-    val accent = ColorProvider(R.color.widget_accent)
-    val buttonFill = ColorProvider(R.color.widget_button_fill)
-    val buttonText = ColorProvider(R.color.widget_button_text)
+    val cardFill = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF1A1428))
+    val cardBorder = ColorProvider(day = Color(0xFFEBDFCC), night = Color(0xFF2B2440))
+    val pageBg = ColorProvider(day = Color(0xFFFAF5F2), night = Color(0xFF0A0816))
+    val textPrimary = ColorProvider(day = Color(0xFF5F4638), night = Color(0xFFFFFFFF))
+    val textSecondary = ColorProvider(day = Color(0xFF8B6B5A), night = Color(0xFFB8B0C8))
+    val textMuted = ColorProvider(day = Color(0xFFA89486), night = Color(0xFF7D768B))
+    val accent = ColorProvider(day = Color(0xFFFF7F73), night = Color(0xFFFF8B6F))
+    val buttonFill = ColorProvider(day = Color(0xFFFF7F73), night = Color(0xFFFF8B6F))
+    val buttonText = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF1A1428))
 
     val title: TextStyle = TextStyle(
         color = textPrimary,
