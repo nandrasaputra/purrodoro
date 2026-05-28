@@ -73,7 +73,7 @@ import kotlin.math.hypot
  * The "Cycle complete" celebration dialog.
  *
  * Motion spec (see also docs in the brainstorming session):
- *  - Card: ~240ms spring fade + scale-from-0.96 + translateY 16dp → 0 (60ms delay)
+ *  - Card: ~240ms spring fade + scale-from-0.96 + translateY 48dp → 0 (60ms delay)
  *  - Done badge: ~320ms spring scale 0.7 → 1 (180ms delay)
  *  - Check stroke: 220ms ease-out path draw (320ms delay)
  *  - Haptic at ~540ms (after check finishes)

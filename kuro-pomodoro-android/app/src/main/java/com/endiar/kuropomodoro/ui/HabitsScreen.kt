@@ -58,6 +58,7 @@ import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
 import com.endiar.kuropomodoro.ui.designsystem.KuroHabitCard
+import com.endiar.kuropomodoro.ui.designsystem.StaggeredEntrance
 import com.endiar.kuropomodoro.ui.designsystem.KuroHabitMonthDotUi
 import com.endiar.kuropomodoro.ui.designsystem.KuroHabitMotivationCard
 import com.endiar.kuropomodoro.ui.designsystem.KuroHabitsEmptyState
@@ -155,24 +156,26 @@ fun HabitsScreen(
             if (visibleHabits.isEmpty()) {
                 EmptyHabitCard(filter = selectedHabitFilter, onAdd = { showAddSheet = true })
             } else {
-                visibleHabits.forEach { habit ->
-                    KuroHabitCard(
-                        name = habit.name,
-                        emoji = habit.emoji,
-                        accentColor = Color(habit.colorArgb.toInt()),
-                        scheduleLabel = habitTargetScheduleLabel(habit, today),
-                        streak = habit.currentStreak(today),
-                        streakUnitLabel = habitStreakUnitLabel(habit),
-                        weekDots = habitWeekDots(habit, today).map { dot ->
-                            KuroHabitWeekDotUi(
-                                label = dot.label,
-                                isScheduled = dot.isScheduled,
-                                isCompleted = dot.isCompleted,
-                                isToday = dot.date == today,
-                            )
-                        },
-                        onClick = { editingHabit = habit },
-                    )
+                visibleHabits.forEachIndexed { index, habit ->
+                    StaggeredEntrance(index = index) {
+                        KuroHabitCard(
+                            name = habit.name,
+                            emoji = habit.emoji,
+                            accentColor = Color(habit.colorArgb.toInt()),
+                            scheduleLabel = habitTargetScheduleLabel(habit, today),
+                            streak = habit.currentStreak(today),
+                            streakUnitLabel = habitStreakUnitLabel(habit),
+                            weekDots = habitWeekDots(habit, today).map { dot ->
+                                KuroHabitWeekDotUi(
+                                    label = dot.label,
+                                    isScheduled = dot.isScheduled,
+                                    isCompleted = dot.isCompleted,
+                                    isToday = dot.date == today,
+                                )
+                            },
+                            onClick = { editingHabit = habit },
+                        )
+                    }
                 }
             }
 

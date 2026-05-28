@@ -92,6 +92,7 @@ import com.endiar.kuropomodoro.ui.designsystem.KuroScreenScaffold
 import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroSegmentedControl
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
+import com.endiar.kuropomodoro.ui.designsystem.StaggeredEntrance
 import com.endiar.kuropomodoro.ui.designsystem.KuroTaskCard
 import com.endiar.kuropomodoro.ui.designsystem.KuroTasksEmptyState
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
@@ -298,22 +299,24 @@ fun TodoScreen(
                         title = if (nextFocus != null) "More tasks" else "Tasks"
                     )
                 }
-                activeRowsForList.forEach { task ->
-                    SwipeableTaskCard(
-                        task = task,
-                        today = today,
-                        // When filtered to a single category, hide the per-row
-                        // subtitle (it would be the same word on every row).
-                        categoryName = categories
-                            .firstOrNull { it.id == task.categoryId }
-                            ?.name
-                            ?.takeIf { selectedCategoryId == null },
-                        isLive = task.id == liveTaskId,
-                        onToggleTask = onToggleTask,
-                        onDeleteTask = onDeleteTask,
-                        onTapRow = { detailSheetTask = it },
-                        onFocusTask = { attemptStartFocus(it) },
-                    )
+                activeRowsForList.forEachIndexed { index, task ->
+                    StaggeredEntrance(index = index) {
+                        SwipeableTaskCard(
+                            task = task,
+                            today = today,
+                            // When filtered to a single category, hide the per-row
+                            // subtitle (it would be the same word on every row).
+                            categoryName = categories
+                                .firstOrNull { it.id == task.categoryId }
+                                ?.name
+                                ?.takeIf { selectedCategoryId == null },
+                            isLive = task.id == liveTaskId,
+                            onToggleTask = onToggleTask,
+                            onDeleteTask = onDeleteTask,
+                            onTapRow = { detailSheetTask = it },
+                            onFocusTask = { attemptStartFocus(it) },
+                        )
+                    }
                 }
             }
 

@@ -1,6 +1,8 @@
 package com.endiar.kuropomodoro.ui.designsystem
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -10,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -34,11 +37,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -67,6 +73,8 @@ import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import androidx.compose.ui.graphics.lerp
+import kotlinx.coroutines.launch
 
 /**
  * Root scaffold for all flat-surface tab screens (Todo, Habits, Journey, etc.).
@@ -220,6 +228,15 @@ fun KuroTaskCard(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val scope = rememberCoroutineScope()
+    // Completing a task moves the row to the "done" list, which would unmount it
+    // instantly. We hold the row in place for the ~220ms it takes the check to
+    // draw + the circle to fill, so the gesture reads as a satisfying "stamp"
+    // before the row departs. `completing` guards against double taps.
+    val checkProgress = remember { Animatable(0f) }
+    var completing by remember { mutableStateOf(false) }
+    val checkboxInteraction = remember { MutableInteractionSource() }
+    val fillColor = lerp(tokens.cardFill, tokens.accent, checkProgress.value)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -233,13 +250,42 @@ fun KuroTaskCard(
     ) {
         Box(
             modifier = Modifier
+                .pressScale(checkboxInteraction, pressedScale = 0.86f)
+                .scale(1f + 0.12f * checkProgress.value)
                 .size(KuroSpacing.taskCheckbox)
                 .clip(CircleShape)
-                .background(tokens.cardFill)
+                .background(fillColor)
                 .border(KuroSpacing.hairline + KuroSpacing.hairline / 5, tokens.accent, CircleShape)
-                .clickable(role = Role.Checkbox) { onToggleComplete() }
+                .clickable(
+                    role = Role.Checkbox,
+                    interactionSource = checkboxInteraction,
+                    indication = null,
+                ) {
+                    if (!completing) {
+                        completing = true
+                        scope.launch {
+                            checkProgress.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(
+                                    durationMillis = 220,
+                                    easing = LinearOutSlowInEasing,
+                                ),
+                            )
+                            onToggleComplete()
+                        }
+                    }
+                }
                 .semantics { role = Role.Checkbox },
-        )
+            contentAlignment = Alignment.Center,
+        ) {
+            if (checkProgress.value > 0f) {
+                KuroAnimatedCheck(
+                    progress = checkProgress.value,
+                    color = tokens.accentOn,
+                    modifier = Modifier.size(KuroSpacing.taskCheckbox * 0.62f),
+                )
+            }
+        }
         CategoryColorDot(
             color = categoryColorFor(task.categoryId, fallback = tokens.textMuted),
             isLive = isLive,

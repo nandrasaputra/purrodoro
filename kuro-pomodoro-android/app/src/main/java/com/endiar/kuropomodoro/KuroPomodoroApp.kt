@@ -1,6 +1,7 @@
 package com.endiar.kuropomodoro
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
@@ -402,7 +403,15 @@ fun KuroPomodoroApp(
                     .fillMaxSize()
                     .statusBarsPadding()
             ) {
-                when (selectedTab) {
+                // Crossfade tab content so switching tabs dissolves rather than
+                // hard-cutting — a calm, Premium shared-surface feel that matches
+                // the rest of the app's motion language.
+                Crossfade(
+                    targetState = selectedTab,
+                    animationSpec = tween(durationMillis = 280),
+                    label = "tabContentSwap",
+                ) { tab ->
+                when (tab) {
                     AppTab.Timer -> HomeTimerScreen(
                         timerMode = timerMode,
                         remainingSeconds = remainingSeconds,
@@ -573,6 +582,7 @@ fun KuroPomodoroApp(
                         },
                          contentPadding = screenContentPadding,
                      )
+                }
                 }
             }
 
