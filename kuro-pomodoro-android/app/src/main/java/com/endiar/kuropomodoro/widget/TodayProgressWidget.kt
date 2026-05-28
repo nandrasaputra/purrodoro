@@ -123,34 +123,11 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
                     )
                 }
                 Spacer(modifier = GlanceModifier.height(6.dp))
-                DotRow(filled = state.filledDots, total = state.targetDots)
-                Spacer(modifier = GlanceModifier.height(6.dp))
                 Text(
                     text = state.encouragement,
                     style = WidgetTheme.body,
                     maxLines = 1,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DotRow(filled: Int, total: Int) {
-    val safeTotal = total.coerceAtLeast(1)
-    val safeFilled = filled.coerceIn(0, safeTotal)
-    Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
-        repeat(safeTotal) { index ->
-            val isFilled = index < safeFilled
-            Image(
-                provider = ImageProvider(
-                    if (isFilled) R.drawable.widget_dot_filled else R.drawable.widget_dot_outline,
-                ),
-                contentDescription = null,
-                modifier = GlanceModifier.size(14.dp),
-            )
-            if (index < safeTotal - 1) {
-                Spacer(modifier = GlanceModifier.width(6.dp))
             }
         }
     }
