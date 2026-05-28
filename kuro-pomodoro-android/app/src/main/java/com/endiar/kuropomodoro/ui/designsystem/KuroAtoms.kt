@@ -3,6 +3,7 @@ package com.endiar.kuropomodoro.ui.designsystem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,13 +62,21 @@ fun KuroChip(
         KuroChipVariant.Default -> if (selected) Color.Transparent else tokens.cardBorder
         KuroChipVariant.Inverted -> tokens.cardBorder
     }
+    val interactionSource = remember { MutableInteractionSource() }
     Box(contentAlignment = Alignment.TopStart) {
         Box(
             modifier = modifier
+                .pressScale(interactionSource)
                 .clip(RoundedCornerShape(KuroSpacing.radiusMd))
                 .background(fill)
                 .border(1.dp, borderColor, RoundedCornerShape(KuroSpacing.radiusMd))
-                .selectable(selected = selected, onClick = onClick, role = Role.Tab)
+                .selectable(
+                    selected = selected,
+                    onClick = onClick,
+                    role = Role.Tab,
+                    interactionSource = interactionSource,
+                    indication = null,
+                )
                 .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
         ) {
             Text(text = text, style = KuroType.labelStrong, color = textColor)
@@ -152,8 +162,10 @@ fun KuroStepper(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val stepperSize = if (large) 44.dp else 32.dp
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
+            .pressScale(interactionSource, pressedScale = 0.90f)
             .size(stepperSize)
             .clip(CircleShape)
             .background(
@@ -161,7 +173,12 @@ fun KuroStepper(
                 else tokens.segmentedTrack.copy(alpha = 0.5f)
             )
             .border(1.dp, tokens.borderSoft, CircleShape)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(
+                enabled = enabled,
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Text(

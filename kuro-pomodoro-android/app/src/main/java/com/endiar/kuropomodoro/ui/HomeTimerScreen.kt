@@ -24,6 +24,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -44,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,8 +77,13 @@ import com.endiar.kuropomodoro.model.TimerState
 import androidx.compose.material3.MaterialTheme
 import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.formatSeconds
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.draw.scale
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.designsystem.pressScale
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import java.time.LocalTime
@@ -342,13 +350,15 @@ private fun ActiveTimerCard(
     var showStopConfirmDialog by remember { mutableStateOf(false) }
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
-    // Pause pulse animation
+    // Pause pulse animation. Uses a symmetric ease-in-out (sine-like) curve so
+    // the breathing has no mechanical "catch" at the turnaround when RepeatMode
+    // reverses — ambient loops should feel continuous at both ends.
     val infiniteTransition = rememberInfiniteTransition(label = "pausePulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 0.4f,
         animationSpec = infiniteRepeatable(
-            animation = tween(850),
+            animation = tween(850, easing = CubicBezierEasing(0.4f, 0.0f, 0.6f, 1.0f)),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseAlpha"
@@ -735,12 +745,18 @@ private fun HomePrimaryButton(
 @Composable
 private fun OpenFocusModeRow(onClick: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
+            .pressScale(interactionSource, pressedScale = 0.98f)
             .fillMaxWidth()
             .clip(RoundedCornerShape(KuroSpacing.radiusMd))
             .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
-            .clickable(onClick = onClick)
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            )
             .padding(horizontal = KuroSpacing.md, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -773,12 +789,36 @@ private fun ActiveFocusButton(
     modifier: Modifier = Modifier
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
+    // Punctuate the play↔pause flip with a quick scale-pop on the glyph so the
+    // state change registers as a deliberate beat, not a silent icon swap.
+    // Skips the first composition so it doesn't fire on initial render.
+    val iconPop = remember { Animatable(1f) }
+    var popInitialized by remember { mutableStateOf(false) }
+    LaunchedEffect(isRunning) {
+        if (popInitialized) {
+            iconPop.snapTo(0.7f)
+            iconPop.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+            )
+        }
+        popInitialized = true
+    }
     Row(
         modifier = modifier
+            .pressScale(interactionSource, pressedScale = 0.97f)
             .height(58.dp)
             .clip(RoundedCornerShape(KuroSpacing.radiusPill))
             .background(tokens.accent)
-            .clickable(onClick = onClick)
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            )
             .padding(start = 8.dp, end = 24.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
@@ -794,7 +834,9 @@ private fun ActiveFocusButton(
                 imageVector = if (isRunning) Lucide.Pause else Lucide.Play,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier
+                    .size(22.dp)
+                    .scale(iconPop.value)
             )
         }
         Spacer(Modifier.width(14.dp))

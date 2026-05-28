@@ -1,11 +1,15 @@
 package com.endiar.kuropomodoro.ui.components
 
+import android.provider.Settings
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,14 +31,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -60,6 +69,7 @@ import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.designsystem.pressScale
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
 /**
@@ -101,6 +111,18 @@ fun FocusModeOverlay(
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val context = LocalContext.current
+
+    val reduceMotion = remember {
+        val scale = runCatching {
+            Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f,
+            )
+        }.getOrDefault(1f)
+        scale == 0f
+    }
 
     val surfaceAlpha by focusTransition.animateFloat(
         transitionSpec = FocusModeMotion.spec(),
@@ -108,6 +130,37 @@ fun FocusModeOverlay(
     ) { active -> if (active) 1f else 0f }
 
     if (surfaceAlpha <= 0f && !focusActive) return
+
+    // Spatial arrival: the content cluster doesn't just fade — it drifts up the
+    // last few dp and settles from a hair under full size, so entry reads as
+    // "rising into place" rather than a flat cross-fade. Driven off the shared
+    // transition clock (emphasized-decelerate on enter), so it lands in lockstep
+    // with the scrim and dock.
+    val contentScale = 0.985f + 0.015f * surfaceAlpha
+    val contentTranslateY = (1f - surfaceAlpha) * 20f
+
+    // One-shot "breath" pulse on the timer once focus is fully entered — the
+    // ambient layer that signals "you're in". Gated on `hasEntered` so it never
+    // fires on process restore (where focusActive is already true at first
+    // composition) and respects the system reduced-motion setting.
+    val breathScale = remember { Animatable(1f) }
+    var hasEntered by remember { mutableStateOf(false) }
+    LaunchedEffect(focusActive) {
+        if (focusActive && hasEntered && !reduceMotion) {
+            breathScale.snapTo(1f)
+            breathScale.animateTo(
+                targetValue = 1f,
+                animationSpec = keyframes {
+                    durationMillis = FocusModeMotion.BreathDurationMs
+                    delayMillis = FocusModeMotion.BreathDelayMs.toInt()
+                    1f at 0
+                    FocusModeMotion.BreathScalePeak at FocusModeMotion.BreathDurationMs / 2
+                    1f at FocusModeMotion.BreathDurationMs
+                },
+            )
+        }
+        hasEntered = focusActive
+    }
 
     val isBreak = timerMode == TimerMode.ShortBreak || timerMode == TimerMode.LongBreak
     val isPaused = currentTimerState == TimerState.Paused
@@ -165,6 +218,11 @@ fun FocusModeOverlay(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .graphicsLayer {
+                    translationY = contentTranslateY
+                    scaleX = contentScale
+                    scaleY = contentScale
+                }
                 .padding(contentPadding)
                 .padding(horizontal = KuroSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -189,7 +247,12 @@ fun FocusModeOverlay(
                 fontWeight = FontWeight.Normal,
                 fontFamily = FontFamily.Serif,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        scaleX = breathScale.value
+                        scaleY = breathScale.value
+                    },
             )
 
             if (subtext != null) {
@@ -442,12 +505,18 @@ private fun CoralPillButton(
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
+            .pressScale(interactionSource, pressedScale = 0.97f)
             .height(54.dp)
             .clip(RoundedCornerShape(KuroSpacing.radiusPill))
             .background(tokens.accent)
-            .clickable(onClick = onClick)
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            )
             .padding(horizontal = KuroSpacing.xl)
             .semantics { contentDescription = text },
         contentAlignment = Alignment.Center,
@@ -463,10 +532,16 @@ private fun CoralPillButton(
 @Composable
 private fun QuietTextAction(text: String, onClick: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
+            .pressScale(interactionSource)
             .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-            .clickable(onClick = onClick)
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            )
             .padding(horizontal = 12.dp, vertical = 10.dp)
             .semantics { contentDescription = text },
     ) {
@@ -481,12 +556,18 @@ private fun QuietTextAction(text: String, onClick: () -> Unit) {
 @Composable
 private fun CoralPauseCircle(onClick: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
+            .pressScale(interactionSource, pressedScale = 0.92f)
             .size(54.dp)
             .clip(CircleShape)
             .background(tokens.accent)
-            .clickable(onClick = onClick)
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            )
             .semantics { contentDescription = "Pause break" },
         contentAlignment = Alignment.Center,
     ) {

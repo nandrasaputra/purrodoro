@@ -34,6 +34,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -49,6 +51,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
@@ -79,6 +83,9 @@ import com.endiar.kuropomodoro.ui.theme.Peach
 
 private val DockCoral = Color(0xFFFF8B6F)
 private val LockedPurple = Color(0xFF7B4FBF)
+
+// Premium emphasized ease-in-out for the dock's active-pill settle.
+private val DockPillEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
 
 internal data class GlassTokens(
     val cardFill: Color,
@@ -381,8 +388,24 @@ private fun DockTabItem(
     onClick: () -> Unit
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val iconColor = if (active) tokens.accent else tokens.textMuted
-    val bgColor = if (active) tokens.accentSoft else Color.Transparent
+    // Premium, in-place selection (no bounce, no travel, no colour smear).
+    //
+    // The active-pill is *drawn behind* the icon/label and animated on its own
+    // alpha + scale, so it settles into place like a soft spotlight rather than
+    // cross-fading a background colour (which lerps through muddy semi-
+    // transparent greys and looks cheap). The icon/label colour eases between
+    // two fully-opaque tokens, so that crossfade stays clean too.
+    val pillProgress by animateFloatAsState(
+        targetValue = if (active) 1f else 0f,
+        animationSpec = tween(durationMillis = 240, easing = DockPillEasing),
+        label = "dockPillProgress",
+    )
+    val iconColor by animateColorAsState(
+        targetValue = if (active) tokens.accent else tokens.textMuted,
+        animationSpec = tween(durationMillis = 200),
+        label = "dockIconColor",
+    )
+    val pillColor = tokens.accentSoft
 
     Box(
         modifier = modifier,
@@ -392,8 +415,23 @@ private fun DockTabItem(
             modifier = Modifier
                 .widthIn(min = 58.dp)
                 .height(66.dp)
+                .drawBehind {
+                    if (pillProgress > 0f) {
+                        // Scale 0.82 → 1.0 about the centre as it fades 0 → 1,
+                        // so it reads as a gentle "settle", not a blink.
+                        val scale = 0.82f + 0.18f * pillProgress
+                        val w = size.width * scale
+                        val h = size.height * scale
+                        drawRoundRect(
+                            color = pillColor,
+                            topLeft = Offset((size.width - w) / 2f, (size.height - h) / 2f),
+                            size = Size(w, h),
+                            cornerRadius = CornerRadius(30.dp.toPx()),
+                            alpha = pillProgress,
+                        )
+                    }
+                }
                 .clip(RoundedCornerShape(30.dp))
-                .background(bgColor)
                 .clickable(onClick = onClick)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
