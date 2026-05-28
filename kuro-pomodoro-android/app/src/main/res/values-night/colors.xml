@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ── Widget palette (dark) ───────────────────────────────────────────────
+         Mirrors KuroSurfaceTokens (dark). The button keeps the coral accent so
+         "Start Focus" stays the primary call-to-action in either scheme. -->
+    <color name="widget_card_fill">#1A1428</color>
+    <color name="widget_card_border">#2B2440</color>
+    <color name="widget_page_bg">#0A0816</color>
+    <color name="widget_text_primary">#FFFFFFFF</color>
+    <color name="widget_text_secondary">#B8B0C8</color>
+    <color name="widget_text_muted">#7D768B</color>
+    <color name="widget_accent">#FF8B6F</color>
+    <color name="widget_button_fill">#FF8B6F</color>
+    <color name="widget_button_text">#1A1428</color>
+</resources>
