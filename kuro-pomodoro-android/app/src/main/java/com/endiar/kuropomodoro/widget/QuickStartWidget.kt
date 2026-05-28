@@ -18,7 +18,6 @@ import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
@@ -87,51 +86,47 @@ private fun QuickStartContent(context: Context, state: QuickStartWidgetState) {
             .padding(8.dp)
             .clickable(openAction),
     ) {
-        Column(
+        Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(WidgetTheme.cardFill)
                 .cornerRadius(28.dp)
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.Vertical.Top,
-            horizontalAlignment = Alignment.Horizontal.Start,
+                .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
-            // Top row: text on the left, Kuro peeking on the right.
-            Row(
-                modifier = GlanceModifier
-                    .fillMaxWidth()
-                    .defaultWeight(),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
+            // Kuro peeking from the top-right.
+            Box(
+                modifier = GlanceModifier.fillMaxWidth(),
+                contentAlignment = Alignment.TopEnd,
             ) {
-                Column(
-                    modifier = GlanceModifier.defaultWeight(),
-                    verticalAlignment = Alignment.Vertical.CenterVertically,
-                ) {
-                    Text(
-                        text = state.title,
-                        style = WidgetTheme.titleLg,
-                        maxLines = 2,
-                    )
-                    Spacer(modifier = GlanceModifier.height(4.dp))
-                    Text(
-                        text = state.subtitle,
-                        style = WidgetTheme.body,
-                        maxLines = 1,
-                    )
-                }
-                Spacer(modifier = GlanceModifier.width(8.dp))
                 Image(
                     provider = ImageProvider(R.drawable.cat_face),
                     contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = GlanceModifier.size(64.dp),
+                    modifier = GlanceModifier.size(54.dp),
                 )
             }
-            Spacer(modifier = GlanceModifier.height(12.dp))
-            StartFocusButton(
-                label = state.actionLabel,
-                onClick = openAction,
-            )
+
+            Column(
+                modifier = GlanceModifier.fillMaxSize(),
+                verticalAlignment = Alignment.Vertical.Top,
+                horizontalAlignment = Alignment.Horizontal.Start,
+            ) {
+                Text(
+                    text = state.title,
+                    style = WidgetTheme.titleLg,
+                    maxLines = 2,
+                )
+                Spacer(modifier = GlanceModifier.height(2.dp))
+                Text(
+                    text = state.subtitle,
+                    style = WidgetTheme.body,
+                    maxLines = 1,
+                )
+                Spacer(modifier = GlanceModifier.height(10.dp))
+                StartFocusButton(
+                    label = state.actionLabel,
+                    onClick = openAction,
+                )
+            }
         }
     }
 }
@@ -141,7 +136,7 @@ private fun StartFocusButton(label: String, onClick: androidx.glance.action.Acti
     Box(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(42.dp)
             .background(WidgetTheme.buttonFill)
             .cornerRadius(34.dp)
             .clickable(onClick),

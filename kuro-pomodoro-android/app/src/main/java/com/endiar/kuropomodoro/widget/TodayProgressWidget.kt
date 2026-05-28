@@ -18,10 +18,8 @@ import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -83,20 +81,28 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
             .padding(8.dp)
             .clickable(openAction),
     ) {
-        Row(
+        Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(WidgetTheme.cardFill)
                 .cornerRadius(28.dp)
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.Vertical.CenterVertically,
+                .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
-            // Left column: title, metric, dots, encouragement.
+            // Kuro peeking from the bottom-right.
+            Box(
+                modifier = GlanceModifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomEnd,
+            ) {
+                Image(
+                    provider = ImageProvider(R.drawable.cat_face),
+                    contentDescription = null,
+                    modifier = GlanceModifier.size(48.dp),
+                )
+            }
+
             Column(
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .fillMaxHeight(),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
+                modifier = GlanceModifier.fillMaxSize(),
+                verticalAlignment = Alignment.Vertical.Top,
                 horizontalAlignment = Alignment.Horizontal.Start,
             ) {
                 Text(
@@ -116,28 +122,36 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
                         style = WidgetTheme.metricUnit,
                     )
                 }
-                Spacer(modifier = GlanceModifier.height(10.dp))
+                Spacer(modifier = GlanceModifier.height(6.dp))
+                DotRow(filled = state.filledDots, total = state.targetDots)
+                Spacer(modifier = GlanceModifier.height(6.dp))
                 Text(
                     text = state.encouragement,
                     style = WidgetTheme.body,
                     maxLines = 1,
                 )
             }
-            Spacer(modifier = GlanceModifier.width(10.dp))
-            // Right column: Kuro biased to bottom, matching the mockup.
-            Column(
-                modifier = GlanceModifier.fillMaxHeight(),
-                verticalAlignment = Alignment.Vertical.Bottom,
-                horizontalAlignment = Alignment.Horizontal.End,
-            ) {
-                Image(
-                    provider = ImageProvider(R.drawable.cat_face),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = GlanceModifier.size(58.dp),
-                )
-            }
         }
     }
 }
 
+@Composable
+private fun DotRow(filled: Int, total: Int) {
+    val safeTotal = total.coerceAtLeast(1)
+    val safeFilled = filled.coerceIn(0, safeTotal)
+    Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
+        repeat(safeTotal) { index ->
+            val isFilled = index < safeFilled
+            Image(
+                provider = ImageProvider(
+                    if (isFilled) R.drawable.widget_dot_filled else R.drawable.widget_dot_outline,
+                ),
+                contentDescription = null,
+                modifier = GlanceModifier.size(14.dp),
+            )
+            if (index < safeTotal - 1) {
+                Spacer(modifier = GlanceModifier.width(6.dp))
+            }
+        }
+    }
+}
