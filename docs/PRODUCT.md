@@ -18,7 +18,7 @@ The word "session" is overloaded in the codebase. Two senses, both are real:
 A **session** = one full Pomodoro **cycle**: a sequence of focus segments
 interleaved with short breaks, capped by one long break.
 
-For `N = focusSessionsPerCycle` (default `4`, range `1..10`), the cycle is:
+For `N = focusSessionsPerCycle` (default `4`, range `1..4`), the cycle is:
 
 ```
 (Focus + ShortBreak) × (N − 1)   then   Focus + LongBreak
@@ -160,7 +160,7 @@ Only skipping the final segment terminates the cycle.
 | `shortBreakMinutes` | 5 | 1..180 | duration of every ShortBreak segment |
 | `longBreakMinutes` | 15 | 1..180 | duration of the trailing LongBreak |
 | `autoStartNextSession` | false | — | auto-advance into the next segment on completion |
-| `focusSessionsPerCycle` | 4 | 1..10 | the `N` in the cycle formula above |
+| `focusSessionsPerCycle` | 4 | 1..4 | the `N` in the cycle formula above (cap aligns with home widget dot row) |
 
 Settings are persisted to DataStore via `AppRepository`. Changing
 `focusSessionsPerCycle` mid-cycle does **not** rewrite the in-flight cycle —

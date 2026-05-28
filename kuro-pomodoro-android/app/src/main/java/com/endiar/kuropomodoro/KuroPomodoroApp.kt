@@ -89,6 +89,7 @@ import com.endiar.kuropomodoro.ui.components.CycleCompleteDialog
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import com.endiar.kuropomodoro.ui.components.FocusModeMotion
+import com.endiar.kuropomodoro.ui.components.FocusModeOverlay
 import com.endiar.kuropomodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.kuropomodoro.ui.components.glassTokens
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
@@ -100,7 +101,8 @@ import kotlinx.coroutines.launch
 fun KuroPomodoroApp(
     repo: AppRepository,
     timerConnection: TimerConnection,
-    requestNotificationPermission: () -> Unit
+    requestNotificationPermission: () -> Unit,
+    autoOpenStartFocus: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
 ) {
     val appState by repo.appState.collectAsStateWithLifecycle(
         initialValue = AppState(
@@ -173,6 +175,22 @@ fun KuroPomodoroApp(
     var showProfile by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
+
+    // Bridge from the Quick Start widget: when the host activity receives a
+    // launch intent with EXTRA_AUTO_OPEN_START_FOCUS we surface the existing
+    // Start Focus sheet automatically, but only when no cycle is in flight —
+    // otherwise the widget's "Open Timer" semantic is preserved.
+    if (autoOpenStartFocus != null) {
+        LaunchedEffect(autoOpenStartFocus) {
+            autoOpenStartFocus.collect {
+                if (runtimeState == null) {
+                    startFocusPrefill = null
+                    showStartFocusSheet = true
+                    selectedTab = AppTab.Timer
+                }
+            }
+        }
+    }
 
     // First-run gate: replace the entire app surface with the onboarding flow
     // until the user finishes (or skips) it. Both completion paths just mark
@@ -274,10 +292,14 @@ fun KuroPomodoroApp(
     val isRunning = runtimeState?.session?.timerState == TimerState.Playing
     val isStarted = runtimeState != null && runtimeState?.session?.timerState != TimerState.Idle
 
-    // Treat focus as active during the brief async window where runtimeState hasn't
-    // arrived yet — so cold-restart into focus mode snaps to the final state instead
-    // of briefly flashing the dashboard then animating in.
-    val focusActive = isFocusMode && (isRunning || runtimeState == null)
+    // Focus mode is sticky for the duration of a session — running OR paused —
+    // so the user can "continue from focus screen" when auto-start-break is off
+    // and the timer pauses between segments. We only drop focus mode when the
+    // session truly tears down (Idle / null runtime), or when the user
+    // explicitly exits (tap-to-exit, Stop, switch tabs from a sheet, etc.).
+    // Also covers the brief async window before the runtime arrives so a cold
+    // restart into focus mode snaps cleanly to the final state.
+    val focusActive = isFocusMode && (isStarted || runtimeState == null)
     val focusTransition = updateTransition(targetState = focusActive, label = "focusMode")
 
     val scrimAlpha by focusTransition.animateFloat(
@@ -552,6 +574,39 @@ fun KuroPomodoroApp(
                          contentPadding = screenContentPadding,
                      )
                 }
+            }
+
+            // Full-screen Minimal Zen focus surface sits above the dashboard
+            // but below the dock / dialogs / sheets. Only the Timer tab can
+            // legitimately host focus mode; gating here prevents the cream
+            // page from leaking onto other tabs in any edge case where focus
+            // state lingers across a tab switch.
+            //
+            // Pause/skip wired here directly (not through the dashboard's
+            // onStartPause/onStop) so they don't clear `isFocusMode` —
+            // staying inside the focus surface is exactly the point of
+            // "continue from focus screen" while a break is paused.
+            if (selectedTab == AppTab.Timer) {
+                FocusModeOverlay(
+                    focusActive = focusActive,
+                    focusTransition = focusTransition,
+                    timerMode = timerMode,
+                    remainingSeconds = remainingSeconds,
+                    activeFocusType = runtimeState?.focusType ?: FocusType.Empty,
+                    activeTask = runtimeState?.activeTask ?: activeTask,
+                    cycleItems = cycleItems,
+                    cycleIndex = cycleIndex,
+                    currentTimerState = currentTimerState,
+                    isRunning = isRunning,
+                    onExit = { isFocusMode = false },
+                    onStartPause = {
+                        if (isRunning) timerConnection.controller.pause()
+                        else timerConnection.controller.resume()
+                    },
+                    onSkip = { timerConnection.controller.skip() },
+                    contentPadding = PaddingValues(),
+                    modifier = Modifier.statusBarsPadding(),
+                )
             }
 
             if (showStartFocusSheet) {

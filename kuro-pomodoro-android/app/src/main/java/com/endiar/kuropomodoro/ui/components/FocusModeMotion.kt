@@ -27,6 +27,9 @@ object FocusModeMotion {
     /** Dim alpha applied on the dashboard; fades to 0 when entering focus mode. */
     const val ScrimAlphaDashboard = 0.1f
 
+    /** Black overlay alpha when focus mode is fully active — dims the room. */
+    const val ScrimAlphaFocus = 0.55f
+
     /** Material 3 emphasized-decelerate — for entering content. */
     val EnterEasing: Easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
 

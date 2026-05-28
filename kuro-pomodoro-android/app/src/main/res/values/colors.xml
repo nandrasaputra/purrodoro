@@ -9,4 +9,17 @@
     <color name="white">#FFFFFFFF</color>
     <!-- Matches HomeCream / KuroFlatSurface pageBackground to avoid grey flash behind status bar -->
     <color name="window_background">#FFF8ED</color>
+
+    <!-- ── Widget palette (light) ──────────────────────────────────────────────
+         Mirrors KuroSurfaceTokens (light) + the Variation A mockup. Override in
+         values-night/colors.xml for the dark scheme. -->
+    <color name="widget_card_fill">#FFFFFF</color>
+    <color name="widget_card_border">#EBDFCC</color>
+    <color name="widget_page_bg">#FAF5F2</color>
+    <color name="widget_text_primary">#5F4638</color>
+    <color name="widget_text_secondary">#8B6B5A</color>
+    <color name="widget_text_muted">#A89486</color>
+    <color name="widget_accent">#FF7F73</color>
+    <color name="widget_button_fill">#FF7F73</color>
+    <color name="widget_button_text">#FFFFFFFF</color>
 </resources>
