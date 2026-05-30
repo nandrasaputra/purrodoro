@@ -26,6 +26,7 @@ import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Flag
+import com.composables.icons.lucide.Lock
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.Plus
@@ -88,7 +89,6 @@ import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheetSubpageHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroCompletedTaskRow
 import com.endiar.kuropomodoro.ui.designsystem.KuroInputField
 import com.endiar.kuropomodoro.ui.designsystem.KuroScreenScaffold
-import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroSegmentedControl
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.StaggeredEntrance
@@ -159,9 +159,9 @@ fun TodoScreen(
     var addTaskSheetCategoryId by rememberSaveable { mutableStateOf(selectedCategoryId) }
     var focusSheetTask by remember { mutableStateOf<FocusTask?>(null) }
     var detailSheetTask by remember { mutableStateOf<FocusTask?>(null) }
-    // Default to Active: the new tabbed filter makes "what's left to do" the
-    // primary view; users opt into All or Done explicitly.
-    var selectedTaskFilter by rememberSaveable { mutableStateOf(TaskUiFilter.Active) }
+    // Default to All so opening Tasks shows the full picture (active + done)
+    // at a glance; users opt into Active / Done explicitly.
+    var selectedTaskFilter by rememberSaveable { mutableStateOf(TaskUiFilter.All) }
     var deleteCategoryTarget by remember { mutableStateOf<Category?>(null) }
     var addCategorySheetVisible by rememberSaveable { mutableStateOf(false) }
     var renameCategoryTarget by remember { mutableStateOf<Category?>(null) }
@@ -192,7 +192,9 @@ fun TodoScreen(
         selectedCategoryId == null || task.categoryId == selectedCategoryId
     }
     val visibleTasks = filterTasksForUi(categoryFilteredTasks, selectedTaskFilter)
-    val filteredActiveTasks = visibleTasks.filterNot { it.completed }
+    // Active rows share the hero's ordering: due-date urgency → priority →
+    // newest added first (see sortedActiveTasks).
+    val filteredActiveTasks = sortedActiveTasks(visibleTasks, today)
     val filteredCompletedTasks = visibleTasks.filter { it.completed }
     val totalCount = categoryFilteredTasks.size
     val activeCount = categoryFilteredTasks.count { !it.completed }
@@ -207,10 +209,10 @@ fun TodoScreen(
         liveTaskId?.let { id -> categoryFilteredTasks.firstOrNull { it.id == id && !it.completed } }
             ?: nextFocusTask(categoryFilteredTasks, today)
     }
-    // Avoid double-rendering the hero task in the list below. It's still
-    // selectable from the hero card itself (tap opens detail, Start opens focus).
-    val heroTaskId = nextFocus?.id
-    val activeRowsForList = filteredActiveTasks.filterNot { it.id == heroTaskId }
+    // The hero task is intentionally NOT removed from the list — it appears both
+    // as the Next Focus card and as a normal row below, so it never feels like
+    // it "went missing" from the list when promoted to the hero.
+    val activeRowsForList = filteredActiveTasks
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -265,6 +267,7 @@ fun TodoScreen(
                     onOpenDetail = { detailSheetTask = hero },
                     onStartFocus = { attemptStartFocus(hero) },
                     onOpenFocus = onSwitchToHome,
+                    onToggleComplete = { onToggleTask(hero.id) },
                 )
             }
 
@@ -276,54 +279,75 @@ fun TodoScreen(
                 )
             }
 
-            // Section header reads "More tasks" when a hero is shown above
-            // (rows below can be a mix of dates / no-date / overdue, so we
-            // avoid implying everything below is due today). Without a hero
-            // we fall back to a flat "Tasks" header.
+            // Active section. Grouped in its own column so the header hugs its
+            // rows (tight 8dp rhythm within the group) while the outer column's
+            // 16dp gap separates it from the hero / done section above and below.
+            // Header reads "More tasks" when a hero is shown above (rows can be a
+            // mix of dates / no-date / overdue), else a flat "Tasks".
             if (activeRowsForList.isNotEmpty()) {
-                if (selectedTaskFilter != TaskUiFilter.Done) {
-                    KuroSectionHeader(
-                        title = if (nextFocus != null) "More tasks" else "Tasks"
-                    )
-                }
-                activeRowsForList.forEachIndexed { index, task ->
-                    StaggeredEntrance(index = index) {
-                        SwipeableTaskCard(
-                            task = task,
-                            today = today,
-                            // When filtered to a single category, hide the per-row
-                            // subtitle (it would be the same word on every row).
-                            categoryName = categories
-                                .firstOrNull { it.id == task.categoryId }
-                                ?.name
-                                ?.takeIf { selectedCategoryId == null },
-                            isLive = task.id == liveTaskId,
-                            onToggleTask = onToggleTask,
-                            onDeleteTask = onDeleteTask,
-                            onTapRow = { detailSheetTask = it },
-                            onFocusTask = { attemptStartFocus(it) },
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                    if (selectedTaskFilter != TaskUiFilter.Done) {
+                        TasksSectionHeader(
+                            title = if (nextFocus != null) "More tasks" else "Tasks"
                         )
+                    }
+                    activeRowsForList.forEachIndexed { index, task ->
+                        StaggeredEntrance(index = index) {
+                            SwipeableTaskCard(
+                                task = task,
+                                today = today,
+                                // When filtered to a single category, hide the per-row
+                                // subtitle (it would be the same word on every row).
+                                categoryName = categories
+                                    .firstOrNull { it.id == task.categoryId }
+                                    ?.name
+                                    ?.takeIf { selectedCategoryId == null },
+                                isLive = task.id == liveTaskId,
+                                onToggleTask = onToggleTask,
+                                onDeleteTask = onDeleteTask,
+                                onTapRow = { detailSheetTask = it },
+                                onFocusTask = { attemptStartFocus(it) },
+                            )
+                        }
                     }
                 }
             }
 
             if (filteredCompletedTasks.isNotEmpty()) {
-                DoneSectionHeader(
-                    showSectionLabel = selectedTaskFilter == TaskUiFilter.All,
-                    count = filteredCompletedTasks.size,
-                    onDeleteAll = { deleteAllCompletedVisible = true },
-                )
-                filteredCompletedTasks.forEach { task ->
-                    SwipeToDeleteCompletedTaskRow(
-                        task = task,
-                        categoryName = categories
-                            .firstOrNull { it.id == task.categoryId }
-                            ?.name
-                            ?.takeIf { selectedCategoryId == null },
-                        onToggleTask = onToggleTask,
-                        onDeleteTask = onDeleteTask,
-                        onTapRow = { detailSheetTask = it },
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                    TasksSectionHeader(
+                        // Hide the "Done · N" label when the whole screen is
+                        // already the Done filter; keep it only on All where it
+                        // disambiguates from the active rows above.
+                        title = "Done · ${filteredCompletedTasks.size}"
+                            .takeIf { selectedTaskFilter == TaskUiFilter.All },
+                        action = {
+                            Text(
+                                text = "Delete all",
+                                color = tokens.destructive,
+                                style = KuroType.labelMeta,
+                                modifier = Modifier
+                                    .clickable { deleteAllCompletedVisible = true }
+                                    .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.xs)
+                                    .semantics {
+                                        role = Role.Button
+                                        contentDescription = "Delete all completed tasks"
+                                    },
+                            )
+                        },
                     )
+                    filteredCompletedTasks.forEach { task ->
+                        SwipeToDeleteCompletedTaskRow(
+                            task = task,
+                            categoryName = categories
+                                .firstOrNull { it.id == task.categoryId }
+                                ?.name
+                                ?.takeIf { selectedCategoryId == null },
+                            onToggleTask = onToggleTask,
+                            onDeleteTask = onDeleteTask,
+                            onTapRow = { detailSheetTask = it },
+                        )
+                    }
                 }
             }
         }
@@ -910,40 +934,32 @@ private fun CategoryActionIcon(
 
 // ─── Section header ────────────────────────────────────────────────────────
 
+/**
+ * Single section-header treatment shared by every list section on the Tasks
+ * screen ("More tasks" / "Tasks" / "Done · N"). Flush to the screen gutter —
+ * the parent column already applies the horizontal padding, so this header adds
+ * none of its own (the old `KuroSectionHeader` double-indented it). Title is
+ * optional so a section can show only a trailing action and stay right-aligned.
+ */
 @Composable
-private fun DoneSectionHeader(
-    showSectionLabel: Boolean,
-    count: Int,
-    onDeleteAll: () -> Unit,
+private fun TasksSectionHeader(
+    title: String?,
+    modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = KuroSpacing.xs / 2),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (showSectionLabel) {
-            Text(
-                text = "Done · $count",
-                color = tokens.textSecondary,
-                style = KuroType.labelStrong,
-            )
+        if (title != null) {
+            Text(text = title, style = KuroType.labelStrong, color = tokens.textMuted)
         } else {
-            // Keep the row layout balanced when label is hidden so the
-            // trailing "Delete all" still sits at the right edge.
+            // Keep the action pinned right when there's no title.
             Spacer(Modifier.width(KuroSpacing.xs))
         }
-        Text(
-            text = "Delete all",
-            color = tokens.destructive,
-            style = KuroType.labelMeta,
-            modifier = Modifier
-                .clickable(onClick = onDeleteAll)
-                .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.xs)
-                .semantics { role = Role.Button; contentDescription = "Delete all completed tasks" },
-        )
+        if (action != null) action()
     }
 }
 
@@ -1261,8 +1277,6 @@ private fun SwipeableTaskCard(
     )
     resetDismiss = { dismissState.reset() }
 
-    val badge = taskUrgencyBadge(task, today)
-
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
@@ -1272,10 +1286,10 @@ private fun SwipeableTaskCard(
             KuroTaskCard(
                 task = task,
                 subtitle = categoryName,
+                today = today,
                 onTap = { onTapRow(task) },
                 onToggleComplete = { onToggleTask(task.id) },
                 isLive = isLive,
-                trailing = badge?.let { { UrgencyChip(badge = it) } },
             )
         },
     )
@@ -2281,63 +2295,28 @@ private val LocalDateSaver = androidx.compose.runtime.saveable.Saver<LocalDate?,
 
 // ─── Urgency chip + next-focus hero ────────────────────────────────────────
 
+/**
+ * Leading completion checkbox for the Next Focus hero. Mirrors the unchecked
+ * state of the task-row checkbox (accent ring, hollow fill) so the hero borrows
+ * the row's "this is a tickable task" affordance. Tapping completes the task;
+ * the row press doesn't bubble up to the card's open-detail click.
+ */
 @Composable
-private fun UrgencyChip(badge: TaskUrgencyBadge) {
+private fun HeroCompletionCheckbox(onToggle: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val label: String
-    val fill: Color
-    val textColor: Color
-    val showFlag: Boolean
-    when (badge) {
-        TaskUrgencyBadge.Overdue -> {
-            label = "Overdue"
-            fill = tokens.destructive.copy(alpha = 0.14f)
-            textColor = tokens.destructive
-            showFlag = false
-        }
-        TaskUrgencyBadge.Today -> {
-            label = "Today"
-            fill = tokens.accentSoft
-            textColor = tokens.accent
-            showFlag = false
-        }
-        TaskUrgencyBadge.Tomorrow -> {
-            label = "Tomorrow"
-            fill = tokens.segmentedTrack
-            textColor = tokens.textSecondary
-            showFlag = false
-        }
-        TaskUrgencyBadge.HighNoDate -> {
-            label = "High"
-            fill = tokens.accentSoft
-            textColor = tokens.accent
-            showFlag = true
-        }
-        is TaskUrgencyBadge.FutureDate -> {
-            label = badge.label
-            fill = Color.Transparent
-            textColor = tokens.textMuted
-            showFlag = false
-        }
-    }
-    Row(
+    Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(KuroSpacing.radiusSm))
-            .background(fill)
-            .padding(horizontal = KuroSpacing.sm, vertical = KuroSpacing.xs / 2),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
-    ) {
-        if (showFlag) {
-            Icon(
-                imageVector = Lucide.Flag,
-                contentDescription = null,
-                tint = textColor,
-                modifier = Modifier.size(12.dp),
+            .size(KuroSpacing.taskCheckbox)
+            .clip(CircleShape)
+            .background(tokens.cardFill)
+            .border(
+                KuroSpacing.hairline + KuroSpacing.hairline / 5,
+                tokens.accent,
+                CircleShape,
             )
-        }
-        Text(text = label, style = KuroType.labelMeta, color = textColor)
-    }
+            .clickable(role = Role.Checkbox, onClick = onToggle)
+            .semantics { role = Role.Checkbox; contentDescription = "Mark task done" },
+    )
 }
 
 /**
@@ -2371,6 +2350,10 @@ private fun NextFocusHeroCard(
     // timer (Home tab) rather than re-running the start-focus configure
     // flow, which would imply spinning up a second session.
     onOpenFocus: () -> Unit,
+    // Toggles the hero task's completion. Surfaced as a leading checkbox so
+    // the hero clearly reads as a task you can also tick off — not just a
+    // promotional banner.
+    onToggleComplete: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val dueLabel = heroDueLabel(task.dueDate, today)
@@ -2378,12 +2361,12 @@ private fun NextFocusHeroCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
             .background(tokens.cardFill)
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
             .clickable(onClick = onOpenDetail)
             .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
     ) {
         Text(
             text = if (isLive) "NOW FOCUSING" else "NEXT FOCUS",
@@ -2405,13 +2388,20 @@ private fun NextFocusHeroCard(
             )
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
             ) {
-                Text(
-                    text = task.title,
-                    color = tokens.textPrimary,
-                    style = KuroType.headingCard,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+                ) {
+                    HeroCompletionCheckbox(onToggle = onToggleComplete)
+                    Text(
+                        text = task.title,
+                        color = tokens.textPrimary,
+                        style = KuroType.headingCard,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 HeroMetadataRow(
                     categoryName = categoryName,
                     categoryId = task.categoryId,
@@ -2420,7 +2410,6 @@ private fun NextFocusHeroCard(
                     isOverdue = task.dueDate?.isBefore(today) == true,
                     showHighFlag = showHighFlag,
                 )
-                Spacer(Modifier.height(KuroSpacing.xs))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -2442,8 +2431,17 @@ private fun NextFocusHeroCard(
                             style = KuroType.labelMeta,
                         )
                     }
+                    // Three CTA states: this task is live ("Open"), another
+                    // focus is blocking a new start ("Finish first" — tapping
+                    // surfaces the busy dialog), or a normal "Start".
+                    val (pillLabel, pillIcon) = when {
+                        isLive -> "Open" to Lucide.Play
+                        isStartBlocked -> "Finish first" to Lucide.Lock
+                        else -> "Start" to Lucide.Play
+                    }
                     StartPill(
-                        label = if (isLive) "Open" else "Start",
+                        label = pillLabel,
+                        icon = pillIcon,
                         muted = isStartBlocked,
                         onClick = if (isLive) onOpenFocus else onStartFocus,
                     )
@@ -2557,6 +2555,7 @@ private fun StartPill(
     label: String,
     muted: Boolean,
     onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Lucide.Play,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val fill = if (muted) tokens.accent.copy(alpha = 0.35f) else tokens.accent
@@ -2573,7 +2572,7 @@ private fun StartPill(
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
     ) {
         Icon(
-            imageVector = Lucide.Play,
+            imageVector = icon,
             contentDescription = null,
             tint = contentColor,
             modifier = Modifier.size(18.dp),

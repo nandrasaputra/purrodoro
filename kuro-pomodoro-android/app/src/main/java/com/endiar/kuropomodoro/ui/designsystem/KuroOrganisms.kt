@@ -66,9 +66,15 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.CalendarDays
+import com.composables.icons.lucide.Flag
+import com.composables.icons.lucide.Lucide
 import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.TaskPriority
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import com.endiar.kuropomodoro.ui.components.KuroCard
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
@@ -239,6 +245,7 @@ fun KuroTaskCard(
     onTap: () -> Unit,
     onToggleComplete: () -> Unit,
     modifier: Modifier = Modifier,
+    today: LocalDate = LocalDate.now(),
     isLive: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
 ) {
@@ -301,10 +308,15 @@ fun KuroTaskCard(
                 )
             }
         }
-        CategoryColorDot(
-            color = categoryColorFor(task.categoryId, fallback = tokens.textMuted),
-            isLive = isLive,
-        )
+        // The category color dot earns its place only when it carries meaning:
+        // a real category color, or the "live" accent ring. For an uncategorized,
+        // non-live task it was just a grey dot with no function, so we drop it.
+        if (task.categoryId != null || isLive) {
+            CategoryColorDot(
+                color = categoryColorFor(task.categoryId, fallback = tokens.textMuted),
+                isLive = isLive,
+            )
+        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
@@ -314,18 +326,93 @@ fun KuroTaskCard(
                 color = tokens.textPrimary,
                 style = KuroType.bodyPrimary,
             )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    color = tokens.textSecondary,
-                    style = KuroType.labelMeta,
-                )
-            }
+            TaskRowMeta(task = task, subtitle = subtitle, today = today)
         }
         if (trailing != null) {
             trailing()
         }
     }
+}
+
+private val taskRowDueFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
+
+/**
+ * Quiet single-line metadata under a task title: category (when not already
+ * implied by a filter), due date, and a High-priority flag. Mirrors the Next
+ * Focus hero's metadata row so list rows and the hero speak the same language.
+ *
+ * Due date is always surfaced when present — color carries urgency (overdue =
+ * destructive, today = accent, otherwise muted) while the label keeps the
+ * actual date visible for anything past/future.
+ */
+@Composable
+private fun TaskRowMeta(task: FocusTask, subtitle: String?, today: LocalDate) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val due = task.dueDate
+    // Only show the High flag inline when there's no date competing for the
+    // row's attention; a dated High task already reads as urgent.
+    val showHighFlag = task.priority == TaskPriority.High && due == null
+    if (subtitle == null && due == null && !showHighFlag) return
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+    ) {
+        if (subtitle != null) {
+            Text(text = subtitle, color = tokens.textSecondary, style = KuroType.labelMeta)
+        }
+        if (due != null) {
+            if (subtitle != null) TaskMetaDot()
+            val dueColor = when {
+                due.isBefore(today) -> tokens.destructive
+                due == today -> tokens.accent
+                else -> tokens.textMuted
+            }
+            val dueLabel = when {
+                due == today -> "Today"
+                due == today.plusDays(1) -> "Tomorrow"
+                else -> due.format(taskRowDueFormatter)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
+            ) {
+                Icon(
+                    imageVector = Lucide.CalendarDays,
+                    contentDescription = null,
+                    tint = dueColor,
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(text = dueLabel, color = dueColor, style = KuroType.labelMeta)
+            }
+        }
+        if (showHighFlag) {
+            if (subtitle != null || due != null) TaskMetaDot()
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
+            ) {
+                Icon(
+                    imageVector = Lucide.Flag,
+                    contentDescription = null,
+                    tint = tokens.accent,
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(text = "High", color = tokens.accent, style = KuroType.labelMeta)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaskMetaDot() {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(
+        modifier = Modifier
+            .size(3.dp)
+            .clip(CircleShape)
+            .background(tokens.textMuted),
+    )
 }
 
 /**
@@ -367,15 +454,17 @@ fun KuroCompletedTaskRow(
         ) {
             Text(text = "✓", color = tokens.accentOn, style = KuroType.labelStrong)
         }
-        Box(
-            modifier = Modifier
-                .size(KuroSpacing.taskCategoryDot)
-                .clip(CircleShape)
-                .background(
-                    categoryColorFor(task.categoryId, fallback = tokens.textMuted)
-                        .copy(alpha = 0.55f),
-                ),
-        )
+        if (task.categoryId != null) {
+            Box(
+                modifier = Modifier
+                    .size(KuroSpacing.taskCategoryDot)
+                    .clip(CircleShape)
+                    .background(
+                        categoryColorFor(task.categoryId, fallback = tokens.textMuted)
+                            .copy(alpha = 0.55f),
+                    ),
+            )
+        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),

@@ -119,9 +119,11 @@ private fun QuickStartContent(context: Context, state: QuickStartWidgetState) {
                 Text(
                     text = state.subtitle,
                     style = WidgetTheme.body,
-                    maxLines = 1,
+                    maxLines = 2,
                 )
-                Spacer(modifier = GlanceModifier.height(10.dp))
+                // Push the CTA to the bottom of the card so the content spans
+                // the full height instead of clustering at the top.
+                Spacer(modifier = GlanceModifier.defaultWeight())
                 StartFocusButton(
                     label = state.actionLabel,
                     onClick = openAction,
@@ -136,7 +138,7 @@ private fun StartFocusButton(label: String, onClick: androidx.glance.action.Acti
     Box(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .height(42.dp)
+            .height(48.dp)
             .background(WidgetTheme.buttonFill)
             .cornerRadius(34.dp)
             .clickable(onClick),
