@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -58,6 +57,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -65,6 +65,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.model.FocusTask
@@ -97,7 +98,8 @@ fun HomeTimerScreen(
     isRunning: Boolean,
     isStarted: Boolean,
     activeTask: FocusTask?,
-    continueTask: FocusTask?,
+    suggestion: HomeSuggestion,
+    suggestionFocusMinutes: Int,
     activeFocusType: FocusType = FocusType.Empty,
     greeting: HomeGreeting,
     todayMetrics: TodayFocusMetrics,
@@ -105,8 +107,6 @@ fun HomeTimerScreen(
     cycleIndex: Int,
     currentTimerState: TimerState,
     timerSettings: TimerSettings,
-    pomodoroProgress: PomodoroProgress,
-    isSoundPlaying: Boolean,
     backdropTime: LocalTime,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
@@ -114,7 +114,6 @@ fun HomeTimerScreen(
     onRequestStartFocus: () -> Unit,
     onContinueFocus: () -> Unit = {},
     onStop: () -> Unit,
-    onOpenSoundsSheet: () -> Unit,
     onOpenProfile: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
@@ -171,14 +170,23 @@ fun HomeTimerScreen(
             } else {
                 IdleHero(backdropTime = backdropTime, onRequestStartFocus = onRequestStartFocus)
             }
-            ContinueCard(
-                task = continueTask,
-                progress = pomodoroProgress,
-                onClick = onContinueFocus,
-            )
+            // While a cycle is running or paused the ActiveHero already owns the
+            // "what's happening" region, so the suggestion card would be noise —
+            // only surface it when the timer is idle.
+            if (!isStarted) {
+                SuggestionCard(
+                    suggestion = suggestion,
+                    focusMinutes = suggestionFocusMinutes,
+                    onClick = onContinueFocus,
+                )
+                // Deliberate section break between the "act now" group (hero +
+                // suggestion) and the "reflect" group (Today's Focus + quote).
+                // 8dp on top of the column's 12dp rhythm = a 20dp (lg) step,
+                // large enough to read as grouping without becoming a dead zone.
+                Spacer(Modifier.height(KuroSpacing.sm))
+            }
             TodayMetricsCard(metrics = todayMetrics)
             QuoteCard()
-            SoundChip(isPlaying = isSoundPlaying, onClick = onOpenSoundsSheet)
         }
     }
 }
@@ -316,6 +324,19 @@ private fun IdleHero(backdropTime: LocalTime, onRequestStartFocus: () -> Unit) {
     Spacer(Modifier.height(27.dp))
 }
 
+/**
+ * Reduces the laid-out height by [amount] without moving children, reclaiming
+ * the dead band left behind when a child is shifted up with a negative
+ * `offset` (offset is visual-only and doesn't shrink the reserved space).
+ */
+private fun Modifier.trimBottom(amount: Dp): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
+    val trimmed = (placeable.height - amount.roundToPx()).coerceAtLeast(0)
+    layout(placeable.width, trimmed) {
+        placeable.place(0, 0)
+    }
+}
+
 @Composable
 private fun ActiveHero(
     timerMode: TimerMode,
@@ -334,7 +355,18 @@ private fun ActiveHero(
     onStop: () -> Unit,
     autoCompleteMessage: String? = null,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    // The timer card (and tip) are pulled upward with a negative offset, which
+    // is purely visual — the Column still reserves the un-offset height, leaving
+    // an equal band of empty space beneath the visible content before the next
+    // section. Reclaim that band so "Today's Focus" sits a normal step below the
+    // card instead of across a large gap. The band equals the last child's
+    // offset: the tip (-64) when present, otherwise the card (-72).
+    val deadSpace = if (autoCompleteMessage != null) 64.dp else 72.dp
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .trimBottom(deadSpace)
+    ) {
         HeroImage(modifier = Modifier.fillMaxWidth(), time = backdropTime)
         ActiveTimerCard(
             timerMode = timerMode,
@@ -542,36 +574,100 @@ private fun ActiveTimerCard(
     }
 }
 
+/**
+ * State-driven Home entry-point card. Renders one of three shapes:
+ *
+ *  - [HomeSuggestion.Continue]: a real task/habit focus was stopped mid-segment
+ *    and is still unfinished — offer to pick it back up, surfacing the leftover
+ *    time ("adjust before start" reminds the user the sheet lets them tweak it).
+ *  - [HomeSuggestion.Suggest]: nothing was interrupted — gently propose one
+ *    task/habit to focus on, with a quiet "rotates gently" footnote.
+ *  - [HomeSuggestion.Empty]: nothing to continue or suggest — a calm prompt to
+ *    pick a focus.
+ *
+ * The icon and identity follow the focus type (task vs habit), so the tile is
+ * never a misleading fixed glyph.
+ */
 @Composable
-private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress, onClick: () -> Unit) {
+private fun SuggestionCard(
+    suggestion: HomeSuggestion,
+    focusMinutes: Int,
+    onClick: () -> Unit,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+
+    val header: String
+    val showInterruptedDot: Boolean
+    val title: String
+    val subtitle: String
+    val focusType: FocusType
+    val emoji: String?
+
+    when (suggestion) {
+        is HomeSuggestion.Continue -> {
+            val isHabit = suggestion.focusType == FocusType.Habit
+            header = if (isHabit) "Continue your interrupted habit" else "Continue your interrupted focus"
+            showInterruptedDot = true
+            focusType = suggestion.focusType
+            val (e, t) = splitEmojiTitle(suggestion.focusType, suggestion.title)
+            emoji = e
+            title = t
+            val left = interruptedRemainingMinutes(suggestion.remainingSeconds)
+            subtitle = "Stopped with $left min left · adjust before start"
+        }
+        is HomeSuggestion.Suggest -> {
+            header = "Ready when you are"
+            showInterruptedDot = false
+            focusType = suggestion.focusType
+            val (e, t) = splitEmojiTitle(suggestion.focusType, suggestion.title)
+            emoji = e
+            title = t
+            subtitle = "Suggested for now · $focusMinutes min focus"
+        }
+        HomeSuggestion.Empty -> {
+            header = "Ready when you are"
+            showInterruptedDot = false
+            focusType = FocusType.Empty
+            emoji = null
+            title = "Choose a focus task"
+            subtitle = "A calm place to begin when you are ready."
+        }
+    }
+
     HomeCardSurface(modifier = Modifier.clickable(onClick = onClick)) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "📅", fontSize = 14.sp)
-                Spacer(Modifier.width(KuroSpacing.sm))
                 Text(
-                    text = "Continue where you left off",
+                    text = header,
                     color = tokens.textPrimary,
                     style = KuroType.labelStrong
                 )
+                if (showInterruptedDot) {
+                    Spacer(Modifier.width(KuroSpacing.sm))
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(tokens.accent)
+                    )
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CodeTile()
+                FocusTypeIcon(focusType = focusType, emojiOverride = emoji)
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = task?.title ?: "Choose a focus task",
+                        text = title,
                         color = tokens.textPrimary,
                         style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = if (task != null) progress.completedLabel else "A calm place to begin when you are ready.",
+                        text = subtitle,
                         color = tokens.textSecondary,
                         style = KuroType.bodySecondary,
                         maxLines = 1,
@@ -587,6 +683,17 @@ private fun ContinueCard(task: FocusTask?, progress: PomodoroProgress, onClick: 
             }
         }
     }
+}
+
+/**
+ * Splits a leading emoji out of a habit title (e.g. "📚 Read") so it can render
+ * inside the icon tile. Tasks/simple notes keep their whole title and use the
+ * type's vector icon instead.
+ */
+private fun splitEmojiTitle(focusType: FocusType, title: String): Pair<String?, String> {
+    if (focusType != FocusType.Habit) return null to title
+    val parts = title.split(" ", limit = 2)
+    return if (parts.size == 2) parts[0] to parts[1] else null to title
 }
 
 @Composable
@@ -637,27 +744,6 @@ private fun QuoteCard() {
             )
             SleepingCat(modifier = Modifier.size(88.dp))
         }
-    }
-}
-
-@Composable
-private fun SoundChip(isPlaying: Boolean, onClick: () -> Unit) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(KuroSpacing.xl))
-            .background(Color.White.copy(alpha = 0.58f))
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.xl))
-            .clickable(onClick = onClick)
-            .padding(horizontal = KuroSpacing.md, vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = if (isPlaying) "Sound on  ♫" else "Sound off  ♫",
-            color = tokens.textSecondary,
-            style = KuroType.labelStrong
-        )
     }
 }
 
@@ -925,24 +1011,6 @@ private fun FocusTypeIcon(
                 modifier = Modifier.size(22.dp)
             )
         }
-    }
-}
-
-@Composable
-private fun CodeTile(modifier: Modifier = Modifier) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(
-        modifier = modifier
-            .size(46.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(tokens.accentSoft),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "</>",
-            color = tokens.accent,
-            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold)
-        )
     }
 }
 

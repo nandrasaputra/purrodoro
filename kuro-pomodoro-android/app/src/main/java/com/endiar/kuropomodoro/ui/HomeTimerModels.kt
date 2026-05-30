@@ -1,13 +1,21 @@
 package com.endiar.kuropomodoro.ui
 
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.kuropomodoro.model.Habit
+import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.model.isScheduledOn
+import com.endiar.kuropomodoro.model.isSkippedOn
+import com.endiar.kuropomodoro.model.isTargetMetOn
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import kotlin.math.ceil
+import kotlin.random.Random
 
 data class HomeGreeting(
     val salutation: String,
@@ -105,6 +113,118 @@ fun pomodoroProgress(
         completedLabel = "$displayCurrent / $total Pomodoros completed"
     )
 }
+
+/**
+ * What the Home suggestion card should offer right now, when no cycle is in
+ * flight. Resolution order:
+ *
+ *  1. [Continue] — a real task/habit focus was stopped mid-segment and is still
+ *     unfinished, so we offer to pick the intention back up (with the leftover
+ *     time carried into the Start Focus sheet for the user to adjust).
+ *  2. [Suggest] — nothing was interrupted, so gently surface one active task or
+ *     due habit at a time. The pick is stable for a given [seed] (callers pass
+ *     the day's epoch-day) so the card doesn't flicker between candidates on
+ *     recomposition.
+ *  3. [Empty] — there is nothing to continue and nothing to suggest.
+ *
+ * The active-timer case is handled by the caller (the card is simply not shown
+ * while a session is running or paused), so it has no representation here.
+ */
+sealed class HomeSuggestion {
+    data class Continue(
+        val focusType: FocusType,
+        val title: String,
+        val remainingSeconds: Int,
+        val taskId: Int?,
+        val habitId: Int?,
+    ) : HomeSuggestion()
+
+    data class Suggest(
+        val focusType: FocusType,
+        val title: String,
+        val taskId: Int?,
+        val habitId: Int?,
+    ) : HomeSuggestion()
+
+    object Empty : HomeSuggestion()
+}
+
+fun homeSuggestion(
+    interrupted: InterruptedFocus?,
+    tasks: List<FocusTask>,
+    habits: List<Habit>,
+    today: LocalDate,
+    seed: Long,
+): HomeSuggestion {
+    resolveInterruptedFocus(interrupted, tasks, habits, today)?.let { return it }
+
+    val candidates = buildList {
+        sortedActiveTasks(tasks, today).forEach { task ->
+            add(HomeSuggestion.Suggest(FocusType.Task, task.title, taskId = task.id, habitId = null))
+        }
+        habits
+            .filter { it.isScheduledOn(today) && !it.isTargetMetOn(today) && !it.isSkippedOn(today) }
+            .forEach { habit ->
+                add(
+                    HomeSuggestion.Suggest(
+                        focusType = FocusType.Habit,
+                        title = "${habit.emoji} ${habit.name}",
+                        taskId = null,
+                        habitId = habit.id,
+                    )
+                )
+            }
+    }
+    if (candidates.isEmpty()) return HomeSuggestion.Empty
+    return candidates[Random(seed).nextInt(candidates.size)]
+}
+
+/**
+ * Validates a stored [InterruptedFocus] against the current task/habit data and
+ * returns a [HomeSuggestion.Continue] only when the intention is still
+ * resumable. Returns null when the time was fully consumed, the task was
+ * completed/deleted, or the habit is no longer due / already met today — in
+ * which case the caller falls through to a fresh suggestion.
+ */
+private fun resolveInterruptedFocus(
+    interrupted: InterruptedFocus?,
+    tasks: List<FocusTask>,
+    habits: List<Habit>,
+    today: LocalDate,
+): HomeSuggestion.Continue? {
+    if (interrupted == null || interrupted.remainingSeconds <= 0) return null
+    return when (interrupted.focusType) {
+        FocusType.Task -> {
+            val task = tasks.firstOrNull { it.id == interrupted.taskId && !it.completed }
+                ?: return null
+            HomeSuggestion.Continue(
+                focusType = FocusType.Task,
+                title = task.title,
+                remainingSeconds = interrupted.remainingSeconds,
+                taskId = task.id,
+                habitId = null,
+            )
+        }
+        FocusType.Habit -> {
+            val habit = habits.firstOrNull { it.id == interrupted.habitId } ?: return null
+            if (!habit.isScheduledOn(today) || habit.isTargetMetOn(today) || habit.isSkippedOn(today)) {
+                return null
+            }
+            HomeSuggestion.Continue(
+                focusType = FocusType.Habit,
+                title = "${habit.emoji} ${habit.name}",
+                remainingSeconds = interrupted.remainingSeconds,
+                taskId = null,
+                habitId = habit.id,
+            )
+        }
+        FocusType.SimpleNote, FocusType.Empty -> null
+    }
+}
+
+/** Whole-minute leftover for an interrupted focus, rounded up, never below 1. */
+fun interruptedRemainingMinutes(remainingSeconds: Int): Int =
+    ceil(remainingSeconds.coerceAtLeast(1) / 60.0).toInt().coerceAtLeast(1)
 
 private fun formatFocusMinutes(totalMinutes: Int): String {
     val safeMinutes = totalMinutes.coerceAtLeast(0)

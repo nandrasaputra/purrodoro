@@ -63,7 +63,6 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.cycleDotsState
 import com.endiar.kuropomodoro.model.glassTreatmentFor
 import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.timer.TimerNotification
@@ -77,12 +76,13 @@ import com.endiar.kuropomodoro.ui.SoundsScreen
 import com.endiar.kuropomodoro.ui.StartFocusPrefill
 import com.endiar.kuropomodoro.ui.StartFocusSheet
 import com.endiar.kuropomodoro.ui.TodoScreen
-import com.endiar.kuropomodoro.ui.continueTask
+import com.endiar.kuropomodoro.ui.HomeSuggestion
+import com.endiar.kuropomodoro.ui.homeSuggestion
+import com.endiar.kuropomodoro.ui.interruptedRemainingMinutes
 import com.endiar.kuropomodoro.ui.onboarding.OnboardingScreen
-import com.endiar.kuropomodoro.ui.homeStartTask
 import com.endiar.kuropomodoro.ui.homeGreetingFor
-import com.endiar.kuropomodoro.ui.pomodoroProgress
 import com.endiar.kuropomodoro.ui.todayFocusMetrics
+import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.progressOn
 import com.endiar.kuropomodoro.ui.components.CatBackdrop
@@ -162,7 +162,6 @@ fun KuroPomodoroApp(
 
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
     var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
-    val isSoundPlaying = playingSoundId != null
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
     var showStartFocusSheet by rememberSaveable { mutableStateOf(false) }
@@ -349,19 +348,20 @@ fun KuroPomodoroApp(
 
     val backdropTime = AppClock.now()
     val homeGreeting = homeGreetingFor(backdropTime)
-    val homeContinueTask = continueTask(activeTask, tasks)
     val homeMetrics = todayFocusMetrics(
         sessionRecords = sessionRecords,
         today = LocalDate.now()
     )
-    val homeDots = cycleDotsState(cycleItems, cycleIndex, currentTimerState, settings)
-    val homeProgressTask = runtimeState?.activeTask ?: activeTask ?: homeContinueTask
-    val homePomodoroProgress = pomodoroProgress(
-        completedFocusSessions = homeDots.completedFocusSessions,
-        totalFocusSessions = homeDots.totalFocusSessions,
-        isStarted = isStarted,
-        task = homeProgressTask,
-        settings = settings
+    // What the Home card should offer when no cycle is running: resume an
+    // interrupted task/habit, else suggest one thing to do (stable per day so
+    // the pick doesn't flicker across recompositions).
+    val today = LocalDate.now()
+    val homeSuggestion = homeSuggestion(
+        interrupted = appState.interruptedFocus,
+        tasks = tasks,
+        habits = appState.habits,
+        today = today,
+        seed = today.toEpochDay(),
     )
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
@@ -418,15 +418,14 @@ fun KuroPomodoroApp(
                         isRunning = isRunning,
                         isStarted = isStarted,
                         activeTask = activeTask,
-                        continueTask = homeContinueTask,
+                        suggestion = homeSuggestion,
+                        suggestionFocusMinutes = settings.focusMinutes,
                         greeting = homeGreeting,
                         todayMetrics = homeMetrics,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
                         currentTimerState = currentTimerState,
                         timerSettings = settings,
-                        pomodoroProgress = homePomodoroProgress,
-                        isSoundPlaying = isSoundPlaying,
                         backdropTime = backdropTime,
                         onSkip = { timerConnection.controller.skip() },
                         onEnterFocusMode = { isFocusMode = true },
@@ -448,15 +447,57 @@ fun KuroPomodoroApp(
                             showStartFocusSheet = true
                         },
                         onContinueFocus = {
-                            startFocusPrefill = homeContinueTask?.let { StartFocusPrefill.Task(it.id) }
+                            startFocusPrefill = when (val s = homeSuggestion) {
+                                is HomeSuggestion.Continue -> {
+                                    val mins = interruptedRemainingMinutes(s.remainingSeconds)
+                                    if (s.focusType == FocusType.Habit) {
+                                        s.habitId?.let { StartFocusPrefill.Habit(it, focusMinutesOverride = mins) }
+                                    } else {
+                                        s.taskId?.let { StartFocusPrefill.Task(it, focusMinutesOverride = mins) }
+                                    }
+                                }
+                                is HomeSuggestion.Suggest -> {
+                                    if (s.focusType == FocusType.Habit) {
+                                        s.habitId?.let { StartFocusPrefill.Habit(it) }
+                                    } else {
+                                        s.taskId?.let { StartFocusPrefill.Task(it) }
+                                    }
+                                }
+                                HomeSuggestion.Empty -> null
+                            }
                             showStartFocusSheet = true
                         },
                         onStop = {
+                            // Remember a mid-focus interruption (task/habit with
+                            // time left) so Home can offer to continue it; any
+                            // other stop clears stale interrupted state.
+                            val rt = runtimeState
+                            val interrupted: InterruptedFocus? = when {
+                                rt == null -> null
+                                currentItemType !is SessionItemType.Focus || remainingSeconds <= 0 -> null
+                                rt.focusType == FocusType.Task && (rt.activeTask?.id ?: 0) > 0 ->
+                                    InterruptedFocus(
+                                        focusType = FocusType.Task,
+                                        taskId = rt.activeTask?.id,
+                                        habitId = null,
+                                        title = rt.activeTask?.title ?: "",
+                                        remainingSeconds = remainingSeconds,
+                                    )
+                                rt.focusType == FocusType.Habit && rt.activeHabitId != null ->
+                                    InterruptedFocus(
+                                        focusType = FocusType.Habit,
+                                        taskId = null,
+                                        habitId = rt.activeHabitId,
+                                        title = rt.activeTask?.title ?: "",
+                                        remainingSeconds = remainingSeconds,
+                                    )
+                                else -> null
+                            }
+                            scope.launch { repo.setInterruptedFocus(interrupted) }
                             timerConnection.controller.stop()
                             isFocusMode = false
                             activeTask = null
                         },
-                        onOpenSoundsSheet = { showSoundsSheet = true },
                         onOpenProfile = { showProfile = true },
                         contentPadding = screenContentPadding,
                         activeFocusType = runtimeState?.focusType ?: FocusType.Empty,
@@ -487,6 +528,7 @@ fun KuroPomodoroApp(
                             isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
+                            scope.launch { repo.setInterruptedFocus(null) }
                             timerConnection.controller.start(request.settings, request.task, request.habitId, request.focusType)
                         },
                         habits = appState.habits,
@@ -578,6 +620,7 @@ fun KuroPomodoroApp(
                             isFocusMode = false
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
+                            scope.launch { repo.setInterruptedFocus(null) }
                             timerConnection.controller.start(settings, syntheticTask, habit.id, FocusType.Habit)
                         },
                          contentPadding = screenContentPadding,
@@ -637,6 +680,7 @@ fun KuroPomodoroApp(
                             requestNotificationPermission()
                             isFocusMode = false
                             activeTask = request.task
+                            scope.launch { repo.setInterruptedFocus(null) }
                             timerConnection.controller.start(request.settings, request.task, request.habitId, request.focusType)
                         },
                     )

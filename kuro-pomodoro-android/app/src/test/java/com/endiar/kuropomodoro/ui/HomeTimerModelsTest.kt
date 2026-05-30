@@ -1,11 +1,17 @@
 package com.endiar.kuropomodoro.ui
 
 import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.kuropomodoro.model.Habit
+import com.endiar.kuropomodoro.model.HabitLog
+import com.endiar.kuropomodoro.model.HabitLogState
+import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.model.TimerSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -172,6 +178,107 @@ class HomeTimerModelsTest {
                 settings = settings
             )
         )
+    }
+
+    @Test
+    fun homeSuggestionResumesInterruptedTaskThatIsStillOpen() {
+        val today = LocalDate.of(2026, 5, 30)
+        val tasks = listOf(FocusTask(id = 4, title = "Write product spec", minutes = 25))
+        val interrupted = InterruptedFocus(
+            focusType = FocusType.Task,
+            taskId = 4,
+            habitId = null,
+            title = "Write product spec",
+            remainingSeconds = 12 * 60,
+        )
+
+        val result = homeSuggestion(interrupted, tasks, emptyList(), today, seed = today.toEpochDay())
+
+        assertEquals(
+            HomeSuggestion.Continue(FocusType.Task, "Write product spec", 12 * 60, taskId = 4, habitId = null),
+            result
+        )
+    }
+
+    @Test
+    fun homeSuggestionIgnoresInterruptedTaskOnceCompletedAndFallsBack() {
+        val today = LocalDate.of(2026, 5, 30)
+        val tasks = listOf(
+            FocusTask(id = 4, title = "Write product spec", minutes = 25, completed = true),
+            FocusTask(id = 5, title = "Review PR", minutes = 25),
+        )
+        val interrupted = InterruptedFocus(
+            focusType = FocusType.Task,
+            taskId = 4,
+            habitId = null,
+            title = "Write product spec",
+            remainingSeconds = 12 * 60,
+        )
+
+        val result = homeSuggestion(interrupted, tasks, emptyList(), today, seed = today.toEpochDay())
+
+        // Interrupted task is done, so we fall through to suggesting the open one.
+        assertEquals(
+            HomeSuggestion.Suggest(FocusType.Task, "Review PR", taskId = 5, habitId = null),
+            result
+        )
+    }
+
+    @Test
+    fun homeSuggestionIsEmptyWhenNothingToContinueOrSuggest() {
+        val today = LocalDate.of(2026, 5, 30)
+        val tasks = listOf(FocusTask(id = 4, title = "Done", minutes = 25, completed = true))
+
+        assertEquals(
+            HomeSuggestion.Empty,
+            homeSuggestion(null, tasks, emptyList(), today, seed = today.toEpochDay())
+        )
+    }
+
+    @Test
+    fun homeSuggestionSkipsHabitAlreadyMetToday() {
+        val today = LocalDate.of(2026, 5, 30)
+        val habit = Habit(
+            id = 2,
+            name = "Read",
+            emoji = "📚",
+            colorArgb = 0xFFFFFFFF,
+            createdAt = 0L,
+            logs = mapOf(today to HabitLog(HabitLogState.Completed)),
+        )
+        val interrupted = InterruptedFocus(
+            focusType = FocusType.Habit,
+            taskId = null,
+            habitId = 2,
+            title = "📚 Read",
+            remainingSeconds = 8 * 60,
+        )
+
+        // Habit target met -> not resumable, and no other candidates.
+        assertEquals(
+            HomeSuggestion.Empty,
+            homeSuggestion(interrupted, emptyList(), listOf(habit), today, seed = today.toEpochDay())
+        )
+    }
+
+    @Test
+    fun homeSuggestionPickIsStableForSameSeed() {
+        val today = LocalDate.of(2026, 5, 30)
+        val tasks = (1..6).map { FocusTask(id = it, title = "Task $it", minutes = 25) }
+
+        val first = homeSuggestion(null, tasks, emptyList(), today, seed = 99L)
+        val second = homeSuggestion(null, tasks, emptyList(), today, seed = 99L)
+
+        assertEquals(first, second)
+        assertTrue(first is HomeSuggestion.Suggest)
+    }
+
+    @Test
+    fun interruptedRemainingMinutesRoundsUp() {
+        assertEquals(1, interruptedRemainingMinutes(1))
+        assertEquals(1, interruptedRemainingMinutes(60))
+        assertEquals(2, interruptedRemainingMinutes(61))
+        assertEquals(13, interruptedRemainingMinutes(12 * 60 + 1))
     }
 
     private fun record(
