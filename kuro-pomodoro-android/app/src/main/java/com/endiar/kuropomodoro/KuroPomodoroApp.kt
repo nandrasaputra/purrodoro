@@ -417,7 +417,12 @@ fun KuroPomodoroApp(
                         remainingSeconds = remainingSeconds,
                         isRunning = isRunning,
                         isStarted = isStarted,
-                        activeTask = activeTask,
+                        // Prefer the service-restored task so the active hero
+                        // (title + "Kuro ticks it off" tip) keeps showing the
+                        // real focus after a cold restart, when the local
+                        // rememberSaveable activeTask has been lost. Mirrors the
+                        // FocusModeOverlay below.
+                        activeTask = runtimeState?.activeTask ?: activeTask,
                         suggestion = homeSuggestion,
                         suggestionFocusMinutes = settings.focusMinutes,
                         greeting = homeGreeting,
