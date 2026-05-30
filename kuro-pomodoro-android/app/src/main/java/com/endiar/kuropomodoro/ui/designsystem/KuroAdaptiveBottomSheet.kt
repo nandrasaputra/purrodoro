@@ -257,6 +257,11 @@ fun KuroAdaptiveBottomSheet(
                         )
                         .clip(RoundedCornerShape(topStart = SheetCornerRadius, topEnd = SheetCornerRadius))
                         .background(sheetColor)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                            onClick = {},
+                        )
                         .navigationBarsPadding()
                         .onSizeChanged { size ->
                             naturalTotalHeightPx = size.height
