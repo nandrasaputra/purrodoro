@@ -96,15 +96,18 @@ sealed class StartFocusPrefill {
      * time into the confirmation sheet, where the user can still adjust it.
      */
     abstract val focusMinutesOverride: Int?
+    abstract val focusSessionsOverride: Int?
 
     data class Task(
         val taskId: Int,
         override val focusMinutesOverride: Int? = null,
+        override val focusSessionsOverride: Int? = null,
     ) : StartFocusPrefill()
 
     data class Habit(
         val habitId: Int,
         override val focusMinutesOverride: Int? = null,
+        override val focusSessionsOverride: Int? = null,
     ) : StartFocusPrefill()
 }
 
@@ -136,10 +139,13 @@ fun StartFocusSheet(
     // session). Seed the per-session settings with it so the confirmation card
     // shows the adjusted time up front; the user can still edit it from there.
     val initialSettings = remember(settings, prefill) {
-        prefill?.focusMinutesOverride
+        val withFocusMinutes = prefill?.focusMinutesOverride
             ?.coerceIn(1, 120)
             ?.let { settings.copy(focusMinutes = it) }
             ?: settings
+        prefill?.focusSessionsOverride
+            ?.let { withFocusMinutes.updateCycleSize(it) }
+            ?: withFocusMinutes
     }
 
     var page by rememberSaveable { mutableStateOf(StartFocusSheetPage.Confirm) }

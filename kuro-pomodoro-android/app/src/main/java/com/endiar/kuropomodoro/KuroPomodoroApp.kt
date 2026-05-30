@@ -79,6 +79,7 @@ import com.endiar.kuropomodoro.ui.TodoScreen
 import com.endiar.kuropomodoro.ui.HomeSuggestion
 import com.endiar.kuropomodoro.ui.homeSuggestion
 import com.endiar.kuropomodoro.ui.interruptedRemainingMinutes
+import com.endiar.kuropomodoro.ui.remainingFocusSessionsAfterCurrent
 import com.endiar.kuropomodoro.ui.onboarding.OnboardingScreen
 import com.endiar.kuropomodoro.ui.homeGreetingFor
 import com.endiar.kuropomodoro.ui.todayFocusMetrics
@@ -454,11 +455,29 @@ fun KuroPomodoroApp(
                         onContinueFocus = {
                             startFocusPrefill = when (val s = homeSuggestion) {
                                 is HomeSuggestion.Continue -> {
-                                    val mins = interruptedRemainingMinutes(s.remainingSeconds)
-                                    if (s.focusType == FocusType.Habit) {
-                                        s.habitId?.let { StartFocusPrefill.Habit(it, focusMinutesOverride = mins) }
+                                    val mins = if (s.remainingSeconds > 0) {
+                                        interruptedRemainingMinutes(s.remainingSeconds)
                                     } else {
-                                        s.taskId?.let { StartFocusPrefill.Task(it, focusMinutesOverride = mins) }
+                                        s.focusMinutes ?: settings.focusMinutes
+                                    }
+                                    val sessions = s.remainingFocusSessions
+                                        .takeIf { s.remainingSeconds <= 0 && it > 0 }
+                                    if (s.focusType == FocusType.Habit) {
+                                        s.habitId?.let {
+                                            StartFocusPrefill.Habit(
+                                                habitId = it,
+                                                focusMinutesOverride = mins,
+                                                focusSessionsOverride = sessions,
+                                            )
+                                        }
+                                    } else {
+                                        s.taskId?.let {
+                                            StartFocusPrefill.Task(
+                                                taskId = it,
+                                                focusMinutesOverride = mins,
+                                                focusSessionsOverride = sessions,
+                                            )
+                                        }
                                     }
                                 }
                                 is HomeSuggestion.Suggest -> {
@@ -473,29 +492,65 @@ fun KuroPomodoroApp(
                             showStartFocusSheet = true
                         },
                         onStop = {
-                            // Remember a mid-focus interruption (task/habit with
-                            // time left) so Home can offer to continue it; any
-                            // other stop clears stale interrupted state.
+                            // Remember unfinished task/habit focus so Home can
+                            // offer to continue it. Mid-focus stops preserve the
+                            // leftover minutes; break stops preserve the number
+                            // of future focus sessions in the block.
                             val rt = runtimeState
+                            val futureFocusSessions = rt?.session?.let {
+                                remainingFocusSessionsAfterCurrent(it.items, it.currentIndex)
+                            } ?: 0
+                            val activeFocusMinutes = rt?.session?.items
+                                ?.mapNotNull { (it.type as? SessionItemType.Focus)?.seconds }
+                                ?.firstOrNull()
+                                ?.let { (it + 59) / 60 }
+                                ?: settings.focusMinutes
                             val interrupted: InterruptedFocus? = when {
                                 rt == null -> null
-                                currentItemType !is SessionItemType.Focus || remainingSeconds <= 0 -> null
                                 rt.focusType == FocusType.Task && (rt.activeTask?.id ?: 0) > 0 ->
-                                    InterruptedFocus(
-                                        focusType = FocusType.Task,
-                                        taskId = rt.activeTask?.id,
-                                        habitId = null,
-                                        title = rt.activeTask?.title ?: "",
-                                        remainingSeconds = remainingSeconds,
-                                    )
+                                    when {
+                                        currentItemType is SessionItemType.Focus && remainingSeconds > 0 ->
+                                            InterruptedFocus(
+                                                focusType = FocusType.Task,
+                                                taskId = rt.activeTask?.id,
+                                                habitId = null,
+                                                title = rt.activeTask?.title ?: "",
+                                                remainingSeconds = remainingSeconds,
+                                            )
+                                        currentItemType !is SessionItemType.Focus && futureFocusSessions > 0 ->
+                                            InterruptedFocus(
+                                                focusType = FocusType.Task,
+                                                taskId = rt.activeTask?.id,
+                                                habitId = null,
+                                                title = rt.activeTask?.title ?: "",
+                                                remainingSeconds = 0,
+                                                remainingFocusSessions = futureFocusSessions,
+                                                focusMinutes = activeFocusMinutes,
+                                            )
+                                        else -> null
+                                    }
                                 rt.focusType == FocusType.Habit && rt.activeHabitId != null ->
-                                    InterruptedFocus(
-                                        focusType = FocusType.Habit,
-                                        taskId = null,
-                                        habitId = rt.activeHabitId,
-                                        title = rt.activeTask?.title ?: "",
-                                        remainingSeconds = remainingSeconds,
-                                    )
+                                    when {
+                                        currentItemType is SessionItemType.Focus && remainingSeconds > 0 ->
+                                            InterruptedFocus(
+                                                focusType = FocusType.Habit,
+                                                taskId = null,
+                                                habitId = rt.activeHabitId,
+                                                title = rt.activeTask?.title ?: "",
+                                                remainingSeconds = remainingSeconds,
+                                            )
+                                        currentItemType !is SessionItemType.Focus && futureFocusSessions > 0 ->
+                                            InterruptedFocus(
+                                                focusType = FocusType.Habit,
+                                                taskId = null,
+                                                habitId = rt.activeHabitId,
+                                                title = rt.activeTask?.title ?: "",
+                                                remainingSeconds = 0,
+                                                remainingFocusSessions = futureFocusSessions,
+                                                focusMinutes = activeFocusMinutes,
+                                            )
+                                        else -> null
+                                    }
                                 else -> null
                             }
                             scope.launch { repo.setInterruptedFocus(interrupted) }

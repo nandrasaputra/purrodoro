@@ -22,6 +22,37 @@ class InterruptedFocusEncodingTest {
     }
 
     @Test
+    fun roundTripsRemainingFocusBlock() {
+        val value = InterruptedFocus(
+            focusType = FocusType.Task,
+            taskId = 7,
+            habitId = null,
+            title = "Write product spec",
+            remainingSeconds = 0,
+            remainingFocusSessions = 2,
+            focusMinutes = 25,
+        )
+
+        assertEquals(value, decodeInterruptedFocus(encodeInterruptedFocus(value)))
+    }
+
+    @Test
+    fun decodesLegacyInterruptedFocusWithoutBlockFields() {
+        val raw = "Task|7||Write+product+spec|720"
+
+        assertEquals(
+            InterruptedFocus(
+                focusType = FocusType.Task,
+                taskId = 7,
+                habitId = null,
+                title = "Write product spec",
+                remainingSeconds = 720,
+            ),
+            decodeInterruptedFocus(raw)
+        )
+    }
+
+    @Test
     fun roundTripsHabitInterruption() {
         val value = InterruptedFocus(
             focusType = FocusType.Habit,

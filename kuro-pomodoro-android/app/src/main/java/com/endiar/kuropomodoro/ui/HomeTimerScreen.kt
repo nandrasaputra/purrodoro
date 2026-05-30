@@ -613,9 +613,16 @@ private fun SuggestionCard(
             val (e, t) = splitEmojiTitle(suggestion.focusType, suggestion.title)
             emoji = e
             title = t
-            val left = interruptedRemainingMinutes(suggestion.remainingSeconds)
-            subtitle = null
-            trailingPill = "$left min left"
+            if (suggestion.remainingSeconds > 0) {
+                val left = interruptedRemainingMinutes(suggestion.remainingSeconds)
+                subtitle = null
+                trailingPill = "$left min left"
+            } else {
+                val sessions = suggestion.remainingFocusSessions.coerceAtLeast(1)
+                val totalMinutes = sessions * (suggestion.focusMinutes ?: focusMinutes).coerceAtLeast(1)
+                subtitle = "${formatResumeMinutes(totalMinutes)} left"
+                trailingPill = "$sessions ${if (sessions == 1) "session" else "sessions"}"
+            }
         }
         is HomeSuggestion.Suggest -> {
             header = "Ready when you are"
@@ -714,6 +721,17 @@ private fun splitEmojiTitle(focusType: FocusType, title: String): Pair<String?, 
     if (focusType != FocusType.Habit) return null to title
     val parts = title.split(" ", limit = 2)
     return if (parts.size == 2) parts[0] to parts[1] else null to title
+}
+
+private fun formatResumeMinutes(totalMinutes: Int): String {
+    val safeMinutes = totalMinutes.coerceAtLeast(1)
+    val hours = safeMinutes / 60
+    val minutes = safeMinutes % 60
+    return when {
+        hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
+        hours > 0 -> "${hours}h"
+        else -> "$minutes min"
+    }
 }
 
 @Composable
