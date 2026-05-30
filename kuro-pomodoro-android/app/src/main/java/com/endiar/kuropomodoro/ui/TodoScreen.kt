@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,24 +16,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.composables.icons.lucide.CalendarDays
+import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Flag
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.Plus
+import com.composables.icons.lucide.SquarePen
+import com.composables.icons.lucide.Trash2
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +68,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.R
@@ -84,10 +84,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
+import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheetSubpageHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroCompletedTaskRow
 import com.endiar.kuropomodoro.ui.designsystem.KuroInputField
-import com.endiar.kuropomodoro.ui.designsystem.KuroPill
-import com.endiar.kuropomodoro.ui.designsystem.KuroPillKind
 import com.endiar.kuropomodoro.ui.designsystem.KuroScreenScaffold
 import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroSegmentedControl
@@ -167,7 +166,7 @@ fun TodoScreen(
     var addCategorySheetVisible by rememberSaveable { mutableStateOf(false) }
     var renameCategoryTarget by remember { mutableStateOf<Category?>(null) }
     var deleteAllCompletedVisible by rememberSaveable { mutableStateOf(false) }
-    var categoryDropdownOpen by remember { mutableStateOf(false) }
+    var categoryFilterSheetVisible by rememberSaveable { mutableStateOf(false) }
     // Shown when the user tries to start a focus on a non-live task while
     // another Pomodoro is already running or paused.
     var focusBusyDialogVisible by remember { mutableStateOf(false) }
@@ -229,7 +228,14 @@ fun TodoScreen(
                 .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
         ) {
-            Box(headerMeasureModifier) { TasksScreenHeader() }
+            Box(headerMeasureModifier) {
+                TasksScreenHeader(
+                    onAdd = {
+                        addTaskSheetCategoryId = selectedCategoryId
+                        addTaskSheetVisible = true
+                    },
+                )
+            }
 
             FilterBar(
                 statusOptions = listOf(
@@ -239,27 +245,8 @@ fun TodoScreen(
                 ),
                 selectedStatus = selectedTaskFilter,
                 onSelectStatus = { selectedTaskFilter = it },
-                categories = categories,
-                selectedCategoryId = selectedCategoryId,
-                dropdownOpen = categoryDropdownOpen,
-                onOpenDropdown = { categoryDropdownOpen = true },
-                onCloseDropdown = { categoryDropdownOpen = false },
-                onSelectCategory = {
-                    onCategorySelected(it)
-                    categoryDropdownOpen = false
-                },
-                onManageCategories = {
-                    categoryDropdownOpen = false
-                    addCategorySheetVisible = true
-                },
-                onRenameCategoryFromDropdown = {
-                    categoryDropdownOpen = false
-                    renameCategoryTarget = it
-                },
-                onDeleteCategoryFromDropdown = {
-                    categoryDropdownOpen = false
-                    deleteCategoryTarget = it
-                },
+                selectedCategory = categories.firstOrNull { it.id == selectedCategoryId },
+                onOpenCategorySheet = { categoryFilterSheetVisible = true },
             )
 
             nextFocus?.let { hero ->
@@ -341,19 +328,6 @@ fun TodoScreen(
             }
         }
 
-        TasksFab(
-            onClick = {
-                addTaskSheetCategoryId = selectedCategoryId
-                addTaskSheetVisible = true
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = KuroSpacing.lg)
-                // Sit above the bottom dock; matches the dockClearance used
-                // elsewhere as the "safe area above the dock".
-                .padding(bottom = KuroSpacing.dockClearance + KuroSpacing.sm)
-                .padding(contentPadding),
-        )
     }
 
     if (addTaskSheetVisible) {
@@ -522,43 +496,67 @@ fun TodoScreen(
             }
         )
     }
+
+    if (categoryFilterSheetVisible) {
+        CategoryFilterSheet(
+            categories = categories,
+            selectedCategoryId = selectedCategoryId,
+            allCount = tasks.size,
+            countFor = { id -> tasks.count { it.categoryId == id } },
+            onSelectCategory = {
+                onCategorySelected(it)
+                categoryFilterSheetVisible = false
+            },
+            onAddCategory = {
+                categoryFilterSheetVisible = false
+                addCategorySheetVisible = true
+            },
+            onRenameCategory = {
+                categoryFilterSheetVisible = false
+                renameCategoryTarget = it
+            },
+            onDeleteCategory = {
+                categoryFilterSheetVisible = false
+                deleteCategoryTarget = it
+            },
+            onDismiss = { categoryFilterSheetVisible = false },
+        )
+    }
 }
 
 // ─── Header ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun TasksScreenHeader() {
+private fun TasksScreenHeader(
+    onAdd: () -> Unit,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+        // Title only — no leading mascot glyph, matching the shared top-bar
+        // pattern (see HabitsScreen). The sticky bar shown on scroll already
+        // echoes this title.
+        Text(
+            text = "Tasks",
+            color = tokens.textPrimary,
+            style = KuroType.headingDisplay,
+        )
+        // Primary add action lives top-right (replacing the old bottom FAB),
+        // consistent with the Habits header's add button.
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.xxxl + KuroSpacing.sm)
+                .clip(CircleShape)
+                .background(tokens.accent)
+                .clickable(onClick = onAdd)
+                .semantics { role = Role.Button; contentDescription = "Add task" },
+            contentAlignment = Alignment.Center,
         ) {
-            // Small mascot anchors Tasks to the Kuro brand: this is the same
-            // visual cue used in Onboarding / Profile, scaled down to read as
-            // a screen-title glyph rather than illustration.
-            Image(
-                painter = painterResource(id = R.drawable.cat_face),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape),
-            )
-            Text(
-                text = "Tasks",
-                color = tokens.textPrimary,
-                style = KuroType.headingDisplay,
-            )
+            Text(text = "+", color = tokens.accentOn, style = KuroType.fabGlyph)
         }
-        // Reserved spot for future overflow actions (sort / search / archive).
-        // We keep the affordance even though the menu isn't wired yet, so the
-        // screen's chrome lands at its final shape.
-        Spacer(Modifier.width(KuroSpacing.xxxl))
     }
 }
 
@@ -575,15 +573,8 @@ private fun FilterBar(
     statusOptions: List<StatusFilterOption>,
     selectedStatus: TaskUiFilter,
     onSelectStatus: (TaskUiFilter) -> Unit,
-    categories: List<Category>,
-    selectedCategoryId: Int?,
-    dropdownOpen: Boolean,
-    onOpenDropdown: () -> Unit,
-    onCloseDropdown: () -> Unit,
-    onSelectCategory: (Int?) -> Unit,
-    onManageCategories: () -> Unit,
-    onRenameCategoryFromDropdown: (Category) -> Unit,
-    onDeleteCategoryFromDropdown: (Category) -> Unit,
+    selectedCategory: Category?,
+    onOpenCategorySheet: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -598,125 +589,322 @@ private fun FilterBar(
             modifier = Modifier.weight(1f),
         )
 
-        CategoryDropdownPill(
-            selectedCategory = categories.firstOrNull { it.id == selectedCategoryId },
-            categories = categories,
-            isOpen = dropdownOpen,
-            onOpen = onOpenDropdown,
-            onClose = onCloseDropdown,
-            onSelectCategory = onSelectCategory,
-            onManageCategories = onManageCategories,
-            onRenameCategory = onRenameCategoryFromDropdown,
-            onDeleteCategory = onDeleteCategoryFromDropdown,
+        CategoryFilterPill(
+            selectedCategory = selectedCategory,
+            onClick = onOpenCategorySheet,
         )
     }
 }
 
+/**
+ * Pill that opens the category filter bottom sheet. Mirrors the previous
+ * dropdown trigger (color dot + name/"All" + caret) but now routes to the
+ * full-surface sheet picker instead of a cramped popover menu.
+ */
 @Composable
-private fun CategoryDropdownPill(
+private fun CategoryFilterPill(
     selectedCategory: Category?,
-    categories: List<Category>,
-    isOpen: Boolean,
-    onOpen: () -> Unit,
-    onClose: () -> Unit,
-    onSelectCategory: (Int?) -> Unit,
-    onManageCategories: () -> Unit,
-    onRenameCategory: (Category) -> Unit,
-    onDeleteCategory: (Category) -> Unit,
+    onClick: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(KuroSpacing.radiusPill))
-                .background(tokens.cardFill)
-                .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
-                .clickable(onClick = onOpen)
-                .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm)
-                .semantics { contentDescription = "Filter by category" },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
-        ) {
-            // Color preview only when a real category is selected; "All" stays
-            // text-only so it's clearly the broadest scope.
-            if (selectedCategory != null) {
-                Box(
-                    modifier = Modifier
-                        .size(KuroSpacing.taskCategoryDot)
-                        .clip(CircleShape)
-                        .background(categoryColorFor(selectedCategory.id, tokens.textMuted)),
-                )
-            }
-            Text(
-                text = selectedCategory?.name ?: "All",
-                color = tokens.textPrimary,
-                style = KuroType.labelStrong,
-            )
-            Text(
-                text = "▾",
-                color = tokens.textSecondary,
-                style = KuroType.labelMeta,
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
+            .clickable(onClick = onClick)
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm)
+            .semantics { role = Role.Button; contentDescription = "Filter by category" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+    ) {
+        // Color preview only when a real category is selected; "All" stays
+        // text-only so it's clearly the broadest scope.
+        if (selectedCategory != null) {
+            Box(
+                modifier = Modifier
+                    .size(KuroSpacing.taskCategoryDot)
+                    .clip(CircleShape)
+                    .background(categoryColorFor(selectedCategory.id, tokens.textMuted)),
             )
         }
+        Text(
+            text = selectedCategory?.name ?: "All",
+            color = tokens.textPrimary,
+            style = KuroType.labelStrong,
+        )
+        Text(
+            text = "▾",
+            color = tokens.textSecondary,
+            style = KuroType.labelMeta,
+        )
+    }
+}
 
-        DropdownMenu(
-            expanded = isOpen,
-            onDismissRequest = onClose,
-        ) {
-            DropdownMenuItem(
-                text = { Text("All", style = KuroType.bodyPrimary) },
-                onClick = { onSelectCategory(null) },
-            )
-            categories.forEach { category ->
-                DropdownMenuItem(
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(KuroSpacing.taskCategoryDot)
-                                    .clip(CircleShape)
-                                    .background(categoryColorFor(category.id, tokens.textMuted)),
-                            )
-                            Text(category.name, style = KuroType.bodyPrimary)
-                        }
-                    },
-                    onClick = { onSelectCategory(category.id) },
-                    trailingIcon = {
-                        Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
-                            Text(
-                                "Rename",
-                                color = tokens.textSecondary,
-                                style = KuroType.labelMeta,
-                                modifier = Modifier
-                                    .clickable { onRenameCategory(category) }
-                                    .padding(KuroSpacing.xs),
-                            )
-                            Text(
-                                "Delete",
-                                color = tokens.destructive,
-                                style = KuroType.labelMeta,
-                                modifier = Modifier
-                                    .clickable { onDeleteCategory(category) }
-                                    .padding(KuroSpacing.xs),
-                            )
-                        }
-                    },
-                )
-            }
-            DropdownMenuItem(
-                text = {
+// ─── Category filter sheet (Variation 1) ───────────────────────────────────
+
+private enum class CategoryFilterPage { Filter, Manage }
+
+/**
+ * Bottom-sheet category filter.
+ *
+ * Replaces the old floating dropdown that crammed filtering, selecting,
+ * renaming, deleting and adding into a tiny popover. Splits into two pages on
+ * one branded surface:
+ *  - Filter: pick "All categories" or a specific category (color dot + task
+ *    count, selected row highlighted with a check). A "Manage categories"
+ *    button routes to the second page.
+ *  - Manage: rename / delete each category and add new ones. These actions
+ *    open their own sheet/dialog, so the filter sheet dismisses first to avoid
+ *    stacking surfaces.
+ */
+@Composable
+private fun CategoryFilterSheet(
+    categories: List<Category>,
+    selectedCategoryId: Int?,
+    allCount: Int,
+    countFor: (Int) -> Int,
+    onSelectCategory: (Int?) -> Unit,
+    onAddCategory: () -> Unit,
+    onRenameCategory: (Category) -> Unit,
+    onDeleteCategory: (Category) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    var page by rememberSaveable { mutableStateOf(CategoryFilterPage.Filter) }
+
+    KuroBottomSheet(title = null, onDismiss = onDismiss, contentKey = page) {
+        when (page) {
+            CategoryFilterPage.Filter -> {
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
                     Text(
-                        "+ New category",
-                        color = tokens.accent,
-                        style = KuroType.labelStrong,
+                        text = "Filter by category",
+                        color = tokens.textPrimary,
+                        style = KuroType.headingCard,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                },
-                onClick = onManageCategories,
+
+                    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                        CategoryFilterRow(
+                            selected = selectedCategoryId == null,
+                            dotColor = tokens.textMuted,
+                            hollow = true,
+                            label = "All categories",
+                            count = allCount,
+                            onClick = { onSelectCategory(null) },
+                        )
+                        categories.forEach { category ->
+                            CategoryFilterRow(
+                                selected = selectedCategoryId == category.id,
+                                dotColor = categoryColorFor(category.id, tokens.textMuted),
+                                hollow = false,
+                                label = category.name,
+                                count = countFor(category.id),
+                                onClick = { onSelectCategory(category.id) },
+                            )
+                        }
+                    }
+
+                    // Secondary, navigational treatment (not coral): coral is
+                    // reserved for primary forward actions (Start / Add), and
+                    // this just routes to a management sub-page.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                            .background(tokens.cardFill)
+                            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
+                            .clickable { page = CategoryFilterPage.Manage }
+                            .semantics { role = Role.Button; contentDescription = "Manage categories" }
+                            .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = "Manage categories",
+                            color = tokens.textPrimary,
+                            style = KuroType.labelStrong,
+                        )
+                        Spacer(Modifier.width(KuroSpacing.xs))
+                        Icon(
+                            imageVector = Lucide.ChevronRight,
+                            contentDescription = null,
+                            tint = tokens.textMuted,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+
+            CategoryFilterPage.Manage -> {
+                KuroBottomSheetSubpageHeader(
+                    title = "Manage categories",
+                    onBack = { page = CategoryFilterPage.Filter },
+                    actionLabel = "Done",
+                    onAction = { page = CategoryFilterPage.Filter },
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                    if (categories.isEmpty()) {
+                        Text(
+                            text = "No categories yet. Add one to group your tasks.",
+                            color = tokens.textSecondary,
+                            style = KuroType.bodySecondary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = KuroSpacing.sm),
+                        )
+                    }
+                    categories.forEach { category ->
+                        ManageCategoryRow(
+                            category = category,
+                            onRename = { onRenameCategory(category) },
+                            onDelete = { onDeleteCategory(category) },
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                            .clickable(onClick = onAddCategory)
+                            .semantics { role = Role.Button; contentDescription = "New category" }
+                            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+                    ) {
+                        Icon(
+                            imageVector = Lucide.Plus,
+                            contentDescription = null,
+                            tint = tokens.accent,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            text = "New category",
+                            color = tokens.accent,
+                            style = KuroType.labelStrong,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Selectable category row for the filter page: dot, name, task count, check. */
+@Composable
+private fun CategoryFilterRow(
+    selected: Boolean,
+    dotColor: Color,
+    hollow: Boolean,
+    label: String,
+    count: Int,
+    onClick: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(if (selected) tokens.accentSoft else tokens.cardFill)
+            .border(
+                1.dp,
+                if (selected) tokens.accent.copy(alpha = 0.35f) else tokens.cardBorder,
+                RoundedCornerShape(KuroSpacing.radiusMd),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        CategoryDot(color = dotColor, hollow = hollow)
+        Text(
+            text = label,
+            style = KuroType.bodyPrimary,
+            color = tokens.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = count.toString(),
+            style = KuroType.labelMeta,
+            color = tokens.textMuted,
+        )
+        if (selected) {
+            Icon(
+                imageVector = Lucide.Check,
+                contentDescription = null,
+                tint = tokens.accent,
+                modifier = Modifier.size(18.dp),
             )
         }
+    }
+}
+
+/** Manage-page row: color dot, name, and Rename / Delete text actions. */
+@Composable
+private fun ManageCategoryRow(
+    category: Category,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        CategoryDot(
+            color = categoryColorFor(category.id, tokens.textMuted),
+            hollow = false,
+        )
+        Text(
+            text = category.name,
+            style = KuroType.bodyPrimary,
+            color = tokens.textPrimary,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        CategoryActionIcon(
+            icon = Lucide.SquarePen,
+            tint = tokens.textSecondary,
+            contentDescription = "Rename ${category.name}",
+            onClick = onRename,
+        )
+        CategoryActionIcon(
+            icon = Lucide.Trash2,
+            tint = tokens.destructive,
+            contentDescription = "Delete ${category.name}",
+            onClick = onDelete,
+        )
+    }
+}
+
+/** Round, tappable icon button used for the per-category manage actions. */
+@Composable
+private fun CategoryActionIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(KuroSpacing.xxl)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button; this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 
@@ -759,6 +947,19 @@ private fun DoneSectionHeader(
     }
 }
 
+// ─── Task sheet pages ──────────────────────────────────────────────────────
+
+/**
+ * Sub-pages shared by the add-task and task-detail bottom sheets. The main
+ * page hosts the task properties; tapping the Category or Priority row swaps
+ * the sheet content to the matching picker (see [KuroAdaptiveBottomSheet]'s
+ * `contentKey` animation), keeping everything on one bottom-sheet surface.
+ */
+private enum class TaskSheetPage { Main, CategoryPicker, PriorityPicker }
+
+/** Max length for a task title, enforced on both the add and edit fields. */
+private const val TaskTitleMaxLength = 50
+
 // ─── Add task bottom sheet ─────────────────────────────────────────────────
 
 /**
@@ -792,6 +993,7 @@ private fun AddTaskSheet(
     var priority by rememberSaveable { mutableStateOf(TaskPriority.Normal) }
     var dueDate by rememberSaveable(stateSaver = LocalDateSaver) { mutableStateOf<LocalDate?>(null) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var page by rememberSaveable { mutableStateOf(TaskSheetPage.Main) }
 
     val titleFocusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { titleFocusRequester.requestFocus() }
@@ -804,34 +1006,63 @@ private fun AddTaskSheet(
         }
     }
 
-    KuroBottomSheet(title = null, onDismiss = onDismiss) {
-        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
-            AddTaskSheetHeader(onClose = onDismiss)
+    KuroBottomSheet(title = null, onDismiss = onDismiss, contentKey = page) {
+        when (page) {
+            TaskSheetPage.Main -> {
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
+                    AddTaskSheetHeader(onClose = onDismiss)
 
-            AddTaskTitleField(
-                title = title,
-                onTitleChange = { title = it },
-                focusRequester = titleFocusRequester,
-                onSubmitIme = { if (canSubmit) submit() },
-            )
+                    AddTaskTitleField(
+                        title = title,
+                        onTitleChange = { title = it.take(TaskTitleMaxLength) },
+                        focusRequester = titleFocusRequester,
+                        onSubmitIme = { if (canSubmit) submit() },
+                    )
 
-            AddTaskCategorySection(
-                categories = categories,
-                selectedId = categoryId,
-                onSelect = { categoryId = it },
-                onAddCategory = onAddCategory,
-            )
+                    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                        CategoryListRow(
+                            categories = categories,
+                            selectedId = categoryId,
+                            onClick = { page = TaskSheetPage.CategoryPicker },
+                        )
+                        PriorityListRow(
+                            selected = priority,
+                            onClick = { page = TaskSheetPage.PriorityPicker },
+                        )
+                        DueDateListRow(
+                            dueDate = dueDate,
+                            onPick = { showDatePicker = true },
+                            onClear = { dueDate = null },
+                        )
+                    }
 
-            Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
-                PriorityListRow(selected = priority, onSelect = { priority = it })
-                DueDateListRow(
-                    dueDate = dueDate,
-                    onPick = { showDatePicker = true },
-                    onClear = { dueDate = null },
+                    AddTaskPrimaryButton(enabled = canSubmit, onClick = submit)
+                }
+            }
+
+            TaskSheetPage.CategoryPicker -> {
+                CategoryPickerPage(
+                    categories = categories,
+                    selectedId = categoryId,
+                    onSelect = {
+                        categoryId = it
+                        page = TaskSheetPage.Main
+                    },
+                    onAddCategory = onAddCategory,
+                    onBack = { page = TaskSheetPage.Main },
                 )
             }
 
-            AddTaskPrimaryButton(enabled = canSubmit, onClick = submit)
+            TaskSheetPage.PriorityPicker -> {
+                PriorityPickerPage(
+                    selected = priority,
+                    onSelect = {
+                        priority = it
+                        page = TaskSheetPage.Main
+                    },
+                    onBack = { page = TaskSheetPage.Main },
+                )
+            }
         }
     }
 
@@ -883,11 +1114,22 @@ private fun AddTaskTitleField(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
-        Text(
-            text = "What will you focus on?",
-            color = tokens.textSecondary,
-            style = KuroType.labelMeta,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "What will you focus on?",
+                color = tokens.textSecondary,
+                style = KuroType.labelMeta,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = "${title.length}/$TaskTitleMaxLength",
+                color = if (title.length >= TaskTitleMaxLength) tokens.accent else tokens.textMuted,
+                style = KuroType.labelMeta,
+            )
+        }
         KuroInputField(
             value = title,
             onValueChange = onTitleChange,
@@ -895,47 +1137,10 @@ private fun AddTaskTitleField(
             modifier = Modifier.focusRequester(focusRequester),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onSubmitIme() }),
+            // Let long titles wrap onto multiple lines instead of scrolling
+            // horizontally. ImeAction.Done still submits (no newline inserted).
+            singleLine = false,
         )
-    }
-}
-
-@Composable
-private fun AddTaskCategorySection(
-    categories: List<Category>,
-    selectedId: Int?,
-    onSelect: (Int?) -> Unit,
-    onAddCategory: () -> Unit,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
-        Text(
-            text = "Category",
-            color = tokens.textSecondary,
-            style = KuroType.labelMeta,
-        )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-        ) {
-            AddCategoryChoice(
-                label = "None",
-                selected = selectedId == null,
-                onClick = { onSelect(null) },
-            )
-            categories.forEach { category ->
-                AddCategoryChoice(
-                    label = category.name,
-                    selected = selectedId == category.id,
-                    onClick = { onSelect(category.id) },
-                )
-            }
-            AddCategoryChoice(
-                label = "+ New",
-                selected = false,
-                onClick = onAddCategory,
-                accent = true,
-            )
-        }
     }
 }
 
@@ -976,26 +1181,6 @@ private fun AddTaskPrimaryButton(enabled: Boolean, onClick: () -> Unit) {
             color = contentColor,
             style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold),
         )
-    }
-}
-
-@Composable
-private fun AddCategoryChoice(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    accent: Boolean = false,
-) {
-    // The "+ New" entry uses the same accentSoft / accent treatment as Selected:
-    // semantically it's an action chip, but styling matches Selected for visual
-    // consistency with the rest of the strip.
-    val kind = when {
-        accent -> KuroPillKind.Selected
-        selected -> KuroPillKind.Selected
-        else -> KuroPillKind.Default
-    }
-    Box(modifier = Modifier.clickable(onClick = onClick)) {
-        KuroPill(label = label, kind = kind)
     }
 }
 
@@ -1206,19 +1391,24 @@ private fun TaskDetailSheet(
     var categoryId by rememberSaveable { mutableStateOf(task.categoryId) }
     var editingTitle by rememberSaveable { mutableStateOf(false) }
     var priority by rememberSaveable(task.id) { mutableStateOf(task.priority) }
+    var completed by rememberSaveable(task.id) { mutableStateOf(task.completed) }
     var dueDate by rememberSaveable(task.id, stateSaver = LocalDateSaver) {
         mutableStateOf(task.dueDate)
     }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var page by rememberSaveable { mutableStateOf(TaskSheetPage.Main) }
 
     // Auto-save on dismiss: empty title falls back to the previous value rather
     // than committing whitespace. Only persist when something actually changed
-    // so we don't churn DataStore for a read-only open.
+    // so we don't churn DataStore for a read-only open. `completed` is part of
+    // the diff so the in-sheet "mark done" toggle is committed on close instead
+    // of being clobbered by a stale copy of the task.
     val saveAndDismiss = {
         val trimmed = title.trim().ifEmpty { task.title }
         val changed = trimmed != task.title ||
             categoryId != task.categoryId ||
             priority != task.priority ||
+            completed != task.completed ||
             dueDate != task.dueDate
         if (changed) {
             onUpdate(
@@ -1226,6 +1416,7 @@ private fun TaskDetailSheet(
                     title = trimmed,
                     categoryId = categoryId,
                     priority = priority,
+                    completed = completed,
                     dueDate = dueDate,
                 )
             )
@@ -1233,74 +1424,105 @@ private fun TaskDetailSheet(
         onDismiss()
     }
 
-    KuroBottomSheet(title = null, onDismiss = saveAndDismiss) {
-        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
-            DetailSheetHeader(onClose = saveAndDismiss)
+    KuroBottomSheet(title = null, onDismiss = saveAndDismiss, contentKey = page) {
+        when (page) {
+            TaskSheetPage.Main -> {
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
+                    DetailSheetHeader(onClose = saveAndDismiss)
 
-            DetailTitle(
-                title = title,
-                onTitleChange = { title = it },
-                editing = editingTitle,
-                onStartEdit = { editingTitle = true },
-                onFinishEdit = { editingTitle = false },
-            )
+                    DetailTitle(
+                        title = title,
+                        onTitleChange = { title = it.take(TaskTitleMaxLength) },
+                        editing = editingTitle,
+                        onStartEdit = { editingTitle = true },
+                        onFinishEdit = { editingTitle = false },
+                    )
 
-            DetailCategoryChips(
-                categories = categories,
-                selectedId = categoryId,
-                onSelect = { categoryId = it },
-            )
+                    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                        CategoryListRow(
+                            categories = categories,
+                            selectedId = categoryId,
+                            onClick = { page = TaskSheetPage.CategoryPicker },
+                        )
+                        PriorityListRow(
+                            selected = priority,
+                            onClick = { page = TaskSheetPage.PriorityPicker },
+                        )
+                        DueDateListRow(
+                            dueDate = dueDate,
+                            onPick = { showDatePicker = true },
+                            onClear = { dueDate = null },
+                        )
+                    }
 
-            Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
-                PriorityListRow(selected = priority, onSelect = { priority = it })
-                DueDateListRow(
-                    dueDate = dueDate,
-                    onPick = { showDatePicker = true },
-                    onClear = { dueDate = null },
+                    MarkDoneCheckboxRow(
+                        completed = completed,
+                        onToggle = { completed = !completed },
+                    )
+
+                    val ctaState = when {
+                        isLive -> DetailCtaState.OpenFocus
+                        isFocusActive -> DetailCtaState.Blocked
+                        else -> DetailCtaState.StartFocus
+                    }
+                    FocusWithKuroButton(
+                        label = when (ctaState) {
+                            DetailCtaState.OpenFocus -> "Open focus"
+                            else -> "Focus with Kuro"
+                        },
+                        enabled = ctaState != DetailCtaState.Blocked,
+                        onClick = {
+                            val updated = task.copy(
+                                title = title.trim().ifEmpty { task.title },
+                                categoryId = categoryId,
+                                priority = priority,
+                                completed = completed,
+                                dueDate = dueDate,
+                            )
+                            onFocusTask(updated)
+                        },
+                    )
+
+                    DetailHelperRow(
+                        message = when (ctaState) {
+                            DetailCtaState.OpenFocus ->
+                                "This Pomodoro is in progress — tap to jump back to it."
+
+                            DetailCtaState.Blocked ->
+                                "A Pomodoro is already running. Finish or stop it to focus on this task."
+
+                            DetailCtaState.StartFocus ->
+                                "We'll set up the focus together — start when you're ready."
+                        },
+                    )
+
+                    DeleteTaskLink(onClick = onDelete)
+                }
+            }
+
+            TaskSheetPage.CategoryPicker -> {
+                CategoryPickerPage(
+                    categories = categories,
+                    selectedId = categoryId,
+                    onSelect = {
+                        categoryId = it
+                        page = TaskSheetPage.Main
+                    },
+                    onAddCategory = null,
+                    onBack = { page = TaskSheetPage.Main },
                 )
             }
 
-            MarkDoneCheckboxRow(
-                completed = task.completed,
-                onToggle = { onUpdate(task.copy(completed = !task.completed)) },
-            )
-
-            val ctaState = when {
-                isLive -> DetailCtaState.OpenFocus
-                isFocusActive -> DetailCtaState.Blocked
-                else -> DetailCtaState.StartFocus
+            TaskSheetPage.PriorityPicker -> {
+                PriorityPickerPage(
+                    selected = priority,
+                    onSelect = {
+                        priority = it
+                        page = TaskSheetPage.Main
+                    },
+                    onBack = { page = TaskSheetPage.Main },
+                )
             }
-            FocusWithKuroButton(
-                label = when (ctaState) {
-                    DetailCtaState.OpenFocus -> "Open focus"
-                    else -> "Focus with Kuro"
-                },
-                enabled = ctaState != DetailCtaState.Blocked,
-                onClick = {
-                    val updated = task.copy(
-                        title = title.trim().ifEmpty { task.title },
-                        categoryId = categoryId,
-                        priority = priority,
-                        dueDate = dueDate,
-                    )
-                    onFocusTask(updated)
-                },
-            )
-
-            DetailHelperRow(
-                message = when (ctaState) {
-                    DetailCtaState.OpenFocus ->
-                        "This Pomodoro is in progress — tap to jump back to it."
-
-                    DetailCtaState.Blocked ->
-                        "A Pomodoro is already running. Finish or stop it to focus on this task."
-
-                    DetailCtaState.StartFocus ->
-                        "We'll set up the focus together — start when you're ready."
-                },
-            )
-
-            DeleteTaskLink(onClick = onDelete)
         }
     }
 
@@ -1394,28 +1616,40 @@ private fun DetailTitle(
         if (editing) focusRequester.requestFocus()
     }
     if (editing) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-        ) {
-            KuroInputField(
-                value = title,
-                onValueChange = onTitleChange,
-                placeholder = "Task name",
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(focusRequester),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onFinishEdit() }),
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+            ) {
+                KuroInputField(
+                    value = title,
+                    onValueChange = onTitleChange,
+                    placeholder = "Task name",
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { onFinishEdit() }),
+                    singleLine = false,
+                )
+                Text(
+                    text = "Done",
+                    color = tokens.accent,
+                    style = KuroType.labelStrong,
+                    modifier = Modifier
+                        .clickable(onClick = onFinishEdit)
+                        .padding(KuroSpacing.xs),
+                )
+            }
             Text(
-                text = "Done",
-                color = tokens.accent,
-                style = KuroType.labelStrong,
+                text = "${title.length}/$TaskTitleMaxLength",
+                color = if (title.length >= TaskTitleMaxLength) tokens.accent else tokens.textMuted,
+                style = KuroType.labelMeta,
                 modifier = Modifier
-                    .clickable(onClick = onFinishEdit)
-                    .padding(KuroSpacing.xs),
+                    .fillMaxWidth()
+                    .padding(end = KuroSpacing.xs),
+                textAlign = androidx.compose.ui.text.style.TextAlign.End,
             )
         }
     } else {
@@ -1428,36 +1662,6 @@ private fun DetailTitle(
                 .clickable(onClick = onStartEdit)
                 .semantics { role = Role.Button; contentDescription = "Edit title" },
         )
-    }
-}
-
-/**
- * Inline category-pill strip used at the top of the detail sheet. Matches
- * the reference's single "Category" row look: lightweight pills, no
- * caption label needed because the task title above provides context.
- */
-@Composable
-private fun DetailCategoryChips(
-    categories: List<Category>,
-    selectedId: Int?,
-    onSelect: (Int?) -> Unit,
-) {
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-    ) {
-        AddCategoryChoice(
-            label = "None",
-            selected = selectedId == null,
-            onClick = { onSelect(null) },
-        )
-        categories.forEach { cat ->
-            AddCategoryChoice(
-                label = cat.name,
-                selected = selectedId == cat.id,
-                onClick = { onSelect(cat.id) },
-            )
-        }
     }
 }
 
@@ -1571,48 +1775,269 @@ private fun DetailListRow(
 }
 
 /**
- * Priority row: list-row with a dropdown menu anchor. We anchor the menu to
- * the row itself so the dropdown drops down right beneath the trailing
- * chevron, matching the visual affordance.
+ * Priority row: a settings-style list row whose chevron opens the priority
+ * picker sub-page (see [PriorityPickerPage]). Replaces the older inline
+ * dropdown so the choice lands in the same bottom-sheet surface as the rest
+ * of the task properties.
  */
 @Composable
 private fun PriorityListRow(
     selected: TaskPriority,
-    onSelect: (TaskPriority) -> Unit,
+    onClick: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    var menuOpen by remember { mutableStateOf(false) }
     val valueColor = if (selected == TaskPriority.High) tokens.accent else tokens.textSecondary
-    Box {
-        DetailListRow(
-            icon = Lucide.Flag,
-            iconTint = if (selected == TaskPriority.High) tokens.accent else tokens.textSecondary,
-            label = "Priority",
-            valueText = selected.label,
-            valueColor = valueColor,
-            onClick = { menuOpen = true },
+    DetailListRow(
+        icon = Lucide.Flag,
+        iconTint = if (selected == TaskPriority.High) tokens.accent else tokens.textSecondary,
+        label = "Priority",
+        valueText = selected.label,
+        valueColor = valueColor,
+        onClick = onClick,
+    )
+}
+
+/**
+ * Category row: a settings-style list row whose leading swatch reflects the
+ * selected category's color. Tapping opens the category picker sub-page (see
+ * [CategoryPickerPage]). Replaces the old horizontally-scrolling pill strip.
+ */
+@Composable
+private fun CategoryListRow(
+    categories: List<Category>,
+    selectedId: Int?,
+    onClick: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val selectedCategory = categories.firstOrNull { it.id == selectedId }
+    val dotColor = if (selectedCategory != null) {
+        categoryColorFor(selectedCategory.id, tokens.textMuted)
+    } else {
+        tokens.textMuted
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button; contentDescription = "Category" }
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md - KuroSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        CategoryDot(color = dotColor, hollow = selectedCategory == null)
+        Text(
+            text = "Category",
+            color = tokens.textPrimary,
+            style = KuroType.bodyPrimary,
+            modifier = Modifier.weight(1f),
         )
-        DropdownMenu(
-            expanded = menuOpen,
-            onDismissRequest = { menuOpen = false },
-        ) {
-            listOf(TaskPriority.High, TaskPriority.Normal, TaskPriority.Low).forEach { option ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = option.label,
-                            style = KuroType.bodyPrimary.copy(
-                                fontWeight = if (option == selected) FontWeight.SemiBold else FontWeight.Normal,
-                            ),
-                            color = if (option == TaskPriority.High) tokens.accent else tokens.textPrimary,
-                        )
-                    },
-                    onClick = {
-                        onSelect(option)
-                        menuOpen = false
-                    },
+        Text(
+            text = selectedCategory?.name ?: "None",
+            color = tokens.textSecondary,
+            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+        )
+        Icon(
+            imageVector = Lucide.ChevronRight,
+            contentDescription = null,
+            tint = tokens.textMuted,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+/**
+ * Category color swatch. A filled dot for real categories; a hollow ring for
+ * the "None" option so the absence of a category reads clearly.
+ */
+@Composable
+private fun CategoryDot(color: Color, hollow: Boolean) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(
+        modifier = Modifier
+            .size(KuroSpacing.taskCategoryDot)
+            .clip(CircleShape)
+            .then(
+                if (hollow) {
+                    Modifier
+                        .background(tokens.cardFill)
+                        .border(1.dp, color, CircleShape)
+                } else {
+                    Modifier.background(color)
+                },
+            ),
+    )
+}
+
+/**
+ * Category picker sub-page rendered inside the task sheet. Lists "None" plus
+ * every category with its color swatch, and (when [onAddCategory] is provided)
+ * an accent "New category" row routed to the category-create sheet. Selecting
+ * an option fires [onSelect] and the host returns to the main page.
+ */
+@Composable
+private fun CategoryPickerPage(
+    categories: List<Category>,
+    selectedId: Int?,
+    onSelect: (Int?) -> Unit,
+    onAddCategory: (() -> Unit)?,
+    onBack: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    KuroBottomSheetSubpageHeader(
+        title = "Category",
+        onBack = onBack,
+        actionLabel = "Done",
+        onAction = onBack,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+        PickerOptionRow(
+            selected = selectedId == null,
+            onClick = { onSelect(null) },
+            leading = { CategoryDot(color = tokens.textMuted, hollow = true) },
+            title = "None",
+        )
+        categories.forEach { category ->
+            PickerOptionRow(
+                selected = selectedId == category.id,
+                onClick = { onSelect(category.id) },
+                leading = {
+                    CategoryDot(
+                        color = categoryColorFor(category.id, tokens.textMuted),
+                        hollow = false,
+                    )
+                },
+                title = category.name,
+            )
+        }
+        if (onAddCategory != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                    .clickable(onClick = onAddCategory)
+                    .semantics { role = Role.Button; contentDescription = "New category" }
+                    .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+            ) {
+                Icon(
+                    imageVector = Lucide.Plus,
+                    contentDescription = null,
+                    tint = tokens.accent,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "New category",
+                    color = tokens.accent,
+                    style = KuroType.labelStrong,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Priority picker sub-page. Each option pairs a colored flag with a short
+ * description so the relative weight of High / Normal / Low reads at a glance.
+ */
+@Composable
+private fun PriorityPickerPage(
+    selected: TaskPriority,
+    onSelect: (TaskPriority) -> Unit,
+    onBack: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    KuroBottomSheetSubpageHeader(
+        title = "Priority",
+        onBack = onBack,
+        actionLabel = "Done",
+        onAction = onBack,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+        listOf(TaskPriority.High, TaskPriority.Normal, TaskPriority.Low).forEach { option ->
+            val flagTint = when (option) {
+                TaskPriority.High -> tokens.accent
+                TaskPriority.Normal -> tokens.textSecondary
+                TaskPriority.Low -> tokens.textMuted
+            }
+            val description = when (option) {
+                TaskPriority.High -> "Do this first"
+                TaskPriority.Normal -> "Standard priority"
+                TaskPriority.Low -> "Can wait"
+            }
+            PickerOptionRow(
+                selected = option == selected,
+                onClick = { onSelect(option) },
+                leading = {
+                    Icon(
+                        imageVector = Lucide.Flag,
+                        contentDescription = null,
+                        tint = flagTint,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                title = option.label,
+                subtitle = description,
+            )
+        }
+    }
+}
+
+/**
+ * Shared selectable row for the in-sheet pickers. Mirrors [KuroSelectionList]
+ * styling (accentSoft fill + accent border + trailing check when selected)
+ * but accepts a leading slot so callers can show a color swatch or icon, and
+ * an optional subtitle.
+ */
+@Composable
+private fun PickerOptionRow(
+    selected: Boolean,
+    onClick: () -> Unit,
+    leading: @Composable () -> Unit,
+    title: String,
+    subtitle: String? = null,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(if (selected) tokens.accentSoft else tokens.cardFill)
+            .border(
+                1.dp,
+                if (selected) tokens.accent.copy(alpha = 0.35f) else tokens.cardBorder,
+                RoundedCornerShape(KuroSpacing.radiusMd),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        leading()
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = KuroType.bodyPrimary,
+                color = tokens.textPrimary,
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = KuroType.labelMeta,
+                    color = tokens.textSecondary,
+                )
+            }
+        }
+        if (selected) {
+            Icon(
+                imageVector = Lucide.Check,
+                contentDescription = null,
+                tint = tokens.accent,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
@@ -2158,27 +2583,6 @@ private fun StartPill(
             color = contentColor,
             style = KuroType.labelStrong,
         )
-    }
-}
-
-// ─── FAB ───────────────────────────────────────────────────────────────────
-
-@Composable
-private fun TasksFab(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(
-        modifier = modifier
-            .size(KuroSpacing.taskFab)
-            .clip(CircleShape)
-            .background(tokens.accent)
-            .clickable(onClick = onClick)
-            .semantics { role = Role.Button; contentDescription = "Add task" },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = "+", color = tokens.accentOn, style = KuroType.fabGlyph)
     }
 }
 

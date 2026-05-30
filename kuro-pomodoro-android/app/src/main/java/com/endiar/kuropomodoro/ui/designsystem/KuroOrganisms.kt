@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -196,10 +197,24 @@ fun KuroTasksEmptyState(
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    KuroCard(modifier = modifier) {
-        Text(text = title, color = tokens.textPrimary, style = KuroType.headingCard)
+    KuroCard(modifier = modifier.fillMaxWidth()) {
+        // KuroCard draws its border around this content column, so the content
+        // itself must fill the width for the card to read as full-bleed (the
+        // text alone would otherwise leave the bordered box wrapping just the
+        // text).
+        Text(
+            text = title,
+            color = tokens.textPrimary,
+            style = KuroType.headingCard,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(KuroSpacing.xs))
-        Text(text = message, color = tokens.textSecondary, style = KuroType.bodySecondary)
+        Text(
+            text = message,
+            color = tokens.textSecondary,
+            style = KuroType.bodySecondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
