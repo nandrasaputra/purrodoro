@@ -4,7 +4,6 @@ import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.HabitLogState
 import com.endiar.kuropomodoro.model.HabitOccurrence
-import com.endiar.kuropomodoro.model.HabitTargetType
 import com.endiar.kuropomodoro.model.TaskPriority
 import com.endiar.kuropomodoro.model.TimeBlock
 import com.endiar.kuropomodoro.model.withLog
@@ -47,18 +46,6 @@ class TaskHabitDisplayModelsTest {
     }
 
     @Test
-    fun habitFiltersMapToCurrentOccurrenceTypes() {
-        val daily = habit(id = 1, occurrence = HabitOccurrence.Daily)
-        val weekly = habit(id = 2, occurrence = HabitOccurrence.Weekdays(setOf(DayOfWeek.MONDAY)))
-        val habits = listOf(daily, weekly)
-
-        assertEquals(habits, filterHabitsForUi(habits, HabitUiFilter.All))
-        assertEquals(listOf(daily), filterHabitsForUi(habits, HabitUiFilter.Daily))
-        assertEquals(listOf(weekly), filterHabitsForUi(habits, HabitUiFilter.Weekly))
-        assertEquals(emptyList<Habit>(), filterHabitsForUi(habits, HabitUiFilter.Custom))
-    }
-
-    @Test
     fun habitWeekDotsShowScheduledAndCompletedDays() {
         val habit = habit(occurrence = HabitOccurrence.Daily)
             .withLog(today.minusDays(1), HabitLogState.Completed)
@@ -70,6 +57,37 @@ class TaskHabitDisplayModelsTest {
         assertTrue(dots[5].isCompleted)
         assertFalse(dots[6].isCompleted)
         assertTrue(dots.all { it.isScheduled })
+    }
+
+    @Test
+    fun nextScheduledDateReturnsTodayForDailyAndNextDayForWeekday() {
+        val daily = habit(occurrence = HabitOccurrence.Daily)
+        assertEquals(today, daily.nextScheduledDate(today))
+
+        val tomorrow = today.plusDays(1)
+        val tomorrowOnly = habit(occurrence = HabitOccurrence.Weekdays(setOf(tomorrow.dayOfWeek)))
+        assertEquals(tomorrow, tomorrowOnly.nextScheduledDate(today))
+    }
+
+    @Test
+    fun groupHabitsSplitsTodayFromUpcomingAndOrdersEachGroup() {
+        val tomorrowDow = today.plusDays(1).dayOfWeek
+
+        val dailyDone = habit(id = 1, occurrence = HabitOccurrence.Daily)
+            .withLog(today, HabitLogState.Completed)
+        val dailyPending = habit(id = 2, occurrence = HabitOccurrence.Daily)
+        val dueTodayWeekday = habit(id = 3, occurrence = HabitOccurrence.Weekdays(setOf(today.dayOfWeek)))
+        val tomorrowOnly = habit(id = 4, occurrence = HabitOccurrence.Weekdays(setOf(tomorrowDow)))
+
+        val grouped = groupHabitsByDueState(
+            listOf(dailyDone, dailyPending, dueTodayWeekday, tomorrowOnly),
+            today,
+        )
+
+        // Today: still-to-do habits first (by id), completed sinks to the bottom.
+        assertEquals(listOf(2, 3, 1), grouped.today.map { it.id })
+        // Coming up: only the habit not scheduled today.
+        assertEquals(listOf(4), grouped.upcoming.map { it.id })
     }
 
     @Test
@@ -223,8 +241,6 @@ class TaskHabitDisplayModelsTest {
         emoji = "📖",
         colorArgb = 0xFF8EAD7EL,
         createdAt = 0L,
-        targetType = HabitTargetType.Binary,
-        targetValue = 1,
         occurrence = occurrence,
         timeBlock = TimeBlock.Anytime,
     )

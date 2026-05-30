@@ -3,7 +3,6 @@ package com.endiar.kuropomodoro.timer
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.model.Habit
-import com.endiar.kuropomodoro.model.HabitTargetType
 import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
@@ -75,8 +74,7 @@ class TimerStateMachineHabitTest {
         val repo = makeRepo()
         val habitId = 42
         // Seed the habit in repo
-        repo.addHabit("Study", "📚", 0xFF_90CAF9L,
-            targetType = HabitTargetType.Pomodoro, targetValue = 2)
+        repo.addHabit("Study", "📚", 0xFF_90CAF9L)
 
         val endsAt = 1_718_000_000_000L
         val snapshot = playingFocusSnapshot(endsAt, habitId = 1)
@@ -91,7 +89,7 @@ class TimerStateMachineHabitTest {
     @Test
     fun `focus completion without habit does not touch habits`() = runTest {
         val repo = makeRepo()
-        repo.addHabit("Study", "📚", 0xFF_90CAF9L, targetType = HabitTargetType.Binary)
+        repo.addHabit("Study", "📚", 0xFF_90CAF9L)
 
         val endsAt = 1_718_000_000_000L
         val snapshot = playingFocusSnapshot(endsAt, habitId = null)
@@ -104,7 +102,7 @@ class TimerStateMachineHabitTest {
     @Test
     fun `break completion does not credit the habit`() = runTest {
         val repo = makeRepo()
-        repo.addHabit("Study", "📚", 0xFF_90CAF9L, targetType = HabitTargetType.Pomodoro, targetValue = 2)
+        repo.addHabit("Study", "📚", 0xFF_90CAF9L)
 
         val endsAt = 1_718_000_000_000L
         val breakSnapshot = TimerRuntimeState(

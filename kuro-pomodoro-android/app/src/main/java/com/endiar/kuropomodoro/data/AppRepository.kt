@@ -17,7 +17,6 @@ import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.HabitLog
 import com.endiar.kuropomodoro.model.HabitLogState
 import com.endiar.kuropomodoro.model.HabitOccurrence
-import com.endiar.kuropomodoro.model.HabitTargetType
 import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.SessionRecord
@@ -287,8 +286,6 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         name: String,
         emoji: String,
         colorArgb: Long,
-        targetType: HabitTargetType = HabitTargetType.Binary,
-        targetValue: Int = 1,
         occurrence: HabitOccurrence = HabitOccurrence.Daily,
         timeBlock: TimeBlock = TimeBlock.Anytime,
     ) = dataStore.edit { prefs ->
@@ -297,7 +294,6 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         val habit = Habit(
             id = nextId, name = name, emoji = emoji, colorArgb = colorArgb,
             createdAt = System.currentTimeMillis(),
-            targetType = targetType, targetValue = targetValue,
             occurrence = occurrence, timeBlock = timeBlock,
         )
         prefs[KEY_HABITS] = encodeHabits(existing + habit)
@@ -314,13 +310,10 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         name: String,
         emoji: String,
         colorArgb: Long,
-        targetType: HabitTargetType,
-        targetValue: Int,
         occurrence: HabitOccurrence,
         timeBlock: TimeBlock,
     ) = mutateHabit(id) {
         it.copy(name = name, emoji = emoji, colorArgb = colorArgb,
-            targetType = targetType, targetValue = targetValue,
             occurrence = occurrence, timeBlock = timeBlock)
     }
 
@@ -602,24 +595,23 @@ internal fun decodeCategories(raw: String): List<Category> {
 //
 // v2 schema — one habit per line, 11 pipe-separated fields:
 //   0:id  1:urlName  2:urlEmoji  3:colorArgb  4:createdAt
-//   5:targetTag  ("B"|"Q"|"P")
-//   6:targetValue
+//   5:targetTag  (legacy "B"|"Q"|"P" — habits are check-off only now, always "B")
+//   6:targetValue (legacy — always 1 now)
 //   7:occurrenceTag  ("D" daily | "W" weekdays)
 //   8:occurrenceData (empty for daily; "MON,WED,FRI" for weekdays)
 //   9:timeBlockTag   ("M"|"A"|"E"|"X")
 //   10:logsCsv       comma-separated "<isoDate>~<tag>[~progress]"
-//                    tags: "C" Completed | "S" Skipped | "P" Partial
+//                    tags: "C" Completed | "S" Skipped | "P" Partial (legacy)
+//
+// Fields 5/6 are retained for backward compatibility with previously stored
+// data but are no longer meaningful: every habit is a simple binary check-off.
 //
 // v1 legacy (6 fields): id|urlName|urlEmoji|colorArgb|createdAt|completionDatesCsv
-// Detected on read and migrated to Binary/Daily/Anytime with Completed logs.
+// Detected on read and migrated to Daily/Anytime with Completed logs.
 
 internal fun encodeHabits(habits: List<Habit>): String =
     if (habits.isEmpty()) "[]"
     else habits.joinToString("\n") { h ->
-        val tTag = when (h.targetType) {
-            HabitTargetType.Binary -> "B"; HabitTargetType.Quantity -> "Q"
-            HabitTargetType.Pomodoro -> "P"
-        }
         val (oTag, oData) = when (val o = h.occurrence) {
             HabitOccurrence.Daily -> "D" to ""
             is HabitOccurrence.Weekdays -> "W" to o.days.sortedBy { it.value }.joinToString(",") { it.name }
@@ -638,7 +630,7 @@ internal fun encodeHabits(habits: List<Habit>): String =
         listOf(
             h.id, URLEncoder.encode(h.name, "UTF-8"), URLEncoder.encode(h.emoji, "UTF-8"),
             h.colorArgb, h.createdAt,
-            tTag, h.targetValue, oTag, oData, bTag, logsCsv
+            "B", 1, oTag, oData, bTag, logsCsv
         ).joinToString("|")
     }
 
@@ -657,10 +649,8 @@ internal fun decodeHabits(raw: String): List<Habit> {
 }
 
 private fun decodeHabitV2(p: List<String>): Habit {
-    val targetType = when (p[5]) {
-        "Q" -> HabitTargetType.Quantity; "P" -> HabitTargetType.Pomodoro
-        else -> HabitTargetType.Binary
-    }
+    // Fields 5 (target tag) and 6 (target value) are legacy and ignored —
+    // habits are check-off only now.
     val occurrence: HabitOccurrence = when (p[7]) {
         "W" -> {
             val days = p[8].split(",").filter { it.isNotBlank() }
@@ -695,8 +685,6 @@ private fun decodeHabitV2(p: List<String>): Habit {
         emoji = URLDecoder.decode(p[2], "UTF-8"),
         colorArgb = p[3].toLong(),
         createdAt = p[4].toLong(),
-        targetType = targetType,
-        targetValue = p[6].toIntOrNull()?.coerceAtLeast(1) ?: 1,
         occurrence = occurrence, timeBlock = timeBlock, logs = logs,
     )
 }

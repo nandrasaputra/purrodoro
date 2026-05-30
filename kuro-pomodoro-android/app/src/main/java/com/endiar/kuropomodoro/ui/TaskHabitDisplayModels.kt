@@ -2,7 +2,6 @@ package com.endiar.kuropomodoro.ui
 
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.Habit
-import com.endiar.kuropomodoro.model.HabitOccurrence
 import com.endiar.kuropomodoro.model.TaskPriority
 import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.model.isTargetMetOn
@@ -150,13 +149,6 @@ fun heroDueLabel(dueDate: LocalDate?, today: LocalDate): String? {
     }
 }
 
-enum class HabitUiFilter(val label: String) {
-    All("All"),
-    Daily("Daily"),
-    Weekly("Weekly"),
-    Custom("Custom"),
-}
-
 data class HabitWeekDot(
     val label: String,
     val date: LocalDate,
@@ -165,17 +157,47 @@ data class HabitWeekDot(
     val isToday: Boolean = false,
 )
 
+/**
+ * Splits habits into the ones due today (scheduled for [today]) and the ones
+ * that aren't, for the grouped "Today" / "Coming up" sections on the Habits
+ * list. Today's habits surface the still-to-do ones first (completed sink to
+ * the bottom); coming-up habits are ordered by whichever lands soonest.
+ */
+data class GroupedHabits(
+    val today: List<Habit>,
+    val upcoming: List<Habit>,
+)
+
+fun groupHabitsByDueState(habits: List<Habit>, today: LocalDate): GroupedHabits {
+    val (dueToday, later) = habits.partition { it.isScheduledOn(today) }
+    return GroupedHabits(
+        today = dueToday.sortedWith(
+            compareBy({ it.isTargetMetOn(today) }, { it.createdAt }, { it.id }),
+        ),
+        upcoming = later.sortedWith(
+            compareBy({ it.nextScheduledDate(today) }, { it.createdAt }, { it.id }),
+        ),
+    )
+}
+
+/**
+ * The next date on or after [today] the habit is scheduled. Daily habits return
+ * [today]; weekday habits walk forward to their next configured day (capped at a
+ * week, which always contains a hit for a non-empty weekday set).
+ */
+fun Habit.nextScheduledDate(today: LocalDate): LocalDate {
+    var date = today
+    repeat(7) {
+        if (isScheduledOn(date)) return date
+        date = date.plusDays(1)
+    }
+    return today
+}
+
 data class MonthProgressDot(
     val date: LocalDate,
     val isCompleted: Boolean,
 )
-
-fun filterHabitsForUi(habits: List<Habit>, filter: HabitUiFilter): List<Habit> = when (filter) {
-    HabitUiFilter.All -> habits
-    HabitUiFilter.Daily -> habits.filter { it.occurrence is HabitOccurrence.Daily }
-    HabitUiFilter.Weekly -> habits.filter { it.occurrence is HabitOccurrence.Weekdays }
-    HabitUiFilter.Custom -> emptyList()
-}
 
 fun habitWeekDots(
     habit: Habit,

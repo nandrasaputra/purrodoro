@@ -12,10 +12,6 @@ sealed class HabitOccurrence {
     }
 }
 
-// ─── Target type ─────────────────────────────────────────────────────────────
-
-enum class HabitTargetType { Binary, Quantity, Pomodoro }
-
 // ─── Time-of-day grouping cue ─────────────────────────────────────────────────
 
 enum class TimeBlock(val label: String) {
@@ -48,12 +44,6 @@ data class Habit(
     /** Packed ARGB as Long (0xAARRGGBB). Stored/restored via toInt() for Color(). */
     val colorArgb: Long,
     val createdAt: Long,
-    val targetType: HabitTargetType = HabitTargetType.Binary,
-    /**
-     * Goal amount. For Binary: irrelevant (treated as 1). For Quantity: e.g. 4 glasses.
-     * For Pomodoro: e.g. 2 focus segments.
-     */
-    val targetValue: Int = 1,
     val occurrence: HabitOccurrence = HabitOccurrence.Daily,
     val timeBlock: TimeBlock = TimeBlock.Anytime,
     val logs: Map<LocalDate, HabitLog> = emptyMap(),
@@ -61,10 +51,11 @@ data class Habit(
 
 // ─── Pure helpers ────────────────────────────────────────────────────────────
 
-fun Habit.effectiveTarget(): Int = when (targetType) {
-    HabitTargetType.Binary -> 1
-    else -> targetValue.coerceAtLeast(1)
-}
+/**
+ * Habits are check-off (binary) only, so the effective per-day target is always 1.
+ * Kept as a function so callers (timer integration, start-focus sheet) read clearly.
+ */
+fun Habit.effectiveTarget(): Int = 1
 
 fun Habit.isScheduledOn(date: LocalDate): Boolean = when (val o = occurrence) {
     HabitOccurrence.Daily -> true
@@ -74,6 +65,8 @@ fun Habit.isScheduledOn(date: LocalDate): Boolean = when (val o = occurrence) {
 fun Habit.progressOn(date: LocalDate): Int {
     return when (val s = logs[date]?.state) {
         HabitLogState.Completed -> effectiveTarget()
+        // Partial only survives in legacy data from the old quantity/pomodoro types;
+        // any positive progress counts toward the binary target of 1.
         is HabitLogState.Partial -> s.progress
         HabitLogState.Skipped, null -> 0
     }
@@ -101,28 +94,14 @@ fun Habit.toggleBinaryOn(date: LocalDate): Habit {
 }
 
 /**
- * Increment (or decrement if delta < 0) a Quantity/Pomodoro habit.
- * Going below 0 clears the log; reaching the target promotes to Completed.
- * Binary habits are treated as simple toggle-done / clear.
+ * Mark the habit done (delta > 0) or clear it (delta <= 0) for [date].
+ *
+ * Habits are check-off only, so any positive delta completes the day. Kept
+ * delta-based so the timer integration (which credits +1 on focus completion)
+ * keeps working unchanged.
  */
-fun Habit.incrementProgress(date: LocalDate, delta: Int = 1): Habit {
-    if (targetType == HabitTargetType.Binary) {
-        return if (delta > 0) withLog(date, HabitLogState.Completed) else withLog(date, null)
-    }
-    val target = effectiveTarget()
-    val current = when (val s = logs[date]?.state) {
-        HabitLogState.Completed -> target
-        is HabitLogState.Partial -> s.progress
-        HabitLogState.Skipped, null -> 0
-    }
-    val next = (current + delta).coerceAtLeast(0).coerceAtMost(target)
-    val nextState: HabitLogState? = when {
-        next <= 0 -> null
-        next >= target -> HabitLogState.Completed
-        else -> HabitLogState.Partial(next)
-    }
-    return withLog(date, nextState)
-}
+fun Habit.incrementProgress(date: LocalDate, delta: Int = 1): Habit =
+    if (delta > 0) withLog(date, HabitLogState.Completed) else withLog(date, null)
 
 /**
  * Current consecutive *scheduled* days ending today. Skipped and unscheduled days

@@ -4,7 +4,6 @@ import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.HabitLog
 import com.endiar.kuropomodoro.model.HabitLogState
 import com.endiar.kuropomodoro.model.HabitOccurrence
-import com.endiar.kuropomodoro.model.HabitTargetType
 import com.endiar.kuropomodoro.model.TimeBlock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -19,14 +18,11 @@ class HabitEncodingTest {
     private fun baseHabit(
         id: Int = 1,
         occurrence: HabitOccurrence = HabitOccurrence.Daily,
-        targetType: HabitTargetType = HabitTargetType.Binary,
-        targetValue: Int = 1,
         timeBlock: TimeBlock = TimeBlock.Anytime,
         logs: Map<LocalDate, HabitLog> = emptyMap(),
     ) = Habit(
         id = id, name = "Meditate", emoji = "🧘",
         colorArgb = 0xFF_90CAF9L, createdAt = 1_718_000_000_000L,
-        targetType = targetType, targetValue = targetValue,
         occurrence = occurrence, timeBlock = timeBlock, logs = logs,
     )
 
@@ -36,26 +32,15 @@ class HabitEncodingTest {
     fun `v2 round-trip preserves all fields`() {
         val habit = baseHabit(
             occurrence = HabitOccurrence.Weekdays(setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY)),
-            targetType = HabitTargetType.Quantity,
-            targetValue = 4,
             timeBlock = TimeBlock.Morning,
             logs = mapOf(
                 someDate to HabitLog(HabitLogState.Completed),
-                someDate.plusDays(1) to HabitLog(HabitLogState.Partial(2)),
                 someDate.plusDays(2) to HabitLog(HabitLogState.Skipped),
             ),
         )
         val decoded = decodeHabits(encodeHabits(listOf(habit)))
         assertEquals(1, decoded.size)
         assertEquals(habit, decoded[0])
-    }
-
-    @Test
-    fun `pomodoro target type round-trips`() {
-        val habit = baseHabit(targetType = HabitTargetType.Pomodoro, targetValue = 2)
-        val decoded = decodeHabits(encodeHabits(listOf(habit)))
-        assertEquals(HabitTargetType.Pomodoro, decoded[0].targetType)
-        assertEquals(2, decoded[0].targetValue)
     }
 
     @Test
@@ -71,7 +56,7 @@ class HabitEncodingTest {
     @Test
     fun `multiple habits round-trip`() {
         val h1 = baseHabit(id = 1, timeBlock = TimeBlock.Morning)
-        val h2 = baseHabit(id = 2, timeBlock = TimeBlock.Evening, targetType = HabitTargetType.Quantity, targetValue = 3)
+        val h2 = baseHabit(id = 2, timeBlock = TimeBlock.Evening)
         val decoded = decodeHabits(encodeHabits(listOf(h1, h2)))
         assertEquals(2, decoded.size)
         assertEquals(h1, decoded[0])
@@ -90,7 +75,6 @@ class HabitEncodingTest {
         assertEquals(1, decoded.size)
         val h = decoded[0]
         assertEquals(7, h.id)
-        assertEquals(HabitTargetType.Binary, h.targetType)
         assertEquals(HabitOccurrence.Daily, h.occurrence)
         assertEquals(TimeBlock.Anytime, h.timeBlock)
         assertEquals(HabitLogState.Completed, h.logs[d1]?.state)

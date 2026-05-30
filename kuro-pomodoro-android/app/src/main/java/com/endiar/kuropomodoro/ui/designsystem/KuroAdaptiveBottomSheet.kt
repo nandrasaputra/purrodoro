@@ -150,11 +150,7 @@ fun KuroAdaptiveBottomSheet(
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val sheetColor = containerColor ?: tokens.cardFill
     val scrollState = rememberScrollState()
-    val density = LocalDensity.current
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * MaxSheetHeightFraction
-    val maxSheetHeightPx = with(density) { maxSheetHeight.roundToPx() }
-    var naturalTotalHeightPx by remember { mutableIntStateOf(0) }
-    val scrollNeeded = naturalTotalHeightPx > maxSheetHeightPx && naturalTotalHeightPx > 0
 
     var visible by remember { mutableStateOf(false) }
     var dismissing by remember { mutableStateOf(false) }
@@ -248,13 +244,7 @@ fun KuroAdaptiveBottomSheet(
                         .fillMaxWidth()
                         .heightIn(max = maxSheetHeight)
                         .animateContentSizeBottomAnchored()
-                        .then(
-                            if (scrollNeeded) {
-                                Modifier.height(maxSheetHeight)
-                            } else {
-                                Modifier.wrapContentHeight()
-                            },
-                        )
+                        .wrapContentHeight()
                         .clip(RoundedCornerShape(topStart = SheetCornerRadius, topEnd = SheetCornerRadius))
                         .background(sheetColor)
                         .clickable(
@@ -262,10 +252,7 @@ fun KuroAdaptiveBottomSheet(
                             interactionSource = remember { MutableInteractionSource() },
                             onClick = {},
                         )
-                        .navigationBarsPadding()
-                        .onSizeChanged { size ->
-                            naturalTotalHeightPx = size.height
-                        },
+                        .navigationBarsPadding(),
                 ) {
                     KuroBottomSheetDragHandle(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -274,20 +261,17 @@ fun KuroAdaptiveBottomSheet(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = horizontalPadding)
-                            .then(if (scrollNeeded) Modifier.weight(1f) else Modifier.wrapContentHeight()),
+                            .padding(horizontal = horizontalPadding),
                     ) {
+                        // The scrollable body uses weight(fill = false) so the sheet
+                        // wraps its content when short, but caps at the parent's
+                        // bounded max height (from heightIn) and scrolls when the
+                        // content overflows — all while the footer stays pinned.
                         AnimatedContent(
                             targetState = contentKey,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .then(
-                                    if (scrollNeeded) {
-                                        Modifier.weight(1f, fill = true)
-                                    } else {
-                                        Modifier.wrapContentHeight()
-                                    },
-                                ),
+                                .weight(1f, fill = false),
                             transitionSpec = {
                                 fadeIn(
                                     tween(
@@ -306,13 +290,9 @@ fun KuroAdaptiveBottomSheet(
                             label = "KuroAdaptiveBottomSheetContent",
                         ) {
                             Column(
-                                modifier = if (scrollNeeded) {
-                                    Modifier
-                                        .fillMaxSize()
-                                        .verticalScroll(scrollState)
-                                } else {
-                                    Modifier.fillMaxWidth()
-                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(scrollState),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 content = content,
                             )
