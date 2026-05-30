@@ -77,4 +77,9 @@ object KuroSpacing {
     val habitEditorEmojiButton = 52.dp
     val habitColorSwatch = 28.dp
     val habitColorSwatchRing = 2.5.dp
+    val habitEmojiPickerMaxHeight = 280.dp
+    val habitDayToggle = 40.dp
+    val habitDetailEmojiTile = 64.dp
+    val habitCheckCircle = 32.dp
+    val habitCheckGlyph = 18.dp
 }

@@ -417,7 +417,11 @@ fun KuroPomodoroApp(
                         remainingSeconds = remainingSeconds,
                         isRunning = isRunning,
                         isStarted = isStarted,
-                        activeTask = activeTask,
+                        // Prefer the persistent service state so the focused
+                        // task/habit name survives process death (the local
+                        // activeTask is UI-only and resets when the process is
+                        // recreated while the timer service keeps running).
+                        activeTask = runtimeState?.activeTask ?: activeTask,
                         suggestion = homeSuggestion,
                         suggestionFocusMinutes = settings.focusMinutes,
                         greeting = homeGreeting,
@@ -569,8 +573,6 @@ fun KuroPomodoroApp(
                                     name = draft.name,
                                     emoji = draft.emoji,
                                     colorArgb = draft.colorArgb,
-                                    targetType = draft.targetType,
-                                    targetValue = draft.targetValue,
                                     occurrence = draft.occurrence,
                                     timeBlock = draft.timeBlock,
                                 )
@@ -583,8 +585,6 @@ fun KuroPomodoroApp(
                                     name = draft.name,
                                     emoji = draft.emoji,
                                     colorArgb = draft.colorArgb,
-                                    targetType = draft.targetType,
-                                    targetValue = draft.targetValue,
                                     occurrence = draft.occurrence,
                                     timeBlock = draft.timeBlock,
                                 )
@@ -606,25 +606,23 @@ fun KuroPomodoroApp(
                         glassTreatment = glassTreatment,
                         overBackdrop = overBackdrop,
                         onStartPomodoroForHabit = { habit ->
-                            val remaining = habit.effectiveTarget() - habit.progressOn(java.time.LocalDate.now())
-                            val displaySessions = remaining.coerceAtLeast(1)
-                            val syntheticTask = FocusTask(
-                                id = -habit.id,
-                                title = "${habit.emoji} ${habit.name}",
-                                minutes = 0,
-                                completed = false,
-                                plannedSessions = displaySessions,
-                                completedSessions = habit.progressOn(java.time.LocalDate.now()),
-                            )
-                            activeTask = syntheticTask
-                            isFocusMode = false
+                            // Mirror the Tasks flow: open the Start Focus
+                            // confirmation sheet prefilled with this habit
+                            // instead of starting the timer immediately. The
+                            // sheet's confirm path owns the actual start.
+                            startFocusPrefill = StartFocusPrefill.Habit(habit.id)
+                            showStartFocusSheet = true
                             selectedTab = AppTab.Timer
-                            requestNotificationPermission()
-                            scope.launch { repo.setInterruptedFocus(null) }
-                            timerConnection.controller.start(settings, syntheticTask, habit.id, FocusType.Habit)
                         },
-                         contentPadding = screenContentPadding,
-                     )
+                        contentPadding = screenContentPadding,
+                        // Same focus gating as Tasks: block starting a focus on a
+                        // habit while another Pomodoro is running, and let the
+                        // live habit jump back to Home instead.
+                        isFocusActive = isStarted,
+                        liveHabitId = runtimeState?.activeHabitId
+                            ?.takeIf { runtimeState?.focusType == FocusType.Habit },
+                        onSwitchToHome = { selectedTab = AppTab.Timer },
+                    )
                 }
                 }
             }

@@ -67,6 +67,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.composables.icons.lucide.CalendarDays
+import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Flag
 import com.composables.icons.lucide.Lucide
 import com.endiar.kuropomodoro.R
@@ -649,6 +650,109 @@ fun KuroHabitCard(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Today-status for a habit row on the list. */
+enum class KuroHabitTodayStatus { Pending, Done, RestDay }
+
+/**
+ * Habit list row (hybrid status card). Shows the habit identity, an inline
+ * streak chip + state-aware subtitle, and a trailing tap-to-complete circle for
+ * habits due today. Rest-day habits show no circle (their subtitle carries the
+ * "next due" hint instead), so the eye skips them.
+ *
+ * Two hit areas: the trailing circle toggles today's completion ([onToggleDone]),
+ * the rest of the row opens detail ([onClick]).
+ */
+@Composable
+fun KuroHabitStatusCard(
+    name: String,
+    emoji: String,
+    accentColor: Color,
+    streak: Int,
+    statusLabel: String,
+    status: KuroHabitTodayStatus,
+    onClick: () -> Unit,
+    onToggleDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val statusColor = when (status) {
+        KuroHabitTodayStatus.Done -> tokens.accent
+        KuroHabitTodayStatus.Pending -> tokens.textSecondary
+        KuroHabitTodayStatus.RestDay -> tokens.textFaint
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
+            .clickable(onClick = onClick)
+            .padding(KuroSpacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.habitEmojiTile)
+                .clip(RoundedCornerShape(KuroSpacing.md))
+                .background(accentColor.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = emoji, style = KuroType.habitEmoji)
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+        ) {
+            Text(name, color = tokens.textPrimary, style = KuroType.headingCard)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (streak > 0) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                            .background(tokens.accent.copy(alpha = 0.12f))
+                            .padding(horizontal = KuroSpacing.sm, vertical = KuroSpacing.xs / 2),
+                    ) {
+                        Text("🔥 $streak", color = tokens.accent, style = KuroType.labelMeta)
+                    }
+                    Text("·", color = tokens.textFaint, style = KuroType.labelMeta)
+                }
+                Text(statusLabel, color = statusColor, style = KuroType.labelMeta)
+            }
+        }
+        when (status) {
+            KuroHabitTodayStatus.Done -> Box(
+                modifier = Modifier
+                    .size(KuroSpacing.habitCheckCircle)
+                    .clip(CircleShape)
+                    .background(Mint)
+                    .clickable(onClick = onToggleDone)
+                    .semantics { role = Role.Checkbox },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Lucide.Check,
+                    contentDescription = "Mark not done",
+                    tint = Color.White,
+                    modifier = Modifier.size(KuroSpacing.habitCheckGlyph),
+                )
+            }
+            KuroHabitTodayStatus.Pending -> Box(
+                modifier = Modifier
+                    .size(KuroSpacing.habitCheckCircle)
+                    .clip(CircleShape)
+                    .border(KuroSpacing.habitColorSwatchRing, accentColor, CircleShape)
+                    .clickable(onClick = onToggleDone)
+                    .semantics { role = Role.Checkbox },
+            )
+            KuroHabitTodayStatus.RestDay -> Unit
         }
     }
 }

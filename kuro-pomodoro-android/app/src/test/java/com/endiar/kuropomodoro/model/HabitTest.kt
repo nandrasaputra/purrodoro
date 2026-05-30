@@ -17,12 +17,7 @@ class HabitTest {
 
     private fun binaryHabit(occurrence: HabitOccurrence = HabitOccurrence.Daily) = Habit(
         id = 1, name = "Meditate", emoji = "🧘", colorArgb = 0xFF_90CAF9L,
-        createdAt = 0L, targetType = HabitTargetType.Binary, occurrence = occurrence,
-    )
-
-    private fun quantityHabit(target: Int = 4) = Habit(
-        id = 2, name = "Water", emoji = "💧", colorArgb = 0xFF_80DEEAL,
-        createdAt = 0L, targetType = HabitTargetType.Quantity, targetValue = target,
+        createdAt = 0L, occurrence = occurrence,
     )
 
     // ── isScheduledOn ───────────────────────────────────────────────────────
@@ -58,31 +53,19 @@ class HabitTest {
         assertFalse(h.isTargetMetOn(monday))
     }
 
-    // ── Quantity incrementProgress ──────────────────────────────────────────
+    // ── incrementProgress (binary check-off) ─────────────────────────────────
 
     @Test
-    fun `incrementProgress moves to partial then completed`() {
-        val h = quantityHabit(4)
-        val h1 = h.incrementProgress(monday, 1)
-        assertEquals(1, h1.progressOn(monday))
-        assertFalse(h1.isTargetMetOn(monday))
-
-        val h2 = h1.incrementProgress(monday, 3)
-        assertEquals(4, h2.progressOn(monday))
-        assertTrue(h2.isTargetMetOn(monday))
-    }
-
-    @Test
-    fun `incrementProgress below zero clears log`() {
-        val h = quantityHabit(4).incrementProgress(monday, 2).incrementProgress(monday, -5)
-        assertFalse(h.hasLogOn(monday))
-    }
-
-    @Test
-    fun `incrementProgress caps at target`() {
-        val h = quantityHabit(2).incrementProgress(monday, 10)
-        assertEquals(2, h.progressOn(monday))
+    fun `incrementProgress with positive delta completes the day`() {
+        val h = binaryHabit().incrementProgress(monday, 1)
+        assertEquals(1, h.progressOn(monday))
         assertTrue(h.isTargetMetOn(monday))
+    }
+
+    @Test
+    fun `incrementProgress with non-positive delta clears the log`() {
+        val h = binaryHabit().incrementProgress(monday, 1).incrementProgress(monday, 0)
+        assertFalse(h.hasLogOn(monday))
     }
 
     // ── Skipped ─────────────────────────────────────────────────────────────
