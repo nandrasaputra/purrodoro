@@ -21,7 +21,6 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
@@ -39,10 +38,9 @@ import java.time.ZoneId
 /**
  * Today With Kuro home-screen widget.
  *
- * Mirrors the Variation A mockup:
- *  - Warm cream card, big coral focus count, a row of progress dots
- *  - Kuro mouthless cat face peeking from the bottom-right
- *  - Encouragement copy that softens for 0 focus and warms up at the goal
+ * Warm cream card with a big coral focus count, Kuro's mouthless cat face
+ * peeking from the bottom-right, and encouragement copy that softens for 0
+ * focus and warms up at the goal.
  *
  * Tapping the widget just opens the app. No action callbacks needed.
  */
@@ -66,31 +64,6 @@ class TodayProgressWidget : GlanceAppWidget() {
 
 class TodayProgressWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TodayProgressWidget()
-}
-
-/**
- * Row of today's focus-progress dots. Filled dots (coral accent) count the
- * focus sessions logged today; the remaining dots up to the daily goal are
- * drawn as soft tan tracks. Brings back the visual the card was designed
- * around and gives the lower half of the widget something purposeful.
- */
-@Composable
-private fun ProgressDotsRow(filled: Int, total: Int) {
-    Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
-        repeat(total) { index ->
-            if (index > 0) {
-                Spacer(modifier = GlanceModifier.width(6.dp))
-            }
-            Box(
-                modifier = GlanceModifier
-                    .size(12.dp)
-                    .cornerRadius(6.dp)
-                    .background(
-                        if (index < filled) WidgetTheme.accent else WidgetTheme.cardBorder
-                    ),
-            ) {}
-        }
-    }
 }
 
 @Composable
@@ -135,9 +108,9 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
                     style = WidgetTheme.title,
                     maxLines = 1,
                 )
-                // Flexible spacers above and below the metric cluster spread the
-                // content across the full card height instead of stacking it at
-                // the top and leaving the lower half empty.
+                // Weighted spacers above and below the metric cluster keep the
+                // count + encouragement centered in the card so the space the
+                // dot row used to occupy is absorbed instead of left blank.
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 Row(verticalAlignment = Alignment.Vertical.Bottom) {
                     Text(
@@ -150,14 +123,13 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
                         style = WidgetTheme.metricUnit,
                     )
                 }
-                Spacer(modifier = GlanceModifier.height(10.dp))
-                ProgressDotsRow(filled = state.filledDots, total = state.targetDots)
-                Spacer(modifier = GlanceModifier.defaultWeight())
+                Spacer(modifier = GlanceModifier.height(6.dp))
                 Text(
                     text = state.encouragement,
                     style = WidgetTheme.body,
                     maxLines = 1,
                 )
+                Spacer(modifier = GlanceModifier.defaultWeight())
             }
         }
     }
