@@ -56,50 +56,46 @@ fun taskOverview(tasks: List<FocusTask>): TaskOverview = TaskOverview(
     completed = tasks.count { it.completed },
 )
 
-/**
- * The quiet "what to bring into focus next" line that drives both the Tasks
- * hero card and the Home `continueTask` fallback.
- *
- * Active (not completed) tasks are ranked by:
- *   1. Overdue first (dueDate < today)
- *   2. Then today's due dates
- *   3. Then tomorrow's
- *   4. Then any other future date in ascending order
- *   5. Then tasks with no due date
- *
- * Within the same bucket, higher [TaskPriority] wins (High > Normal > Low),
- * with original list order as the final tie-break so the user's mental model
- * of "task I added last" stays stable.
- */
-fun nextFocusTask(tasks: List<FocusTask>, today: LocalDate): FocusTask? {
-    val active = tasks.withIndex().filterNot { it.value.completed }
-    if (active.isEmpty()) return null
-
-    fun bucket(task: FocusTask): Int {
-        val due = task.dueDate ?: return 4
-        return when {
-            due.isBefore(today) -> 0
-            due == today -> 1
-            due == today.plusDays(1) -> 2
-            else -> 3
-        }
-    }
-
-    fun priorityRank(p: TaskPriority): Int = when (p) {
-        TaskPriority.High -> 0
-        TaskPriority.Normal -> 1
-        TaskPriority.Low -> 2
-    }
-
-    return active.sortedWith(
-        compareBy(
-            { bucket(it.value) },
-            { it.value.dueDate ?: LocalDate.MAX },
-            { priorityRank(it.value.priority) },
-            { it.index },
-        )
-    ).first().value
+private fun taskPriorityRank(p: TaskPriority): Int = when (p) {
+    TaskPriority.High -> 0
+    TaskPriority.Normal -> 1
+    TaskPriority.Low -> 2
 }
+
+/**
+ * Sorts active (not completed) tasks for the Tasks list. Precedence:
+ *
+ *   1. Due-date urgency — earliest date first, so the most overdue sits at the
+ *      top, then today, tomorrow, future dates ascending; no-date tasks last.
+ *   2. Priority — High > Normal > Low.
+ *   3. Recency — most recently added first (higher id = newer).
+ *
+ * The Tasks hero ([nextFocusTask]) is just the head of this list, so the hero
+ * card and the rows below it share one consistent ordering.
+ */
+fun sortedActiveTasks(tasks: List<FocusTask>, today: LocalDate): List<FocusTask> {
+    // Days from today to the due date: negative = overdue (most overdue sorts
+    // first), 0 = today, positive = upcoming; no due date sinks to the bottom.
+    fun dueRank(task: FocusTask): Int {
+        val due = task.dueDate ?: return Int.MAX_VALUE
+        return ChronoUnit.DAYS.between(today, due).toInt()
+    }
+    return tasks
+        .filterNot { it.completed }
+        .sortedWith(
+            compareBy<FocusTask> { dueRank(it) }
+                .thenBy { taskPriorityRank(it.priority) }
+                .thenByDescending { it.id }
+        )
+}
+
+/**
+ * The single "what to bring into focus next" task — the head of
+ * [sortedActiveTasks]. Drives both the Tasks hero card and the Home
+ * `continueTask` fallback. Returns null when there are no active tasks.
+ */
+fun nextFocusTask(tasks: List<FocusTask>, today: LocalDate): FocusTask? =
+    sortedActiveTasks(tasks, today).firstOrNull()
 
 /**
  * Single right-side metadata badge a task row should show. Priority order is

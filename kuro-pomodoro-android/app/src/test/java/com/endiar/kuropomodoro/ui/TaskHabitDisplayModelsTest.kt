@@ -94,7 +94,7 @@ class TaskHabitDisplayModelsTest {
     }
 
     @Test
-    fun nextFocusBreaksTiesByPriorityThenInsertionOrder() {
+    fun nextFocusBreaksTiesByPriorityThenNewestAdded() {
         val tasks = listOf(
             FocusTask(id = 1, title = "Today normal", minutes = 25, dueDate = today),
             FocusTask(
@@ -107,9 +107,31 @@ class TaskHabitDisplayModelsTest {
             ),
         )
 
+        // Same due date + same priority → newest added (highest id) wins.
         val pick = nextFocusTask(tasks, today)
 
-        assertEquals(2, pick?.id)
+        assertEquals(3, pick?.id)
+    }
+
+    @Test
+    fun sortedActiveTasksOrdersByDueThenPriorityThenNewest() {
+        val tasks = listOf(
+            FocusTask(id = 1, title = "No date normal", minutes = 25),
+            FocusTask(
+                id = 2, title = "No date high", minutes = 25,
+                priority = TaskPriority.High,
+            ),
+            FocusTask(id = 3, title = "Overdue", minutes = 25, dueDate = today.minusDays(1)),
+            FocusTask(id = 4, title = "Today old", minutes = 25, dueDate = today),
+            FocusTask(id = 5, title = "Today new", minutes = 25, dueDate = today),
+            FocusTask(id = 6, title = "Done", minutes = 25, completed = true, dueDate = today),
+        )
+
+        val order = sortedActiveTasks(tasks, today).map { it.id }
+
+        // Overdue → today (newest of the tie first) → no-date (High before Normal),
+        // completed task excluded.
+        assertEquals(listOf(3, 5, 4, 2, 1), order)
     }
 
     @Test

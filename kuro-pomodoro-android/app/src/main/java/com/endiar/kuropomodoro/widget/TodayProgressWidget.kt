@@ -68,6 +68,31 @@ class TodayProgressWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TodayProgressWidget()
 }
 
+/**
+ * Row of today's focus-progress dots. Filled dots (coral accent) count the
+ * focus sessions logged today; the remaining dots up to the daily goal are
+ * drawn as soft tan tracks. Brings back the visual the card was designed
+ * around and gives the lower half of the widget something purposeful.
+ */
+@Composable
+private fun ProgressDotsRow(filled: Int, total: Int) {
+    Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
+        repeat(total) { index ->
+            if (index > 0) {
+                Spacer(modifier = GlanceModifier.width(6.dp))
+            }
+            Box(
+                modifier = GlanceModifier
+                    .size(12.dp)
+                    .cornerRadius(6.dp)
+                    .background(
+                        if (index < filled) WidgetTheme.accent else WidgetTheme.cardBorder
+                    ),
+            ) {}
+        }
+    }
+}
+
 @Composable
 private fun TodayContent(context: Context, state: TodayWidgetState) {
     val openIntent = Intent(context, MainActivity::class.java).apply {
@@ -110,7 +135,10 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
                     style = WidgetTheme.title,
                     maxLines = 1,
                 )
-                Spacer(modifier = GlanceModifier.height(6.dp))
+                // Flexible spacers above and below the metric cluster spread the
+                // content across the full card height instead of stacking it at
+                // the top and leaving the lower half empty.
+                Spacer(modifier = GlanceModifier.defaultWeight())
                 Row(verticalAlignment = Alignment.Vertical.Bottom) {
                     Text(
                         text = state.focusCount.toString(),
@@ -122,7 +150,9 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
                         style = WidgetTheme.metricUnit,
                     )
                 }
-                Spacer(modifier = GlanceModifier.height(6.dp))
+                Spacer(modifier = GlanceModifier.height(10.dp))
+                ProgressDotsRow(filled = state.filledDots, total = state.targetDots)
+                Spacer(modifier = GlanceModifier.defaultWeight())
                 Text(
                     text = state.encouragement,
                     style = WidgetTheme.body,
