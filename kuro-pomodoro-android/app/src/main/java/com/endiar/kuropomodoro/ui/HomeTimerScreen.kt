@@ -55,13 +55,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,7 +86,9 @@ import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.designsystem.pressScale
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun HomeTimerScreen(
@@ -182,57 +184,99 @@ fun HomeTimerScreen(
 }
 
 @Composable
-private fun HomeHeader(greeting: HomeGreeting, onOpenProfile: () -> Unit = {}) {
+private fun HomeHeader(
+    greeting: HomeGreeting,
+    onOpenProfile: () -> Unit = {}
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val dateLabel = remember {
+        LocalDate.now().format(DateTimeFormatter.ofPattern("MMM d"))
+    }
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = greeting.salutation,
-                color = tokens.textSecondary,
-                style = KuroType.bodySecondary
-            )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Nandra",
-                    color = tokens.textPrimary,
-                    fontSize = 32.sp,
-                    lineHeight = 36.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.Serif
-                )
-                Canvas(
-                    modifier = Modifier
-                        .padding(start = KuroSpacing.sm, top = 5.dp)
-                        .size(18.dp, 14.dp)
-                ) {
-                    drawOval(
-                        color = Mint,
-                        topLeft = Offset(size.width * 0.12f, size.height * 0.05f),
-                        size = Size(size.width * 0.72f, size.height * 0.82f)
+                Column {
+                    Text(
+                        text = greeting.salutation,
+                        color = tokens.textSecondary,
+                        style = KuroType.bodySecondary,
+                        lineHeight = 17.sp
                     )
-                    drawLine(
-                        color = tokens.textPrimary.copy(alpha = 0.35f),
-                        start = Offset(size.width * 0.28f, size.height * 0.74f),
-                        end = Offset(size.width * 0.90f, size.height * 0.08f),
-                        strokeWidth = 1.5f,
-                        cap = StrokeCap.Round
+                    Text(
+                        text = "Nandra",
+                        color = tokens.textPrimary,
+                        fontSize = 37.sp,
+                        lineHeight = 40.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = FontFamily.Serif
                     )
                 }
+                LeafSprig(
+                    modifier = Modifier
+                        .padding(start = 10.dp, top = 18.dp)
+                        .size(23.dp, 18.dp),
+                    veinColor = tokens.textPrimary.copy(alpha = 0.30f)
+                )
             }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = dateLabel,
+                color = tokens.accent,
+                fontSize = 15.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.Normal,
+                fontStyle = FontStyle.Italic,
+                fontFamily = FontFamily.Serif
+            )
+            Spacer(Modifier.height(5.dp))
             Text(
                 text = greeting.encouragement,
                 color = tokens.textSecondary,
                 style = KuroType.bodySecondary,
-                lineHeight = 17.sp,
+                lineHeight = 18.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }
+        Spacer(Modifier.width(KuroSpacing.md))
         CatAvatar(onClick = onOpenProfile)
+    }
+}
+
+/** Hand-drawn mint leaf sprig used as a quiet flourish beside the name. */
+@Composable
+private fun LeafSprig(modifier: Modifier = Modifier, veinColor: Color) {
+    Canvas(modifier = modifier) {
+        // Leaf body — a soft pointed oval angled up to the right.
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(size.width * 0.12f, size.height * 0.86f)
+            cubicTo(
+                size.width * 0.05f, size.height * 0.35f,
+                size.width * 0.45f, size.height * 0.02f,
+                size.width * 0.92f, size.height * 0.10f
+            )
+            cubicTo(
+                size.width * 0.78f, size.height * 0.52f,
+                size.width * 0.55f, size.height * 0.82f,
+                size.width * 0.12f, size.height * 0.86f
+            )
+            close()
+        }
+        drawPath(path = path, color = Mint)
+        // Central vein.
+        drawLine(
+            color = veinColor,
+            start = Offset(size.width * 0.18f, size.height * 0.82f),
+            end = Offset(size.width * 0.86f, size.height * 0.16f),
+            strokeWidth = 1.6f,
+            cap = StrokeCap.Round
+        )
     }
 }
 
