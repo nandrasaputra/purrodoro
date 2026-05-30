@@ -9,6 +9,7 @@ import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.model.buildCycle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -201,6 +202,36 @@ class HomeTimerModelsTest {
     }
 
     @Test
+    fun homeSuggestionResumesRemainingFocusBlock() {
+        val today = LocalDate.of(2026, 5, 30)
+        val tasks = listOf(FocusTask(id = 4, title = "Write product spec", minutes = 25))
+        val interrupted = InterruptedFocus(
+            focusType = FocusType.Task,
+            taskId = 4,
+            habitId = null,
+            title = "Write product spec",
+            remainingSeconds = 0,
+            remainingFocusSessions = 2,
+            focusMinutes = 25,
+        )
+
+        val result = homeSuggestion(interrupted, tasks, emptyList(), today, seed = today.toEpochDay())
+
+        assertEquals(
+            HomeSuggestion.Continue(
+                FocusType.Task,
+                "Write product spec",
+                remainingSeconds = 0,
+                taskId = 4,
+                habitId = null,
+                remainingFocusSessions = 2,
+                focusMinutes = 25,
+            ),
+            result
+        )
+    }
+
+    @Test
     fun homeSuggestionIgnoresInterruptedTaskOnceCompletedAndFallsBack() {
         val today = LocalDate.of(2026, 5, 30)
         val tasks = listOf(
@@ -279,6 +310,15 @@ class HomeTimerModelsTest {
         assertEquals(1, interruptedRemainingMinutes(60))
         assertEquals(2, interruptedRemainingMinutes(61))
         assertEquals(13, interruptedRemainingMinutes(12 * 60 + 1))
+    }
+
+    @Test
+    fun remainingFocusSessionsAfterCurrentCountsFutureFocusSegmentsOnly() {
+        val cycle = buildCycle(TimerSettings(focusSessionsPerCycle = 4))
+
+        // Focus, short break, Focus, short break, Focus, short break, Focus, long break.
+        assertEquals(2, remainingFocusSessionsAfterCurrent(cycle, currentIndex = 3))
+        assertEquals(0, remainingFocusSessionsAfterCurrent(cycle, currentIndex = 7))
     }
 
     private fun record(

@@ -6,7 +6,9 @@ import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
+import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.model.isSkippedOn
 import com.endiar.kuropomodoro.model.isTargetMetOn
@@ -137,6 +139,8 @@ sealed class HomeSuggestion {
         val remainingSeconds: Int,
         val taskId: Int?,
         val habitId: Int?,
+        val remainingFocusSessions: Int = 0,
+        val focusMinutes: Int? = null,
     ) : HomeSuggestion()
 
     data class Suggest(
@@ -192,7 +196,8 @@ private fun resolveInterruptedFocus(
     habits: List<Habit>,
     today: LocalDate,
 ): HomeSuggestion.Continue? {
-    if (interrupted == null || interrupted.remainingSeconds <= 0) return null
+    if (interrupted == null) return null
+    if (interrupted.remainingSeconds <= 0 && interrupted.remainingFocusSessions <= 0) return null
     return when (interrupted.focusType) {
         FocusType.Task -> {
             val task = tasks.firstOrNull { it.id == interrupted.taskId && !it.completed }
@@ -203,6 +208,8 @@ private fun resolveInterruptedFocus(
                 remainingSeconds = interrupted.remainingSeconds,
                 taskId = task.id,
                 habitId = null,
+                remainingFocusSessions = interrupted.remainingFocusSessions,
+                focusMinutes = interrupted.focusMinutes,
             )
         }
         FocusType.Habit -> {
@@ -216,6 +223,8 @@ private fun resolveInterruptedFocus(
                 remainingSeconds = interrupted.remainingSeconds,
                 taskId = null,
                 habitId = habit.id,
+                remainingFocusSessions = interrupted.remainingFocusSessions,
+                focusMinutes = interrupted.focusMinutes,
             )
         }
         FocusType.SimpleNote, FocusType.Empty -> null
@@ -225,6 +234,13 @@ private fun resolveInterruptedFocus(
 /** Whole-minute leftover for an interrupted focus, rounded up, never below 1. */
 fun interruptedRemainingMinutes(remainingSeconds: Int): Int =
     ceil(remainingSeconds.coerceAtLeast(1) / 60.0).toInt().coerceAtLeast(1)
+
+fun remainingFocusSessionsAfterCurrent(
+    cycleItems: List<TimerSessionItem>,
+    currentIndex: Int,
+): Int = cycleItems
+    .drop((currentIndex + 1).coerceAtLeast(0))
+    .count { it.type is SessionItemType.Focus }
 
 private fun formatFocusMinutes(totalMinutes: Int): String {
     val safeMinutes = totalMinutes.coerceAtLeast(0)

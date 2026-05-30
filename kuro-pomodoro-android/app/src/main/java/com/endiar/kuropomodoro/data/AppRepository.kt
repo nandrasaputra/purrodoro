@@ -507,25 +507,29 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
 
 // --- Interrupted focus encoding ---
 // Single line, pipe-separated:
-//   <focusType>|<taskIdOrEmpty>|<habitIdOrEmpty>|<urlTitle>|<remainingSeconds>
+//   <focusType>|<taskIdOrEmpty>|<habitIdOrEmpty>|<urlTitle>|<remainingSeconds>|<remainingFocusSessions>|<focusMinutesOrEmpty>
 internal fun encodeInterruptedFocus(value: InterruptedFocus): String = listOf(
     value.focusType.name,
     value.taskId?.toString() ?: "",
     value.habitId?.toString() ?: "",
     URLEncoder.encode(value.title, "UTF-8"),
     value.remainingSeconds,
+    value.remainingFocusSessions,
+    value.focusMinutes?.toString() ?: "",
 ).joinToString("|")
 
 internal fun decodeInterruptedFocus(raw: String): InterruptedFocus? {
     if (raw.isBlank()) return null
     return runCatching {
-        val p = raw.split("|", limit = 5)
+        val p = raw.split("|", limit = 7)
         InterruptedFocus(
             focusType = FocusType.valueOf(p[0]),
             taskId = p[1].takeIf { it.isNotBlank() }?.toInt(),
             habitId = p[2].takeIf { it.isNotBlank() }?.toInt(),
             title = URLDecoder.decode(p[3], "UTF-8"),
             remainingSeconds = p[4].toInt(),
+            remainingFocusSessions = p.getOrNull(5)?.takeIf { it.isNotBlank() }?.toInt() ?: 0,
+            focusMinutes = p.getOrNull(6)?.takeIf { it.isNotBlank() }?.toInt(),
         )
     }.getOrNull()
 }

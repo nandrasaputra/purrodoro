@@ -284,6 +284,8 @@ data class InterruptedFocus(
     val habitId: Int?,
     val title: String,
     val remainingSeconds: Int,
+    val remainingFocusSessions: Int = 0,
+    val focusMinutes: Int? = null,
 )
 
 data class SessionRecord(
