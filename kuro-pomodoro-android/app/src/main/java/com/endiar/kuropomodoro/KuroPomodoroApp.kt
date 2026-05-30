@@ -678,7 +678,7 @@ fun KuroPomodoroApp(
                             showStartFocusSheet = false
                             startFocusPrefill = null
                             requestNotificationPermission()
-                            isFocusMode = false
+                            isFocusMode = true
                             activeTask = request.task
                             scope.launch { repo.setInterruptedFocus(null) }
                             timerConnection.controller.start(request.settings, request.task, request.habitId, request.focusType)
