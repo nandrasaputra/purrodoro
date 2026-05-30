@@ -143,10 +143,10 @@ fun HomeTimerScreen(
                 val autoCompleteMessage: String? = when {
                     activeFocusType == FocusType.Task &&
                         activeTask != null && activeTask.id > 0 ->
-                        "Finish the Pomodoro — Kuro ticks this."
+                        "Finish this Pomodoro and Kuro ticks it off."
 
                     activeFocusType == FocusType.Habit ->
-                        "Finish the Pomodoro — Kuro counts today."
+                        "Finish this Pomodoro and Kuro logs it today."
 
                     else -> null
                 }
@@ -358,10 +358,12 @@ private fun ActiveHero(
     // The timer card (and tip) are pulled upward with a negative offset, which
     // is purely visual — the Column still reserves the un-offset height, leaving
     // an equal band of empty space beneath the visible content before the next
-    // section. Reclaim that band so "Today's Focus" sits a normal step below the
-    // card instead of across a large gap. The band equals the last child's
-    // offset: the tip (-64) when present, otherwise the card (-72).
-    val deadSpace = if (autoCompleteMessage != null) 64.dp else 72.dp
+    // section. We reclaim most of that band but deliberately leave ~20dp (lg) so
+    // "Today's Focus" reads as a separate section rather than crowding the hero.
+    // The visible gap below works out to (childOffset + columnSpacing - trim):
+    // tip present → (64 + 12 - 56) = 20dp; no tip → (72 + 12 - 64) = 20dp, so the
+    // active states match the 20dp break the idle state already uses.
+    val deadSpace = if (autoCompleteMessage != null) 56.dp else 64.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -579,7 +581,8 @@ private fun ActiveTimerCard(
  *
  *  - [HomeSuggestion.Continue]: a real task/habit focus was stopped mid-segment
  *    and is still unfinished — offer to pick it back up, surfacing the leftover
- *    time ("adjust before start" reminds the user the sheet lets them tweak it).
+ *    time ("adjust the time before you start" reminds the user the sheet lets
+ *    them tweak it).
  *  - [HomeSuggestion.Suggest]: nothing was interrupted — gently propose one
  *    task/habit to focus on, with a quiet "rotates gently" footnote.
  *  - [HomeSuggestion.Empty]: nothing to continue or suggest — a calm prompt to
@@ -597,68 +600,68 @@ private fun SuggestionCard(
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
     val header: String
-    val showInterruptedDot: Boolean
     val title: String
-    val subtitle: String
+    val subtitle: String?
+    val trailingPill: String?
     val focusType: FocusType
     val emoji: String?
 
     when (suggestion) {
         is HomeSuggestion.Continue -> {
-            val isHabit = suggestion.focusType == FocusType.Habit
-            header = if (isHabit) "Continue your interrupted habit" else "Continue your interrupted focus"
-            showInterruptedDot = true
+            header = "Resume focus"
             focusType = suggestion.focusType
             val (e, t) = splitEmojiTitle(suggestion.focusType, suggestion.title)
             emoji = e
             title = t
-            val left = interruptedRemainingMinutes(suggestion.remainingSeconds)
-            subtitle = "Stopped with $left min left · adjust before start"
+            if (suggestion.remainingSeconds > 0) {
+                val left = interruptedRemainingMinutes(suggestion.remainingSeconds)
+                subtitle = null
+                trailingPill = "$left min left"
+            } else {
+                val sessions = suggestion.remainingFocusSessions.coerceAtLeast(1)
+                val totalMinutes = sessions * (suggestion.focusMinutes ?: focusMinutes).coerceAtLeast(1)
+                subtitle = "${formatResumeMinutes(totalMinutes)} left"
+                trailingPill = "$sessions ${if (sessions == 1) "session" else "sessions"}"
+            }
         }
         is HomeSuggestion.Suggest -> {
             header = "Ready when you are"
-            showInterruptedDot = false
             focusType = suggestion.focusType
             val (e, t) = splitEmojiTitle(suggestion.focusType, suggestion.title)
             emoji = e
             title = t
             subtitle = "Suggested for now · $focusMinutes min focus"
+            trailingPill = null
         }
         HomeSuggestion.Empty -> {
             header = "Ready when you are"
-            showInterruptedDot = false
             focusType = FocusType.Empty
             emoji = null
             title = "Choose a focus task"
             subtitle = "A calm place to begin when you are ready."
+            trailingPill = null
         }
     }
 
     HomeCardSurface(modifier = Modifier.clickable(onClick = onClick)) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = header,
-                    color = tokens.textPrimary,
+                    color = tokens.textSecondary,
                     style = KuroType.labelStrong
                 )
-                if (showInterruptedDot) {
-                    Spacer(Modifier.width(KuroSpacing.sm))
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(tokens.accent)
-                    )
-                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FocusTypeIcon(focusType = focusType, emojiOverride = emoji)
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                Spacer(Modifier.width(KuroSpacing.md))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
                     Text(
                         text = title,
                         color = tokens.textPrimary,
@@ -666,13 +669,37 @@ private fun SuggestionCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = subtitle,
-                        color = tokens.textSecondary,
-                        style = KuroType.bodySecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    subtitle?.let {
+                        Text(
+                            text = it,
+                            color = tokens.textSecondary,
+                            style = KuroType.bodySecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                trailingPill?.let {
+                    Spacer(Modifier.width(KuroSpacing.sm))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                            .background(tokens.activeCardFill)
+                            .border(
+                                1.dp,
+                                tokens.cardBorder.copy(alpha = 0.65f),
+                                RoundedCornerShape(KuroSpacing.radiusPill)
+                            )
+                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = it,
+                            color = tokens.textSecondary,
+                            style = KuroType.labelStrong,
+                            maxLines = 1,
+                        )
+                    }
                 }
                 Icon(
                     imageVector = Lucide.ChevronRight,
@@ -694,6 +721,17 @@ private fun splitEmojiTitle(focusType: FocusType, title: String): Pair<String?, 
     if (focusType != FocusType.Habit) return null to title
     val parts = title.split(" ", limit = 2)
     return if (parts.size == 2) parts[0] to parts[1] else null to title
+}
+
+private fun formatResumeMinutes(totalMinutes: Int): String {
+    val safeMinutes = totalMinutes.coerceAtLeast(1)
+    val hours = safeMinutes / 60
+    val minutes = safeMinutes % 60
+    return when {
+        hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
+        hours > 0 -> "${hours}h"
+        else -> "$minutes min"
+    }
 }
 
 @Composable
@@ -789,10 +827,10 @@ private fun AutoCompleteTip(
             .clip(RoundedCornerShape(KuroSpacing.radiusMd))
             .background(tokens.accentSoft.copy(alpha = 0.55f))
             .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
-            .padding(horizontal = KuroSpacing.md, vertical = 10.dp)
+            .padding(horizontal = KuroSpacing.md, vertical = 11.dp)
             .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             modifier = Modifier
@@ -812,6 +850,7 @@ private fun AutoCompleteTip(
             text = message,
             color = tokens.textPrimary,
             style = KuroType.bodySecondary,
+            lineHeight = 18.sp,
             modifier = Modifier.weight(1f),
         )
     }
