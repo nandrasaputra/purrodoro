@@ -18,6 +18,7 @@ import com.endiar.kuropomodoro.model.HabitLog
 import com.endiar.kuropomodoro.model.HabitLogState
 import com.endiar.kuropomodoro.model.HabitOccurrence
 import com.endiar.kuropomodoro.model.HabitTargetType
+import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.SessionRecord
 import com.endiar.kuropomodoro.model.SessionStatus
@@ -55,6 +56,7 @@ data class AppState(
     val notificationSoundEnabled: Boolean = true,
     val habits: List<Habit> = emptyList(),
     val nextHabitId: Int = 1,
+    val interruptedFocus: InterruptedFocus? = null,
 )
 
 
@@ -84,6 +86,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_HABITS = stringPreferencesKey("habits_json")
         private val KEY_NEXT_HABIT_ID = intPreferencesKey("next_habit_id")
         private val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
+        private val KEY_INTERRUPTED_FOCUS = stringPreferencesKey("interrupted_focus")
 
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
@@ -157,6 +160,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             notificationSoundEnabled = prefs[KEY_NOTIFICATION_SOUND] ?: true,
             habits = decodeHabits(prefs[KEY_HABITS] ?: ""),
             nextHabitId = prefs[KEY_NEXT_HABIT_ID] ?: 1,
+            interruptedFocus = decodeInterruptedFocus(prefs[KEY_INTERRUPTED_FOCUS] ?: ""),
         )
     }
 
@@ -179,6 +183,11 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setHasSeenOnboarding(value: Boolean) =
         dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = value }
+
+    suspend fun setInterruptedFocus(value: InterruptedFocus?) = dataStore.edit { prefs ->
+        if (value == null) prefs.remove(KEY_INTERRUPTED_FOCUS)
+        else prefs[KEY_INTERRUPTED_FOCUS] = encodeInterruptedFocus(value)
+    }
 
     suspend fun appendSessionRecord(record: SessionRecord) = dataStore.edit { prefs ->
         val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
@@ -499,6 +508,31 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
             openRecord = record,
             activeHabitId = activeHabitId,
             focusType = focusType
+        )
+    }.getOrNull()
+}
+
+// --- Interrupted focus encoding ---
+// Single line, pipe-separated:
+//   <focusType>|<taskIdOrEmpty>|<habitIdOrEmpty>|<urlTitle>|<remainingSeconds>
+internal fun encodeInterruptedFocus(value: InterruptedFocus): String = listOf(
+    value.focusType.name,
+    value.taskId?.toString() ?: "",
+    value.habitId?.toString() ?: "",
+    URLEncoder.encode(value.title, "UTF-8"),
+    value.remainingSeconds,
+).joinToString("|")
+
+internal fun decodeInterruptedFocus(raw: String): InterruptedFocus? {
+    if (raw.isBlank()) return null
+    return runCatching {
+        val p = raw.split("|", limit = 5)
+        InterruptedFocus(
+            focusType = FocusType.valueOf(p[0]),
+            taskId = p[1].takeIf { it.isNotBlank() }?.toInt(),
+            habitId = p[2].takeIf { it.isNotBlank() }?.toInt(),
+            title = URLDecoder.decode(p[3], "UTF-8"),
+            remainingSeconds = p[4].toInt(),
         )
     }.getOrNull()
 }

@@ -90,8 +90,22 @@ private enum class StartFocusSheetPage {
 }
 
 sealed class StartFocusPrefill {
-    data class Task(val taskId: Int) : StartFocusPrefill()
-    data class Habit(val habitId: Int) : StartFocusPrefill()
+    /**
+     * Optional one-shot override for this session's focus length, in minutes.
+     * Used by the Home "continue interrupted focus" path to carry the leftover
+     * time into the confirmation sheet, where the user can still adjust it.
+     */
+    abstract val focusMinutesOverride: Int?
+
+    data class Task(
+        val taskId: Int,
+        override val focusMinutesOverride: Int? = null,
+    ) : StartFocusPrefill()
+
+    data class Habit(
+        val habitId: Int,
+        override val focusMinutesOverride: Int? = null,
+    ) : StartFocusPrefill()
 }
 
 private data class StartFocusPickerSnapshot(
@@ -118,9 +132,19 @@ fun StartFocusSheet(
     val initialTaskId = (prefill as? StartFocusPrefill.Task)?.taskId ?: -1
     val initialHabitId = (prefill as? StartFocusPrefill.Habit)?.habitId ?: -1
 
+    // A prefill may carry a leftover focus length (continuing an interrupted
+    // session). Seed the per-session settings with it so the confirmation card
+    // shows the adjusted time up front; the user can still edit it from there.
+    val initialSettings = remember(settings, prefill) {
+        prefill?.focusMinutesOverride
+            ?.coerceIn(1, 120)
+            ?.let { settings.copy(focusMinutes = it) }
+            ?: settings
+    }
+
     var page by rememberSaveable { mutableStateOf(StartFocusSheetPage.Confirm) }
-    var sessionSettings by remember(settings) { mutableStateOf(settings) }
-    var sessionSettingsBeforeEdit by remember { mutableStateOf(settings) }
+    var sessionSettings by remember(initialSettings) { mutableStateOf(initialSettings) }
+    var sessionSettingsBeforeEdit by remember { mutableStateOf(initialSettings) }
 
     var intent by rememberSaveable { mutableStateOf(initialIntent) }
     var noteText by rememberSaveable { mutableStateOf("") }

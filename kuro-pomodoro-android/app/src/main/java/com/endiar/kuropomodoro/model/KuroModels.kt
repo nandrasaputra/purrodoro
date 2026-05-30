@@ -269,6 +269,23 @@ fun shouldStampStopAsFocus(session: TimerSession): Boolean {
 
 enum class SessionStatus { Completed, Partial }
 
+/**
+ * A focus segment that was stopped before its time ran out while a real task or
+ * habit was attached. Captured at Stop so Home can offer a calm "continue where
+ * you were interrupted" entry point: the user resumes the same intention and
+ * adjusts the leftover time in the Start Focus confirmation sheet.
+ *
+ * Only Task/Habit focus is worth remembering — Empty / Simple-note focus has no
+ * durable intent to return to, so it is never captured here.
+ */
+data class InterruptedFocus(
+    val focusType: FocusType,
+    val taskId: Int?,
+    val habitId: Int?,
+    val title: String,
+    val remainingSeconds: Int,
+)
+
 data class SessionRecord(
     val id: Long,
     val startedAt: Long,
