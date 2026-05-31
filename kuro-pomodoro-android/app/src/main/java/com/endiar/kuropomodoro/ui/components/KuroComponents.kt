@@ -822,6 +822,59 @@ fun FocusBusyDialog(
 }
 
 /**
+ * "This is already done — focus on it anyway?" confirmation.
+ *
+ * Surfaced when the user starts a focus on a task that's already completed, or a
+ * habit that's already met for today. Proceeding does NOT touch the item's done
+ * state — it stays complete — and only the Pomodoro itself (focus time, session
+ * record) is recorded, exactly like any other focus. The copy makes that promise
+ * explicit so the user isn't worried they're un-doing their progress.
+ */
+@Composable
+fun FocusAlreadyCompleteDialog(
+    isHabit: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val itemWord = if (isHabit) "habit" else "task"
+    val doneSuffix = if (isHabit) " for today" else ""
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Already complete",
+                color = tokens.textPrimary,
+                style = KuroType.headingCard,
+            )
+        },
+        text = {
+            Text(
+                text = "This $itemWord is already done$doneSuffix. " +
+                    "Focus on it anyway? It stays complete — only your focus time is recorded.",
+                color = tokens.textSecondary,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = "Focus anyway",
+                    color = tokens.accent,
+                    style = KuroType.labelStrong,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = tokens.textSecondary)
+            }
+        },
+        containerColor = tokens.cardFill,
+        shape = RoundedCornerShape(KuroSpacing.radiusMd),
+    )
+}
+
+/**
  * Compact title bar that overlays the top of a scrollable screen.
  * Shown via [AnimatedVisibility] in each screen once the full header scrolls out of view.
  */
