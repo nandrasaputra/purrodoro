@@ -34,6 +34,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -137,21 +142,67 @@ fun KuroBottomSheet(
         onDismiss = onDismiss,
         modifier = modifier,
         contentKey = contentKey,
+        showCloseButton = true,
     ) {
-        // The detail sheet redesign inlines its own chrome (close X / TASK / trash)
-        // and so opts out of the default headline by passing title = null. Other
-        // sheets keep the default centered title for stylistic consistency.
+        // The close ✕ floats above the card (see KuroAdaptiveBottomSheet). The
+        // header here only carries the optional centered title (and, for detail
+        // sheets, an Edit pill). Multi-page sheets pass title = null and render
+        // KuroSheetHeader / KuroBottomSheetSubpageHeader per page instead.
+        if (title != null) {
+            KuroSheetHeader(title = title)
+        }
+        content()
+    }
+}
+
+/**
+ * Standard in-card bottom-sheet header: an optional centered [title] with an
+ * optional "Edit" pill on the left. The close (✕) affordance is NOT part of
+ * this header — it floats above the card and is supplied by the sheet shell
+ * ([KuroAdaptiveBottomSheet.showCloseButton] / [KuroBottomSheet]). Renders
+ * nothing when there's neither a title nor an edit action.
+ */
+@Composable
+fun KuroSheetHeader(
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    onEdit: (() -> Unit)? = null,
+    editLabel: String = "Edit",
+) {
+    if (title == null && onEdit == null) return
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = KuroSpacing.lg),
+        contentAlignment = Alignment.Center,
+    ) {
         if (title != null) {
             Text(
                 text = title,
                 style = KuroType.headingCard,
                 color = tokens.textPrimary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = KuroSpacing.lg),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = KuroSpacing.xxl + KuroSpacing.md),
             )
         }
-        content()
+        if (onEdit != null) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                        .background(tokens.segmentedTrack)
+                        .clickable(onClick = onEdit)
+                        .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.sm)
+                        .semantics { role = Role.Button; contentDescription = editLabel },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(editLabel, color = tokens.textPrimary, style = KuroType.labelStrong)
+                }
+            }
+        }
     }
 }
 

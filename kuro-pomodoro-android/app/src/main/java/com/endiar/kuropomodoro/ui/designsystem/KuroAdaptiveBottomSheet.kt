@@ -30,8 +30,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +48,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.Measurable
@@ -59,12 +65,15 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.X
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val MaxSheetHeightFraction = 0.92f
 private val SheetCornerRadius = 28.dp
+private val CloseButtonSize = 44.dp
 
 private val IntSizeVectorConverter: TwoWayConverter<IntSize, AnimationVector2D> =
     TwoWayConverter(
@@ -144,6 +153,7 @@ fun KuroAdaptiveBottomSheet(
     horizontalPadding: Dp = KuroSpacing.xl,
     containerColor: Color? = null,
     scrimColor: Color = Color.Black.copy(alpha = 0.32f),
+    showCloseButton: Boolean = false,
     footer: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -239,6 +249,35 @@ fun KuroAdaptiveBottomSheet(
                     ),
                 ),
             ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Close affordance floats *above* the card (on the scrim) so the
+                    // card itself starts at its content — no empty header band. It
+                    // slides in/out with the sheet and dismisses like a scrim tap.
+                    if (showCloseButton) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = KuroSpacing.sm, top = KuroSpacing.sm, bottom = KuroSpacing.sm),
+                            contentAlignment = Alignment.CenterEnd,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(CloseButtonSize)
+                                    .clip(CircleShape)
+                                    .background(sheetColor)
+                                    .clickable(onClick = ::dismissAnimated)
+                                    .semantics { role = Role.Button; contentDescription = "Close" },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Lucide.X,
+                                    contentDescription = null,
+                                    tint = tokens.textSecondary,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+                    }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -310,6 +349,7 @@ fun KuroAdaptiveBottomSheet(
                             Spacer(Modifier.height(KuroSpacing.xxl))
                         }
                     }
+                }
                 }
             }
         }
