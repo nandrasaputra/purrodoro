@@ -83,6 +83,7 @@ import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 
 /**
@@ -105,17 +106,19 @@ fun KuroScreenScaffold(
     val headerMeasureModifier = Modifier.onSizeChanged { headerHeightPx = it.height }
 
     KuroFlatSurface(modifier = modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            content(scrollState, headerMeasureModifier)
+        }
+
+        // Declared after the scrollable content so it draws on top — otherwise
+        // the content paints over the sticky bar (later Box children win).
         AnimatedVisibility(
             visible = showStickyBar,
             enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { -it },
             exit = fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it },
-            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
+            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().zIndex(1f),
         ) {
             ScreenStickyBar(title = stickyTitle, modifier = Modifier.fillMaxWidth())
-        }
-
-        Box(modifier = Modifier.fillMaxSize()) {
-            content(scrollState, headerMeasureModifier)
         }
     }
 }
