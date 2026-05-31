@@ -573,14 +573,11 @@ fun KuroPomodoroApp(
                         onDeleteTask = deleteTask,
                         onUpdateTask = updateTask,
                         onDeleteAllCompleted = deleteAllCompleted,
-                        onAddCategory = { name -> scope.launch { repo.addCategory(name) } },
-                        onRenameCategory = { id, name ->
-                            scope.launch {
-                                repo.renameCategory(
-                                    id,
-                                    name
-                                )
-                            }
+                        onAddCategory = { name, color ->
+                            scope.launch { repo.addCategory(name, color) }
+                        },
+                        onRenameCategory = { id, name, color ->
+                            scope.launch { repo.updateCategory(id, name, color) }
                         },
                         onDeleteCategory = { id -> scope.launch { repo.deleteCategory(id) } },
                         onFocusTask = { request ->
