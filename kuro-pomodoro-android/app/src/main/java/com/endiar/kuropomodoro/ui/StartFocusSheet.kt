@@ -56,7 +56,9 @@ import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.isScheduledOn
+import com.endiar.kuropomodoro.model.isTargetMetOn
 import com.endiar.kuropomodoro.model.progressOn
+import com.endiar.kuropomodoro.ui.components.FocusAlreadyCompleteDialog
 import com.endiar.kuropomodoro.ui.components.KuroCard
 import com.endiar.kuropomodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheetSubpageHeader
@@ -158,6 +160,11 @@ fun StartFocusSheet(
     var selectedHabitId by rememberSaveable { mutableIntStateOf(initialHabitId) }
     var pickerDraftId by rememberSaveable { mutableIntStateOf(-1) }
     var pickerSnapshot by remember { mutableStateOf<StartFocusPickerSnapshot?>(null) }
+    // Holds a built request that's pending the "this is already complete" prompt.
+    // Non-null while the confirmation dialog is on screen; confirming forwards it
+    // to onStartFocus untouched, so the task/habit keeps its done state and only
+    // the Pomodoro itself is recorded.
+    var pendingCompletedRequest by remember { mutableStateOf<StartFocusRequest?>(null) }
 
     val incompleteTasks = tasks.filter { !it.completed }
     val todayHabits = habits.filter { it.isScheduledOn(today) }
@@ -209,11 +216,22 @@ fun StartFocusSheet(
         }
     }
 
+    // Completed tasks are allowed through (started via the task detail CTA); the
+    // confirmation dialog below is what gates them, not a disabled button.
     fun canStart(): Boolean = when (intent) {
         FocusIntent.Empty -> true
         FocusIntent.SimpleNote -> noteText.trim().isNotEmpty()
-        FocusIntent.Task -> selectedTaskId >= 0 && tasks.any { it.id == selectedTaskId && !it.completed }
+        FocusIntent.Task -> selectedTaskId >= 0 && tasks.any { it.id == selectedTaskId }
         FocusIntent.Habit -> selectedHabitId >= 0 && todayHabits.any { it.id == selectedHabitId }
+    }
+
+    // Whether the currently-selected intent points at an item that's already done
+    // (a completed task, or a habit whose target is met today). Used to show the
+    // "focus on it anyway?" confirmation before starting.
+    fun selectedAlreadyComplete(): Boolean = when (intent) {
+        FocusIntent.Task -> tasks.firstOrNull { it.id == selectedTaskId }?.completed == true
+        FocusIntent.Habit -> habits.firstOrNull { it.id == selectedHabitId }?.isTargetMetOn(today) == true
+        FocusIntent.Empty, FocusIntent.SimpleNote -> false
     }
 
     KuroAdaptiveBottomSheet(
@@ -232,7 +250,11 @@ fun StartFocusSheet(
                         today = today,
                         settings = sessionSettings,
                     )
-                    onStartFocus(request)
+                    if (selectedAlreadyComplete()) {
+                        pendingCompletedRequest = request
+                    } else {
+                        onStartFocus(request)
+                    }
                 })
             }
         } else {
@@ -246,7 +268,7 @@ fun StartFocusSheet(
                     noteText = noteText,
                     selectedTaskId = selectedTaskId,
                     selectedHabitId = selectedHabitId,
-                    incompleteTasks = incompleteTasks,
+                    tasks = tasks,
                     todayHabits = todayHabits,
                     sessionSettings = sessionSettings,
                     onIntentClick = ::onIntentClick,
@@ -311,6 +333,17 @@ fun StartFocusSheet(
             }
         }
     }
+
+    pendingCompletedRequest?.let { request ->
+        FocusAlreadyCompleteDialog(
+            isHabit = intent == FocusIntent.Habit,
+            onConfirm = {
+                pendingCompletedRequest = null
+                onStartFocus(request)
+            },
+            onDismiss = { pendingCompletedRequest = null },
+        )
+    }
 }
 
 private fun buildStartFocusRequest(
@@ -363,7 +396,7 @@ private fun StartFocusConfirmContent(
     noteText: String,
     selectedTaskId: Int,
     selectedHabitId: Int,
-    incompleteTasks: List<FocusTask>,
+    tasks: List<FocusTask>,
     todayHabits: List<Habit>,
     sessionSettings: TimerSettings,
     onIntentClick: (FocusIntent) -> Unit,
@@ -405,7 +438,7 @@ private fun StartFocusConfirmContent(
         }
 
         FocusIntent.Task -> {
-            incompleteTasks.firstOrNull { it.id == selectedTaskId }?.let { task ->
+            tasks.firstOrNull { it.id == selectedTaskId }?.let { task ->
                 Spacer(Modifier.height(KuroSpacing.md))
                 SelectedIntentSummary(
                     label = task.title,
