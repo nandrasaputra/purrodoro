@@ -630,7 +630,11 @@ private fun SuggestionCard(
             val (e, t) = splitEmojiTitle(suggestion.focusType, suggestion.title)
             emoji = e
             title = t
-            subtitle = "Suggested for now · $focusMinutes min focus"
+            subtitle = listOfNotNull(
+                focusTypeLabel(suggestion.focusType),
+                "Suggested for now",
+                "$focusMinutes min focus",
+            ).joinToString(" · ")
             trailingPill = null
         }
         HomeSuggestion.Empty -> {
