@@ -31,6 +31,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.SquarePen
+import com.composables.icons.lucide.Tag
 import com.composables.icons.lucide.Trash2
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -95,8 +96,11 @@ import com.endiar.kuropomodoro.ui.designsystem.StaggeredEntrance
 import com.endiar.kuropomodoro.ui.designsystem.KuroTaskCard
 import com.endiar.kuropomodoro.ui.designsystem.KuroTasksEmptyState
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.designsystem.categoryColorChoices
 import com.endiar.kuropomodoro.ui.designsystem.categoryColorFor
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.launch
 
 /**
@@ -128,8 +132,8 @@ fun TodoScreen(
     onDeleteTask: (Int) -> Unit,
     onUpdateTask: (FocusTask) -> Unit,
     onDeleteAllCompleted: (Int?) -> Unit,
-    onAddCategory: (String) -> Unit,
-    onRenameCategory: (Int, String) -> Unit,
+    onAddCategory: (String, Long) -> Unit,
+    onRenameCategory: (Int, String, Long) -> Unit,
     onDeleteCategory: (Int) -> Unit,
     onFocusTask: (StartFocusRequest) -> Unit,
     habits: List<Habit> = emptyList(),
@@ -253,10 +257,12 @@ fun TodoScreen(
 
             nextFocus?.let { hero ->
                 val heroIsLive = hero.id == liveTaskId
+                val heroCategory = categories.firstOrNull { it.id == hero.categoryId }
                 NextFocusHeroCard(
                     task = hero,
                     today = today,
-                    categoryName = categories.firstOrNull { it.id == hero.categoryId }?.name,
+                    categoryName = heroCategory?.name,
+                    categoryColor = heroCategory?.let { categoryColorFor(it, tokens.textMuted) },
                     focusMinutes = settings.focusMinutes,
                     isLive = heroIsLive,
                     // Mute the Start pill when another focus is running on a
@@ -292,16 +298,19 @@ fun TodoScreen(
                         )
                     }
                     activeRowsForList.forEachIndexed { index, task ->
+                        val rowCategory = categories.firstOrNull { it.id == task.categoryId }
                         StaggeredEntrance(index = index) {
                             SwipeableTaskCard(
                                 task = task,
                                 today = today,
                                 // When filtered to a single category, hide the per-row
                                 // subtitle (it would be the same word on every row).
-                                categoryName = categories
-                                    .firstOrNull { it.id == task.categoryId }
+                                categoryName = rowCategory
                                     ?.name
                                     ?.takeIf { selectedCategoryId == null },
+                                categoryColor = rowCategory?.let {
+                                    categoryColorFor(it, tokens.textMuted)
+                                },
                                 isLive = task.id == liveTaskId,
                                 onToggleTask = onToggleTask,
                                 onDeleteTask = onDeleteTask,
@@ -337,12 +346,15 @@ fun TodoScreen(
                         },
                     )
                     filteredCompletedTasks.forEach { task ->
+                        val rowCategory = categories.firstOrNull { it.id == task.categoryId }
                         SwipeToDeleteCompletedTaskRow(
                             task = task,
-                            categoryName = categories
-                                .firstOrNull { it.id == task.categoryId }
+                            categoryName = rowCategory
                                 ?.name
                                 ?.takeIf { selectedCategoryId == null },
+                            categoryColor = rowCategory?.let {
+                                categoryColorFor(it, tokens.textMuted)
+                            },
                             onToggleTask = onToggleTask,
                             onDeleteTask = onDeleteTask,
                             onTapRow = { detailSheetTask = it },
@@ -387,6 +399,7 @@ fun TodoScreen(
                 detailSheetTask = null
                 attemptStartFocus(updatedTask)
             },
+            onAddCategory = { addCategorySheetVisible = true },
         )
     }
 
@@ -501,9 +514,10 @@ fun TodoScreen(
         CategoryNameSheet(
             title = "New Category",
             initialName = "",
+            initialColor = categoryColorChoices.first(),
             onDismiss = { addCategorySheetVisible = false },
-            onConfirm = { name ->
-                onAddCategory(name)
+            onConfirm = { name, color ->
+                onAddCategory(name, color)
                 addCategorySheetVisible = false
             }
         )
@@ -513,9 +527,11 @@ fun TodoScreen(
         CategoryNameSheet(
             title = "Rename Category",
             initialName = category.name,
+            initialColor = category.colorArgb
+                ?: (categoryColorFor(category, tokens.textMuted).toArgb().toLong() and 0xFFFFFFFFL),
             onDismiss = { renameCategoryTarget = null },
-            onConfirm = { name ->
-                onRenameCategory(category.id, name)
+            onConfirm = { name, color ->
+                onRenameCategory(category.id, name, color)
                 renameCategoryTarget = null
             }
         )
@@ -649,7 +665,7 @@ private fun CategoryFilterPill(
                 modifier = Modifier
                     .size(KuroSpacing.taskCategoryDot)
                     .clip(CircleShape)
-                    .background(categoryColorFor(selectedCategory.id, tokens.textMuted)),
+                    .background(categoryColorFor(selectedCategory, tokens.textMuted)),
             )
         }
         Text(
@@ -720,7 +736,7 @@ private fun CategoryFilterSheet(
                         categories.forEach { category ->
                             CategoryFilterRow(
                                 selected = selectedCategoryId == category.id,
-                                dotColor = categoryColorFor(category.id, tokens.textMuted),
+                                dotColor = categoryColorFor(category, tokens.textMuted),
                                 hollow = false,
                                 label = category.name,
                                 count = countFor(category.id),
@@ -881,7 +897,7 @@ private fun ManageCategoryRow(
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
         CategoryDot(
-            color = categoryColorFor(category.id, tokens.textMuted),
+            color = categoryColorFor(category, tokens.textMuted),
             hollow = false,
         )
         Text(
@@ -1247,6 +1263,7 @@ private fun SwipeableTaskCard(
     task: FocusTask,
     today: LocalDate,
     categoryName: String?,
+    categoryColor: Color?,
     isLive: Boolean,
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
@@ -1290,6 +1307,7 @@ private fun SwipeableTaskCard(
                 onTap = { onTapRow(task) },
                 onToggleComplete = { onToggleTask(task.id) },
                 isLive = isLive,
+                categoryColor = categoryColor,
             )
         },
     )
@@ -1300,6 +1318,7 @@ private fun SwipeableTaskCard(
 private fun SwipeToDeleteCompletedTaskRow(
     task: FocusTask,
     categoryName: String?,
+    categoryColor: Color?,
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
     onTapRow: (FocusTask) -> Unit,
@@ -1339,6 +1358,7 @@ private fun SwipeToDeleteCompletedTaskRow(
                 subtitle = categoryName,
                 onTap = { onTapRow(task) },
                 onToggleComplete = { onToggleTask(task.id) },
+                categoryColor = categoryColor,
             )
         },
     )
@@ -1399,6 +1419,7 @@ private fun TaskDetailSheet(
     onUpdate: (FocusTask) -> Unit,
     onDelete: () -> Unit,
     onFocusTask: (FocusTask) -> Unit,
+    onAddCategory: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var title by rememberSaveable { mutableStateOf(task.title) }
@@ -1522,7 +1543,7 @@ private fun TaskDetailSheet(
                         categoryId = it
                         page = TaskSheetPage.Main
                     },
-                    onAddCategory = null,
+                    onAddCategory = onAddCategory,
                     onBack = { page = TaskSheetPage.Main },
                 )
             }
@@ -1824,11 +1845,10 @@ private fun CategoryListRow(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val selectedCategory = categories.firstOrNull { it.id == selectedId }
-    val dotColor = if (selectedCategory != null) {
-        categoryColorFor(selectedCategory.id, tokens.textMuted)
-    } else {
-        tokens.textMuted
-    }
+    // Leading category icon uses the accent color to match the Priority flag and
+    // Due-date calendar icons, keeping the detail rows visually consistent. The
+    // category's own color is still surfaced on the task list chips and picker.
+    val iconTint = tokens.accent
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1841,7 +1861,12 @@ private fun CategoryListRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
-        CategoryDot(color = dotColor, hollow = selectedCategory == null)
+        Icon(
+            imageVector = Lucide.Tag,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(18.dp),
+        )
         Text(
             text = "Category",
             color = tokens.textPrimary,
@@ -1919,7 +1944,7 @@ private fun CategoryPickerPage(
                 onClick = { onSelect(category.id) },
                 leading = {
                     CategoryDot(
-                        color = categoryColorFor(category.id, tokens.textMuted),
+                        color = categoryColorFor(category, tokens.textMuted),
                         hollow = false,
                     )
                 },
@@ -2338,6 +2363,7 @@ private fun NextFocusHeroCard(
     task: FocusTask,
     today: LocalDate,
     categoryName: String?,
+    categoryColor: Color?,
     focusMinutes: Int,
     isLive: Boolean,
     // True when another Pomodoro is running and this task isn't the one
@@ -2404,7 +2430,7 @@ private fun NextFocusHeroCard(
                 }
                 HeroMetadataRow(
                     categoryName = categoryName,
-                    categoryId = task.categoryId,
+                    categoryColor = categoryColor ?: tokens.textMuted,
                     dueDate = task.dueDate,
                     dueLabel = dueLabel,
                     isOverdue = task.dueDate?.isBefore(today) == true,
@@ -2460,7 +2486,7 @@ private fun NextFocusHeroCard(
 @Composable
 private fun HeroMetadataRow(
     categoryName: String?,
-    categoryId: Int?,
+    categoryColor: Color,
     dueDate: LocalDate?,
     dueLabel: String?,
     isOverdue: Boolean,
@@ -2468,78 +2494,60 @@ private fun HeroMetadataRow(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     if (categoryName == null && dueLabel == null && !showHighFlag) return
+    // Separator dots removed — groups are spaced out instead so the row reads
+    // as distinct chips rather than a cramped "a • b • c" string.
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
     ) {
         if (categoryName != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(KuroSpacing.taskCategoryDot)
-                        .clip(CircleShape)
-                        .background(
-                            com.endiar.kuropomodoro.ui.designsystem.categoryColorFor(
-                                categoryId,
-                                fallback = tokens.textMuted,
-                            )
-                        ),
-                )
-                Text(
-                    text = categoryName,
-                    color = tokens.textSecondary,
-                    style = KuroType.labelMeta,
-                )
-            }
+            HeroMetaChip(
+                icon = Lucide.Tag,
+                iconTint = categoryColor,
+                text = categoryName,
+                textColor = tokens.textSecondary,
+            )
         }
         if (dueLabel != null) {
-            // Inline dot separator — only shown when there's something on
-            // either side of it, so we don't render a dangling "•".
-            if (categoryName != null) HeroMetaDot()
             val dueText = if (isOverdue) tokens.destructive else tokens.accent
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
-            ) {
-                Icon(
-                    imageVector = Lucide.CalendarDays,
-                    contentDescription = null,
-                    tint = dueText,
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(text = dueLabel, color = dueText, style = KuroType.labelMeta)
-            }
+            HeroMetaChip(
+                icon = Lucide.CalendarDays,
+                iconTint = dueText,
+                text = dueLabel,
+                textColor = dueText,
+            )
         }
         if (showHighFlag) {
-            if (categoryName != null || dueLabel != null) HeroMetaDot()
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
-            ) {
-                Icon(
-                    imageVector = Lucide.Flag,
-                    contentDescription = null,
-                    tint = tokens.accent,
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(text = "High", color = tokens.accent, style = KuroType.labelMeta)
-            }
+            HeroMetaChip(
+                icon = Lucide.Flag,
+                iconTint = tokens.accent,
+                text = "High",
+                textColor = tokens.accent,
+            )
         }
     }
 }
 
+/** Icon + label metadata group for the Next Focus hero card. */
 @Composable
-private fun HeroMetaDot() {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(
-        modifier = Modifier
-            .size(3.dp)
-            .clip(CircleShape)
-            .background(tokens.textMuted),
-    )
+private fun HeroMetaChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    text: String,
+    textColor: Color,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(12.dp),
+        )
+        Text(text = text, color = textColor, style = KuroType.labelMeta)
+    }
 }
 
 /**
@@ -2592,10 +2600,13 @@ private fun StartPill(
 private fun CategoryNameSheet(
     title: String,
     initialName: String,
+    initialColor: Long,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
+    onConfirm: (String, Long) -> Unit,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     var name by rememberSaveable { mutableStateOf(initialName) }
+    var colorArgb by rememberSaveable { mutableStateOf(initialColor) }
     val keyboardController = LocalSoftwareKeyboardController.current
 
     KuroBottomSheet(title = title, onDismiss = onDismiss) {
@@ -2605,16 +2616,71 @@ private fun CategoryNameSheet(
             placeholder = "Category name",
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         )
+        Text(
+            text = "COLOR",
+            color = tokens.textMuted,
+            style = KuroType.labelCaption,
+            textAlign = TextAlign.Start,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = KuroSpacing.lg, bottom = KuroSpacing.xs),
+        )
+        CategoryColorPicker(
+            selected = colorArgb,
+            onSelect = { colorArgb = it },
+        )
         KuroPrimaryButton(
             text = "Confirm",
             onClick = {
                 val trimmed = name.trim()
                 if (trimmed.isNotEmpty()) {
                     keyboardController?.hide()
-                    onConfirm(trimmed)
+                    onConfirm(trimmed, colorArgb)
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         )
+    }
+}
+
+/**
+ * Simple swatch-based color picker for categories. Mirrors the habit editor's
+ * color row: a wrapping grid of preset swatches; the selected one gets a ring.
+ */
+@Composable
+private fun CategoryColorPicker(
+    selected: Long,
+    onSelect: (Long) -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    // Plain Row (not FlowRow) — mirrors the habit editor's color row and avoids a
+    // FlowRow ABI mismatch with the bundled Compose foundation runtime. The fixed
+    // 8-swatch palette fits on a single row.
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = KuroSpacing.md),
+    ) {
+        categoryColorChoices.forEach { choice ->
+            val isSelected = choice == selected
+            Box(
+                modifier = Modifier
+                    .size(KuroSpacing.habitColorSwatch)
+                    .clip(CircleShape)
+                    .background(Color(choice.toInt()))
+                    .border(
+                        KuroSpacing.habitColorSwatchRing,
+                        if (isSelected) tokens.textPrimary else Color.Transparent,
+                        CircleShape,
+                    )
+                    .clickable(
+                        role = Role.RadioButton,
+                        onClick = { onSelect(choice) },
+                    )
+                    .semantics { contentDescription = "Category color" },
+            )
+        }
     }
 }

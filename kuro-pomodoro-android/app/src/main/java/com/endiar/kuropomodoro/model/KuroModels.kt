@@ -76,7 +76,12 @@ data class FocusTask(
     fun toggleCompleted(): FocusTask = copy(completed = !completed)
 }
 
-data class Category(val id: Int, val name: String)
+/**
+ * A task category. [colorArgb] is the user-picked color (packed ARGB stored as a
+ * Long). When null — older categories created before the color picker — callers
+ * fall back to the deterministic palette in `categoryColorFor`.
+ */
+data class Category(val id: Int, val name: String, val colorArgb: Long? = null)
 
 data class SoundOption(
     val id: Int,

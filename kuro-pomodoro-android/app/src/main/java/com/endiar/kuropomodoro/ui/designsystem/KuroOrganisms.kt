@@ -70,6 +70,7 @@ import com.composables.icons.lucide.CalendarDays
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Flag
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Tag
 import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.FocusTask
 import com.endiar.kuropomodoro.model.TaskPriority
@@ -248,6 +249,7 @@ fun KuroTaskCard(
     modifier: Modifier = Modifier,
     today: LocalDate = LocalDate.now(),
     isLive: Boolean = false,
+    categoryColor: Color? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -309,13 +311,13 @@ fun KuroTaskCard(
                 )
             }
         }
-        // The category color dot earns its place only when it carries meaning:
-        // a real category color, or the "live" accent ring. For an uncategorized,
-        // non-live task it was just a grey dot with no function, so we drop it.
-        if (task.categoryId != null || isLive) {
+        // The leading dot is now reserved purely for the "live" cue (this task is
+        // attached to a running Pomodoro). The category color moved into the meta
+        // line's tag icon, so a non-live row no longer carries a redundant dot.
+        if (isLive) {
             CategoryColorDot(
-                color = categoryColorFor(task.categoryId, fallback = tokens.textMuted),
-                isLive = isLive,
+                color = categoryColor ?: categoryColorFor(task.categoryId, fallback = tokens.textMuted),
+                isLive = true,
             )
         }
         Column(
@@ -327,7 +329,12 @@ fun KuroTaskCard(
                 color = tokens.textPrimary,
                 style = KuroType.bodyPrimary,
             )
-            TaskRowMeta(task = task, subtitle = subtitle, today = today)
+            TaskRowMeta(
+                task = task,
+                subtitle = subtitle,
+                categoryColor = categoryColor ?: categoryColorFor(task.categoryId, fallback = tokens.textMuted),
+                today = today,
+            )
         }
         if (trailing != null) {
             trailing()
@@ -348,22 +355,33 @@ private val taskRowDueFormatter: DateTimeFormatter =
  * actual date visible for anything past/future.
  */
 @Composable
-private fun TaskRowMeta(task: FocusTask, subtitle: String?, today: LocalDate) {
+private fun TaskRowMeta(
+    task: FocusTask,
+    subtitle: String?,
+    categoryColor: Color,
+    today: LocalDate,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val due = task.dueDate
     // Only show the High flag inline when there's no date competing for the
     // row's attention; a dated High task already reads as urgent.
     val showHighFlag = task.priority == TaskPriority.High && due == null
     if (subtitle == null && due == null && !showHighFlag) return
+    // No "•" separators between groups anymore — they read as cramped on rows
+    // that mix a category, a date, and a flag. We lean on spacing instead.
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
         if (subtitle != null) {
-            Text(text = subtitle, color = tokens.textSecondary, style = KuroType.labelMeta)
+            TaskMetaChip(
+                icon = Lucide.Tag,
+                iconTint = categoryColor,
+                text = subtitle,
+                textColor = tokens.textSecondary,
+            )
         }
         if (due != null) {
-            if (subtitle != null) TaskMetaDot()
             val dueColor = when {
                 due.isBefore(today) -> tokens.destructive
                 due == today -> tokens.accent
@@ -374,46 +392,44 @@ private fun TaskRowMeta(task: FocusTask, subtitle: String?, today: LocalDate) {
                 due == today.plusDays(1) -> "Tomorrow"
                 else -> due.format(taskRowDueFormatter)
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
-            ) {
-                Icon(
-                    imageVector = Lucide.CalendarDays,
-                    contentDescription = null,
-                    tint = dueColor,
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(text = dueLabel, color = dueColor, style = KuroType.labelMeta)
-            }
+            TaskMetaChip(
+                icon = Lucide.CalendarDays,
+                iconTint = dueColor,
+                text = dueLabel,
+                textColor = dueColor,
+            )
         }
         if (showHighFlag) {
-            if (subtitle != null || due != null) TaskMetaDot()
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
-            ) {
-                Icon(
-                    imageVector = Lucide.Flag,
-                    contentDescription = null,
-                    tint = tokens.accent,
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(text = "High", color = tokens.accent, style = KuroType.labelMeta)
-            }
+            TaskMetaChip(
+                icon = Lucide.Flag,
+                iconTint = tokens.accent,
+                text = "High",
+                textColor = tokens.accent,
+            )
         }
     }
 }
 
+/** A single icon + label metadata group for a task row's secondary line. */
 @Composable
-private fun TaskMetaDot() {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(
-        modifier = Modifier
-            .size(3.dp)
-            .clip(CircleShape)
-            .background(tokens.textMuted),
-    )
+private fun TaskMetaChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    text: String,
+    textColor: Color,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(12.dp),
+        )
+        Text(text = text, color = textColor, style = KuroType.labelMeta)
+    }
 }
 
 /**
@@ -431,6 +447,7 @@ fun KuroCompletedTaskRow(
     onTap: () -> Unit,
     onToggleComplete: () -> Unit,
     modifier: Modifier = Modifier,
+    categoryColor: Color? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
@@ -455,17 +472,6 @@ fun KuroCompletedTaskRow(
         ) {
             Text(text = "✓", color = tokens.accentOn, style = KuroType.labelStrong)
         }
-        if (task.categoryId != null) {
-            Box(
-                modifier = Modifier
-                    .size(KuroSpacing.taskCategoryDot)
-                    .clip(CircleShape)
-                    .background(
-                        categoryColorFor(task.categoryId, fallback = tokens.textMuted)
-                            .copy(alpha = 0.55f),
-                    ),
-            )
-        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
@@ -477,7 +483,15 @@ fun KuroCompletedTaskRow(
                 textDecoration = TextDecoration.LineThrough,
             )
             if (subtitle != null) {
-                Text(text = subtitle, color = tokens.textFaint, style = KuroType.labelMeta)
+                val tagTint = (categoryColor
+                    ?: categoryColorFor(task.categoryId, fallback = tokens.textMuted))
+                    .copy(alpha = 0.55f)
+                TaskMetaChip(
+                    icon = Lucide.Tag,
+                    iconTint = tagTint,
+                    text = subtitle,
+                    textColor = tokens.textFaint,
+                )
             }
         }
     }

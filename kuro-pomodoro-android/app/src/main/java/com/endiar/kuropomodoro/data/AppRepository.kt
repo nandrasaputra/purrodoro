@@ -225,17 +225,17 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setNotificationSoundEnabled(value: Boolean) =
         dataStore.edit { it[KEY_NOTIFICATION_SOUND] = value }
 
-    suspend fun addCategory(name: String) = dataStore.edit { prefs ->
+    suspend fun addCategory(name: String, colorArgb: Long? = null) = dataStore.edit { prefs ->
         val nextId = prefs[KEY_NEXT_CATEGORY_ID] ?: 1
         val existing = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
-        prefs[KEY_CATEGORIES] = encodeCategories(existing + Category(nextId, name))
+        prefs[KEY_CATEGORIES] = encodeCategories(existing + Category(nextId, name, colorArgb))
         prefs[KEY_NEXT_CATEGORY_ID] = nextId + 1
     }
 
-    suspend fun renameCategory(id: Int, name: String) = dataStore.edit { prefs ->
+    suspend fun updateCategory(id: Int, name: String, colorArgb: Long?) = dataStore.edit { prefs ->
         val existing = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
         prefs[KEY_CATEGORIES] = encodeCategories(
-            existing.map { if (it.id == id) it.copy(name = name) else it }
+            existing.map { if (it.id == id) it.copy(name = name, colorArgb = colorArgb) else it }
         )
     }
 
@@ -577,11 +577,16 @@ internal fun decodeTasks(raw: String): List<FocusTask> {
 }
 
 // --- Category encoding ---
-// Each category: "<id>:<urlName>"
+//
+// v1 schema (2 fields): "<id>:<urlName>"
+// v2 schema (3 fields): "<id>:<urlName>:<colorArgbOrEmpty>"
+//
+// The color field was added with the category color picker. Older 2-field lines
+// decode with a null color, so existing installs read cleanly without migration.
 internal fun encodeCategories(categories: List<Category>): String =
     if (categories.isEmpty()) "[]"
     else categories.joinToString("\n") { c ->
-        "${c.id}:${URLEncoder.encode(c.name, "UTF-8")}"
+        "${c.id}:${URLEncoder.encode(c.name, "UTF-8")}:${c.colorArgb ?: ""}"
     }
 
 internal fun decodeCategories(raw: String): List<Category> {
@@ -589,8 +594,12 @@ internal fun decodeCategories(raw: String): List<Category> {
     if (raw == "[]") return emptyList()
     return runCatching {
         raw.split("\n").map { line ->
-            val p = line.split(":", limit = 2)
-            Category(p[0].toInt(), URLDecoder.decode(p[1], "UTF-8"))
+            val p = line.split(":", limit = 3)
+            Category(
+                id = p[0].toInt(),
+                name = URLDecoder.decode(p[1], "UTF-8"),
+                colorArgb = p.getOrNull(2)?.takeIf { it.isNotBlank() }?.toLongOrNull(),
+            )
         }
     }.getOrElse { emptyList() }
 }
