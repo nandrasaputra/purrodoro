@@ -39,12 +39,9 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -52,7 +49,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -102,8 +98,6 @@ import com.endiar.kuropomodoro.ui.designsystem.categoryColorFor
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextAlign
-import kotlinx.coroutines.launch
-
 /**
  * Tasks screen — decoupled from Pomodoro after the redesign.
  *
@@ -320,9 +314,7 @@ fun TodoScreen(
                                     },
                                     isLive = task.id == liveTaskId,
                                     onToggleTask = onToggleTask,
-                                    onDeleteTask = onDeleteTask,
                                     onTapRow = { detailSheetTask = it },
-                                    onFocusTask = { attemptStartFocus(it) },
                                 )
                             }
                         }
@@ -365,7 +357,6 @@ fun TodoScreen(
                                     categoryColorFor(it, tokens.textMuted)
                                 },
                                 onToggleTask = onToggleTask,
-                                onDeleteTask = onDeleteTask,
                                 onTapRow = { detailSheetTask = it },
                             )
                         }
@@ -1265,9 +1256,8 @@ private fun TasksEmptyState(
     KuroTasksEmptyState(title = title, message = message)
 }
 
-// ─── Swipeable rows ────────────────────────────────────────────────────────
+// ─── Task rows ─────────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeableTaskCard(
     task: FocusTask,
@@ -1276,139 +1266,34 @@ private fun SwipeableTaskCard(
     categoryColor: Color?,
     isLive: Boolean,
     onToggleTask: (Int) -> Unit,
-    onDeleteTask: (Int) -> Unit,
     onTapRow: (FocusTask) -> Unit,
-    onFocusTask: (FocusTask) -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-    var resetDismiss: (suspend () -> Unit)? = null
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    // Focus is a non-destructive intent — settle the swipe before
-                    // showing the start sheet so the row springs back if the user
-                    // cancels.
-                    scope.launch { resetDismiss?.invoke() }
-                    onFocusTask(task)
-                    false
-                }
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onDeleteTask(task.id)
-                    true
-                }
-                SwipeToDismissBoxValue.Settled -> false
-            }
-        },
-        positionalThreshold = { totalDistance -> totalDistance * 0.40f }
-    )
-    resetDismiss = { dismissState.reset() }
-
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            SwipeBackground(direction = dismissState.dismissDirection)
-        },
-        content = {
-            KuroTaskCard(
-                task = task,
-                subtitle = categoryName,
-                today = today,
-                onTap = { onTapRow(task) },
-                onToggleComplete = { onToggleTask(task.id) },
-                isLive = isLive,
-                categoryColor = categoryColor,
-            )
-        },
+    KuroTaskCard(
+        task = task,
+        subtitle = categoryName,
+        today = today,
+        onTap = { onTapRow(task) },
+        onToggleComplete = { onToggleTask(task.id) },
+        isLive = isLive,
+        categoryColor = categoryColor,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeToDeleteCompletedTaskRow(
     task: FocusTask,
     categoryName: String?,
     categoryColor: Color?,
     onToggleTask: (Int) -> Unit,
-    onDeleteTask: (Int) -> Unit,
     onTapRow: (FocusTask) -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-    var resetDismiss: (suspend () -> Unit)? = null
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onDeleteTask(task.id)
-                    true
-                }
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    // Completed rows have no "focus" intent — settle.
-                    scope.launch { resetDismiss?.invoke() }
-                    false
-                }
-                SwipeToDismissBoxValue.Settled -> false
-            }
-        },
-        positionalThreshold = { totalDistance -> totalDistance * 0.40f }
+    KuroCompletedTaskRow(
+        task = task,
+        subtitle = categoryName,
+        onTap = { onTapRow(task) },
+        onToggleComplete = { onToggleTask(task.id) },
+        categoryColor = categoryColor,
     )
-    resetDismiss = { dismissState.reset() }
-
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            SwipeBackground(
-                direction = dismissState.dismissDirection,
-                showFocus = false,
-            )
-        },
-        content = {
-            KuroCompletedTaskRow(
-                task = task,
-                subtitle = categoryName,
-                onTap = { onTapRow(task) },
-                onToggleComplete = { onToggleTask(task.id) },
-                categoryColor = categoryColor,
-            )
-        },
-    )
-}
-
-@Composable
-private fun SwipeBackground(
-    direction: SwipeToDismissBoxValue,
-    showFocus: Boolean = true,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    val isLeading = direction == SwipeToDismissBoxValue.StartToEnd && showFocus
-    val isTrailing = direction == SwipeToDismissBoxValue.EndToStart
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-            .background(
-                when {
-                    isLeading -> tokens.accent
-                    isTrailing -> tokens.destructive
-                    else -> Color.Transparent
-                },
-            )
-            .padding(horizontal = KuroSpacing.xl),
-        contentAlignment = if (isLeading) Alignment.CenterStart else Alignment.CenterEnd,
-    ) {
-        when {
-            isLeading -> Text(
-                text = "Focus with Kuro",
-                color = tokens.accentOn,
-                style = KuroType.labelStrong,
-            )
-            isTrailing -> Text(
-                text = "Delete",
-                color = tokens.accentOn,
-                style = KuroType.labelStrong,
-            )
-        }
-    }
 }
 
 // ─── Detail sheet ──────────────────────────────────────────────────────────
