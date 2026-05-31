@@ -206,16 +206,24 @@ fun ModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun KuroPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun KuroPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.height(56.dp),
         shape = RoundedCornerShape(KuroSpacing.radiusMd),
         colors = ButtonDefaults.buttonColors(
             containerColor = tokens.interactiveFill,
-            contentColor = tokens.interactiveText
+            contentColor = tokens.interactiveText,
+            disabledContainerColor = tokens.interactiveFill.copy(alpha = 0.35f),
+            disabledContentColor = tokens.interactiveText.copy(alpha = 0.6f),
         )
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge)

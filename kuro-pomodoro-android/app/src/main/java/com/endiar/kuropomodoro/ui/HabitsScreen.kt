@@ -383,6 +383,16 @@ private fun habitTodayStatus(habit: Habit, today: LocalDate): KuroHabitTodayStat
     else -> KuroHabitTodayStatus.Pending
 }
 
+/** "back tomorrow" / "back Wed" — when this habit next runs after a rest day. */
+private fun habitRestDayLabel(habit: Habit, today: LocalDate): String {
+    val next = habit.nextScheduledDate(today)
+    return if (next == today.plusDays(1)) {
+        "back tomorrow"
+    } else {
+        "back ${next.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())}"
+    }
+}
+
 private fun habitTodayStatusLabel(habit: Habit, today: LocalDate): String = when {
     !habit.isScheduledOn(today) -> {
         val next = habit.nextScheduledDate(today)
@@ -769,7 +779,6 @@ private fun HabitDetailSheet(
                 today = today,
                 isFocusActive = isFocusActive,
                 isLive = isLive,
-                onClose = onDismiss,
                 onEdit = { page = HabitDetailPage.Edit },
                 onToggleToday = onToggleToday,
                 onStartFocus = onStartFocus,
@@ -803,7 +812,6 @@ private fun HabitDetailContent(
     today: LocalDate,
     isFocusActive: Boolean,
     isLive: Boolean,
-    onClose: () -> Unit,
     onEdit: () -> Unit,
     onToggleToday: () -> Unit,
     onStartFocus: () -> Unit,
@@ -814,6 +822,7 @@ private fun HabitDetailContent(
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val accent = Color(habit.colorArgb.toInt())
     val doneToday = habit.isTargetMetOn(today)
+    val scheduledToday = habit.isScheduledOn(today)
     val focusCta = when {
         isLive -> HabitFocusCtaState.OpenFocus
         isFocusActive -> HabitFocusCtaState.Blocked
@@ -827,8 +836,6 @@ private fun HabitDetailContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
     ) {
-        HabitDetailSheetHeader(onEdit = onEdit, onClose = onClose)
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
@@ -847,12 +854,23 @@ private fun HabitDetailContent(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
             ) {
-                Text(habit.name, color = tokens.textPrimary, style = KuroType.headingDisplay)
+                Text(habit.name, color = tokens.textPrimary, style = KuroType.headingCard)
                 Text(
                     habitScheduleLabel(habit, today),
                     color = tokens.textSecondary,
                     style = KuroType.bodySecondary,
                 )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                    .background(tokens.segmentedTrack)
+                    .clickable(onClick = onEdit)
+                    .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.sm)
+                    .semantics { role = Role.Button; contentDescription = "Edit habit" },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("Edit", color = tokens.textPrimary, style = KuroType.labelStrong)
             }
         }
 
@@ -872,8 +890,16 @@ private fun HabitDetailContent(
         KuroPrimaryButton(
             text = if (doneToday) "Completed today ✓" else "Mark done today",
             onClick = onToggleToday,
+            // Only days the habit is actually scheduled can be checked off, so the
+            // detail sheet matches the list (which hides the toggle on rest days).
+            enabled = scheduledToday,
             modifier = Modifier.fillMaxWidth(),
         )
+        if (!scheduledToday) {
+            HabitDetailHelperRow(
+                message = "Not scheduled today · ${habitRestDayLabel(habit, today)}",
+            )
+        }
         DetailSecondaryButton(
             label = if (focusCta == HabitFocusCtaState.OpenFocus) "Open focus" else "Focus with Kuro",
             // Stay tappable when blocked so the tap can explain why (busy
@@ -969,39 +995,6 @@ private fun HabitDetailHelperRow(message: String) {
     }
 }
 
-
-@Composable
-private fun HabitDetailSheetHeader(onEdit: () -> Unit, onClose: () -> Unit) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(KuroSpacing.radiusPill))
-                .background(tokens.segmentedTrack)
-                .clickable(onClick = onEdit)
-                .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.sm)
-                .semantics { role = Role.Button; contentDescription = "Edit habit" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("Edit", color = tokens.textPrimary, style = KuroType.labelStrong)
-        }
-        Box(
-            modifier = Modifier
-                .size(KuroSpacing.xxl)
-                .clip(CircleShape)
-                .background(tokens.segmentedTrack)
-                .clickable(onClick = onClose)
-                .semantics { role = Role.Button; contentDescription = "Close" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = "✕", color = tokens.textSecondary, style = KuroType.labelStrong)
-        }
-    }
-}
 
 /** Back + title row shown above the inline editor when editing within the sheet. */
 @Composable

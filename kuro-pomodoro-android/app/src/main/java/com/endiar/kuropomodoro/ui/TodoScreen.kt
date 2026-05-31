@@ -85,6 +85,7 @@ import com.endiar.kuropomodoro.ui.components.FocusBusyDialog
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheetSubpageHeader
+import com.endiar.kuropomodoro.ui.designsystem.KuroSheetHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroCompletedTaskRow
 import com.endiar.kuropomodoro.ui.designsystem.KuroInputField
 import com.endiar.kuropomodoro.ui.designsystem.KuroScreenScaffold
@@ -719,12 +720,7 @@ private fun CategoryFilterSheet(
         when (page) {
             CategoryFilterPage.Filter -> {
                 Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
-                    Text(
-                        text = "Filter by category",
-                        color = tokens.textPrimary,
-                        style = KuroType.headingCard,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    KuroSheetHeader(title = "Filter by category")
 
                     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
                         CategoryFilterRow(
@@ -1044,7 +1040,7 @@ private fun AddTaskSheet(
         when (page) {
             TaskSheetPage.Main -> {
                 Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
-                    AddTaskSheetHeader(onClose = onDismiss)
+                    KuroSheetHeader(title = "New task")
 
                     AddTaskTitleField(
                         title = title,
@@ -1109,33 +1105,6 @@ private fun AddTaskSheet(
                 showDatePicker = false
             },
         )
-    }
-}
-
-@Composable
-private fun AddTaskSheetHeader(onClose: () -> Unit) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "New task",
-            color = tokens.textPrimary,
-            style = KuroType.headingCard,
-            modifier = Modifier.weight(1f),
-        )
-        Box(
-            modifier = Modifier
-                .size(KuroSpacing.xxl)
-                .clip(CircleShape)
-                .background(tokens.segmentedTrack)
-                .clickable(onClick = onClose)
-                .semantics { role = Role.Button; contentDescription = "Close" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = "✕", color = tokens.textSecondary, style = KuroType.labelStrong)
-        }
     }
 }
 
@@ -1371,9 +1340,10 @@ private fun TaskDetailSheet(
     KuroBottomSheet(title = null, onDismiss = saveAndDismiss, contentKey = page) {
         when (page) {
             TaskSheetPage.Main -> {
-                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
-                    DetailSheetHeader(onClose = saveAndDismiss)
-
+                Column(
+                    modifier = Modifier.padding(top = KuroSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
+                ) {
                     DetailTitle(
                         title = title,
                         onTitleChange = { title = it.take(TaskTitleMaxLength) },
@@ -1494,37 +1464,6 @@ private fun TaskDetailSheet(
             },
             onDismiss = { showAlreadyCompleteConfirm = false },
         )
-    }
-}
-
-/**
- * Lighter detail-sheet header per the design refresh.
- *
- * The old version centered a "TASK" caption with close + delete on the
- * sides. The reference design treats the title itself as the heading, so
- * we drop the caption and reduce the header to just a close affordance on
- * the right. Delete moves to a small destructive link at the bottom of
- * the sheet so it's reachable but visually quiet.
- */
-@Composable
-private fun DetailSheetHeader(onClose: () -> Unit) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(KuroSpacing.xxl)
-                .clip(CircleShape)
-                .background(tokens.segmentedTrack)
-                .clickable(onClick = onClose)
-                .semantics { role = Role.Button; contentDescription = "Close" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = "✕", color = tokens.textSecondary, style = KuroType.labelStrong)
-        }
     }
 }
 
