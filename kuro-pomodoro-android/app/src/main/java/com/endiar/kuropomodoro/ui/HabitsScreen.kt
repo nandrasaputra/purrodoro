@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -454,6 +455,9 @@ private val HABIT_EMOJIS: List<String> = listOf(
     "🌊", "⛰️", "🦋", "🌸", "🐕", "📸", "✍️", "🗓️",
 )
 
+/** Max length for a habit name, enforced on the editor field. */
+private const val HabitNameMaxLength = 50
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HabitEditorSheet(
@@ -479,7 +483,18 @@ private fun HabitEditorSheet(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
     ) {
-        EditorLabel("NAME")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EditorLabel("NAME")
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "${name.length}/$HabitNameMaxLength",
+                color = if (name.length >= HabitNameMaxLength) tokens.accent else tokens.textMuted,
+                style = KuroType.labelCaption,
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -493,7 +508,7 @@ private fun HabitEditorSheet(
             }
             KuroInputField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = { name = it.take(HabitNameMaxLength) },
                 placeholder = "e.g. Meditate",
                 modifier = Modifier.weight(1f),
             )
