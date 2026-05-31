@@ -1859,10 +1859,10 @@ private fun CategoryListRow(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val selectedCategory = categories.firstOrNull { it.id == selectedId }
-    // Leading category icon uses the accent color to match the Priority flag and
-    // Due-date calendar icons, keeping the detail rows visually consistent. The
-    // category's own color is still surfaced on the task list chips and picker.
-    val iconTint = tokens.accent
+    // Leading category icon reflects the selected category's own color so the
+    // detail row matches the swatch shown on task chips and in the picker. Falls
+    // back to a neutral muted tint when no category is selected ("None").
+    val iconTint = categoryColorFor(selectedCategory, tokens.textMuted)
     Row(
         modifier = Modifier
             .fillMaxWidth()
