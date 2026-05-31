@@ -56,6 +56,7 @@ import com.endiar.kuropomodoro.model.Habit
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.isScheduledOn
+import com.endiar.kuropomodoro.model.isSkippedOn
 import com.endiar.kuropomodoro.model.isTargetMetOn
 import com.endiar.kuropomodoro.model.progressOn
 import com.endiar.kuropomodoro.ui.components.FocusAlreadyCompleteDialog
@@ -168,6 +169,13 @@ fun StartFocusSheet(
 
     val incompleteTasks = tasks.filter { !it.completed }
     val todayHabits = habits.filter { it.isScheduledOn(today) }
+    // The picker only offers habits you can still act on today — scheduled,
+    // not already met, and not skipped — mirroring how the task picker hides
+    // completed tasks. `todayHabits` stays the broader set so a prefilled
+    // already-done habit (e.g. from the Habits tab) still resolves.
+    val eligibleHabits = todayHabits.filter {
+        !it.isTargetMetOn(today) && !it.isSkippedOn(today)
+    }
 
     val sheetContentKey = page
 
@@ -238,6 +246,7 @@ fun StartFocusSheet(
     KuroAdaptiveBottomSheet(
         onDismiss = onDismiss,
         contentKey = sheetContentKey,
+        showCloseButton = true,
         footer = if (page == StartFocusSheetPage.Confirm) {
             {
                 StartFocusConfirmButton(enabled = canStart(), onClick = {
@@ -304,8 +313,8 @@ fun StartFocusSheet(
             StartFocusSheetPage.PickHabit -> {
                 StartFocusPickerContent(
                     title = "Choose a habit",
-                    emptyMessage = "No habits scheduled for today.",
-                    options = todayHabits.map { it.id to "${it.emoji} ${it.name}" },
+                    emptyMessage = "No habits left to focus on today.",
+                    options = eligibleHabits.map { it.id to "${it.emoji} ${it.name}" },
                     draftSelectedId = pickerDraftId,
                     onDraftSelect = { pickerDraftId = it },
                     onBack = {
