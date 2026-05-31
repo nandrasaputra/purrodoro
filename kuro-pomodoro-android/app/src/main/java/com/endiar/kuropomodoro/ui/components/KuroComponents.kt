@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,6 +31,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -767,6 +769,56 @@ fun CycleDotsRow(
             }
         }
     }
+}
+
+/**
+ * Shared "you already have a focus running" dialog.
+ *
+ * Surfaced whenever the user tries to start a focus (from a task swipe, a task
+ * detail sheet, or a habit detail sheet) while another Pomodoro is already
+ * running or paused. Rather than silently disabling the CTA — which leaves
+ * users wondering why nothing happens — tapping it opens this dialog, which
+ * explains the running session and offers an "Open focus" shortcut to jump
+ * straight to it. Kept in one place so every entry point reads identically.
+ */
+@Composable
+fun FocusBusyDialog(
+    onOpenFocus: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "A focus is in progress",
+                color = tokens.textPrimary,
+                style = KuroType.headingCard,
+            )
+        },
+        text = {
+            Text(
+                text = "Finish or stop the current Pomodoro before starting a new one.",
+                color = tokens.textSecondary,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onOpenFocus) {
+                Text(
+                    text = "Open focus",
+                    color = tokens.accent,
+                    style = KuroType.labelStrong,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Got it", color = tokens.textSecondary)
+            }
+        },
+        containerColor = tokens.cardFill,
+        shape = RoundedCornerShape(KuroSpacing.radiusMd),
+    )
 }
 
 /**

@@ -59,6 +59,7 @@ import com.endiar.kuropomodoro.model.bestStreak
 import com.endiar.kuropomodoro.model.currentStreak
 import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.model.isTargetMetOn
+import com.endiar.kuropomodoro.ui.components.FocusBusyDialog
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
 import com.endiar.kuropomodoro.ui.designsystem.KuroHabitCard
@@ -120,6 +121,10 @@ fun HabitsScreen(
 ) {
     var showAddSheet by remember { mutableStateOf(false) }
     var detailHabitId by rememberSaveable { mutableStateOf<Int?>(null) }
+    // Surfaced when the user taps "Focus with Kuro" on a habit while another
+    // Pomodoro is already running — mirrors the Tasks busy dialog so both
+    // screens explain the block instead of leaving a dead, disabled button.
+    var focusBusyDialogVisible by remember { mutableStateOf(false) }
 
     // Resolve the open detail habit from the live list so its card, streak and
     // monthly grid stay in sync as logs change underneath it.
@@ -223,10 +228,24 @@ fun HabitsScreen(
                 detailHabitId = null
                 onSwitchToHome()
             },
+            onFocusBusy = {
+                detailHabitId = null
+                focusBusyDialogVisible = true
+            },
             onDelete = {
                 onDeleteHabit(detailHabit.id)
                 detailHabitId = null
             },
+        )
+    }
+
+    if (focusBusyDialogVisible) {
+        FocusBusyDialog(
+            onOpenFocus = {
+                focusBusyDialogVisible = false
+                onSwitchToHome()
+            },
+            onDismiss = { focusBusyDialogVisible = false },
         )
     }
 
@@ -718,6 +737,7 @@ private fun HabitDetailSheet(
     onToggleToday: () -> Unit,
     onStartFocus: () -> Unit,
     onOpenFocus: () -> Unit,
+    onFocusBusy: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var page by rememberSaveable { mutableStateOf(HabitDetailPage.Detail) }
@@ -738,6 +758,7 @@ private fun HabitDetailSheet(
                 onToggleToday = onToggleToday,
                 onStartFocus = onStartFocus,
                 onOpenFocus = onOpenFocus,
+                onFocusBusy = onFocusBusy,
                 onDelete = onDelete,
             )
 
@@ -771,6 +792,7 @@ private fun HabitDetailContent(
     onToggleToday: () -> Unit,
     onStartFocus: () -> Unit,
     onOpenFocus: () -> Unit,
+    onFocusBusy: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -835,12 +857,14 @@ private fun HabitDetailContent(
         )
         DetailSecondaryButton(
             label = if (focusCta == HabitFocusCtaState.OpenFocus) "Open focus" else "Focus with Kuro",
-            enabled = focusCta != HabitFocusCtaState.Blocked,
+            // Stay tappable when blocked so the tap can explain why (busy
+            // dialog) instead of presenting a dead, greyed-out button.
+            enabled = true,
             onClick = {
                 when (focusCta) {
                     HabitFocusCtaState.StartFocus -> onStartFocus()
                     HabitFocusCtaState.OpenFocus -> onOpenFocus()
-                    HabitFocusCtaState.Blocked -> Unit
+                    HabitFocusCtaState.Blocked -> onFocusBusy()
                 }
             },
         )

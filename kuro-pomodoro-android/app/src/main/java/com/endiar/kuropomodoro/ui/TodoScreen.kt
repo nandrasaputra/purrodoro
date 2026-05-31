@@ -84,6 +84,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.endiar.kuropomodoro.ui.components.FocusBusyDialog
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheetSubpageHeader
@@ -1505,7 +1506,11 @@ private fun TaskDetailSheet(
                             DetailCtaState.OpenFocus -> "Open focus"
                             else -> "Focus with Kuro"
                         },
-                        enabled = ctaState != DetailCtaState.Blocked,
+                        // Stay tappable even when blocked: the tap routes through
+                        // attemptStartFocus, which surfaces the "A focus is in
+                        // progress" dialog. A dead, greyed-out button left users
+                        // unsure why nothing happened / unaware a timer was live.
+                        enabled = true,
                         onClick = {
                             val updated = task.copy(
                                 title = title.trim().ifEmpty { task.title },
@@ -2235,52 +2240,6 @@ private fun FocusWithKuroButton(
             style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold),
         )
     }
-}
-
-/**
- * Confirmation dialog shown when the user tries to start a Pomodoro for a
- * task other than the one currently in focus. We never silently replace a
- * running session — the user must either jump to the running focus to
- * finish/stop it, or back out of the action.
- */
-@Composable
-private fun FocusBusyDialog(
-    onOpenFocus: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "A focus is in progress",
-                color = tokens.textPrimary,
-                style = KuroType.headingCard,
-            )
-        },
-        text = {
-            Text(
-                text = "Finish or stop the current Pomodoro before starting a new one.",
-                color = tokens.textSecondary,
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onOpenFocus) {
-                Text(
-                    text = "Open focus",
-                    color = tokens.accent,
-                    style = KuroType.labelStrong,
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Got it", color = tokens.textSecondary)
-            }
-        },
-        containerColor = tokens.cardFill,
-        shape = RoundedCornerShape(KuroSpacing.radiusMd),
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
