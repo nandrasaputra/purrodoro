@@ -299,25 +299,32 @@ fun TodoScreen(
                         )
                     }
                     activeRowsForList.forEachIndexed { index, task ->
-                        val rowCategory = categories.firstOrNull { it.id == task.categoryId }
-                        StaggeredEntrance(index = index) {
-                            SwipeableTaskCard(
-                                task = task,
-                                today = today,
-                                // When filtered to a single category, hide the per-row
-                                // subtitle (it would be the same word on every row).
-                                categoryName = rowCategory
-                                    ?.name
-                                    ?.takeIf { selectedCategoryId == null },
-                                categoryColor = rowCategory?.let {
-                                    categoryColorFor(it, tokens.textMuted)
-                                },
-                                isLive = task.id == liveTaskId,
-                                onToggleTask = onToggleTask,
-                                onDeleteTask = onDeleteTask,
-                                onTapRow = { detailSheetTask = it },
-                                onFocusTask = { attemptStartFocus(it) },
-                            )
+                        // Key by task identity, not list position. These rows hold
+                        // per-row animation state (the checkbox "stamp"), and this
+                        // is a non-lazy Column — without a stable key, completing a
+                        // task shifts the remaining rows up into the departed slot
+                        // and they inherit its latched "completed" check state.
+                        key(task.id) {
+                            val rowCategory = categories.firstOrNull { it.id == task.categoryId }
+                            StaggeredEntrance(index = index) {
+                                SwipeableTaskCard(
+                                    task = task,
+                                    today = today,
+                                    // When filtered to a single category, hide the per-row
+                                    // subtitle (it would be the same word on every row).
+                                    categoryName = rowCategory
+                                        ?.name
+                                        ?.takeIf { selectedCategoryId == null },
+                                    categoryColor = rowCategory?.let {
+                                        categoryColorFor(it, tokens.textMuted)
+                                    },
+                                    isLive = task.id == liveTaskId,
+                                    onToggleTask = onToggleTask,
+                                    onDeleteTask = onDeleteTask,
+                                    onTapRow = { detailSheetTask = it },
+                                    onFocusTask = { attemptStartFocus(it) },
+                                )
+                            }
                         }
                     }
                 }
@@ -347,19 +354,21 @@ fun TodoScreen(
                         },
                     )
                     filteredCompletedTasks.forEach { task ->
-                        val rowCategory = categories.firstOrNull { it.id == task.categoryId }
-                        SwipeToDeleteCompletedTaskRow(
-                            task = task,
-                            categoryName = rowCategory
-                                ?.name
-                                ?.takeIf { selectedCategoryId == null },
-                            categoryColor = rowCategory?.let {
-                                categoryColorFor(it, tokens.textMuted)
-                            },
-                            onToggleTask = onToggleTask,
-                            onDeleteTask = onDeleteTask,
-                            onTapRow = { detailSheetTask = it },
-                        )
+                        key(task.id) {
+                            val rowCategory = categories.firstOrNull { it.id == task.categoryId }
+                            SwipeToDeleteCompletedTaskRow(
+                                task = task,
+                                categoryName = rowCategory
+                                    ?.name
+                                    ?.takeIf { selectedCategoryId == null },
+                                categoryColor = rowCategory?.let {
+                                    categoryColorFor(it, tokens.textMuted)
+                                },
+                                onToggleTask = onToggleTask,
+                                onDeleteTask = onDeleteTask,
+                                onTapRow = { detailSheetTask = it },
+                            )
+                        }
                     }
                 }
             }
