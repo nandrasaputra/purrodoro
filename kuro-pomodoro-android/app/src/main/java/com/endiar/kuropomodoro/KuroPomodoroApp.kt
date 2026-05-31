@@ -582,7 +582,10 @@ fun KuroPomodoroApp(
                         onDeleteCategory = { id -> scope.launch { repo.deleteCategory(id) } },
                         onFocusTask = { request ->
                             activeTask = request.task
-                            isFocusMode = false
+                            // Land on the immersive focus screen (not the Home
+                            // dashboard) so task and habit starts behave the same:
+                            // "you pressed start, now focus."
+                            isFocusMode = true
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
                             scope.launch { repo.setInterruptedFocus(null) }
@@ -662,10 +665,11 @@ fun KuroPomodoroApp(
                             // Mirror the Tasks flow: open the Start Focus
                             // confirmation sheet prefilled with this habit
                             // instead of starting the timer immediately. The
-                            // sheet's confirm path owns the actual start.
+                            // sheet shows in place (over the Habits tab) and its
+                            // confirm path owns both the start AND the navigation
+                            // to Home, so cancelling leaves the user where they were.
                             startFocusPrefill = StartFocusPrefill.Habit(habit.id)
                             showStartFocusSheet = true
-                            selectedTab = AppTab.Timer
                         },
                         contentPadding = screenContentPadding,
                         // Same focus gating as Tasks: block starting a focus on a
@@ -729,6 +733,10 @@ fun KuroPomodoroApp(
                             showStartFocusSheet = false
                             startFocusPrefill = null
                             requestNotificationPermission()
+                            // Always land on Home's immersive focus screen on
+                            // confirm. Home-originated callers are already on the
+                            // Timer tab; the Habits-originated caller navigates here.
+                            selectedTab = AppTab.Timer
                             isFocusMode = true
                             activeTask = request.task
                             scope.launch { repo.setInterruptedFocus(null) }
