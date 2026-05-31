@@ -828,28 +828,6 @@ private fun HabitDetailContent(
             )
         }
 
-        HabitSectionHeader(title = "This week")
-        KuroHabitCard(
-            name = habit.name,
-            emoji = habit.emoji,
-            accentColor = accent,
-            scheduleLabel = habitScheduleLabel(habit, today),
-            streak = habit.currentStreak(today),
-            streakUnitLabel = habitStreakUnitLabel(habit),
-            weekDots = habitWeekDots(habit, today).map { dot ->
-                KuroHabitWeekDotUi(
-                    label = dot.label,
-                    isScheduled = dot.isScheduled,
-                    isCompleted = dot.isCompleted,
-                    isToday = dot.date == today,
-                )
-            },
-            onClick = onEdit,
-        )
-
-        HabitSectionHeader(title = "Monthly progress")
-        MonthlyHabitProgressCard(habits = listOf(habit), today = today)
-
         KuroPrimaryButton(
             text = if (doneToday) "Completed today ✓" else "Mark done today",
             onClick = onToggleToday,
@@ -878,6 +856,29 @@ private fun HabitDetailContent(
                     "Focus a Pomodoro on this habit when you're ready."
             },
         )
+
+        HabitSectionHeader(title = "This week")
+        KuroHabitCard(
+            name = habit.name,
+            emoji = habit.emoji,
+            accentColor = accent,
+            scheduleLabel = habitScheduleLabel(habit, today),
+            streak = habit.currentStreak(today),
+            streakUnitLabel = habitStreakUnitLabel(habit),
+            weekDots = habitWeekDots(habit, today).map { dot ->
+                KuroHabitWeekDotUi(
+                    label = dot.label,
+                    isScheduled = dot.isScheduled,
+                    isCompleted = dot.isCompleted,
+                    isToday = dot.date == today,
+                )
+            },
+            onClick = onEdit,
+        )
+
+        HabitSectionHeader(title = "Monthly progress")
+        MonthlyHabitProgressCard(habits = listOf(habit), today = today)
+
         DetailDeleteButton(onDelete = onDelete)
     }
 }
