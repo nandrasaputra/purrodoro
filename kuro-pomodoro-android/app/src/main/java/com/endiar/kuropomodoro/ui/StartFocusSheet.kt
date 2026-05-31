@@ -209,10 +209,13 @@ fun StartFocusSheet(
         }
     }
 
+    // Completed tasks are allowed through: the "already complete" confirmation
+    // lives at the task/habit detail "Focus with Kuro" tap, so by the time a
+    // completed task reaches this sheet the user has already agreed to proceed.
     fun canStart(): Boolean = when (intent) {
         FocusIntent.Empty -> true
         FocusIntent.SimpleNote -> noteText.trim().isNotEmpty()
-        FocusIntent.Task -> selectedTaskId >= 0 && tasks.any { it.id == selectedTaskId && !it.completed }
+        FocusIntent.Task -> selectedTaskId >= 0 && tasks.any { it.id == selectedTaskId }
         FocusIntent.Habit -> selectedHabitId >= 0 && todayHabits.any { it.id == selectedHabitId }
     }
 
@@ -246,7 +249,7 @@ fun StartFocusSheet(
                     noteText = noteText,
                     selectedTaskId = selectedTaskId,
                     selectedHabitId = selectedHabitId,
-                    incompleteTasks = incompleteTasks,
+                    tasks = tasks,
                     todayHabits = todayHabits,
                     sessionSettings = sessionSettings,
                     onIntentClick = ::onIntentClick,
@@ -363,7 +366,7 @@ private fun StartFocusConfirmContent(
     noteText: String,
     selectedTaskId: Int,
     selectedHabitId: Int,
-    incompleteTasks: List<FocusTask>,
+    tasks: List<FocusTask>,
     todayHabits: List<Habit>,
     sessionSettings: TimerSettings,
     onIntentClick: (FocusIntent) -> Unit,
@@ -405,7 +408,7 @@ private fun StartFocusConfirmContent(
         }
 
         FocusIntent.Task -> {
-            incompleteTasks.firstOrNull { it.id == selectedTaskId }?.let { task ->
+            tasks.firstOrNull { it.id == selectedTaskId }?.let { task ->
                 Spacer(Modifier.height(KuroSpacing.md))
                 SelectedIntentSummary(
                     label = task.title,

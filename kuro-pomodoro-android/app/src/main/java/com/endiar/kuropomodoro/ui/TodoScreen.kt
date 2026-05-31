@@ -84,6 +84,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.endiar.kuropomodoro.ui.components.FocusAlreadyCompleteDialog
 import com.endiar.kuropomodoro.ui.components.FocusBusyDialog
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
@@ -1442,6 +1443,9 @@ private fun TaskDetailSheet(
     }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var page by rememberSaveable { mutableStateOf(TaskSheetPage.Main) }
+    // Shown when the user taps "Focus with Kuro" on an already-completed task.
+    // Confirming proceeds to the normal start flow without un-completing it.
+    var showAlreadyCompleteConfirm by remember { mutableStateOf(false) }
 
     // Auto-save on dismiss: empty title falls back to the previous value rather
     // than committing whitespace. Only persist when something actually changed
@@ -1468,6 +1472,16 @@ private fun TaskDetailSheet(
         }
         onDismiss()
     }
+
+    // The task with any in-sheet edits applied, handed to the focus flow so the
+    // user's latest title/category/etc. carry into the session.
+    fun buildUpdatedTask(): FocusTask = task.copy(
+        title = title.trim().ifEmpty { task.title },
+        categoryId = categoryId,
+        priority = priority,
+        completed = completed,
+        dueDate = dueDate,
+    )
 
     KuroBottomSheet(title = null, onDismiss = saveAndDismiss, contentKey = page) {
         when (page) {
@@ -1521,14 +1535,14 @@ private fun TaskDetailSheet(
                         // unsure why nothing happened / unaware a timer was live.
                         enabled = true,
                         onClick = {
-                            val updated = task.copy(
-                                title = title.trim().ifEmpty { task.title },
-                                categoryId = categoryId,
-                                priority = priority,
-                                completed = completed,
-                                dueDate = dueDate,
-                            )
-                            onFocusTask(updated)
+                            // Only the "start a new focus" path needs the
+                            // already-complete prompt; Open/Blocked are about a
+                            // session that's already live.
+                            if (ctaState == DetailCtaState.StartFocus && completed) {
+                                showAlreadyCompleteConfirm = true
+                            } else {
+                                onFocusTask(buildUpdatedTask())
+                            }
                         },
                     )
 
@@ -1583,6 +1597,17 @@ private fun TaskDetailSheet(
                 dueDate = picked
                 showDatePicker = false
             },
+        )
+    }
+
+    if (showAlreadyCompleteConfirm) {
+        FocusAlreadyCompleteDialog(
+            isHabit = false,
+            onConfirm = {
+                showAlreadyCompleteConfirm = false
+                onFocusTask(buildUpdatedTask())
+            },
+            onDismiss = { showAlreadyCompleteConfirm = false },
         )
     }
 }

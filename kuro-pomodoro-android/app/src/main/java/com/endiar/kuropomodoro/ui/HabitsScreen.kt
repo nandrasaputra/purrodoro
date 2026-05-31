@@ -59,6 +59,7 @@ import com.endiar.kuropomodoro.model.bestStreak
 import com.endiar.kuropomodoro.model.currentStreak
 import com.endiar.kuropomodoro.model.isScheduledOn
 import com.endiar.kuropomodoro.model.isTargetMetOn
+import com.endiar.kuropomodoro.ui.components.FocusAlreadyCompleteDialog
 import com.endiar.kuropomodoro.ui.components.FocusBusyDialog
 import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
 import com.endiar.kuropomodoro.ui.designsystem.KuroBottomSheet
@@ -803,6 +804,9 @@ private fun HabitDetailContent(
         isFocusActive -> HabitFocusCtaState.Blocked
         else -> HabitFocusCtaState.StartFocus
     }
+    // Shown when the user taps "Focus with Kuro" on a habit already met today.
+    // Confirming proceeds to the normal start flow without clearing the log.
+    var showAlreadyCompleteConfirm by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -862,7 +866,8 @@ private fun HabitDetailContent(
             enabled = true,
             onClick = {
                 when (focusCta) {
-                    HabitFocusCtaState.StartFocus -> onStartFocus()
+                    HabitFocusCtaState.StartFocus ->
+                        if (doneToday) showAlreadyCompleteConfirm = true else onStartFocus()
                     HabitFocusCtaState.OpenFocus -> onOpenFocus()
                     HabitFocusCtaState.Blocked -> onFocusBusy()
                 }
@@ -904,6 +909,17 @@ private fun HabitDetailContent(
         MonthlyHabitProgressCard(habits = listOf(habit), today = today)
 
         DetailDeleteButton(onDelete = onDelete)
+    }
+
+    if (showAlreadyCompleteConfirm) {
+        FocusAlreadyCompleteDialog(
+            isHabit = true,
+            onConfirm = {
+                showAlreadyCompleteConfirm = false
+                onStartFocus()
+            },
+            onDismiss = { showAlreadyCompleteConfirm = false },
+        )
     }
 }
 
