@@ -33,6 +33,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import java.time.ZoneId
 
@@ -40,6 +42,13 @@ class TimerService : Service() {
 
     private val serviceJob = SupervisorJob()
     private val scope = CoroutineScope(serviceJob)
+
+    // Serializes every state transition (start/pause/resume/stop/skip) and the
+    // tick loop's segment-completion. The service scope runs on the multi-threaded
+    // Dispatchers.Default, so without this a user action (e.g. Skip near a segment
+    // boundary) and a concurrent natural completion could interleave and stomp on
+    // each other's writes — advancing the cycle past where the user intended.
+    private val transitionMutex = Mutex()
 
     private val _state = MutableStateFlow<TimerRuntimeState?>(null)
     private var tickJob: Job? = null
@@ -117,7 +126,7 @@ class TimerService : Service() {
 
     // --- Transitions ---
 
-    private suspend fun startCycle(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?, focusType: FocusType = FocusType.Empty) {
+    private suspend fun startCycle(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?, focusType: FocusType = FocusType.Empty) = transitionMutex.withLock {
         val items = buildCycle(settings)
         val firstSeconds = items.first().type.seconds()
         val now = System.currentTimeMillis()
@@ -146,9 +155,9 @@ class TimerService : Service() {
         startTicking()
     }
 
-    private suspend fun doPause() {
-        val current = _state.value ?: repo.runtimeSnapshot.first() ?: return
-        if (current.session.timerState != TimerState.Playing) return
+    private suspend fun doPause() = transitionMutex.withLock {
+        val current = _state.value ?: repo.runtimeSnapshot.first() ?: return@withLock
+        if (current.session.timerState != TimerState.Playing) return@withLock
         val now = System.currentTimeMillis()
         val remaining = current.endsAtMillis
             ?.let { ((it - now) / 1000L).toInt().coerceAtLeast(0) }
@@ -165,9 +174,9 @@ class TimerService : Service() {
         updateState(paused)
     }
 
-    private suspend fun doResume() {
-        val current = _state.value ?: repo.runtimeSnapshot.first() ?: return
-        if (current.session.timerState != TimerState.Paused) return
+    private suspend fun doResume() = transitionMutex.withLock {
+        val current = _state.value ?: repo.runtimeSnapshot.first() ?: return@withLock
+        if (current.session.timerState != TimerState.Paused) return@withLock
         val now = System.currentTimeMillis()
         val resumed = current.copy(
             session = current.session.copy(timerState = TimerState.Playing),
@@ -178,11 +187,11 @@ class TimerService : Service() {
         startTicking()
     }
 
-    private suspend fun doSkip() {
-        val current = _state.value ?: return
+    private suspend fun doSkip() = transitionMutex.withLock {
+        val current = _state.value ?: return@withLock
         val currentType = current.session.items.getOrNull(current.session.currentIndex)?.type
         if (currentType !is SessionItemType.ShortBreak && currentType !is SessionItemType.LongBreak) {
-            return
+            return@withLock
         }
         cancelAlarm()
         stopTicking()
@@ -200,7 +209,7 @@ class TimerService : Service() {
             }
             repo.setRuntimeSnapshot(null)
             finishCycleAndStop(buildResetState(current))
-            return
+            return@withLock
         }
         // Skip is an explicit user action — advance the cycle but leave the next
         // segment paused, regardless of autoStartNextSession.
@@ -216,7 +225,7 @@ class TimerService : Service() {
         updateState(updated)
     }
 
-    private suspend fun doStop() {
+    private suspend fun doStop() = transitionMutex.withLock {
         val current = _state.value
         if (current != null) {
             val now = System.currentTimeMillis()
@@ -252,13 +261,13 @@ class TimerService : Service() {
      * immediately in the UI before the user taps Start again. Guarded to no-op if a
      * session is in flight, so an out-of-order intent can't tear down a running cycle.
      */
-    private suspend fun doDismissCompletion() {
+    private suspend fun doDismissCompletion() = transitionMutex.withLock {
         val current = _state.value ?: run {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
-            return
+            return@withLock
         }
-        if (current.session.timerState != TimerState.Idle) return
+        if (current.session.timerState != TimerState.Idle) return@withLock
         _state.value = null
         repo.setRuntimeSnapshot(null)
         WidgetUpdater.refreshAll(applicationContext)
@@ -271,17 +280,17 @@ class TimerService : Service() {
      * killed and restarted this service. The receiver already applied [TimerStateMachine] and
      * updated the snapshot; we just load it and resume ticking.
      */
-    private suspend fun resumeFromAlarm() {
+    private suspend fun resumeFromAlarm() = transitionMutex.withLock {
         val snapshot = repo.runtimeSnapshot.first() ?: run {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
-            return
+            return@withLock
         }
         if (snapshot.session.timerState != TimerState.Playing) {
             _state.value = snapshot
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
-            return
+            return@withLock
         }
         _state.value = snapshot
         scheduleAlarm(snapshot)
@@ -300,46 +309,72 @@ class TimerService : Service() {
                 val endsAt = current.endsAtMillis ?: break
 
                 if (now >= endsAt) {
-                    val settings = repo.appState.first().settings
-                    val next = TimerStateMachine.applyTimerComplete(current, settings, now, repo)
-
-                    if (next.session.timerState == TimerState.Idle) {
-                        // End of cycle — applyTimerComplete already closed the record
-                        // and cleared the snapshot. Mirror skip-to-end-of-cycle path.
-                        finishCycleAndStop(next)
-                        return@launch
-                    }
-
-                    val completedType = current.session.items
-                        .getOrNull(current.session.currentIndex)?.type
-                    val kind = if (completedType is SessionItemType.Focus) {
-                        TimerNotification.CompletionKind.Focus
-                    } else {
-                        TimerNotification.CompletionKind.Break
-                    }
-                    NotificationManagerCompat.from(applicationContext).notify(
-                        TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
-                        TimerNotification.buildCompletionNotification(applicationContext, kind)
-                    )
-
-                    _state.value = next
-                    cancelAlarm()
-
-                    if (next.session.timerState == TimerState.Playing) {
-                        scheduleAlarm(next)
-                        // Refresh the ongoing notification immediately so it reflects the
-                        // new segment instead of lagging by one tick (~1s).
-                        refreshOngoingNotification(next, System.currentTimeMillis())
-                    } else {
-                        stopForeground(STOP_FOREGROUND_REMOVE)
-                        stopSelf()
-                        return@launch
-                    }
+                    // Hand off to a serialized completion: a user action (skip/pause)
+                    // may have changed the segment while this tick was waiting, so the
+                    // completion re-reads the live state under the lock before acting.
+                    if (!handleSegmentCompletion()) return@launch
                 } else {
                     refreshOngoingNotification(current, now)
                 }
                 delay(1000L)
             }
+        }
+    }
+
+    /**
+     * Apply the completion of the segment that just elapsed. Runs under
+     * [transitionMutex] and re-reads the live [_state] so it can never undo or leap
+     * past a concurrent user action (e.g. Skip pressed in the final second of a break,
+     * which previously let a stale tick re-advance the cycle and run it to the end).
+     *
+     * @return true to keep the tick loop running, false to stop it.
+     */
+    private suspend fun handleSegmentCompletion(): Boolean = transitionMutex.withLock {
+        // Re-validate against the live state captured under the lock.
+        val current = _state.value ?: return@withLock false
+        if (current.session.timerState != TimerState.Playing) return@withLock false
+        val endsAt = current.endsAtMillis ?: return@withLock false
+        val now = System.currentTimeMillis()
+        // The segment was advanced/extended (e.g. a skip moved us to a new segment)
+        // while we waited for the lock — this completion is stale, so drop it. The
+        // newly active segment, if any, drives its own tick loop.
+        if (now < endsAt) return@withLock false
+
+        val settings = repo.appState.first().settings
+        val next = TimerStateMachine.applyTimerComplete(current, settings, now, repo)
+
+        if (next.session.timerState == TimerState.Idle) {
+            // End of cycle — applyTimerComplete already closed the record
+            // and cleared the snapshot. Mirror skip-to-end-of-cycle path.
+            finishCycleAndStop(next)
+            return@withLock false
+        }
+
+        val completedType = current.session.items
+            .getOrNull(current.session.currentIndex)?.type
+        val kind = if (completedType is SessionItemType.Focus) {
+            TimerNotification.CompletionKind.Focus
+        } else {
+            TimerNotification.CompletionKind.Break
+        }
+        NotificationManagerCompat.from(applicationContext).notify(
+            TimerNotification.NOTIF_ID_COMPLETION + (System.currentTimeMillis() % 1000).toInt(),
+            TimerNotification.buildCompletionNotification(applicationContext, kind)
+        )
+
+        _state.value = next
+        cancelAlarm()
+
+        if (next.session.timerState == TimerState.Playing) {
+            scheduleAlarm(next)
+            // Refresh the ongoing notification immediately so it reflects the
+            // new segment instead of lagging by one tick (~1s).
+            refreshOngoingNotification(next, System.currentTimeMillis())
+            true
+        } else {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            false
         }
     }
 
