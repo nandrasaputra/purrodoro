@@ -445,4 +445,19 @@
     <string name="widget_today_enc_first">Kuro melihat fokus pertamamu</string>
     <string name="widget_today_enc_goal">Target tercapai bareng Kuro</string>
     <string name="widget_today_enc_proud">Kuro bangga hari ini</string>
+
+    <!-- Spotlight tutorial -->
+    <string name="tutorial_skip">Lewati</string>
+    <string name="tutorial_previous">Kembali</string>
+    <string name="tutorial_next">Lanjut</string>
+    <string name="tutorial_done">Mengerti</string>
+    <string name="tutorial_cat_cd">Kuro si kucing</string>
+    <string name="tutorial_start_focus_title">Mulai fokus pertamamu</string>
+    <string name="tutorial_start_focus_body">Ketuk di sini untuk memulai Pomodoro dan biarkan Kuro menghitung waktunya.</string>
+    <string name="tutorial_tasks_title">Rencanakan yang penting</string>
+    <string name="tutorial_tasks_body">Tambahkan tugas di sini, lalu pilih satu untuk difokuskan bersama Kuro.</string>
+    <string name="tutorial_habits_title">Bangun kebiasaan lembut</string>
+    <string name="tutorial_habits_body">Pantau rutinitas kecil dan fokuskan saat perlu perhatian.</string>
+    <string name="tutorial_journey_title">Lihat hasilnya bertambah</string>
+    <string name="tutorial_journey_body">Setiap siklus yang selesai akan muncul di perjalananmu seiring waktu.</string>
 </resources>

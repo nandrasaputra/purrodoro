@@ -460,4 +460,19 @@
     <string name="widget_stats_grid_description">Focus, streak, habits and tasks at a glance with Kuro.</string>
     <string name="widget_cozy_scene_label">Kuro Cozy</string>
     <string name="widget_cozy_scene_description">A cozy scene with Kuro and a soft reminder to focus together.</string>
+
+    <!-- Spotlight tutorial -->
+    <string name="tutorial_skip">Skip</string>
+    <string name="tutorial_previous">Back</string>
+    <string name="tutorial_next">Next</string>
+    <string name="tutorial_done">Got it</string>
+    <string name="tutorial_cat_cd">Kuro the cat</string>
+    <string name="tutorial_start_focus_title">Start your first focus</string>
+    <string name="tutorial_start_focus_body">Tap here to begin a Pomodoro and let Kuro keep time for you.</string>
+    <string name="tutorial_tasks_title">Plan what matters</string>
+    <string name="tutorial_tasks_body">Add tasks here, then pick one to focus on with Kuro.</string>
+    <string name="tutorial_habits_title">Build gentle habits</string>
+    <string name="tutorial_habits_body">Track small routines and focus on them when they need attention.</string>
+    <string name="tutorial_journey_title">Watch it add up</string>
+    <string name="tutorial_journey_body">Every finished cycle shows up in your journey over time.</string>
 </resources>
