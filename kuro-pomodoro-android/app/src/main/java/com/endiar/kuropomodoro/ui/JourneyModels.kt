@@ -42,7 +42,9 @@ data class JourneyTimelineRow(
     val recordId: Long,
     val timeLabel: String,
     val durationLabel: String,
+    val durationMinutes: Int,
     val statusLabel: String,
+    val completed: Boolean,
     val title: String,
     val taskName: String?,
     val record: SessionRecord
@@ -132,7 +134,9 @@ private fun SessionRecord.toTimelineRow(zone: ZoneId): JourneyTimelineRow {
         recordId = id,
         timeLabel = start.format(timeFormatter),
         durationLabel = "${focusMinutes.coerceAtLeast(0)} min",
+        durationMinutes = focusMinutes.coerceAtLeast(0),
         statusLabel = if (status == SessionStatus.Completed) "Completed" else "Partial",
+        completed = status == SessionStatus.Completed,
         title = taskName?.takeIf { it.isNotBlank() } ?: "Focus time",
         taskName = taskName,
         record = this

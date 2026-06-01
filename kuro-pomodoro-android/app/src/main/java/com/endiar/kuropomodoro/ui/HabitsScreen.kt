@@ -39,6 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -137,7 +139,7 @@ fun HabitsScreen(
     }
 
     KuroScreenScaffold(
-        stickyTitle = "Habits",
+        stickyTitle = stringResource(R.string.habits_title),
         modifier = modifier,
         contentPadding = contentPadding,
     ) { scrollState, headerMeasureModifier ->
@@ -166,8 +168,9 @@ fun HabitsScreen(
                     val remaining = grouped.today.count { !it.isTargetMetOn(today) }
                     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
                         HabitSectionHeader(
-                            title = "Today",
-                            trailing = if (remaining == 0) "All done 🎉" else "$remaining to go",
+                            title = stringResource(R.string.habits_section_today),
+                            trailing = if (remaining == 0) stringResource(R.string.habits_all_done)
+                            else stringResource(R.string.habits_to_go, remaining),
                             trailingAccent = remaining == 0,
                         )
                         grouped.today.forEach { habit ->
@@ -186,7 +189,7 @@ fun HabitsScreen(
                 if (grouped.upcoming.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
                         HabitSectionHeader(
-                            title = "Coming up",
+                            title = stringResource(R.string.habits_section_coming_up),
                             trailing = "${grouped.upcoming.size}",
                         )
                         grouped.upcoming.forEach { habit ->
@@ -203,8 +206,8 @@ fun HabitsScreen(
                 }
 
                 KuroHabitMotivationCard(
-                    quote = "Consistency is the secret behind all progress.",
-                    encouragement = "You're doing great! 🌟",
+                    quote = stringResource(R.string.habits_motivation_quote),
+                    encouragement = stringResource(R.string.habits_motivation_encouragement),
                 )
             }
         }
@@ -252,7 +255,7 @@ fun HabitsScreen(
     }
 
     if (showAddSheet) {
-        KuroBottomSheet(title = "Add habit", onDismiss = { showAddSheet = false }) {
+        KuroBottomSheet(title = stringResource(R.string.habits_add_sheet_title), onDismiss = { showAddSheet = false }) {
             HabitEditorSheet(
                 initial = null,
                 onConfirm = { draft -> onAddHabit(draft); showAddSheet = false },
@@ -278,17 +281,18 @@ private fun HabitsScreenHeader(
         // pattern used by the Tasks screen. The sticky bar shown on scroll
         // already echoes this title.
         Text(
-            text = "Habits",
+            text = stringResource(R.string.habits_title),
             color = tokens.textPrimary,
             style = KuroType.headingDisplay,
         )
+        val addHabitCd = stringResource(R.string.habits_add)
         Box(
             modifier = Modifier
                 .size(KuroSpacing.xxxl + KuroSpacing.sm)
                 .clip(CircleShape)
                 .background(tokens.accent)
                 .clickable(onClick = onAdd)
-                .semantics { role = Role.Button; contentDescription = "Add habit" },
+                .semantics { role = Role.Button; contentDescription = addHabitCd },
             contentAlignment = Alignment.Center,
         ) {
             Text(text = "+", color = tokens.accentOn, style = KuroType.fabGlyph)
@@ -327,8 +331,8 @@ private fun EmptyHabitCard(
     onAdd: () -> Unit,
 ) {
     KuroHabitsEmptyState(
-        title = "No habits yet",
-        message = "Add a small repeatable action and let Kuro keep you company.",
+        title = stringResource(R.string.habits_empty_title),
+        message = stringResource(R.string.habits_empty_msg),
         onAdd = onAdd,
         leading = { LeafBadge() },
     )
@@ -377,6 +381,10 @@ private fun HabitListCard(
     )
 }
 
+/** The locale currently applied by [KuroLocalizationProvider]. */
+@Composable
+private fun activeLocale(): Locale = LocalConfiguration.current.locales[0]
+
 private fun habitTodayStatus(habit: Habit, today: LocalDate): KuroHabitTodayStatus = when {
     !habit.isScheduledOn(today) -> KuroHabitTodayStatus.RestDay
     habit.isTargetMetOn(today) -> KuroHabitTodayStatus.Done
@@ -384,29 +392,37 @@ private fun habitTodayStatus(habit: Habit, today: LocalDate): KuroHabitTodayStat
 }
 
 /** "back tomorrow" / "back Wed" — when this habit next runs after a rest day. */
+@Composable
 private fun habitRestDayLabel(habit: Habit, today: LocalDate): String {
     val next = habit.nextScheduledDate(today)
     return if (next == today.plusDays(1)) {
-        "back tomorrow"
+        stringResource(R.string.habits_back_tomorrow)
     } else {
-        "back ${next.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())}"
+        stringResource(
+            R.string.habits_back_day,
+            next.dayOfWeek.getDisplayName(TextStyle.SHORT, activeLocale()),
+        )
     }
 }
 
+@Composable
 private fun habitTodayStatusLabel(habit: Habit, today: LocalDate): String = when {
     !habit.isScheduledOn(today) -> {
         val next = habit.nextScheduledDate(today)
-        if (next == today.plusDays(1)) "Tomorrow"
-        else "Next ${next.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())}"
+        if (next == today.plusDays(1)) stringResource(R.string.habits_status_tomorrow)
+        else stringResource(
+            R.string.habits_status_next,
+            next.dayOfWeek.getDisplayName(TextStyle.SHORT, activeLocale()),
+        )
     }
-    habit.isTargetMetOn(today) -> "Done today"
-    else -> "Due today"
+    habit.isTargetMetOn(today) -> stringResource(R.string.habits_status_done_today)
+    else -> stringResource(R.string.habits_status_due_today)
 }
 
 @Composable
 private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
     val dots = monthlyHabitProgressDots(habits, today)
-    val monthLabel = today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+    val monthLabel = today.format(DateTimeFormatter.ofPattern("MMMM yyyy", activeLocale()))
     val leadingBlanks = dots.firstOrNull()?.date?.dayOfWeek?.let { (it.value - 1) % 7 } ?: 0
     val gridSlots = List(leadingBlanks) {
         KuroHabitMonthDotUi(isCompleted = false, isToday = false, isPlaceholder = true)
@@ -422,24 +438,27 @@ private fun MonthlyHabitProgressCard(habits: List<Habit>, today: LocalDate) {
     )
 }
 
+@Composable
 private fun habitStreakUnitLabel(habit: Habit): String = when (habit.occurrence) {
-    is HabitOccurrence.Daily -> "day streak"
-    is HabitOccurrence.Weekdays -> "week streak"
+    is HabitOccurrence.Daily -> stringResource(R.string.habits_streak_day)
+    is HabitOccurrence.Weekdays -> stringResource(R.string.habits_streak_week)
 }
 
+@Composable
 private fun habitScheduleLabel(habit: Habit, today: LocalDate): String =
     nextScheduledLabel(habit, today)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Short human label for when/how often this habit runs. */
-private fun nextScheduledLabel(habit: Habit, today: LocalDate): String {
+@Composable
+private fun nextScheduledLabel(habit: Habit, @Suppress("UNUSED_PARAMETER") today: LocalDate): String {
     return when (val o = habit.occurrence) {
-        is HabitOccurrence.Daily -> "Every day"
+        is HabitOccurrence.Daily -> stringResource(R.string.habits_every_day)
         is HabitOccurrence.Weekdays -> {
-            val shortNames = o.days.sortedBy { it.value }
-                .joinToString(", ") { it.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }
-            shortNames
+            val locale = activeLocale()
+            o.days.sortedBy { it.value }
+                .joinToString(", ") { it.getDisplayName(TextStyle.SHORT, locale) }
         }
     }
 }
@@ -498,7 +517,7 @@ private fun HabitEditorSheet(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EditorLabel("NAME")
+            EditorLabel(stringResource(R.string.habits_name_label))
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = "${name.length}/$HabitNameMaxLength",
@@ -520,12 +539,12 @@ private fun HabitEditorSheet(
             KuroInputField(
                 value = name,
                 onValueChange = { name = it.take(HabitNameMaxLength) },
-                placeholder = "e.g. Meditate",
+                placeholder = stringResource(R.string.habits_name_placeholder),
                 modifier = Modifier.weight(1f),
             )
         }
 
-        EditorLabel("COLOR")
+        EditorLabel(stringResource(R.string.habits_color_label))
         Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
             PRESET_COLORS.forEach { c ->
                 Box(
@@ -548,7 +567,7 @@ private fun HabitEditorSheet(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EditorLabel("REPEAT")
+            EditorLabel(stringResource(R.string.habits_repeat_label))
             Text(
                 text = daysSummaryLabel(selectedDays),
                 color = tokens.textSecondary,
@@ -559,9 +578,10 @@ private fun HabitEditorSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
         ) {
+            val dayLocale = activeLocale()
             DayOfWeek.entries.forEach { dow ->
                 DayToggle(
-                    label = dow.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                    label = dow.getDisplayName(TextStyle.NARROW, dayLocale),
                     selected = dow in selectedDays,
                     accent = Color(colorArgb.toInt()),
                     modifier = Modifier.weight(1f),
@@ -578,7 +598,8 @@ private fun HabitEditorSheet(
         }
 
         KuroPrimaryButton(
-            text = if (initial == null) "Add Habit" else "Save Changes",
+            text = if (initial == null) stringResource(R.string.habits_add_button)
+            else stringResource(R.string.habits_save_button),
             onClick = {
                 val trimmed = name.trim()
                 if (trimmed.isEmpty()) return@KuroPrimaryButton
@@ -606,7 +627,7 @@ private fun HabitEditorSheet(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "Delete Habit",
+                    text = stringResource(R.string.habits_delete_button),
                     color = tokens.destructive.copy(alpha = 0.85f),
                     style = KuroType.labelStrong,
                 )
@@ -620,9 +641,9 @@ private fun HabitEditorSheet(
             onDismissRequest = { showEmojiPicker = false },
             title = {
                 Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2)) {
-                    Text("Choose an icon", color = tokens.textPrimary, style = KuroType.headingCard)
+                    Text(stringResource(R.string.habits_choose_icon), color = tokens.textPrimary, style = KuroType.headingCard)
                     Text(
-                        "Pick something that fits your habit.",
+                        stringResource(R.string.habits_choose_icon_sub),
                         color = tokens.textSecondary,
                         style = KuroType.bodySecondary,
                     )
@@ -661,7 +682,7 @@ private fun HabitEditorSheet(
             },
             confirmButton = {
                 TextButton(onClick = { showEmojiPicker = false }) {
-                    Text("Done", color = tokens.accent, style = KuroType.labelStrong)
+                    Text(stringResource(R.string.common_done), color = tokens.accent, style = KuroType.labelStrong)
                 }
             },
             containerColor = tokens.cardFill,
@@ -672,16 +693,16 @@ private fun HabitEditorSheet(
     if (showDeleteConfirm && onDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete habit?", color = tokens.textPrimary, style = KuroType.headingCard) },
-            text = { Text("All logs and streak data will be permanently removed.", color = tokens.textSecondary) },
+            title = { Text(stringResource(R.string.habits_delete_title), color = tokens.textPrimary, style = KuroType.headingCard) },
+            text = { Text(stringResource(R.string.habits_delete_body), color = tokens.textSecondary) },
             confirmButton = {
                 TextButton(onClick = { showDeleteConfirm = false; onDelete() }) {
-                    Text("Delete", color = tokens.destructive, style = KuroType.labelStrong)
+                    Text(stringResource(R.string.common_delete), color = tokens.destructive, style = KuroType.labelStrong)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel", color = tokens.textSecondary)
+                    Text(stringResource(R.string.common_cancel), color = tokens.textSecondary)
                 }
             },
             containerColor = tokens.cardFill,
@@ -740,12 +761,18 @@ private fun occurrenceFromDays(days: Set<DayOfWeek>): HabitOccurrence =
     if (days.isEmpty() || days.size == ALL_DAYS.size) HabitOccurrence.Daily
     else HabitOccurrence.Weekdays(days)
 
+@Composable
 private fun daysSummaryLabel(days: Set<DayOfWeek>): String = when {
-    days.isEmpty() || days.size == ALL_DAYS.size -> "Every day"
-    days.size == 5 && days.none { it == DayOfWeek.SATURDAY || it == DayOfWeek.SUNDAY } -> "Weekdays"
-    days.size == 2 && days.all { it == DayOfWeek.SATURDAY || it == DayOfWeek.SUNDAY } -> "Weekends"
-    else -> days.sortedBy { it.value }
-        .joinToString(", ") { it.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }
+    days.isEmpty() || days.size == ALL_DAYS.size -> stringResource(R.string.habits_every_day)
+    days.size == 5 && days.none { it == DayOfWeek.SATURDAY || it == DayOfWeek.SUNDAY } ->
+        stringResource(R.string.habits_weekdays)
+    days.size == 2 && days.all { it == DayOfWeek.SATURDAY || it == DayOfWeek.SUNDAY } ->
+        stringResource(R.string.habits_weekends)
+    else -> {
+        val locale = activeLocale()
+        days.sortedBy { it.value }
+            .joinToString(", ") { it.getDisplayName(TextStyle.SHORT, locale) }
+    }
 }
 
 // ─── Habit detail sheet ───────────────────────────────────────────────────────
@@ -861,34 +888,36 @@ private fun HabitDetailContent(
                     style = KuroType.bodySecondary,
                 )
             }
+            val editHabitCd = stringResource(R.string.habits_edit_cd)
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(KuroSpacing.radiusPill))
                     .background(tokens.segmentedTrack)
                     .clickable(onClick = onEdit)
                     .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.sm)
-                    .semantics { role = Role.Button; contentDescription = "Edit habit" },
+                    .semantics { role = Role.Button; contentDescription = editHabitCd },
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Edit", color = tokens.textPrimary, style = KuroType.labelStrong)
+                Text(stringResource(R.string.habits_edit), color = tokens.textPrimary, style = KuroType.labelStrong)
             }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
             HabitStatTile(
                 value = habit.currentStreak(today).toString(),
-                label = "Current streak",
+                label = stringResource(R.string.habits_current_streak),
                 modifier = Modifier.weight(1f),
             )
             HabitStatTile(
                 value = habit.bestStreak(today).toString(),
-                label = "Best streak",
+                label = stringResource(R.string.habits_best_streak),
                 modifier = Modifier.weight(1f),
             )
         }
 
         KuroPrimaryButton(
-            text = if (doneToday) "Completed today ✓" else "Mark done today",
+            text = if (doneToday) stringResource(R.string.habits_completed_today)
+            else stringResource(R.string.habits_mark_done_today),
             onClick = onToggleToday,
             // Only days the habit is actually scheduled can be checked off, so the
             // detail sheet matches the list (which hides the toggle on rest days).
@@ -897,11 +926,12 @@ private fun HabitDetailContent(
         )
         if (!scheduledToday) {
             HabitDetailHelperRow(
-                message = "Not scheduled today · ${habitRestDayLabel(habit, today)}",
+                message = stringResource(R.string.habits_not_scheduled, habitRestDayLabel(habit, today)),
             )
         }
         DetailSecondaryButton(
-            label = if (focusCta == HabitFocusCtaState.OpenFocus) "Open focus" else "Focus with Kuro",
+            label = if (focusCta == HabitFocusCtaState.OpenFocus) stringResource(R.string.habits_open_focus)
+            else stringResource(R.string.habits_focus_with_kuro),
             // Stay tappable when blocked so the tap can explain why (busy
             // dialog) instead of presenting a dead, greyed-out button.
             enabled = true,
@@ -917,17 +947,17 @@ private fun HabitDetailContent(
         HabitDetailHelperRow(
             message = when (focusCta) {
                 HabitFocusCtaState.OpenFocus ->
-                    "This Pomodoro is in progress — tap to jump back to it."
+                    stringResource(R.string.habits_helper_open)
 
                 HabitFocusCtaState.Blocked ->
-                    "A Pomodoro is already running. Finish or stop it to focus on this habit."
+                    stringResource(R.string.habits_helper_blocked)
 
                 HabitFocusCtaState.StartFocus ->
-                    "Focus a Pomodoro on this habit when you're ready."
+                    stringResource(R.string.habits_helper_start)
             },
         )
 
-        HabitSectionHeader(title = "This week")
+        HabitSectionHeader(title = stringResource(R.string.habits_this_week))
         KuroHabitCard(
             name = habit.name,
             emoji = habit.emoji,
@@ -946,7 +976,7 @@ private fun HabitDetailContent(
             onClick = onEdit,
         )
 
-        HabitSectionHeader(title = "Monthly progress")
+        HabitSectionHeader(title = stringResource(R.string.habits_monthly_progress))
         MonthlyHabitProgressCard(habits = listOf(habit), today = today)
 
         DetailDeleteButton(onDelete = onDelete)
@@ -1000,6 +1030,7 @@ private fun HabitDetailHelperRow(message: String) {
 @Composable
 private fun HabitEditSubpageHeader(onBack: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val backCd = stringResource(R.string.common_back)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -1011,12 +1042,12 @@ private fun HabitEditSubpageHeader(onBack: () -> Unit) {
                 .clip(CircleShape)
                 .background(tokens.segmentedTrack)
                 .clickable(onClick = onBack)
-                .semantics { role = Role.Button; contentDescription = "Back" },
+                .semantics { role = Role.Button; contentDescription = backCd },
             contentAlignment = Alignment.Center,
         ) {
             Text("‹", color = tokens.textPrimary, style = KuroType.fabGlyph)
         }
-        Text("Edit habit", color = tokens.textPrimary, style = KuroType.headingCard)
+        Text(stringResource(R.string.habits_edit_habit), color = tokens.textPrimary, style = KuroType.headingCard)
     }
 }
 
@@ -1073,7 +1104,7 @@ private fun DetailDeleteButton(onDelete: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "Delete Habit",
+            text = stringResource(R.string.habits_delete_button),
             color = tokens.destructive.copy(alpha = 0.85f),
             style = KuroType.labelStrong,
         )
@@ -1081,16 +1112,16 @@ private fun DetailDeleteButton(onDelete: () -> Unit) {
     if (showConfirm) {
         AlertDialog(
             onDismissRequest = { showConfirm = false },
-            title = { Text("Delete habit?", color = tokens.textPrimary, style = KuroType.headingCard) },
-            text = { Text("All logs and streak data will be permanently removed.", color = tokens.textSecondary) },
+            title = { Text(stringResource(R.string.habits_delete_title), color = tokens.textPrimary, style = KuroType.headingCard) },
+            text = { Text(stringResource(R.string.habits_delete_body), color = tokens.textSecondary) },
             confirmButton = {
                 TextButton(onClick = { showConfirm = false; onDelete() }) {
-                    Text("Delete", color = tokens.destructive, style = KuroType.labelStrong)
+                    Text(stringResource(R.string.common_delete), color = tokens.destructive, style = KuroType.labelStrong)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirm = false }) {
-                    Text("Cancel", color = tokens.textSecondary)
+                    Text(stringResource(R.string.common_cancel), color = tokens.textSecondary)
                 }
             },
             containerColor = tokens.cardFill,

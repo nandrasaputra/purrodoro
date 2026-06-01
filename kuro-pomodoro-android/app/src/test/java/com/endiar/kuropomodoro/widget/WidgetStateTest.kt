@@ -32,30 +32,24 @@ class WidgetStateTest {
     fun `quickStart returns Ready when no cycle and no pending ack`() {
         val state = WidgetState.quickStart(runtime = null, pendingCycleAck = false)
         assertEquals(QuickStartMood.Ready, state.mood)
-        assertEquals("Kuro is ready", state.title)
-        assertEquals("Start Focus", state.actionLabel)
     }
 
     @Test
     fun `quickStart returns Celebrating when pending ack is set`() {
         val state = WidgetState.quickStart(runtime = null, pendingCycleAck = true)
         assertEquals(QuickStartMood.Celebrating, state.mood)
-        assertEquals("Nice work today", state.title)
-        assertEquals("Open Kuro", state.actionLabel)
     }
 
     @Test
     fun `quickStart returns Focusing when timer is Playing`() {
         val state = WidgetState.quickStart(runtime = runtime(TimerState.Playing), pendingCycleAck = false)
         assertEquals(QuickStartMood.Focusing, state.mood)
-        assertEquals("Open Timer", state.actionLabel)
     }
 
     @Test
     fun `quickStart returns Waiting when timer is Paused`() {
         val state = WidgetState.quickStart(runtime = runtime(TimerState.Paused), pendingCycleAck = false)
         assertEquals(QuickStartMood.Waiting, state.mood)
-        assertEquals("Open Timer", state.actionLabel)
     }
 
     @Test
@@ -65,7 +59,7 @@ class WidgetStateTest {
             settings = TimerSettings(focusSessionsPerCycle = 4),
         )
         assertEquals(0, state.focusCount)
-        assertEquals("A soft start is enough", state.encouragement)
+        assertEquals(TodayEncouragement.SoftStart, state.encouragement)
     }
 
     @Test
@@ -75,7 +69,7 @@ class WidgetStateTest {
             settings = TimerSettings(focusSessionsPerCycle = 4),
         )
         assertEquals(1, state.focusCount)
-        assertEquals("Kuro saw your first focus", state.encouragement)
+        assertEquals(TodayEncouragement.FirstFocus, state.encouragement)
     }
 
     @Test
@@ -85,7 +79,7 @@ class WidgetStateTest {
             settings = TimerSettings(focusSessionsPerCycle = 4),
         )
         assertEquals(7, state.focusCount)
-        assertEquals("Goal reached with Kuro", state.encouragement)
+        assertEquals(TodayEncouragement.GoalReached, state.encouragement)
     }
 
     @Test
@@ -95,6 +89,6 @@ class WidgetStateTest {
             settings = TimerSettings(focusSessionsPerCycle = 2),
         )
         assertEquals(2, state.focusCount)
-        assertEquals("Goal reached with Kuro", state.encouragement)
+        assertEquals(TodayEncouragement.GoalReached, state.encouragement)
     }
 }

@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -292,8 +293,8 @@ fun StartFocusSheet(
 
             StartFocusSheetPage.PickTask -> {
                 StartFocusPickerContent(
-                    title = "Choose a task",
-                    emptyMessage = "No open tasks yet. Add one from the Tasks tab.",
+                    title = stringResource(R.string.sheet_choose_task),
+                    emptyMessage = stringResource(R.string.sheet_no_tasks),
                     options = incompleteTasks.map { it.id to it.title },
                     draftSelectedId = pickerDraftId,
                     onDraftSelect = { pickerDraftId = it },
@@ -312,8 +313,8 @@ fun StartFocusSheet(
 
             StartFocusSheetPage.PickHabit -> {
                 StartFocusPickerContent(
-                    title = "Choose a habit",
-                    emptyMessage = "No habits left to focus on today.",
+                    title = stringResource(R.string.sheet_choose_habit),
+                    emptyMessage = stringResource(R.string.sheet_no_habits),
                     options = eligibleHabits.map { it.id to "${it.emoji} ${it.name}" },
                     draftSelectedId = pickerDraftId,
                     onDraftSelect = { pickerDraftId = it },
@@ -423,13 +424,13 @@ private fun StartFocusConfirmContent(
     )
     Spacer(Modifier.height(KuroSpacing.md))
     Text(
-        text = "Start Focus",
+        text = stringResource(R.string.home_start_focus),
         style = KuroType.headingCard,
         color = MaterialTheme.colorScheme.kuroTokens.textPrimary,
     )
     Spacer(Modifier.height(KuroSpacing.xs))
     Text(
-        text = "What are you working on?",
+        text = stringResource(R.string.sheet_what_working_on),
         style = KuroType.bodySecondary,
         color = MaterialTheme.colorScheme.kuroTokens.textSecondary,
     )
@@ -443,7 +444,7 @@ private fun StartFocusConfirmContent(
             KuroInputField(
                 value = noteText,
                 onValueChange = onNoteChange,
-                placeholder = "Write a quick note…",
+                placeholder = stringResource(R.string.sheet_write_note),
             )
         }
 
@@ -492,7 +493,7 @@ private fun StartFocusPickerContent(
     KuroBottomSheetSubpageHeader(
         title = title,
         onBack = onBack,
-        actionLabel = "OK",
+        actionLabel = stringResource(R.string.common_ok),
         onAction = onConfirm,
         actionEnabled = canConfirm,
     )
@@ -529,7 +530,7 @@ private fun SelectedIntentSummary(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = "Change",
+            text = stringResource(R.string.sheet_change),
             style = KuroType.labelStrong,
             color = tokens.accent,
         )
@@ -546,14 +547,14 @@ private fun StartFocusConfigEditorContent(
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
     KuroBottomSheetSubpageHeader(
-        title = "Edit config",
+        title = stringResource(R.string.sheet_edit_config),
         onBack = onBack,
-        actionLabel = "Done",
+        actionLabel = stringResource(R.string.common_done),
         onAction = onDone,
     )
 
     Text(
-        text = "Changes apply to this session only.",
+        text = stringResource(R.string.sheet_changes_apply),
         style = KuroType.bodySecondary,
         color = tokens.textSecondary,
         modifier = Modifier
@@ -564,9 +565,9 @@ private fun StartFocusConfigEditorContent(
     KuroCard(modifier = Modifier.fillMaxWidth()) {
         SessionConfigStepperRow(
             icon = Lucide.Clock,
-            label = "Focus",
+            label = stringResource(R.string.config_focus),
             value = settings.focusMinutes,
-            unit = "min",
+            unit = stringResource(R.string.unit_min),
             min = 1,
             max = 120,
             onDecrement = {
@@ -583,9 +584,9 @@ private fun StartFocusConfigEditorContent(
         SessionConfigDivider()
         SessionConfigStepperRow(
             icon = Lucide.Coffee,
-            label = "Short break",
+            label = stringResource(R.string.config_short_break),
             value = settings.shortBreakMinutes,
-            unit = "min",
+            unit = stringResource(R.string.unit_min),
             min = 1,
             max = 120,
             onDecrement = {
@@ -602,9 +603,9 @@ private fun StartFocusConfigEditorContent(
         SessionConfigDivider()
         SessionConfigStepperRow(
             icon = Lucide.Coffee,
-            label = "Long break",
+            label = stringResource(R.string.config_long_break),
             value = settings.longBreakMinutes,
-            unit = "min",
+            unit = stringResource(R.string.unit_min),
             min = 1,
             max = 120,
             onDecrement = {
@@ -621,7 +622,7 @@ private fun StartFocusConfigEditorContent(
         SessionConfigDivider()
         SessionConfigStepperRow(
             icon = Lucide.ChartColumn,
-            label = "Sessions",
+            label = stringResource(R.string.config_sessions),
             value = settings.focusSessionsPerCycle,
             unit = "",
             min = 1,
@@ -707,7 +708,7 @@ private fun IntentSection(
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
         Text(
-            text = "Intent (optional)",
+            text = stringResource(R.string.sheet_intent_optional),
             style = KuroType.labelStrong,
             color = tokens.textPrimary,
             modifier = Modifier.fillMaxWidth(),
@@ -718,7 +719,7 @@ private fun IntentSection(
         ) {
             FocusIntent.entries.forEach { option ->
                 IntentChip(
-                    label = option.label,
+                    label = focusIntentLabel(option),
                     icon = intentIcon(option),
                     selected = option == selected,
                     onClick = { onSelect(option) },
@@ -805,12 +806,12 @@ private fun DefaultConfigSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Default config",
+                text = stringResource(R.string.sheet_default_config),
                 style = KuroType.labelStrong,
                 color = tokens.textPrimary,
             )
             Text(
-                text = "Edit",
+                text = stringResource(R.string.sheet_edit),
                 style = KuroType.labelStrong,
                 color = tokens.accent,
                 modifier = Modifier
@@ -829,15 +830,15 @@ private fun DefaultConfigSection(
             ConfigGridRow {
                 ConfigCell(
                     icon = Lucide.Clock,
-                    label = "Focus",
-                    value = "${settings.focusMinutes} min",
+                    label = stringResource(R.string.config_focus),
+                    value = stringResource(R.string.value_minutes, settings.focusMinutes),
                     modifier = Modifier.weight(1f),
                 )
                 ConfigGridDividerVertical()
                 ConfigCell(
                     icon = Lucide.Coffee,
-                    label = "Short break",
-                    value = "${settings.shortBreakMinutes} min",
+                    label = stringResource(R.string.config_short_break),
+                    value = stringResource(R.string.value_minutes, settings.shortBreakMinutes),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -845,14 +846,14 @@ private fun DefaultConfigSection(
             ConfigGridRow {
                 ConfigCell(
                     icon = Lucide.Coffee,
-                    label = "Long break",
-                    value = "${settings.longBreakMinutes} min",
+                    label = stringResource(R.string.config_long_break),
+                    value = stringResource(R.string.value_minutes, settings.longBreakMinutes),
                     modifier = Modifier.weight(1f),
                 )
                 ConfigGridDividerVertical()
                 ConfigCell(
                     icon = Lucide.ChartColumn,
-                    label = "Sessions",
+                    label = stringResource(R.string.config_sessions),
                     value = settings.focusSessionsPerCycle.toString(),
                     modifier = Modifier.weight(1f),
                 )
@@ -955,7 +956,7 @@ private fun StartFocusConfirmButton(
         )
         Spacer(Modifier.width(KuroSpacing.sm))
         Text(
-            text = "Start Focus",
+            text = stringResource(R.string.home_start_focus),
             style = KuroType.bodyPrimary.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold),
             color = Color.White,
         )
@@ -967,4 +968,12 @@ private fun intentIcon(intent: FocusIntent): ImageVector = when (intent) {
     FocusIntent.Task -> Lucide.CircleCheck
     FocusIntent.SimpleNote -> Lucide.NotebookPen
     FocusIntent.Empty -> Lucide.Square
+}
+
+@Composable
+private fun focusIntentLabel(intent: FocusIntent): String = when (intent) {
+    FocusIntent.Habit -> stringResource(R.string.focus_type_habit)
+    FocusIntent.Task -> stringResource(R.string.focus_type_task)
+    FocusIntent.SimpleNote -> stringResource(R.string.intent_simple_note)
+    FocusIntent.Empty -> stringResource(R.string.intent_empty)
 }

@@ -38,10 +38,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
 // ── KuroListRow ───────────────────────────────────────────────────────────────
@@ -225,7 +227,7 @@ fun KuroBottomSheetSubpageHeader(
     ) {
         Icon(
             imageVector = Lucide.ArrowLeft,
-            contentDescription = "Back",
+            contentDescription = stringResource(R.string.common_back),
             tint = tokens.textPrimary,
             modifier = Modifier
                 .size(24.dp)

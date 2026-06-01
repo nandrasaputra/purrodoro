@@ -213,6 +213,25 @@ enum class AppearanceMode(val label: String) {
     }
 }
 
+/**
+ * In-app UI language. [tag] is a BCP-47 language tag used to build the
+ * localized [java.util.Locale]; `null` means "follow the system locale"
+ * (no override — resources resolve against the device configuration).
+ *
+ * [label] is the language's endonym, shown verbatim in the picker regardless
+ * of the currently active locale (the conventional UX for language menus).
+ */
+enum class AppLanguage(val label: String, val tag: String?) {
+    System("System", null),
+    English("English", "en"),
+    Indonesian("Bahasa Indonesia", "id");
+
+    companion object {
+        fun fromName(name: String?): AppLanguage =
+            entries.firstOrNull { it.name == name } ?: System
+    }
+}
+
 enum class GlassReadabilityMode(val label: String) {
     Adaptive("Adaptive"),
     Clear("Clear"),

@@ -28,9 +28,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.SoundOption
 import com.endiar.kuropomodoro.ui.components.KuroCard
@@ -81,7 +83,7 @@ fun SoundsScreen(
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
     KuroScreenScaffold(
-        stickyTitle = "Sounds",
+        stickyTitle = stringResource(R.string.sounds_title),
         modifier = modifier,
         contentPadding = contentPadding,
     ) { scrollState, headerMeasureModifier ->
@@ -98,9 +100,9 @@ fun SoundsScreen(
                 modifier = headerMeasureModifier,
                 verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
             ) {
-                Text(text = "Sounds", color = tokens.textPrimary, style = KuroType.headingDisplay)
+                Text(text = stringResource(R.string.sounds_title), color = tokens.textPrimary, style = KuroType.headingDisplay)
                 Text(
-                    text = "Ambient sounds for your focus sessions",
+                    text = stringResource(R.string.sounds_subtitle),
                     color = tokens.textSecondary,
                     style = KuroType.bodySecondary,
                 )
@@ -116,10 +118,10 @@ fun SoundsScreen(
                     else -> KuroPillKind.Default
                 }
                 val pillLabel = when {
-                    isPlaying -> "Playing"
-                    isSelected -> "Selected"
-                    sound.locked -> "Premium"
-                    else -> "Tap to play"
+                    isPlaying -> stringResource(R.string.sound_pill_playing)
+                    isSelected -> stringResource(R.string.sound_pill_selected)
+                    sound.locked -> stringResource(R.string.sound_pill_premium)
+                    else -> stringResource(R.string.sound_pill_tap_to_play)
                 }
 
                 KuroCard(
@@ -128,9 +130,9 @@ fun SoundsScreen(
                         .clickable(
                             role = Role.Button,
                             onClickLabel = when {
-                                sound.locked -> "Unlock ${sound.name}"
-                                isPlaying -> "Stop ${sound.name}"
-                                else -> "Play ${sound.name}"
+                                sound.locked -> stringResource(R.string.sound_unlock_cd, sound.name)
+                                isPlaying -> stringResource(R.string.sound_stop_cd, sound.name)
+                                else -> stringResource(R.string.sound_play_cd, sound.name)
                             },
                         ) {
                             if (isPlaying) onToggleSound(sound) else onSoundSelected(sound)
@@ -162,7 +164,7 @@ fun SoundsScreen(
                                     Text(text = sound.name, color = tokens.textPrimary, style = KuroType.headingCard)
                                     if (sound.locked) {
                                         KuroBadge(
-                                            label = "Premium",
+                                            label = stringResource(R.string.sound_pill_premium),
                                             fill = tokens.lockedFill,
                                             textColor = tokens.lockedText,
                                         )

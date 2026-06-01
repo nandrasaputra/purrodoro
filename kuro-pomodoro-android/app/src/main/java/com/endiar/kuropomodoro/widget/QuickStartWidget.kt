@@ -50,14 +50,16 @@ import kotlinx.coroutines.withContext
 class QuickStartWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val state = withContext(Dispatchers.IO) {
+        val (state, language) = withContext(Dispatchers.IO) {
             val repo = AppRepository.get(context)
             val runtime = repo.runtimeSnapshot.first()
             val pendingAck = repo.pendingCycleCompletionAckFlow.first()
-            WidgetState.quickStart(runtime, pendingAck)
+            val app = repo.appState.first()
+            WidgetState.quickStart(runtime, pendingAck) to app.language
         }
+        val localized = localizedWidgetContext(context, language)
         provideContent {
-            QuickStartContent(context = context, state = state)
+            QuickStartContent(context = context, res = localized, state = state)
         }
     }
 
@@ -71,7 +73,7 @@ class QuickStartWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun QuickStartContent(context: Context, state: QuickStartWidgetState) {
+private fun QuickStartContent(context: Context, res: Context, state: QuickStartWidgetState) {
     val openIntent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         if (state.mood == QuickStartMood.Ready) {
@@ -111,13 +113,13 @@ private fun QuickStartContent(context: Context, state: QuickStartWidgetState) {
                 horizontalAlignment = Alignment.Horizontal.Start,
             ) {
                 Text(
-                    text = state.title,
+                    text = res.quickStartTitle(state.mood),
                     style = WidgetTheme.titleLg,
                     maxLines = 2,
                 )
                 Spacer(modifier = GlanceModifier.height(2.dp))
                 Text(
-                    text = state.subtitle,
+                    text = res.quickStartSubtitle(state.mood),
                     style = WidgetTheme.body,
                     maxLines = 2,
                 )
@@ -125,7 +127,7 @@ private fun QuickStartContent(context: Context, state: QuickStartWidgetState) {
                 // the full height instead of clustering at the top.
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 StartFocusButton(
-                    label = state.actionLabel,
+                    label = res.quickStartAction(state.mood),
                     onClick = openAction,
                 )
             }

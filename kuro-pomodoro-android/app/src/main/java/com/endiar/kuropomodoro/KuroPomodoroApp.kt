@@ -37,6 +37,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -81,7 +82,6 @@ import com.endiar.kuropomodoro.ui.homeSuggestion
 import com.endiar.kuropomodoro.ui.interruptedRemainingMinutes
 import com.endiar.kuropomodoro.ui.remainingFocusSessionsAfterCurrent
 import com.endiar.kuropomodoro.ui.onboarding.OnboardingScreen
-import com.endiar.kuropomodoro.ui.homeGreetingFor
 import com.endiar.kuropomodoro.ui.todayFocusMetrics
 import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.effectiveTarget
@@ -149,6 +149,7 @@ fun KuroPomodoroApp(
     var selectedSoundId by remember(appState.selectedSoundId) { mutableIntStateOf(appState.selectedSoundId) }
     var glassReadabilityMode by remember(appState.glassReadabilityMode) { mutableStateOf(appState.glassReadabilityMode) }
     var appearanceMode by remember(appState.appearanceMode) { mutableStateOf(appState.appearanceMode) }
+    var language by remember(appState.language) { mutableStateOf(appState.language) }
     var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
     var sessionRecords by remember(appState.sessionRecords) { mutableStateOf(appState.sessionRecords) }
     var tasks by remember(appState.tasks) { mutableStateOf(appState.tasks) }
@@ -233,6 +234,10 @@ fun KuroPomodoroApp(
         appearanceMode = v; scope.launch { repo.setAppearanceMode(v) }
     }
 
+    fun persistLanguage(v: com.endiar.kuropomodoro.model.AppLanguage) {
+        language = v; scope.launch { repo.setLanguage(v) }
+    }
+
     fun persistNextTaskId(v: Int) {
         nextTaskId = v; scope.launch { repo.setNextTaskId(v) }
     }
@@ -279,15 +284,13 @@ fun KuroPomodoroApp(
         }
         persistTasks(tasks.filterNot(toDelete))
     }
-    val sounds = remember {
-        listOf(
-            SoundOption(1, "Rainy Window", "Soft rain for deep reading", false, "Rain"),
-            SoundOption(2, "Cafe Purr", "Warm cafe room ambience", false, "Cafe"),
-            SoundOption(3, "Forest Nap", "Leaves, birds, and slow wind", true, "Forest"),
-            SoundOption(4, "Fireplace", "Crackling fire with sleepy cat", true, "Fire"),
-            SoundOption(5, "Night Keyboard", "Gentle keys in a quiet room", false, "Keys")
-        )
-    }
+    val sounds = listOf(
+        SoundOption(1, stringResource(R.string.sound_rain_name), stringResource(R.string.sound_rain_desc), false, "Rain"),
+        SoundOption(2, stringResource(R.string.sound_cafe_name), stringResource(R.string.sound_cafe_desc), false, "Cafe"),
+        SoundOption(3, stringResource(R.string.sound_forest_name), stringResource(R.string.sound_forest_desc), true, "Forest"),
+        SoundOption(4, stringResource(R.string.sound_fire_name), stringResource(R.string.sound_fire_desc), true, "Fire"),
+        SoundOption(5, stringResource(R.string.sound_keys_name), stringResource(R.string.sound_keys_desc), false, "Keys"),
+    )
 
     // --- Derive timer state from the service ---
     val isRunning = runtimeState?.session?.timerState == TimerState.Playing
@@ -348,7 +351,7 @@ fun KuroPomodoroApp(
     val currentTimerState = runtimeState?.session?.timerState ?: TimerState.Idle
 
     val backdropTime = AppClock.now()
-    val homeGreeting = homeGreetingFor(backdropTime)
+    val homeGreeting = com.endiar.kuropomodoro.ui.rememberHomeGreeting(backdropTime)
     val homeMetrics = todayFocusMetrics(
         sessionRecords = sessionRecords,
         today = LocalDate.now()
@@ -755,6 +758,8 @@ fun KuroPomodoroApp(
                     onUpdateNotificationSound = { persistNotificationSoundEnabled(it) },
                     appearanceMode = appearanceMode,
                     onUpdateAppearanceMode = { persistAppearanceMode(it) },
+                    language = language,
+                    onUpdateLanguage = { persistLanguage(it) },
                 )
             }
 
@@ -822,15 +827,15 @@ fun KuroPomodoroApp(
                 ).also { cycleCompleteSnapshot = it }
 
                 CycleCompleteDialog(
-                    title = cycleCompletionVariant.title,
-                    body = cycleCompletionVariant.body,
+                    title = androidx.compose.ui.res.stringResource(cycleCompletionVariant.titleRes),
+                    body = androidx.compose.ui.res.stringResource(cycleCompletionVariant.bodyRes),
                     focusMinutesTotal = snapshot.focusMinutesTotal,
                     focusSessionsCompleted = snapshot.focusSessionsCompleted,
                     focusType = snapshot.focusType,
                     intentEmoji = snapshot.intentEmoji,
                     intentLabel = snapshot.intentLabel,
-                    confirmLabel = CycleCompletionCopy.buttonLabel,
-                    secondaryLabel = "View Journey",
+                    confirmLabel = androidx.compose.ui.res.stringResource(CycleCompletionCopy.buttonLabelRes),
+                    secondaryLabel = androidx.compose.ui.res.stringResource(R.string.cycle_view_journey),
                     onConfirm = {
                         scope.launch { repo.setPendingCycleCompletionAck(false) }
                     },

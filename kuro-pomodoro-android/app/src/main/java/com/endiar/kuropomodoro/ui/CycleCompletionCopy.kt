@@ -1,33 +1,28 @@
 package com.endiar.kuropomodoro.ui
 
+import androidx.annotation.StringRes
+import com.endiar.kuropomodoro.R
+
+/**
+ * Title/body copy variant for the cycle-completion dialog, stored as string
+ * resource ids so the chosen variant follows the active app language. The
+ * caller picks one variant (stably remembered) and resolves the ids with
+ * `stringResource` inside composition.
+ */
 data class CycleCompletionCopyVariant(
-    val title: String,
-    val body: String
+    @StringRes val titleRes: Int,
+    @StringRes val bodyRes: Int,
 )
 
 object CycleCompletionCopy {
-    const val buttonLabel: String = "Done"
+    @StringRes
+    val buttonLabelRes: Int = R.string.cycle_done
 
     val variants: List<CycleCompletionCopyVariant> = listOf(
-        CycleCompletionCopyVariant(
-            title = "Cycle complete",
-            body = "That's a full cycle behind you. Take a moment — you earned it."
-        ),
-        CycleCompletionCopyVariant(
-            title = "Nicely done",
-            body = "You finished a full Pomodoro cycle. Rest before the next one."
-        ),
-        CycleCompletionCopyVariant(
-            title = "That's a wrap",
-            body = "Four focused sessions, all done. Step away with a clear head."
-        ),
-        CycleCompletionCopyVariant(
-            title = "Good work",
-            body = "A complete cycle is no small thing. Take the win."
-        ),
-        CycleCompletionCopyVariant(
-            title = "All done",
-            body = "One full cycle behind you. Breathe, then come back when you're ready."
-        )
+        CycleCompletionCopyVariant(R.string.cycle_v1_title, R.string.cycle_v1_body),
+        CycleCompletionCopyVariant(R.string.cycle_v2_title, R.string.cycle_v2_body),
+        CycleCompletionCopyVariant(R.string.cycle_v3_title, R.string.cycle_v3_body),
+        CycleCompletionCopyVariant(R.string.cycle_v4_title, R.string.cycle_v4_body),
+        CycleCompletionCopyVariant(R.string.cycle_v5_title, R.string.cycle_v5_body),
     )
 }

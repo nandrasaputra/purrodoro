@@ -45,6 +45,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
@@ -170,21 +171,23 @@ fun FocusModeOverlay(
     val focusPaused = !isBreak && isPaused
 
     val modeLabel = when (timerMode) {
-        TimerMode.Focus -> "FOCUS"
-        TimerMode.ShortBreak -> "SHORT BREAK"
-        TimerMode.LongBreak -> "LONG BREAK"
+        TimerMode.Focus -> stringResource(R.string.focus_mode_label_focus)
+        TimerMode.ShortBreak -> stringResource(R.string.focus_mode_label_short_break)
+        TimerMode.LongBreak -> stringResource(R.string.focus_mode_label_long_break)
     }
 
     val subtext: String? = when {
-        breakReady -> "Break is ready"
-        breakRunning -> "Rest with Kuro"
-        focusPaused -> "Paused"
+        breakReady -> stringResource(R.string.focus_subtext_break_ready)
+        breakRunning -> stringResource(R.string.focus_subtext_break_running)
+        focusPaused -> stringResource(R.string.focus_subtext_paused)
         else -> null
     }
 
     val showIntent = !isBreak &&
         activeFocusType != FocusType.Empty &&
         activeTask != null
+
+    val exitLabel = stringResource(R.string.focus_exit_cd)
 
     // State-based mascot. Focus-started has 3 variants — re-rolled each time
     // the user enters a new focus segment so they don't see the same pose
@@ -207,7 +210,7 @@ fun FocusModeOverlay(
                             detectTapGestures(onTap = { onExit() })
                         }
                         .semantics(mergeDescendants = false) {
-                            onClick(label = "Exit focus mode") {
+                            onClick(label = exitLabel) {
                                 onExit()
                                 true
                             }
@@ -324,13 +327,13 @@ fun FocusModeOverlay(
 private fun IntentPill(focusType: FocusType, task: FocusTask) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val (icon, label, title) = when (focusType) {
-        FocusType.Task -> Triple(Lucide.CircleCheck, "Task", task.title)
+        FocusType.Task -> Triple(Lucide.CircleCheck, stringResource(R.string.focus_type_task), task.title)
         FocusType.Habit -> {
             val parts = task.title.split(" ", limit = 2)
             val name = if (parts.size == 2) parts[1] else task.title
-            Triple(Lucide.Leaf, "Habit", name)
+            Triple(Lucide.Leaf, stringResource(R.string.focus_type_habit), name)
         }
-        FocusType.SimpleNote -> Triple(Lucide.NotebookPen, "Note", task.title)
+        FocusType.SimpleNote -> Triple(Lucide.NotebookPen, stringResource(R.string.focus_type_note), task.title)
         FocusType.Empty -> return
     }
     Row(
@@ -442,11 +445,11 @@ private fun BottomActions(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             CoralPillButton(
-                text = "Start break",
+                text = stringResource(R.string.focus_start_break),
                 onClick = onStartPause,
                 modifier = Modifier.fillMaxWidth(),
             )
-            QuietTextAction(text = "Skip break", onClick = onSkip)
+            QuietTextAction(text = stringResource(R.string.home_skip_break), onClick = onSkip)
         }
 
         breakRunning -> Row(
@@ -455,7 +458,7 @@ private fun BottomActions(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(Modifier.width(16.dp))
-            QuietTextAction(text = "Skip break", onClick = onSkip)
+            QuietTextAction(text = stringResource(R.string.home_skip_break), onClick = onSkip)
             CoralPauseCircle(onClick = onStartPause)
         }
 
@@ -464,12 +467,12 @@ private fun BottomActions(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             CoralPillButton(
-                text = "Resume focus",
+                text = stringResource(R.string.focus_resume_focus),
                 onClick = onStartPause,
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                text = "tap anywhere to exit",
+                text = stringResource(R.string.focus_tap_to_exit),
                 color = tokens.textSecondary.copy(alpha = 0.45f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
@@ -479,7 +482,7 @@ private fun BottomActions(
         }
 
         focusRunning -> Text(
-            text = "tap anywhere to exit",
+            text = stringResource(R.string.focus_tap_to_exit),
             color = tokens.textSecondary.copy(alpha = 0.55f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
@@ -488,7 +491,7 @@ private fun BottomActions(
         )
 
         else -> Text(
-            text = "tap anywhere to exit",
+            text = stringResource(R.string.focus_tap_to_exit),
             color = tokens.textSecondary.copy(alpha = 0.45f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
@@ -557,6 +560,7 @@ private fun QuietTextAction(text: String, onClick: () -> Unit) {
 private fun CoralPauseCircle(onClick: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val interactionSource = remember { MutableInteractionSource() }
+    val pauseBreakLabel = stringResource(R.string.focus_pause_break_cd)
     Box(
         modifier = Modifier
             .pressScale(interactionSource, pressedScale = 0.92f)
@@ -568,7 +572,7 @@ private fun CoralPauseCircle(onClick: () -> Unit) {
                 interactionSource = interactionSource,
                 indication = null,
             )
-            .semantics { contentDescription = "Pause break" },
+            .semantics { contentDescription = pauseBreakLabel },
         contentAlignment = Alignment.Center,
     ) {
         Icon(

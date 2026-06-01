@@ -27,18 +27,27 @@ enum class QuickStartMood {
     Celebrating,
 }
 
-/** What the Quick Start Kuro widget renders. */
+/**
+ * What the Quick Start Kuro widget renders. The [mood] fully determines the
+ * title / subtitle / action copy, which is resolved against localized string
+ * resources in the widget layer (keeping this model free of Android deps).
+ */
 data class QuickStartWidgetState(
     val mood: QuickStartMood,
-    val title: String,
-    val subtitle: String,
-    val actionLabel: String,
 )
+
+/** Encouragement tone for the Today widget, resolved to localized copy in the widget. */
+enum class TodayEncouragement {
+    SoftStart,
+    FirstFocus,
+    GoalReached,
+    Proud,
+}
 
 /** What the Today With Kuro widget renders. */
 data class TodayWidgetState(
     val focusCount: Int,
-    val encouragement: String,
+    val encouragement: TodayEncouragement,
 )
 
 object WidgetState {
@@ -56,52 +65,16 @@ object WidgetState {
         pendingCycleAck: Boolean,
     ): QuickStartWidgetState {
         if (runtime == null) {
-            return if (pendingCycleAck) {
-                QuickStartWidgetState(
-                    mood = QuickStartMood.Celebrating,
-                    title = "Nice work today",
-                    subtitle = "Kuro is proud of you",
-                    actionLabel = "Open Kuro",
-                )
-            } else {
-                QuickStartWidgetState(
-                    mood = QuickStartMood.Ready,
-                    title = "Kuro is ready",
-                    subtitle = "Start a calm focus",
-                    actionLabel = "Start Focus",
-                )
-            }
+            return QuickStartWidgetState(
+                mood = if (pendingCycleAck) QuickStartMood.Celebrating else QuickStartMood.Ready,
+            )
         }
         return when (runtime.session.timerState) {
-            TimerState.Playing -> QuickStartWidgetState(
-                mood = QuickStartMood.Focusing,
-                title = "Kuro is focusing",
-                subtitle = "Stay with your session",
-                actionLabel = "Open Timer",
+            TimerState.Playing -> QuickStartWidgetState(mood = QuickStartMood.Focusing)
+            TimerState.Paused -> QuickStartWidgetState(mood = QuickStartMood.Waiting)
+            TimerState.Idle -> QuickStartWidgetState(
+                mood = if (pendingCycleAck) QuickStartMood.Celebrating else QuickStartMood.Ready,
             )
-
-            TimerState.Paused -> QuickStartWidgetState(
-                mood = QuickStartMood.Waiting,
-                title = "Kuro is waiting",
-                subtitle = "Tap to resume",
-                actionLabel = "Open Timer",
-            )
-
-            TimerState.Idle -> if (pendingCycleAck) {
-                QuickStartWidgetState(
-                    mood = QuickStartMood.Celebrating,
-                    title = "Nice work today",
-                    subtitle = "Kuro is proud of you",
-                    actionLabel = "Open Kuro",
-                )
-            } else {
-                QuickStartWidgetState(
-                    mood = QuickStartMood.Ready,
-                    title = "Kuro is ready",
-                    subtitle = "Start a calm focus",
-                    actionLabel = "Start Focus",
-                )
-            }
         }
     }
 
@@ -119,10 +92,10 @@ object WidgetState {
         val target = settings.focusSessionsPerCycle.coerceIn(1, TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE)
         val safeCount = focusCountToday.coerceAtLeast(0)
         val encouragement = when {
-            safeCount <= 0 -> "A soft start is enough"
-            safeCount == 1 -> "Kuro saw your first focus"
-            safeCount >= target -> "Goal reached with Kuro"
-            else -> "Kuro is proud today"
+            safeCount <= 0 -> TodayEncouragement.SoftStart
+            safeCount == 1 -> TodayEncouragement.FirstFocus
+            safeCount >= target -> TodayEncouragement.GoalReached
+            else -> TodayEncouragement.Proud
         }
         return TodayWidgetState(
             focusCount = safeCount,

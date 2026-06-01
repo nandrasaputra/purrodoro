@@ -1,8 +1,10 @@
 package com.endiar.kuropomodoro.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,12 +14,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.Bell
+import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Coffee
 import com.composables.icons.lucide.Info
+import com.composables.icons.lucide.Languages
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RefreshCw
@@ -42,11 +48,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.endiar.kuropomodoro.R
+import com.endiar.kuropomodoro.model.AppLanguage
 import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.ui.components.AppearanceModeToggle
 import com.endiar.kuropomodoro.ui.components.KuroCard
+import com.endiar.kuropomodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.kuropomodoro.ui.designsystem.KuroDivider
 import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
@@ -64,9 +77,12 @@ fun ProfileScreen(
     onUpdateNotificationSound: (Boolean) -> Unit,
     appearanceMode: AppearanceMode = AppearanceMode.Auto,
     onUpdateAppearanceMode: (AppearanceMode) -> Unit = {},
+    language: AppLanguage = AppLanguage.System,
+    onUpdateLanguage: (AppLanguage) -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
+    var activePicker by remember { mutableStateOf<PreferencePicker?>(null) }
 
     Scaffold(
         topBar = {
@@ -76,7 +92,7 @@ fun ProfileScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Lucide.ArrowLeft,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.common_back),
                             tint = tokens.textPrimary
                         )
                     }
@@ -98,53 +114,53 @@ fun ProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(KuroSpacing.xs))
             Text(
-                text = "Settings",
+                text = stringResource(R.string.settings_title),
                 style = KuroType.headingSettings,
                 color = tokens.textPrimary,
             )
             Text(
-                text = "Customize your focus experience.",
+                text = stringResource(R.string.settings_subtitle),
                 style = KuroType.labelStrong,
                 color = tokens.textSecondary,
                 modifier = Modifier.padding(top = KuroSpacing.xs)
             )
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
-            KuroSectionHeader(title = "TIMER")
+            KuroSectionHeader(title = stringResource(R.string.settings_section_timer))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
                 TappableRow(
                     icon = Lucide.Clock,
-                    label = "Focus time",
-                    value = "${settings.focusMinutes} min",
+                    label = stringResource(R.string.settings_focus_time),
+                    value = stringResource(R.string.value_minutes, settings.focusMinutes),
                     onClick = { editingField = "focus" },
                 )
                 KuroDivider()
                 TappableRow(
                     icon = Lucide.Coffee,
-                    label = "Short break",
-                    value = "${settings.shortBreakMinutes} min",
+                    label = stringResource(R.string.settings_short_break),
+                    value = stringResource(R.string.value_minutes, settings.shortBreakMinutes),
                     onClick = { editingField = "short" },
                 )
                 KuroDivider()
                 TappableRow(
                     icon = Lucide.Coffee,
-                    label = "Long break",
-                    value = "${settings.longBreakMinutes} min",
+                    label = stringResource(R.string.settings_long_break),
+                    value = stringResource(R.string.value_minutes, settings.longBreakMinutes),
                     onClick = { editingField = "long" },
                 )
                 KuroDivider()
                 TappableRow(
                     icon = Lucide.RefreshCw,
-                    label = "Long break after",
-                    value = "${settings.focusSessionsPerCycle} sessions",
+                    label = stringResource(R.string.settings_long_break_after),
+                    value = stringResource(R.string.value_sessions, settings.focusSessionsPerCycle),
                     onClick = { editingField = "cycle" },
                 )
                 KuroDivider()
                 ToggleRow(
                     icon = Lucide.Play,
-                    label = "Auto-start next session",
-                    subtitle = "Automatically continue to the next session",
+                    label = stringResource(R.string.settings_auto_start_label),
+                    subtitle = stringResource(R.string.settings_auto_start_subtitle),
                     checked = settings.autoStartNextSession,
                     onCheckedChange = { onUpdateSettings(settings.copy(autoStartNextSession = it)) },
                 )
@@ -152,13 +168,13 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
-            KuroSectionHeader(title = "NOTIFICATIONS")
+            KuroSectionHeader(title = stringResource(R.string.settings_section_notifications))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
                 ToggleRow(
                     icon = Lucide.Bell,
-                    label = "Enable notification sound",
-                    subtitle = "Play sound when session ends",
+                    label = stringResource(R.string.settings_notif_sound_label),
+                    subtitle = stringResource(R.string.settings_notif_sound_subtitle),
                     checked = notificationSoundEnabled,
                     onCheckedChange = onUpdateNotificationSound,
                 )
@@ -166,46 +182,36 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
-            KuroSectionHeader(title = "APPEARANCE")
+            KuroSectionHeader(title = stringResource(R.string.settings_section_appearance))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Lucide.Settings,
-                            contentDescription = null,
-                            tint = tokens.accent,
-                            modifier = Modifier.size(KuroSpacing.lg),
-                        )
-                        Spacer(modifier = Modifier.width(KuroSpacing.md))
-                        Column {
-                            Text(
-                                text = "Theme",
-                                style = KuroType.bodyPrimary,
-                                color = tokens.textPrimary,
-                            )
-                            Text(
-                                text = "Choose light, dark, or follow system",
-                                style = KuroType.labelMeta,
-                                color = tokens.textSecondary,
-                            )
-                        }
-                    }
-                    AppearanceModeToggle(
-                        mode = appearanceMode,
-                        onModeChanged = onUpdateAppearanceMode,
-                    )
-                }
+                TappableRow(
+                    icon = Lucide.Settings,
+                    label = stringResource(R.string.settings_theme_label),
+                    value = appearanceModeLabel(appearanceMode),
+                    onClick = { activePicker = PreferencePicker.Theme },
+                )
             }
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
-            KuroSectionHeader(title = "ABOUT")
+            KuroSectionHeader(title = stringResource(R.string.settings_section_language))
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            KuroCard(modifier = Modifier.fillMaxWidth()) {
+                TappableRow(
+                    icon = Lucide.Languages,
+                    label = stringResource(R.string.settings_language_label),
+                    value = languageLabel(
+                        language = language,
+                        systemLabel = stringResource(R.string.settings_language_system),
+                    ),
+                    onClick = { activePicker = PreferencePicker.Language },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(KuroSpacing.xl))
+
+            KuroSectionHeader(title = stringResource(R.string.settings_section_about))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -221,9 +227,9 @@ fun ProfileScreen(
                             modifier = Modifier.size(KuroSpacing.lg),
                         )
                         Spacer(modifier = Modifier.width(KuroSpacing.md))
-                        Text(text = "Kuro Pomodoro", style = KuroType.bodyPrimary, color = tokens.textPrimary)
+                        Text(text = stringResource(R.string.app_name), style = KuroType.bodyPrimary, color = tokens.textPrimary)
                     }
-                    Text(text = "v1.0", style = KuroType.bodySecondary, color = tokens.textSecondary)
+                    Text(text = stringResource(R.string.settings_version), style = KuroType.bodySecondary, color = tokens.textSecondary)
                 }
             }
 
@@ -233,35 +239,67 @@ fun ProfileScreen(
 
     when (editingField) {
         "focus" -> NumericEditDialog(
-            title = "Focus time",
+            title = stringResource(R.string.settings_focus_time),
             value = settings.focusMinutes,
-            min = 1, max = 120, unit = "min",
+            min = 1, max = 120, unit = stringResource(R.string.unit_min),
             onConfirm = { onUpdateSettings(settings.copy(focusMinutes = it)); editingField = null },
             onDismiss = { editingField = null }
         )
         "short" -> NumericEditDialog(
-            title = "Short break",
+            title = stringResource(R.string.settings_short_break),
             value = settings.shortBreakMinutes,
-            min = 1, max = 120, unit = "min",
+            min = 1, max = 120, unit = stringResource(R.string.unit_min),
             onConfirm = { onUpdateSettings(settings.copy(shortBreakMinutes = it)); editingField = null },
             onDismiss = { editingField = null }
         )
         "long" -> NumericEditDialog(
-            title = "Long break",
+            title = stringResource(R.string.settings_long_break),
             value = settings.longBreakMinutes,
-            min = 1, max = 120, unit = "min",
+            min = 1, max = 120, unit = stringResource(R.string.unit_min),
             onConfirm = { onUpdateSettings(settings.copy(longBreakMinutes = it)); editingField = null },
             onDismiss = { editingField = null }
         )
         "cycle" -> NumericEditDialog(
-            title = "Long break after",
+            title = stringResource(R.string.settings_long_break_after),
             value = settings.focusSessionsPerCycle,
-            min = 1, max = TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE, unit = "sessions",
+            min = 1, max = TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE, unit = stringResource(R.string.unit_sessions),
             onConfirm = { onUpdateSettings(settings.copy(focusSessionsPerCycle = it)); editingField = null },
             onDismiss = { editingField = null }
         )
     }
+
+    when (activePicker) {
+        PreferencePicker.Theme -> AppearanceModePickerSheet(
+            selected = appearanceMode,
+            onSelect = {
+                onUpdateAppearanceMode(it)
+                activePicker = null
+            },
+            onDismiss = { activePicker = null },
+        )
+        PreferencePicker.Language -> LanguagePickerSheet(
+            selected = language,
+            onSelect = {
+                onUpdateLanguage(it)
+                activePicker = null
+            },
+            onDismiss = { activePicker = null },
+        )
+        null -> Unit
+    }
 }
+
+private enum class PreferencePicker { Theme, Language }
+
+@Composable
+private fun appearanceModeLabel(mode: AppearanceMode): String = when (mode) {
+    AppearanceMode.Light -> stringResource(R.string.theme_light)
+    AppearanceMode.Dark -> stringResource(R.string.theme_dark)
+    AppearanceMode.Auto -> stringResource(R.string.theme_auto)
+}
+
+private fun languageLabel(language: AppLanguage, systemLabel: String): String =
+    if (language == AppLanguage.System) systemLabel else language.label
 
 @Composable
 private fun TappableRow(icon: ImageVector, label: String, value: String, onClick: () -> Unit) {
@@ -308,6 +346,123 @@ private fun ToggleRow(icon: ImageVector, label: String, subtitle: String, checke
 }
 
 @Composable
+private fun AppearanceModePickerSheet(
+    selected: AppearanceMode,
+    onSelect: (AppearanceMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    PickerBottomSheet(
+        title = stringResource(R.string.settings_theme_label),
+        onDismiss = onDismiss,
+    ) {
+        AppearanceMode.entries.forEach { mode ->
+            PickerOptionRow(
+                label = appearanceModeLabel(mode),
+                selected = mode == selected,
+                onClick = { onSelect(mode) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun LanguagePickerSheet(
+    selected: AppLanguage,
+    onSelect: (AppLanguage) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val systemLabel = stringResource(R.string.settings_language_system)
+    PickerBottomSheet(
+        title = stringResource(R.string.settings_language_label),
+        onDismiss = onDismiss,
+    ) {
+        AppLanguage.entries.forEach { language ->
+            PickerOptionRow(
+                label = languageLabel(language, systemLabel),
+                selected = language == selected,
+                onClick = { onSelect(language) },
+            )
+        }
+        Text(
+            text = stringResource(R.string.settings_language_restart_hint),
+            style = KuroType.labelMeta,
+            color = MaterialTheme.colorScheme.kuroTokens.textSecondary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = KuroSpacing.xs),
+        )
+    }
+}
+
+@Composable
+private fun PickerBottomSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    KuroAdaptiveBottomSheet(
+        onDismiss = onDismiss,
+        showCloseButton = true,
+        horizontalPadding = KuroSpacing.lg,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = KuroSpacing.xs, bottom = KuroSpacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+        ) {
+            Text(
+                text = title,
+                style = KuroType.headingCard,
+                color = tokens.textPrimary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(KuroSpacing.xs))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun PickerOptionRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) tokens.interactiveFill else tokens.segmentedTrack)
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = KuroType.bodyPrimary,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (selected) tokens.interactiveText else tokens.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Icon(
+                imageVector = Lucide.Check,
+                contentDescription = null,
+                tint = tokens.interactiveText,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
 private fun NumericEditDialog(
     title: String, value: Int, min: Int, max: Int, unit: String,
     onConfirm: (Int) -> Unit, onDismiss: () -> Unit
@@ -333,12 +488,12 @@ private fun NumericEditDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(current) }) {
-                Text("OK", color = tokens.accent, style = KuroType.labelStrong)
+                Text(stringResource(R.string.common_ok), color = tokens.accent, style = KuroType.labelStrong)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = tokens.textSecondary)
+                Text(stringResource(R.string.common_cancel), color = tokens.textSecondary)
             }
         }
     )
