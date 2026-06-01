@@ -40,6 +40,13 @@
     <string name="settings_section_notifications">NOTIFIKASI</string>
     <string name="settings_notif_sound_label">Aktifkan suara notifikasi</string>
     <string name="settings_notif_sound_subtitle">Putar suara saat sesi berakhir</string>
+    <string name="settings_notif_permission_title">Kuro belum bisa mengingatkanmu</string>
+    <string name="settings_notif_permission_body">Izinkan notifikasi agar Kuro bisa memberi tahu saat sesi berakhir.</string>
+    <string name="settings_notif_permission_action">Izinkan</string>
+    <string name="settings_notif_permission_cd">Kuro melambai di samping lonceng notifikasi</string>
+    <string name="settings_notif_hero_title">Biar Kuro bisa menjangkaumu</string>
+    <string name="settings_notif_hero_body">Aktifkan notifikasi agar Kuro bisa memberi tahu saat fokus dan istirahatmu selesai.</string>
+    <string name="settings_notif_hero_action">Aktifkan notifikasi</string>
     <string name="settings_section_appearance">TAMPILAN</string>
     <string name="settings_theme_label">Tema</string>
     <string name="settings_theme_subtitle">Pilih terang, gelap, atau ikuti sistem</string>

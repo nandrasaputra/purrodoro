@@ -3,8 +3,10 @@ package com.endiar.kuropomodoro
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -62,7 +64,17 @@ class MainActivity : ComponentActivity() {
     val openTab: SharedFlow<AppTab> = _openTab.asSharedFlow()
 
     private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            // If the user denied and the OS will no longer surface the in-app
+            // prompt (permanently denied / "Don't allow"), guide them to the
+            // app's notification settings so the gentle reminder isn't a dead end.
+            if (!granted &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+            ) {
+                openAppNotificationSettings()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -123,6 +135,7 @@ class MainActivity : ComponentActivity() {
                         repo = repo,
                         timerConnection = timerConnection,
                         requestNotificationPermission = ::requestNotificationPermissionIfNeeded,
+                        onEnableNotifications = ::promptEnableNotifications,
                         autoOpenStartFocus = autoOpenStartFocus,
                         openTab = openTab,
                     )
@@ -167,6 +180,39 @@ class MainActivity : ComponentActivity() {
         ) == PackageManager.PERMISSION_GRANTED
         if (!granted) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    /**
+     * Entry point for the Profile "Allow" reminder. On Android 13+ with the
+     * runtime permission still ungranted we fire the in-app system prompt
+     * (the launcher routes a permanent denial to settings). Otherwise — pre-13,
+     * or when the permission is granted but notifications are switched off at
+     * the app/channel level — we open the OS notification settings directly.
+     */
+    private fun promptEnableNotifications() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
+            }
+        }
+        openAppNotificationSettings()
+    }
+
+    private fun openAppNotificationSettings() {
+        val notificationSettings = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        runCatching { startActivity(notificationSettings) }.onFailure {
+            // Fall back to the generic app-details page on OEMs that lack the
+            // dedicated notification settings action.
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.fromParts("package", packageName, null))
+            )
         }
     }
 }

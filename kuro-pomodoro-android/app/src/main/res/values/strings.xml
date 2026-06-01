@@ -41,6 +41,13 @@
     <string name="settings_section_notifications">NOTIFICATIONS</string>
     <string name="settings_notif_sound_label">Enable notification sound</string>
     <string name="settings_notif_sound_subtitle">Play sound when session ends</string>
+    <string name="settings_notif_permission_title">Kuro can\'t nudge you yet</string>
+    <string name="settings_notif_permission_body">Allow notifications so Kuro can tell you when a session ends.</string>
+    <string name="settings_notif_permission_action">Allow</string>
+    <string name="settings_notif_permission_cd">Kuro waving next to a notification bell</string>
+    <string name="settings_notif_hero_title">Let Kuro reach you</string>
+    <string name="settings_notif_hero_body">Turn on notifications so Kuro can let you know when your focus and breaks are done.</string>
+    <string name="settings_notif_hero_action">Turn on notifications</string>
     <string name="settings_section_appearance">APPEARANCE</string>
     <string name="settings_theme_label">Theme</string>
     <string name="settings_theme_subtitle">Choose light, dark, or follow system</string>
