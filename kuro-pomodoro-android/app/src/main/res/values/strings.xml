@@ -4,4 +4,17 @@
     <string name="widget_quick_start_description">Start a calm focus session straight from your home screen.</string>
     <string name="widget_today_label">Today With Kuro</string>
     <string name="widget_today_description">See your focus sessions for today and a soft word from Kuro.</string>
+
+    <string name="widget_dashboard_label">Kuro Dashboard</string>
+    <string name="widget_dashboard_description">A greeting, your focus count and streak, and a gentle nudge from Kuro.</string>
+    <string name="widget_daily_plan_label">Kuro Daily Plan</string>
+    <string name="widget_daily_plan_description">Today\'s habits and tasks as quick taps, with Kuro cheering you on.</string>
+    <string name="widget_streak_hero_label">Kuro Streak</string>
+    <string name="widget_streak_hero_description">Keep your focus streak alive with a little help from Kuro.</string>
+    <string name="widget_calm_minimal_label">Kuro Calm</string>
+    <string name="widget_calm_minimal_description">A quiet, minimal nudge to begin gently with Kuro.</string>
+    <string name="widget_stats_grid_label">Kuro Stats</string>
+    <string name="widget_stats_grid_description">Focus, streak, habits and tasks at a glance with Kuro.</string>
+    <string name="widget_cozy_scene_label">Kuro Cozy</string>
+    <string name="widget_cozy_scene_description">A cozy scene with Kuro and a soft reminder to focus together.</string>
 </resources>

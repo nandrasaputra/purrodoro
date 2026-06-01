@@ -105,6 +105,7 @@ fun KuroPomodoroApp(
     timerConnection: TimerConnection,
     requestNotificationPermission: () -> Unit,
     autoOpenStartFocus: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
+    openTab: kotlinx.coroutines.flow.SharedFlow<AppTab>? = null,
 ) {
     val appState by repo.appState.collectAsStateWithLifecycle(
         initialValue = AppState(
@@ -189,6 +190,18 @@ fun KuroPomodoroApp(
                     showStartFocusSheet = true
                     selectedTab = AppTab.Timer
                 }
+            }
+        }
+    }
+
+    // Bridge from the reactive 4x4 widgets: a habit/task nudge asks the app to
+    // jump straight to the relevant tab. We close any transient profile overlay
+    // so the requested tab is actually visible.
+    if (openTab != null) {
+        LaunchedEffect(openTab) {
+            openTab.collect { tab ->
+                showProfile = false
+                selectedTab = tab
             }
         }
     }
