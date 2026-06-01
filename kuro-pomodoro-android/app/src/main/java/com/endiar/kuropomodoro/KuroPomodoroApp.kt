@@ -71,6 +71,7 @@ import com.endiar.kuropomodoro.ui.CalendarScreen
 import com.endiar.kuropomodoro.ui.CycleCompletionCopy
 import com.endiar.kuropomodoro.ui.HabitsScreen
 import com.endiar.kuropomodoro.ui.HabitDraft
+import com.endiar.kuropomodoro.ui.HistoryScreen
 import com.endiar.kuropomodoro.ui.HomeTimerScreen
 import com.endiar.kuropomodoro.ui.ProfileScreen
 import com.endiar.kuropomodoro.ui.SoundsScreen
@@ -174,6 +175,7 @@ fun KuroPomodoroApp(
     }
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
     var showProfile by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -586,10 +588,8 @@ fun KuroPomodoroApp(
                     )
 
                     AppTab.Calendar -> CalendarScreen(
-                        stamps = stamps,
-                        completedSessions = completedSessions,
                         sessionRecords = sessionRecords,
-                        onDeleteRecord = { id -> scope.launch { repo.deleteSessionRecord(id) } },
+                        onOpenHistory = { showHistory = true },
                         glassTreatment = glassTreatment,
                         contentPadding = screenContentPadding,
                         overBackdrop = overBackdrop,
@@ -721,6 +721,14 @@ fun KuroPomodoroApp(
                 }
             }
 
+            if (showHistory) {
+                HistoryScreen(
+                    sessionRecords = sessionRecords,
+                    onBack = { showHistory = false },
+                    onDeleteRecord = { id -> scope.launch { repo.deleteSessionRecord(id) } },
+                )
+            }
+
             if (showProfile) {
                 ProfileScreen(
                     settings = settings,
@@ -752,7 +760,7 @@ fun KuroPomodoroApp(
             // (frame-perfect parallel). Dock visibility is the inverse of focus mode:
             // appearing = exiting focus (Exit, 400ms, snappier); disappearing = entering focus (Enter, 700ms, deliberate).
             focusTransition.AnimatedVisibility(
-                visible = { active -> !active && !showProfile },
+                visible = { active -> !active && !showProfile && !showHistory },
                 enter = slideInVertically(
                     animationSpec = tween(
                         durationMillis = FocusModeMotion.ExitDurationMs,

@@ -1,7 +1,6 @@
 package com.endiar.kuropomodoro.ui.designsystem
 
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
@@ -33,20 +32,17 @@ object KuroType {
     /** Settings overlay title */
     val headingSettings = TextStyle(fontSize = 34.sp, fontWeight = FontWeight.Bold)
 
-    /** Journey tab display title (apply [FontFamily.Serif] at call site) */
-    val headingJourney = TextStyle(fontSize = 42.sp, fontWeight = FontWeight.Normal)
-
     /** Journey metric card icon letter */
     val metricHero = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
 
-    /** Journey metric card serif value (apply [FontFamily.Serif] at call site) */
+    /** Journey metric card serif value (apply FontFamily.Serif at call site) */
     val metricHeroSerif = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Normal)
 
     /** Journey stat card label, e.g. "This week" */
     val labelMetric = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Normal)
 
-    /** Journey stat card numeric value (apply [FontFamily.Serif] at call site) */
-    val metricValueSerif = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Normal, lineHeight = 28.sp)
+    /** Journey stat card numeric value */
+    val metricValueLarge = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
 
     /** Positive delta footnote on metric cards, e.g. "+18% vs last week" */
     val metricDeltaPositive = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
