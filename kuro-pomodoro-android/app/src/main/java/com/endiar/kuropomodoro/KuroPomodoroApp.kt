@@ -108,6 +108,7 @@ fun KuroPomodoroApp(
     repo: AppRepository,
     timerConnection: TimerConnection,
     requestNotificationPermission: () -> Unit,
+    onEnableNotifications: () -> Unit = {},
     autoOpenStartFocus: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
     openTab: kotlinx.coroutines.flow.SharedFlow<AppTab>? = null,
 ) {
@@ -760,6 +761,7 @@ fun KuroPomodoroApp(
                     onUpdateAppearanceMode = { persistAppearanceMode(it) },
                     language = language,
                     onUpdateLanguage = { persistLanguage(it) },
+                    onRequestEnableNotifications = onEnableNotifications,
                 )
             }
 

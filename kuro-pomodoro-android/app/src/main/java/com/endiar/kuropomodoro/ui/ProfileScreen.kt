@@ -1,5 +1,6 @@
 package com.endiar.kuropomodoro.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +31,8 @@ import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,11 +54,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.model.AppLanguage
 import com.endiar.kuropomodoro.model.AppearanceMode
@@ -79,10 +94,30 @@ fun ProfileScreen(
     onUpdateAppearanceMode: (AppearanceMode) -> Unit = {},
     language: AppLanguage = AppLanguage.System,
     onUpdateLanguage: (AppLanguage) -> Unit = {},
+    onRequestEnableNotifications: () -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
     var activePicker by remember { mutableStateOf<PreferencePicker?>(null) }
+
+    // Detect whether the user has actually granted notifications. We re-check on
+    // every ON_RESUME so the gentle Kuro reminder disappears the moment the user
+    // returns from the system permission dialog or the OS settings screen.
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var notificationsEnabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationsEnabled =
+                    NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = {
@@ -170,6 +205,10 @@ fun ProfileScreen(
 
             KuroSectionHeader(title = stringResource(R.string.settings_section_notifications))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            if (!notificationsEnabled) {
+                NotificationPermissionHero(onAllow = onRequestEnableNotifications)
+                Spacer(modifier = Modifier.height(KuroSpacing.md))
+            }
             KuroCard(modifier = Modifier.fillMaxWidth()) {
                 ToggleRow(
                     icon = Lucide.Bell,
@@ -342,6 +381,69 @@ private fun ToggleRow(icon: ImageVector, label: String, subtitle: String, checke
                 uncheckedBorderColor = tokens.cardBorder,
             ),
         )
+    }
+}
+
+/**
+ * Prominent, mascot-led reminder shown above the Notifications card when the OS
+ * notification permission is off. A warm hero card: Kuro looking up hopefully,
+ * a serif headline, body copy, and a full-width "Turn on notifications" button.
+ * Auto-hidden by the caller the moment notifications become enabled.
+ */
+@Composable
+private fun NotificationPermissionHero(onAllow: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+            .background(
+                Brush.verticalGradient(listOf(tokens.activeCardFill, tokens.accentSoft))
+            )
+            .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.cat_notify_hero),
+            contentDescription = stringResource(R.string.settings_notif_permission_cd),
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.height(KuroSpacing.habitMotivationCat),
+        )
+        Spacer(modifier = Modifier.height(KuroSpacing.md))
+        Text(
+            text = stringResource(R.string.settings_notif_hero_title),
+            style = KuroType.headingCard,
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.SemiBold,
+            color = tokens.textPrimary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(KuroSpacing.xs))
+        Text(
+            text = stringResource(R.string.settings_notif_hero_body),
+            style = KuroType.bodySecondary,
+            color = tokens.textSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 320.dp),
+        )
+        Spacer(modifier = Modifier.height(KuroSpacing.lg))
+        Button(
+            onClick = onAllow,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(KuroSpacing.radiusPill),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = tokens.interactiveFill,
+                contentColor = tokens.interactiveText,
+            ),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_notif_hero_action),
+                style = KuroType.bodyPrimary,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
