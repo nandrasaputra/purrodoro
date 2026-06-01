@@ -26,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -92,9 +93,12 @@ import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.DashboardDock
 import com.endiar.kuropomodoro.ui.components.FocusModeMotion
 import com.endiar.kuropomodoro.ui.components.FocusModeOverlay
+import com.endiar.kuropomodoro.ui.components.SpotlightTutorialOverlay
 import com.endiar.kuropomodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.kuropomodoro.ui.components.glassTokens
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.kuropomodoro.ui.tutorial.LocalTutorialController
+import com.endiar.kuropomodoro.ui.tutorial.rememberTutorialController
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -131,6 +135,8 @@ fun KuroPomodoroApp(
     // DataStore loads. Brand-new users may briefly see Home before the real
     // `false` value arrives — acceptable for a one-time flow.
     val hasSeenOnboarding by repo.hasSeenOnboardingFlow
+        .collectAsStateWithLifecycle(initialValue = true)
+    val hasSeenTutorial by repo.hasSeenTutorialFlow
         .collectAsStateWithLifecycle(initialValue = true)
     val cycleCompletionVariant = remember(pendingCycleAck) {
         if (pendingCycleAck) CycleCompletionCopy.variants.random() else null
@@ -179,6 +185,7 @@ fun KuroPomodoroApp(
     var showHistory by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
+    val tutorialController = rememberTutorialController()
 
     // Bridge from the Quick Start widget: when the host activity receives a
     // launch intent with EXTRA_AUTO_OPEN_START_FOCUS we surface the existing
@@ -813,6 +820,56 @@ fun KuroPomodoroApp(
                 )
             }
 
+            val tutorialVisible = !hasSeenTutorial &&
+                !isStarted &&
+                selectedTab == AppTab.Timer &&
+                !showStartFocusSheet &&
+                !showSoundsSheet &&
+                !showProfile &&
+                !pendingCycleAck
+            LaunchedEffect(tutorialVisible) {
+                if (tutorialVisible && !tutorialController.visible) {
+                    tutorialController.start()
+                }
+            }
+            if (tutorialVisible) {
+                val currentStep = tutorialController.currentStep
+                val targetBounds = currentStep?.let { tutorialController.boundsFor(it.target) }
+
+                if (currentStep != null && targetBounds != null && tutorialController.visible) {
+                    SpotlightTutorialOverlay(
+                        targetBounds = targetBounds,
+                        title = stringResource(currentStep.titleRes),
+                        body = stringResource(currentStep.bodyRes),
+                        stepIndex = tutorialController.stepIndex,
+                        totalSteps = tutorialController.steps.size,
+                        skipLabel = stringResource(R.string.tutorial_skip),
+                        previousLabel = if (tutorialController.canGoBack) {
+                            stringResource(R.string.tutorial_previous)
+                        } else {
+                            null
+                        },
+                        nextLabel = stringResource(
+                            if (tutorialController.isLastStep) R.string.tutorial_done else R.string.tutorial_next
+                        ),
+                        placement = currentStep.placement,
+                        spotlightPadding = currentStep.spotlightPadding,
+                        spotlightCornerRadius = currentStep.spotlightCornerRadius,
+                        onSkip = {
+                            tutorialController.skip {
+                                scope.launch { repo.setHasSeenTutorial(true) }
+                            }
+                        },
+                        onPrevious = { tutorialController.previous() },
+                        onNext = {
+                            tutorialController.next {
+                                scope.launch { repo.setHasSeenTutorial(true) }
+                            }
+                        },
+                    )
+                }
+            }
+
             if (pendingCycleAck && cycleCompletionVariant != null) {
                 val snapshot = cycleCompleteSnapshot ?: deriveCycleCompleteSnapshot(
                     runtimeState = runtimeState,
@@ -883,7 +940,9 @@ fun KuroPomodoroApp(
         }
     }
 
-    KuroFlatSurface(content = surfaceContent)
+    CompositionLocalProvider(LocalTutorialController provides tutorialController) {
+        KuroFlatSurface(content = surfaceContent)
+    }
 }
 
 @Composable
@@ -1003,3 +1062,4 @@ private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(
         )
     }
 )
+

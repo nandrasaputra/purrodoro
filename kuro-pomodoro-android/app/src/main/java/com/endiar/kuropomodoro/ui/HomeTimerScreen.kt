@@ -89,6 +89,8 @@ import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.designsystem.pressScale
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.kuropomodoro.ui.tutorial.TutorialTarget
+import com.endiar.kuropomodoro.ui.tutorial.tutorialAnchor
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -170,7 +172,10 @@ fun HomeTimerScreen(
                     autoCompleteMessage = autoCompleteMessage,
                 )
             } else {
-                IdleHero(backdropTime = backdropTime, onRequestStartFocus = onRequestStartFocus)
+                IdleHero(
+                    backdropTime = backdropTime,
+                    onRequestStartFocus = onRequestStartFocus,
+                )
             }
             // While a cycle is running or paused the ActiveHero already owns the
             // "what's happening" region, so the suggestion card would be noise —
@@ -308,7 +313,10 @@ private fun HeroImage(modifier: Modifier = Modifier, time: LocalTime) {
 }
 
 @Composable
-private fun IdleHero(backdropTime: LocalTime, onRequestStartFocus: () -> Unit) {
+private fun IdleHero(
+    backdropTime: LocalTime,
+    onRequestStartFocus: () -> Unit,
+) {
     Box(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -321,6 +329,7 @@ private fun IdleHero(backdropTime: LocalTime, onRequestStartFocus: () -> Unit) {
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = KuroSpacing.xl)
                 .offset(y = 27.dp)
+                .tutorialAnchor(TutorialTarget.StartFocus)
         )
     }
     Spacer(Modifier.height(27.dp))
