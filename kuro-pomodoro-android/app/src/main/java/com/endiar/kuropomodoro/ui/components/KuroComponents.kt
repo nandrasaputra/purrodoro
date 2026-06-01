@@ -84,6 +84,8 @@ import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import com.endiar.kuropomodoro.ui.theme.Lavender
 import com.endiar.kuropomodoro.ui.theme.Mint
 import com.endiar.kuropomodoro.ui.theme.Peach
+import com.endiar.kuropomodoro.ui.tutorial.TutorialTarget
+import com.endiar.kuropomodoro.ui.tutorial.tutorialAnchor
 
 private val DockCoral = Color(0xFFFF8B6F)
 private val LockedPurple = Color(0xFF7B4FBF)
@@ -374,19 +376,25 @@ fun DashboardDock(
             icon = Lucide.List,
             label = stringResource(R.string.nav_tasks),
             active = selectedTab == AppTab.Todo,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .tutorialAnchor(TutorialTarget.TasksTab)
         ) { onNavigate(AppTab.Todo) }
         DockTabItem(
             icon = Lucide.CircleCheck,
             label = stringResource(R.string.nav_habits),
             active = selectedTab == AppTab.Habits,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .tutorialAnchor(TutorialTarget.HabitsTab)
         ) { onNavigate(AppTab.Habits) }
         DockTabItem(
             icon = Lucide.Calendar,
             label = stringResource(R.string.nav_journey),
             active = selectedTab == AppTab.Calendar,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .tutorialAnchor(TutorialTarget.JourneyTab)
         ) { onNavigate(AppTab.Calendar) }
     }
 }

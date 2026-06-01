@@ -297,10 +297,10 @@ private fun DebugScreen(
 
                 HorizontalDivider()
 
-                // --- Onboarding ---
-                SectionTitle("ONBOARDING")
+                // --- Onboarding / Tips ---
+                SectionTitle("ONBOARDING + TIPS")
                 Text(
-                    "Resets the first-run flag and restarts the app so onboarding plays again. Existing tasks, habits, and history are kept.",
+                    "Resets first-run onboarding and the spotlight tips so both replay. Existing tasks, habits, and history are kept.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -308,8 +308,9 @@ private fun DebugScreen(
                     onClick = {
                         scope.launch {
                             appRepo.setHasSeenOnboarding(false)
+                            appRepo.setHasSeenTutorial(false)
                             val result = snackbarHostState.showSnackbar(
-                                message = "Onboarding flag reset",
+                                message = "Onboarding and tips reset",
                                 actionLabel = "Restart",
                                 duration = SnackbarDuration.Short
                             )
@@ -320,7 +321,7 @@ private fun DebugScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Replay onboarding")
+                    Text("Replay onboarding + tips")
                 }
 
                 HorizontalDivider()
