@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.composed
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -67,6 +68,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.X
+import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -254,6 +256,7 @@ fun KuroAdaptiveBottomSheet(
                     // card itself starts at its content — no empty header band. It
                     // slides in/out with the sheet and dismisses like a scrim tap.
                     if (showCloseButton) {
+                        val closeCd = stringResource(R.string.common_close)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -266,7 +269,7 @@ fun KuroAdaptiveBottomSheet(
                                     .clip(CircleShape)
                                     .background(sheetColor)
                                     .clickable(onClick = ::dismissAnimated)
-                                    .semantics { role = Role.Button; contentDescription = "Close" },
+                                    .semantics { role = Role.Button; contentDescription = closeCd },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(

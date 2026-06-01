@@ -66,6 +66,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import com.composables.icons.lucide.CalendarDays
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Flag
@@ -391,8 +392,8 @@ private fun TaskRowMeta(
                 else -> tokens.textMuted
             }
             val dueLabel = when {
-                due == today -> "Today"
-                due == today.plusDays(1) -> "Tomorrow"
+                due == today -> stringResource(R.string.tasks_due_today_short)
+                due == today.plusDays(1) -> stringResource(R.string.tasks_due_tomorrow)
                 else -> due.format(taskRowDueFormatter)
             }
             TaskMetaChip(
@@ -406,7 +407,7 @@ private fun TaskRowMeta(
             TaskMetaChip(
                 icon = Lucide.Flag,
                 iconTint = tokens.accent,
-                text = "High",
+                text = stringResource(R.string.tasks_priority_high),
                 textColor = tokens.accent,
             )
         }
@@ -756,7 +757,7 @@ fun KuroHabitStatusCard(
             ) {
                 Icon(
                     imageVector = Lucide.Check,
-                    contentDescription = "Mark not done",
+                    contentDescription = stringResource(R.string.habits_mark_not_done_cd),
                     tint = Color.White,
                     modifier = Modifier.size(KuroSpacing.habitCheckGlyph),
                 )
@@ -796,7 +797,7 @@ fun KuroMonthlyHabitProgressCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
         ) {
-            Text("Monthly Progress", color = tokens.textPrimary, style = KuroType.headingCard)
+            Text(stringResource(R.string.habits_monthly_progress), color = tokens.textPrimary, style = KuroType.headingCard)
             Text(monthLabel, color = tokens.textSecondary, style = KuroType.labelMeta)
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

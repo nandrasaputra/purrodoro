@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -75,14 +76,21 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-private enum class JourneyPeriod(val label: String) {
-    Week("This week"),
-    Month("This month"),
-    Year("This year"),
+private enum class JourneyPeriod {
+    Week,
+    Month,
+    Year,
 }
 
-private fun journeyStatusKind(label: String): KuroPillKind =
-    if (label == "Completed") KuroPillKind.JourneyCompleted else KuroPillKind.JourneyPartial
+@Composable
+private fun journeyPeriodLabel(period: JourneyPeriod): String = when (period) {
+    JourneyPeriod.Week -> stringResource(R.string.journey_period_week)
+    JourneyPeriod.Month -> stringResource(R.string.journey_period_month)
+    JourneyPeriod.Year -> stringResource(R.string.journey_period_year)
+}
+
+private fun journeyStatusKind(completed: Boolean): KuroPillKind =
+    if (completed) KuroPillKind.JourneyCompleted else KuroPillKind.JourneyPartial
 
 @Composable
 fun CalendarScreen(
@@ -108,7 +116,7 @@ fun CalendarScreen(
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
     KuroScreenScaffold(
-        stickyTitle = "Journey",
+        stickyTitle = stringResource(R.string.journey_title),
         modifier = modifier,
         contentPadding = contentPadding,
     ) { scrollState, headerMeasureModifier ->
@@ -125,18 +133,18 @@ fun CalendarScreen(
                 JourneyHeader()
             }
             KuroSegmentedControl(
-                options = JourneyPeriod.entries.map { it.label },
+                options = JourneyPeriod.entries.map { journeyPeriodLabel(it) },
                 selectedIndex = JourneyPeriod.entries.indexOf(selectedPeriod),
                 onSelect = { selectedPeriod = JourneyPeriod.entries[it] },
                 style = KuroSegmentedControlStyle.Outlined,
             )
             val weekNote = summary.weekOverWeekPercent?.let { pct ->
-                "${if (pct >= 0) "+" else ""}$pct% vs last week"
-            } ?: "No last week yet"
+                stringResource(R.string.journey_week_over_week, if (pct >= 0) "+" else "", pct)
+            } ?: stringResource(R.string.journey_no_last_week)
             val weekNoteColor = summary.weekOverWeekPercent?.takeIf { it > 0 }?.let { JourneyGreen }
             Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
                 KuroJourneyMetricCard(
-                    title = selectedPeriod.label,
+                    title = journeyPeriodLabel(selectedPeriod),
                     value = journeyMinutesLabel(summary.weekFocusMinutes),
                     note = weekNote,
                     icon = Lucide.Clock,
@@ -146,9 +154,9 @@ fun CalendarScreen(
                     modifier = Modifier.weight(1f),
                 )
                 KuroJourneyMetricCard(
-                    title = "Focus days",
-                    value = "${summary.focusDays} / 7",
-                    note = "You focused on ${summary.focusDays} days",
+                    title = stringResource(R.string.journey_focus_days),
+                    value = stringResource(R.string.journey_focus_days_value, summary.focusDays),
+                    note = stringResource(R.string.journey_focus_days_note, summary.focusDays),
                     icon = Lucide.Calendar,
                     iconTint = JourneyGreen,
                     iconBackground = JourneyGreen.copy(alpha = 0.14f),
@@ -157,18 +165,22 @@ fun CalendarScreen(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
                 KuroJourneyMetricCard(
-                    title = "Daily average",
+                    title = stringResource(R.string.journey_daily_average),
                     value = journeyMinutesLabel(summary.dailyAverageMinutes),
-                    note = "Goal 1h 30m",
+                    note = stringResource(R.string.journey_daily_goal_note),
                     icon = Lucide.Timer,
                     iconTint = JourneyGreen,
                     iconBackground = JourneyGreen.copy(alpha = 0.14f),
                     modifier = Modifier.weight(1f),
                 )
                 KuroJourneyMetricCard(
-                    title = "Weekly goal",
-                    value = "${summary.weeklyGoalPercent}%",
-                    note = "${journeyMinutesLabel(summary.weekFocusMinutes)} / ${journeyMinutesLabel(summary.weeklyGoalMinutes)}",
+                    title = stringResource(R.string.journey_weekly_goal),
+                    value = stringResource(R.string.journey_weekly_goal_value, summary.weeklyGoalPercent),
+                    note = stringResource(
+                        R.string.journey_weekly_goal_note,
+                        journeyMinutesLabel(summary.weekFocusMinutes),
+                        journeyMinutesLabel(summary.weeklyGoalMinutes),
+                    ),
                     icon = Lucide.Target,
                     iconTint = tokens.accent,
                     iconBackground = tokens.accentSoft,
@@ -215,12 +227,12 @@ private fun JourneyHeader() {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
             Text(
-                text = "Journey",
+                text = stringResource(R.string.journey_title),
                 color = tokens.textPrimary,
                 fontFamily = FontFamily.Serif,
                 style = KuroType.headingJourney,
             )
-            Text(text = "Your focus journey.", color = tokens.textSecondary, style = KuroType.bodySecondary)
+            Text(text = stringResource(R.string.journey_subtitle), color = tokens.textSecondary, style = KuroType.bodySecondary)
         }
         Surface(
             modifier = Modifier.size(KuroSpacing.journeyHeaderAvatar).shadow(KuroSpacing.sm, CircleShape),
@@ -252,7 +264,7 @@ private fun GoalRing(progress: Float) {
 private fun WeeklyFocusCard(summary: JourneySummary) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     KuroElevatedCard {
-        Text("Focus time this week", color = tokens.textPrimary, style = KuroType.headingCard)
+        Text(stringResource(R.string.journey_focus_time_week), color = tokens.textPrimary, style = KuroType.headingCard)
         Spacer(Modifier.height(KuroSpacing.md))
         Row(
             modifier = Modifier.fillMaxWidth().height(KuroSpacing.journeyChartHeight),
@@ -332,7 +344,7 @@ private fun FocusCalendarCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Focus calendar", color = tokens.textPrimary, style = KuroType.headingCard)
+            Text(stringResource(R.string.journey_focus_calendar), color = tokens.textPrimary, style = KuroType.headingCard)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
@@ -471,11 +483,16 @@ private fun SelectedDayStrip(summary: JourneySummary) {
             Spacer(Modifier.width(KuroSpacing.md))
             Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2)) {
                 Text(
-                    "${summary.selectedDay.dateLabel} • ${summary.selectedDay.focusTimeLabel} • ${summary.selectedDay.focusSessions} sessions",
+                    stringResource(
+                        R.string.journey_selected_day_summary,
+                        summary.selectedDay.dateLabel,
+                        summary.selectedDay.focusTimeLabel,
+                        summary.selectedDay.focusSessions,
+                    ),
                     color = tokens.textPrimary,
                     style = KuroType.bodyPrimary,
                 )
-                Text("Tap a day to see details", color = tokens.textSecondary, style = KuroType.bodySecondary)
+                Text(stringResource(R.string.journey_tap_day), color = tokens.textSecondary, style = KuroType.bodySecondary)
             }
         }
     }
@@ -485,10 +502,10 @@ private fun SelectedDayStrip(summary: JourneySummary) {
 private fun TodayTimelineCard(rows: List<JourneyTimelineRow>, onRowClick: (JourneyTimelineRow) -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     KuroElevatedCard {
-        Text("Today", color = tokens.textPrimary, style = KuroType.headingCard)
+        Text(stringResource(R.string.journey_today), color = tokens.textPrimary, style = KuroType.headingCard)
         Spacer(Modifier.height(KuroSpacing.md))
         if (rows.isEmpty()) {
-            Text("No focus records yet today.", color = tokens.textSecondary, style = KuroType.labelStrong)
+            Text(stringResource(R.string.journey_no_records_today), color = tokens.textSecondary, style = KuroType.labelStrong)
         } else {
             rows.forEachIndexed { index, row ->
                 TimelineRow(row, first = index == 0, last = index == rows.lastIndex) { onRowClick(row) }
@@ -519,7 +536,12 @@ private fun TimelineRow(row: JourneyTimelineRow, first: Boolean, last: Boolean, 
         }
         Text(row.durationLabel, color = tokens.textPrimary, style = KuroType.bodySecondary)
         Spacer(Modifier.width(KuroSpacing.sm))
-        KuroPill(label = row.statusLabel, kind = journeyStatusKind(row.statusLabel))
+        KuroPill(
+            label = stringResource(
+                if (row.completed) R.string.journey_status_completed else R.string.journey_status_partial,
+            ),
+            kind = journeyStatusKind(row.completed),
+        )
     }
 }
 
@@ -571,25 +593,39 @@ private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onD
     val focusMinutes = record.completedFocusCount.coerceAtLeast(0) * record.focusMinutes.coerceAtLeast(0)
     val restMinutes = record.completedShortBreakCount * record.shortBreakMinutes + record.completedLongBreakCount * record.longBreakMinutes
 
-    KuroBottomSheet(title = "Journey detail", onDismiss = onDismiss) {
+    val completed = record.status == SessionStatus.Completed
+    KuroBottomSheet(title = stringResource(R.string.journey_detail), onDismiss = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("$start - $end", color = tokens.textSecondary, style = KuroType.labelStrong)
+                Text(
+                    stringResource(R.string.journey_time_range, start, end),
+                    color = tokens.textSecondary,
+                    style = KuroType.labelStrong,
+                )
                 KuroPill(
-                    label = if (record.status == SessionStatus.Completed) "Completed" else "Partial",
-                    kind = journeyStatusKind(if (record.status == SessionStatus.Completed) "Completed" else "Partial"),
+                    label = stringResource(
+                        if (completed) R.string.journey_status_completed else R.string.journey_status_partial,
+                    ),
+                    kind = journeyStatusKind(completed),
                 )
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                SheetStat("Focused", journeyMinutesLabel(focusMinutes))
+                SheetStat(stringResource(R.string.journey_stat_focused), journeyMinutesLabel(focusMinutes))
                 SheetDivider()
-                SheetStat("Sessions", "${record.completedFocusCount}/${record.totalFocusCount}")
+                SheetStat(
+                    stringResource(R.string.journey_stat_sessions),
+                    stringResource(
+                        R.string.journey_stat_sessions_value,
+                        record.completedFocusCount,
+                        record.totalFocusCount,
+                    ),
+                )
                 SheetDivider()
-                SheetStat("Rest", journeyMinutesLabel(restMinutes))
+                SheetStat(stringResource(R.string.journey_stat_rest), journeyMinutesLabel(restMinutes))
             }
             record.taskName?.takeIf { it.isNotBlank() }?.let {
                 Surface(shape = RoundedCornerShape(KuroSpacing.radiusSm), color = tokens.cardFill, border = BorderStroke(1.dp, tokens.cardBorder)) {
@@ -606,7 +642,7 @@ private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onD
                     .padding(vertical = KuroSpacing.md),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Delete Record", color = tokens.destructive, style = KuroType.bodyPrimary)
+                Text(stringResource(R.string.journey_delete_record), color = tokens.destructive, style = KuroType.bodyPrimary)
             }
         }
     }
@@ -614,19 +650,19 @@ private fun JourneyRecordSheet(record: SessionRecord, onDismiss: () -> Unit, onD
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete this record?", color = tokens.textPrimary, style = KuroType.headingCard) },
-            text = { Text("The session from $start to $end will be permanently removed.", color = tokens.textSecondary) },
+            title = { Text(stringResource(R.string.journey_delete_title), color = tokens.textPrimary, style = KuroType.headingCard) },
+            text = { Text(stringResource(R.string.journey_delete_body, start, end), color = tokens.textSecondary) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     onDelete(record.id)
                 }) {
-                    Text("Delete", color = tokens.destructive, style = KuroType.labelStrong)
+                    Text(stringResource(R.string.common_delete), color = tokens.destructive, style = KuroType.labelStrong)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel", color = tokens.textSecondary)
+                    Text(stringResource(R.string.common_cancel), color = tokens.textSecondary)
                 }
             },
             containerColor = tokens.pageBackground

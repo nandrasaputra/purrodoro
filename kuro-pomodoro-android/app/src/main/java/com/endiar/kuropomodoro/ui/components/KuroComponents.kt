@@ -47,6 +47,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import com.endiar.kuropomodoro.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
@@ -60,6 +62,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import com.composables.icons.lucide.Calendar
+import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.CircleCheck
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.List
@@ -70,6 +73,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.model.AppLanguage
 import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.GlassTreatment
@@ -364,25 +368,25 @@ fun DashboardDock(
     ) {
         DockTabItem(
             icon = if (isRunning) Lucide.Play else Lucide.House,
-            label = "Home",
+            label = stringResource(R.string.nav_home),
             active = selectedTab == AppTab.Timer,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Timer) }
         DockTabItem(
             icon = Lucide.List,
-            label = "TASKS",
+            label = stringResource(R.string.nav_tasks),
             active = selectedTab == AppTab.Todo,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Todo) }
         DockTabItem(
             icon = Lucide.CircleCheck,
-            label = "Habits",
+            label = stringResource(R.string.nav_habits),
             active = selectedTab == AppTab.Habits,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Habits) }
         DockTabItem(
             icon = Lucide.Calendar,
-            label = "Journey",
+            label = stringResource(R.string.nav_journey),
             active = selectedTab == AppTab.Calendar,
             modifier = Modifier.weight(1f)
         ) { onNavigate(AppTab.Calendar) }
@@ -694,6 +698,11 @@ fun AppearanceModeToggle(
                 AppearanceMode.Dark -> "☾"
                 AppearanceMode.Auto -> "◐"
             }
+            val label = when (entry) {
+                AppearanceMode.Light -> stringResource(R.string.theme_light)
+                AppearanceMode.Dark -> stringResource(R.string.theme_dark)
+                AppearanceMode.Auto -> stringResource(R.string.theme_auto)
+            }
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -711,11 +720,65 @@ fun AppearanceModeToggle(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = entry.label,
+                    text = label,
                     fontSize = 12.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (selected) tokens.interactiveText else tokens.textSecondary,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Vertical single-select list of [AppLanguage] options for the Settings screen.
+ *
+ * Language names are shown as endonyms ([AppLanguage.label]); the "follow
+ * system" option is labelled via [systemLabel] so it can be localized.
+ */
+@Composable
+fun LanguageSelector(
+    language: AppLanguage,
+    onLanguageChanged: (AppLanguage) -> Unit,
+    systemLabel: String,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        AppLanguage.entries.forEach { entry ->
+            val selected = entry == language
+            val label = if (entry == AppLanguage.System) systemLabel else entry.label
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (selected) tokens.interactiveFill else tokens.segmentedTrack)
+                    .selectable(
+                        selected = selected,
+                        role = Role.RadioButton,
+                        onClick = { onLanguageChanged(entry) },
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = label,
+                    style = KuroType.bodyPrimary,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selected) tokens.interactiveText else tokens.textSecondary,
+                    modifier = Modifier.weight(1f),
+                )
+                if (selected) {
+                    Icon(
+                        imageVector = Lucide.Check,
+                        contentDescription = null,
+                        tint = tokens.interactiveText,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
     }
@@ -799,21 +862,21 @@ fun FocusBusyDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "A focus is in progress",
+                text = stringResource(R.string.focus_busy_title),
                 color = tokens.textPrimary,
                 style = KuroType.headingCard,
             )
         },
         text = {
             Text(
-                text = "Finish or stop the current Pomodoro before starting a new one.",
+                text = stringResource(R.string.focus_busy_body),
                 color = tokens.textSecondary,
             )
         },
         confirmButton = {
             TextButton(onClick = onOpenFocus) {
                 Text(
-                    text = "Open focus",
+                    text = stringResource(R.string.focus_busy_open),
                     color = tokens.accent,
                     style = KuroType.labelStrong,
                 )
@@ -821,7 +884,7 @@ fun FocusBusyDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Got it", color = tokens.textSecondary)
+                Text(stringResource(R.string.common_got_it), color = tokens.textSecondary)
             }
         },
         containerColor = tokens.cardFill,
@@ -846,17 +909,15 @@ fun FocusAlreadyCompleteDialog(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val body = if (isHabit) {
-        "You've already done this habit today. Want to focus on it anyway? " +
-            "Your streak stays safe and only your focus time is logged."
+        stringResource(R.string.focus_complete_habit_body)
     } else {
-        "You've already finished this task. Want to focus on it anyway? " +
-            "It stays checked off and only your focus time is logged."
+        stringResource(R.string.focus_complete_task_body)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "All done already",
+                text = stringResource(R.string.focus_complete_title),
                 color = tokens.textPrimary,
                 style = KuroType.headingCard,
             )
@@ -870,7 +931,7 @@ fun FocusAlreadyCompleteDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(
-                    text = "Focus anyway",
+                    text = stringResource(R.string.focus_complete_confirm),
                     color = tokens.accent,
                     style = KuroType.labelStrong,
                 )
@@ -878,7 +939,7 @@ fun FocusAlreadyCompleteDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Not now", color = tokens.textSecondary)
+                Text(stringResource(R.string.onboarding_cta_not_now), color = tokens.textSecondary)
             }
         },
         containerColor = tokens.cardFill,

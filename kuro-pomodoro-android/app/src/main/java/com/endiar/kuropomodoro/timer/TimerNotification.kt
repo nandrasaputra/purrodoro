@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import com.endiar.kuropomodoro.MainActivity
@@ -14,8 +15,29 @@ import com.endiar.kuropomodoro.model.SessionItemType
 import com.endiar.kuropomodoro.model.TimerRuntimeState
 import com.endiar.kuropomodoro.model.TimerState
 import com.endiar.kuropomodoro.model.formatSeconds
+import java.util.Locale
 
 object TimerNotification {
+
+    // BCP-47 tag for the user-selected in-app language (null = follow device).
+    // Notifications run outside Compose, so we resolve strings against a context
+    // configured with this locale instead of the device default.
+    @Volatile
+    var localeTag: String? = null
+        private set
+
+    fun setLanguage(tag: String?) {
+        localeTag = tag
+    }
+
+    /** A [Context] whose resources resolve against the selected in-app language. */
+    private fun localized(context: Context): Context {
+        val tag = localeTag ?: return context
+        val config = Configuration(context.resources.configuration).apply {
+            setLocale(Locale.forLanguageTag(tag))
+        }
+        return context.createConfigurationContext(config)
+    }
 
     const val CHANNEL_RUNNING = "timer_running"
     // Two fixed channels: one with sound, one silent. Android does not allow updating
@@ -37,14 +59,15 @@ object TimerNotification {
 
     fun ensureChannels(context: Context) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val res = localized(context)
 
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_RUNNING,
-                "Timer running",
+                res.getString(R.string.notif_channel_running_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Ongoing notification while a Pomodoro is active"
+                description = res.getString(R.string.notif_channel_running_desc)
                 setShowBadge(false)
             }
         )
@@ -52,10 +75,10 @@ object TimerNotification {
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_COMPLETION_SOUND,
-                "Segment complete (with sound)",
+                res.getString(R.string.notif_channel_complete_sound_name),
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Notification when a Focus or Break segment ends"
+                description = res.getString(R.string.notif_channel_complete_desc)
                 setSound("android.resource://${context.packageName}/raw/kuro_sound".toUri(), null)
             }
         )
@@ -63,10 +86,10 @@ object TimerNotification {
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_COMPLETION_SILENT,
-                "Segment complete (silent)",
+                res.getString(R.string.notif_channel_complete_silent_name),
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Notification when a Focus or Break segment ends"
+                description = res.getString(R.string.notif_channel_complete_desc)
                 setSound(null, null)
             }
         )
@@ -77,7 +100,8 @@ object TimerNotification {
         state: TimerRuntimeState,
         now: Long
     ): Notification {
-        val (title, subtitle) = describe(state, now)
+        val res = localized(context)
+        val (title, subtitle) = describe(res, state, now)
         val remaining = currentRemainingSeconds(state, now)
         val total = state.session.items.getOrNull(state.session.currentIndex)?.type?.seconds() ?: 1
 
@@ -95,16 +119,16 @@ object TimerNotification {
 
         when (state.session.timerState) {
             TimerState.Playing -> {
-                builder.addAction(action(context, "Pause", TimerService.ACTION_PAUSE))
-                builder.addAction(action(context, "Stop", TimerService.ACTION_STOP))
+                builder.addAction(action(context, res.getString(R.string.notif_action_pause), TimerService.ACTION_PAUSE))
+                builder.addAction(action(context, res.getString(R.string.notif_action_stop), TimerService.ACTION_STOP))
                 if (isOnBreak(state)) {
-                    builder.addAction(action(context, "Skip", TimerService.ACTION_SKIP))
+                    builder.addAction(action(context, res.getString(R.string.notif_action_skip), TimerService.ACTION_SKIP))
                 }
             }
 
             TimerState.Paused -> {
-                builder.addAction(action(context, "Resume", TimerService.ACTION_RESUME))
-                builder.addAction(action(context, "Stop", TimerService.ACTION_STOP))
+                builder.addAction(action(context, res.getString(R.string.notif_action_resume), TimerService.ACTION_RESUME))
+                builder.addAction(action(context, res.getString(R.string.notif_action_stop), TimerService.ACTION_STOP))
             }
 
             TimerState.Idle -> Unit
@@ -115,11 +139,12 @@ object TimerNotification {
     enum class CompletionKind { Focus, Break, Cycle, Stopped }
 
     fun buildCompletionNotification(context: Context, kind: CompletionKind): Notification {
+        val res = localized(context)
         val (title, body) = when (kind) {
-            CompletionKind.Focus -> "Focus complete" to "Tap to start your break"
-            CompletionKind.Break -> "Break complete" to "Ready for another focus session?"
-            CompletionKind.Cycle -> "Cycle complete" to "Nice work — your Pomodoro cycle is done"
-            CompletionKind.Stopped -> "Timer stopped" to "Session ended early"
+            CompletionKind.Focus -> res.getString(R.string.notif_focus_complete_title) to res.getString(R.string.notif_focus_complete_body)
+            CompletionKind.Break -> res.getString(R.string.notif_break_complete_title) to res.getString(R.string.notif_break_complete_body)
+            CompletionKind.Cycle -> res.getString(R.string.notif_cycle_complete_title) to res.getString(R.string.notif_cycle_complete_body)
+            CompletionKind.Stopped -> res.getString(R.string.notif_timer_stopped_title) to res.getString(R.string.notif_timer_stopped_body)
         }
         val channel = if (notificationSoundEnabled) CHANNEL_COMPLETION_SOUND else CHANNEL_COMPLETION_SILENT
         return NotificationCompat.Builder(context, channel)
@@ -133,25 +158,30 @@ object TimerNotification {
             .build()
     }
 
-    private fun describe(state: TimerRuntimeState, now: Long): Pair<String, String?> {
+    private fun describe(res: Context, state: TimerRuntimeState, now: Long): Pair<String, String?> {
         val remaining = currentRemainingSeconds(state, now)
         val timeStr = formatSeconds(remaining)
         val currentItem = state.session.items.getOrNull(state.session.currentIndex)
         val segmentLabel = when (currentItem?.type) {
-            is SessionItemType.Focus -> "Focus"
-            is SessionItemType.ShortBreak -> "Short Break"
-            is SessionItemType.LongBreak -> "Long Break"
-            null -> "Timer"
+            is SessionItemType.Focus -> res.getString(R.string.notif_segment_focus)
+            is SessionItemType.ShortBreak -> res.getString(R.string.notif_segment_short_break)
+            is SessionItemType.LongBreak -> res.getString(R.string.notif_segment_long_break)
+            null -> res.getString(R.string.notif_segment_timer)
         }
         val title = when (state.session.timerState) {
-            TimerState.Playing -> "$segmentLabel · $timeStr"
-            TimerState.Paused -> "$segmentLabel · Paused"
+            TimerState.Playing -> res.getString(R.string.notif_title_playing, segmentLabel, timeStr)
+            TimerState.Paused -> res.getString(R.string.notif_title_paused, segmentLabel)
             TimerState.Idle -> segmentLabel
         }
         val subtitle = when {
-            state.session.timerState == TimerState.Paused -> "$timeStr remaining"
+            state.session.timerState == TimerState.Paused -> res.getString(R.string.notif_remaining, timeStr)
             state.activeTask != null && currentItem?.type is SessionItemType.Focus ->
-                "${state.activeTask.title} · ${state.activeTask.completedSessions + 1} / ${state.activeTask.plannedSessions}"
+                res.getString(
+                    R.string.notif_task_progress,
+                    state.activeTask.title,
+                    state.activeTask.completedSessions + 1,
+                    state.activeTask.plannedSessions,
+                )
 
             else -> null
         }

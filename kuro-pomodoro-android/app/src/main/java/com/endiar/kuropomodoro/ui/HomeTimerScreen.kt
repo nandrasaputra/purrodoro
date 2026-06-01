@@ -59,6 +59,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -143,10 +145,10 @@ fun HomeTimerScreen(
                 val autoCompleteMessage: String? = when {
                     activeFocusType == FocusType.Task &&
                         activeTask != null && activeTask.id > 0 ->
-                        "Finish this Pomodoro and Kuro ticks it off."
+                        stringResource(R.string.home_autocomplete_task)
 
                     activeFocusType == FocusType.Habit ->
-                        "Finish this Pomodoro and Kuro logs it today."
+                        stringResource(R.string.home_autocomplete_habit)
 
                     else -> null
                 }
@@ -312,7 +314,7 @@ private fun IdleHero(backdropTime: LocalTime, onRequestStartFocus: () -> Unit) {
     ) {
         HeroImage(modifier = Modifier.fillMaxWidth(), time = backdropTime)
         HomePrimaryButton(
-            text = "Start Focus",
+            text = stringResource(R.string.home_start_focus),
             onClick = onRequestStartFocus,
             icon = true,
             modifier = Modifier
@@ -455,8 +457,8 @@ private fun ActiveTimerCard(
                     if (parts.size == 2) parts[0] to parts[1] else null to activeTask.title
                 }
                 activeTask != null -> null to activeTask.title
-                isBreak -> null to "Taking a break"
-                else -> null to timerMode.label
+                isBreak -> null to stringResource(R.string.home_taking_a_break)
+                else -> null to timerModeLabel(timerMode)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -473,7 +475,7 @@ private fun ActiveTimerCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     val subtitle = when {
-                        isBreak -> timerMode.label
+                        isBreak -> timerModeLabel(timerMode)
                         activeFocusType == FocusType.Empty -> null
                         else -> focusTypeLabel(activeFocusType)
                     }
@@ -498,7 +500,7 @@ private fun ActiveTimerCard(
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                text = "remaining",
+                text = stringResource(R.string.home_remaining),
                 color = tokens.textSecondary,
                 style = KuroType.labelStrong,
                 textAlign = TextAlign.Center,
@@ -530,11 +532,11 @@ private fun ActiveTimerCard(
                         modifier = Modifier.size(15.dp)
                     )
                     Spacer(Modifier.width(5.dp))
-                    Text("Stop session", color = tokens.textSecondary, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.home_stop_session), color = tokens.textSecondary, fontWeight = FontWeight.Bold)
                 }
                 if (isBreak) {
                     TextButton(onClick = onSkip) {
-                        Text("Skip break", color = tokens.textSecondary, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.home_skip_break), color = tokens.textSecondary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -546,14 +548,14 @@ private fun ActiveTimerCard(
             onDismissRequest = { showStopConfirmDialog = false },
             title = {
                 Text(
-                    text = "Taking a break?",
+                    text = stringResource(R.string.home_stop_title),
                     color = tokens.textPrimary,
                     fontWeight = FontWeight.ExtraBold
                 )
             },
             text = {
                 Text(
-                    text = "Your focus time so far will still be counted.",
+                    text = stringResource(R.string.home_stop_body),
                     color = tokens.textSecondary
                 )
             },
@@ -562,12 +564,12 @@ private fun ActiveTimerCard(
                     showStopConfirmDialog = false
                     onStop()
                 }) {
-                    Text("Stop for now", color = tokens.accent, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.home_stop_confirm), color = tokens.accent, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showStopConfirmDialog = false }) {
-                    Text("Stay focused", color = tokens.textSecondary, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.home_stop_dismiss), color = tokens.textSecondary, fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = tokens.cardFill,
@@ -608,7 +610,7 @@ private fun SuggestionCard(
 
     when (suggestion) {
         is HomeSuggestion.Continue -> {
-            header = "Resume focus"
+            header = stringResource(R.string.home_resume_header)
             focusType = suggestion.focusType
             val (e, t) = splitEmojiTitle(suggestion.focusType, suggestion.title)
             emoji = e
@@ -616,33 +618,33 @@ private fun SuggestionCard(
             if (suggestion.remainingSeconds > 0) {
                 val left = interruptedRemainingMinutes(suggestion.remainingSeconds)
                 subtitle = null
-                trailingPill = "$left min left"
+                trailingPill = stringResource(R.string.home_min_left, left)
             } else {
                 val sessions = suggestion.remainingFocusSessions.coerceAtLeast(1)
                 val totalMinutes = sessions * (suggestion.focusMinutes ?: focusMinutes).coerceAtLeast(1)
-                subtitle = "${formatResumeMinutes(totalMinutes)} left"
-                trailingPill = "$sessions ${if (sessions == 1) "session" else "sessions"}"
+                subtitle = stringResource(R.string.home_resume_left, formatResumeMinutes(totalMinutes))
+                trailingPill = pluralStringResource(R.plurals.sessions_count, sessions, sessions)
             }
         }
         is HomeSuggestion.Suggest -> {
-            header = "Ready when you are"
+            header = stringResource(R.string.home_ready_header)
             focusType = suggestion.focusType
             val (e, t) = splitEmojiTitle(suggestion.focusType, suggestion.title)
             emoji = e
             title = t
             subtitle = listOfNotNull(
                 focusTypeLabel(suggestion.focusType),
-                "Suggested for now",
-                "$focusMinutes min focus",
+                stringResource(R.string.home_suggested_for_now),
+                stringResource(R.string.home_min_focus, focusMinutes),
             ).joinToString(" · ")
             trailingPill = null
         }
         HomeSuggestion.Empty -> {
-            header = "Ready when you are"
+            header = stringResource(R.string.home_ready_header)
             focusType = FocusType.Empty
             emoji = null
-            title = "Choose a focus task"
-            subtitle = "A calm place to begin when you are ready."
+            title = stringResource(R.string.home_choose_focus_task)
+            subtitle = stringResource(R.string.home_empty_subtitle)
             trailingPill = null
         }
     }
@@ -749,20 +751,20 @@ private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Today's Focus",
+                    text = stringResource(R.string.home_todays_focus),
                     color = tokens.textPrimary,
                     style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Text(
-                    text = "View all",
+                    text = stringResource(R.string.home_view_all),
                     color = tokens.accent,
                     style = KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium)
                 )
             }
             Row(modifier = Modifier.fillMaxWidth()) {
-                MetricColumn(label = "Focus time", value = metrics.focusTimeLabel, modifier = Modifier.weight(1f))
-                MetricColumn(label = "Sessions", value = metrics.sessionsLabel, modifier = Modifier.weight(1f))
-                MetricColumn(label = "Completed", value = metrics.completedLabel, modifier = Modifier.weight(1f))
+                MetricColumn(label = stringResource(R.string.home_metric_focus_time), value = metrics.focusTimeLabel, modifier = Modifier.weight(1f))
+                MetricColumn(label = stringResource(R.string.home_metric_sessions), value = metrics.sessionsLabel, modifier = Modifier.weight(1f))
+                MetricColumn(label = stringResource(R.string.home_metric_completed), value = metrics.completedLabel, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -778,7 +780,7 @@ private fun QuoteCard() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Little by little,\na lot becomes a lot. ♡",
+                text = stringResource(R.string.home_quote),
                 color = tokens.textPrimary,
                 style = KuroType.bodyPrimary,
                 lineHeight = 22.sp,
@@ -941,7 +943,7 @@ private fun OpenFocusModeRow(onClick: () -> Unit) {
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            text = "Open Focus Mode",
+            text = stringResource(R.string.home_open_focus_mode),
             color = tokens.textPrimary,
             style = KuroType.bodyPrimary,
             modifier = Modifier.weight(1f)
@@ -1014,7 +1016,7 @@ private fun ActiveFocusButton(
         }
         Spacer(Modifier.width(14.dp))
         Text(
-            text = if (isRunning) "Pause Focus" else "Resume Focus",
+            text = if (isRunning) stringResource(R.string.home_pause_focus) else stringResource(R.string.home_resume_focus),
             color = Color.White,
             style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold)
         )
@@ -1057,11 +1059,43 @@ private fun FocusTypeIcon(
     }
 }
 
+@Composable
 private fun focusTypeLabel(focusType: FocusType): String = when (focusType) {
-    FocusType.Task -> "Task"
-    FocusType.Habit -> "Habit"
-    FocusType.SimpleNote -> "Simple Note"
-    FocusType.Empty -> "Focus"
+    FocusType.Task -> stringResource(R.string.focus_type_task)
+    FocusType.Habit -> stringResource(R.string.focus_type_habit)
+    FocusType.SimpleNote -> stringResource(R.string.focus_type_simple_note)
+    FocusType.Empty -> stringResource(R.string.focus_type_focus)
+}
+
+@Composable
+private fun timerModeLabel(mode: TimerMode): String = when (mode) {
+    TimerMode.Focus -> stringResource(R.string.timer_mode_focus)
+    TimerMode.ShortBreak -> stringResource(R.string.timer_mode_short_break)
+    TimerMode.LongBreak -> stringResource(R.string.timer_mode_long_break)
+}
+
+/**
+ * Time-of-day [HomeGreeting] resolved against the active locale. Mirrors the
+ * pure [homeGreetingFor] (kept for tests) but pulls copy from string
+ * resources so it follows the in-app language.
+ */
+@Composable
+fun rememberHomeGreeting(time: LocalTime): HomeGreeting {
+    val hour = time.hour
+    return when {
+        hour < 12 -> HomeGreeting(
+            salutation = stringResource(R.string.greeting_morning_salutation),
+            encouragement = stringResource(R.string.greeting_morning_encouragement),
+        )
+        hour < 17 -> HomeGreeting(
+            salutation = stringResource(R.string.greeting_afternoon_salutation),
+            encouragement = stringResource(R.string.greeting_afternoon_encouragement),
+        )
+        else -> HomeGreeting(
+            salutation = stringResource(R.string.greeting_evening_salutation),
+            encouragement = stringResource(R.string.greeting_evening_encouragement),
+        )
+    }
 }
 
 

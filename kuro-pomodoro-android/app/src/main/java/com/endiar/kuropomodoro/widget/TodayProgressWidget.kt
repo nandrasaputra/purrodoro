@@ -47,17 +47,18 @@ import java.time.ZoneId
 class TodayProgressWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val state = withContext(Dispatchers.IO) {
+        val (state, language) = withContext(Dispatchers.IO) {
             val repo = AppRepository.get(context)
             val app = repo.appState.first()
             val today = Instant.ofEpochMilli(System.currentTimeMillis())
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate()
             val focusCount = app.stamps[today] ?: 0
-            WidgetState.today(focusCountToday = focusCount, settings = app.settings)
+            WidgetState.today(focusCountToday = focusCount, settings = app.settings) to app.language
         }
+        val localized = localizedWidgetContext(context, language)
         provideContent {
-            TodayContent(context = context, state = state)
+            TodayContent(context = context, res = localized, state = state)
         }
     }
 }
@@ -67,7 +68,7 @@ class TodayProgressWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun TodayContent(context: Context, state: TodayWidgetState) {
+private fun TodayContent(context: Context, res: Context, state: TodayWidgetState) {
     val openIntent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
     }
@@ -104,7 +105,7 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
                 horizontalAlignment = Alignment.Horizontal.Start,
             ) {
                 Text(
-                    text = "Today with Kuro",
+                    text = res.getString(R.string.widget_today_title),
                     style = WidgetTheme.title,
                     maxLines = 1,
                 )
@@ -119,13 +120,13 @@ private fun TodayContent(context: Context, state: TodayWidgetState) {
                     )
                     Spacer(modifier = GlanceModifier.width(6.dp))
                     Text(
-                        text = "focus",
+                        text = res.getString(R.string.widget_today_focus_unit),
                         style = WidgetTheme.metricUnit,
                     )
                 }
                 Spacer(modifier = GlanceModifier.height(6.dp))
                 Text(
-                    text = state.encouragement,
+                    text = res.todayEncouragement(state.encouragement),
                     style = WidgetTheme.body,
                     maxLines = 1,
                 )

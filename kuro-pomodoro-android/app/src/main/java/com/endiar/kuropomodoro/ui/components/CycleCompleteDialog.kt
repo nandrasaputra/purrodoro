@@ -54,6 +54,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.endiar.kuropomodoro.R
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -88,8 +91,8 @@ fun CycleCompleteDialog(
     focusType: FocusType,
     intentEmoji: String?,
     intentLabel: String?,
-    confirmLabel: String = "Done",
-    secondaryLabel: String? = "View Journey",
+    confirmLabel: String = stringResource(R.string.cycle_done),
+    secondaryLabel: String? = stringResource(R.string.cycle_view_journey),
     onConfirm: () -> Unit,
     onSecondary: () -> Unit = {},
 ) {
@@ -369,7 +372,7 @@ private fun FocusSummary(
                 lineHeight = 58.sp,
             )
             Text(
-                text = "m",
+                text = stringResource(R.string.cycle_minutes_unit),
                 color = tokens.textPrimary,
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Normal,
@@ -378,21 +381,22 @@ private fun FocusSummary(
             )
         }
         Text(
-            text = "focused",
+            text = stringResource(R.string.cycle_focused),
             color = tokens.textSecondary,
             style = KuroType.labelStrong,
         )
         Spacer(Modifier.height(KuroSpacing.xs))
         Text(
-            text = pluralizeSessions(focusSessionsCompleted),
+            text = pluralStringResource(
+                R.plurals.cycle_focus_sessions_completed,
+                focusSessionsCompleted,
+                focusSessionsCompleted,
+            ),
             color = tokens.textMuted,
             style = KuroType.bodySecondary,
         )
     }
 }
-
-private fun pluralizeSessions(count: Int): String =
-    if (count == 1) "1 focus session completed" else "$count focus sessions completed"
 
 @Composable
 private fun IntentReceiptRow(
@@ -402,10 +406,10 @@ private fun IntentReceiptRow(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val eyebrow = when (focusType) {
-        FocusType.Task -> "Task"
-        FocusType.Habit -> "Habit"
-        FocusType.SimpleNote -> "Note"
-        FocusType.Empty -> "Focus"
+        FocusType.Task -> stringResource(R.string.focus_type_task)
+        FocusType.Habit -> stringResource(R.string.focus_type_habit)
+        FocusType.SimpleNote -> stringResource(R.string.focus_type_note)
+        FocusType.Empty -> stringResource(R.string.focus_type_focus)
     }
     Row(
         modifier = Modifier

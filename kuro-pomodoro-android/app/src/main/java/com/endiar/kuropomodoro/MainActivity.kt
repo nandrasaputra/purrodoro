@@ -16,9 +16,11 @@ import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
+import com.endiar.kuropomodoro.model.AppLanguage
 import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.timer.TimerNotification
+import com.endiar.kuropomodoro.ui.KuroLocalizationProvider
 import com.endiar.kuropomodoro.ui.theme.KuroPomodoroTheme
 import com.endiar.kuropomodoro.widget.QuickStartWidget
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -55,10 +57,14 @@ class MainActivity : ComponentActivity() {
         )
 
         val repo = AppRepository.get(this)
-        val soundEnabled = runCatching {
-            kotlinx.coroutines.runBlocking { repo.appState.first().notificationSoundEnabled }
-        }.getOrDefault(true)
-        TimerNotification.setNotificationSoundEnabled(applicationContext, soundEnabled)
+        val initialAppState = runCatching {
+            kotlinx.coroutines.runBlocking { repo.appState.first() }
+        }.getOrNull()
+        TimerNotification.setLanguage(initialAppState?.language?.tag)
+        TimerNotification.setNotificationSoundEnabled(
+            applicationContext,
+            initialAppState?.notificationSoundEnabled ?: true,
+        )
         timerConnection = TimerConnection(applicationContext)
 
         setContent {
@@ -66,6 +72,10 @@ class MainActivity : ComponentActivity() {
             val appearanceMode by repo.appState
                 .map { it.appearanceMode }
                 .collectAsStateWithLifecycle(initialValue = AppearanceMode.Auto)
+
+            val language by repo.appState
+                .map { it.language }
+                .collectAsStateWithLifecycle(initialValue = AppLanguage.System)
 
             val systemInDark = isSystemInDarkTheme()
             val isDark = appearanceMode.isDark(systemInDark)
@@ -82,13 +92,15 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            KuroPomodoroTheme(appearanceMode = appearanceMode) {
-                KuroPomodoroApp(
-                    repo = repo,
-                    timerConnection = timerConnection,
-                    requestNotificationPermission = ::requestNotificationPermissionIfNeeded,
-                    autoOpenStartFocus = autoOpenStartFocus,
-                )
+            KuroLocalizationProvider(language = language) {
+                KuroPomodoroTheme(appearanceMode = appearanceMode) {
+                    KuroPomodoroApp(
+                        repo = repo,
+                        timerConnection = timerConnection,
+                        requestNotificationPermission = ::requestNotificationPermissionIfNeeded,
+                        autoOpenStartFocus = autoOpenStartFocus,
+                    )
+                }
             }
         }
     }

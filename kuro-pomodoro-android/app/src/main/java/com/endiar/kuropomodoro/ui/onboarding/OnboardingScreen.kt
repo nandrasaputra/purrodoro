@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -175,7 +176,7 @@ private fun OnboardingTopBar(
         if (showSkip) {
             TextButton(onClick = onSkip) {
                 Text(
-                    text = "Skip",
+                    text = stringResource(R.string.onboarding_skip),
                     color = tokens.textSecondary,
                     style = KuroType.labelStrong,
                 )
@@ -190,7 +191,7 @@ private fun OnboardingTopBar(
 private fun WelcomePage() {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Text(
-        text = "Welcome to",
+        text = stringResource(R.string.onboarding_welcome_to),
         color = tokens.textSecondary,
         style = KuroType.labelStrong,
     )
@@ -217,7 +218,7 @@ private fun WelcomePage() {
     ) {
         Image(
             painter = painterResource(id = R.drawable.cat_morning),
-            contentDescription = "Kuro the black cat, resting in a sunny meadow",
+            contentDescription = stringResource(R.string.onboarding_welcome_cat_cd),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             alignment = Alignment.BottomCenter,
@@ -227,7 +228,7 @@ private fun WelcomePage() {
     Spacer(Modifier.height(KuroSpacing.lg))
 
     Text(
-        text = "A calmer focus ritual",
+        text = stringResource(R.string.onboarding_welcome_title),
         color = tokens.textPrimary,
         fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.SemiBold,
@@ -237,7 +238,7 @@ private fun WelcomePage() {
     )
     Spacer(Modifier.height(KuroSpacing.xs))
     Text(
-        text = "Pick an intent, start the timer, and let Kuro keep the rhythm.",
+        text = stringResource(R.string.onboarding_welcome_subtitle),
         color = tokens.textSecondary,
         style = KuroType.bodySecondary,
         textAlign = TextAlign.Center,
@@ -250,9 +251,9 @@ private fun WelcomePage() {
 @Composable
 private fun IntentPage() {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    PageTitle(text = "Choose your intent")
+    PageTitle(text = stringResource(R.string.onboarding_intent_title))
     Spacer(Modifier.height(KuroSpacing.xs))
-    PageSubtitle(text = "What is this session for?")
+    PageSubtitle(text = stringResource(R.string.onboarding_intent_subtitle))
     Spacer(Modifier.height(KuroSpacing.xl))
 
     Column(
@@ -265,18 +266,18 @@ private fun IntentPage() {
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
         IntentTileRow(
-            left = IntentSpec("Task", Lucide.CircleCheck, selected = true),
-            right = IntentSpec("Habit", Lucide.Leaf),
+            left = IntentSpec(stringResource(R.string.onboarding_intent_task), Lucide.CircleCheck, selected = true),
+            right = IntentSpec(stringResource(R.string.onboarding_intent_habit), Lucide.Leaf),
         )
         IntentTileRow(
-            left = IntentSpec("Note", Lucide.NotebookPen),
-            right = IntentSpec("Free Focus", Lucide.Square),
+            left = IntentSpec(stringResource(R.string.onboarding_intent_note), Lucide.NotebookPen),
+            right = IntentSpec(stringResource(R.string.onboarding_intent_free), Lucide.Square),
         )
     }
 
     Spacer(Modifier.height(KuroSpacing.md))
     Text(
-        text = "You can start without picking anything.",
+        text = stringResource(R.string.onboarding_intent_hint),
         color = tokens.textMuted,
         style = KuroType.bodySecondary,
         textAlign = TextAlign.Center,
@@ -333,9 +334,9 @@ private fun IntentTile(spec: IntentSpec, modifier: Modifier = Modifier) {
 @Composable
 private fun RhythmPage() {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    PageTitle(text = "See your rhythm")
+    PageTitle(text = stringResource(R.string.onboarding_rhythm_title))
     Spacer(Modifier.height(KuroSpacing.xs))
-    PageSubtitle(text = "Your week fills up as you focus.")
+    PageSubtitle(text = stringResource(R.string.onboarding_rhythm_subtitle))
     Spacer(Modifier.height(KuroSpacing.xl))
 
     Column(
@@ -352,7 +353,7 @@ private fun RhythmPage() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Your week",
+                text = stringResource(R.string.onboarding_rhythm_your_week),
                 color = tokens.textPrimary,
                 style = KuroType.headingCard,
             )
@@ -363,7 +364,7 @@ private fun RhythmPage() {
                     .padding(horizontal = KuroSpacing.sm, vertical = KuroSpacing.xs),
             ) {
                 Text(
-                    text = "Preview",
+                    text = stringResource(R.string.onboarding_rhythm_preview),
                     color = tokens.accent,
                     style = KuroType.labelMeta,
                 )
@@ -384,7 +385,7 @@ private fun RhythmPage() {
             .padding(KuroSpacing.md),
     ) {
         Text(
-            text = "Consistency is your quiet superpower.",
+            text = stringResource(R.string.onboarding_rhythm_quote),
             color = tokens.textSecondary,
             style = KuroType.bodySecondary.copy(fontFamily = FontFamily.Serif),
             textAlign = TextAlign.Center,
@@ -439,10 +440,10 @@ private fun WeekDotsPreview(todayIndex: Int) {
 @Composable
 private fun StayOnTrackPage() {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    PageTitle(text = "Stay on track")
+    PageTitle(text = stringResource(R.string.onboarding_track_title))
     Spacer(Modifier.height(KuroSpacing.xs))
     PageSubtitle(
-        text = "A soft chime when focus and breaks end — never anything else."
+        text = stringResource(R.string.onboarding_track_subtitle)
     )
     Spacer(Modifier.height(KuroSpacing.xl))
 
@@ -451,7 +452,7 @@ private fun StayOnTrackPage() {
     Spacer(Modifier.height(KuroSpacing.md))
 
     Text(
-        text = "We recommend turning these on so you can fully drift into focus and trust Kuro to bring you back.",
+        text = stringResource(R.string.onboarding_track_body),
         color = tokens.textSecondary,
         style = KuroType.bodySecondary,
         textAlign = TextAlign.Center,
@@ -499,14 +500,14 @@ private fun NotificationPreviewCard() {
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = "Kuro Pomodoro  ·  now",
+                text = stringResource(R.string.onboarding_notif_meta),
                 color = tokens.textMuted,
                 fontSize = 11.sp,
                 lineHeight = 14.sp,
                 fontWeight = FontWeight.Normal,
             )
             Text(
-                text = "Focus complete",
+                text = stringResource(R.string.onboarding_notif_title),
                 color = tokens.textPrimary,
                 fontSize = 14.sp,
                 lineHeight = 18.sp,
@@ -515,7 +516,7 @@ private fun NotificationPreviewCard() {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "Take a short break — your next session is queued.",
+                text = stringResource(R.string.onboarding_notif_body),
                 color = tokens.textSecondary,
                 fontSize = 13.sp,
                 lineHeight = 17.sp,
@@ -592,9 +593,9 @@ private fun BottomCtaBlock(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val primaryLabel = when {
-        isFirstPage -> "Get started"
-        isLastPage -> "Turn on notifications"
-        else -> "Next"
+        isFirstPage -> stringResource(R.string.onboarding_cta_get_started)
+        isLastPage -> stringResource(R.string.onboarding_cta_turn_on_notifications)
+        else -> stringResource(R.string.onboarding_cta_next)
     }
     Column(
         modifier = modifier,
@@ -629,7 +630,7 @@ private fun BottomCtaBlock(
             Spacer(Modifier.height(KuroSpacing.xs))
             TextButton(onClick = onSecondary) {
                 Text(
-                    text = "Not now",
+                    text = stringResource(R.string.onboarding_cta_not_now),
                     color = tokens.textSecondary,
                     style = KuroType.labelStrong,
                 )

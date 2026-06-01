@@ -1,6 +1,8 @@
 package com.endiar.kuropomodoro.ui
 
+import com.endiar.kuropomodoro.R
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -12,15 +14,22 @@ class CycleCompletionCopyTest {
     }
 
     @Test
-    fun `every variant has non-blank title and body`() {
+    fun `every variant references real string resources`() {
         CycleCompletionCopy.variants.forEach { v ->
-            assertTrue("title blank for $v", v.title.isNotBlank())
-            assertTrue("body blank for $v", v.body.isNotBlank())
+            assertNotEquals("title res unset for $v", 0, v.titleRes)
+            assertNotEquals("body res unset for $v", 0, v.bodyRes)
         }
     }
 
     @Test
-    fun `button label is Done`() {
-        assertEquals("Done", CycleCompletionCopy.buttonLabel)
+    fun `variant title and body resources are distinct`() {
+        CycleCompletionCopy.variants.forEach { v ->
+            assertTrue("title and body identical for $v", v.titleRes != v.bodyRes)
+        }
+    }
+
+    @Test
+    fun `button label points at the done string`() {
+        assertEquals(R.string.cycle_done, CycleCompletionCopy.buttonLabelRes)
     }
 }

@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -117,6 +118,60 @@ import androidx.compose.ui.text.style.TextAlign
  * row's color dot. Any non-positive id (synthetic habit task) intentionally
  * never matches a real task, so the live indicator stays on real tasks only.
  */
+@Composable
+private fun taskPriorityLabel(priority: TaskPriority): String = when (priority) {
+    TaskPriority.High -> stringResource(R.string.tasks_priority_high)
+    TaskPriority.Normal -> stringResource(R.string.tasks_priority_normal)
+    TaskPriority.Low -> stringResource(R.string.tasks_priority_low)
+}
+
+@Composable
+private fun taskPriorityDescription(priority: TaskPriority): String = when (priority) {
+    TaskPriority.High -> stringResource(R.string.tasks_priority_high_desc)
+    TaskPriority.Normal -> stringResource(R.string.tasks_priority_normal_desc)
+    TaskPriority.Low -> stringResource(R.string.tasks_priority_low_desc)
+}
+
+@Composable
+private fun taskFilterLabel(filter: TaskUiFilter): String = when (filter) {
+    TaskUiFilter.All -> stringResource(R.string.tasks_filter_all)
+    TaskUiFilter.Active -> stringResource(R.string.tasks_filter_active)
+    TaskUiFilter.Done -> stringResource(R.string.tasks_filter_done)
+    TaskUiFilter.Archived -> stringResource(R.string.tasks_filter_archived)
+}
+
+/** Localized variant of [heroDueLabel] for the Next Focus hero chip. */
+@Composable
+private fun rememberHeroDueLabel(dueDate: LocalDate?, today: LocalDate): String? {
+    dueDate ?: return null
+    val days = java.time.temporal.ChronoUnit.DAYS.between(today, dueDate).toInt()
+    return when {
+        days == 0 -> stringResource(R.string.tasks_due_today_hero)
+        days == 1 -> stringResource(R.string.tasks_due_tomorrow_hero)
+        days < 0 -> {
+            val ago = -days
+            if (ago == 1) stringResource(R.string.tasks_overdue_one)
+            else stringResource(R.string.tasks_overdue_many, ago)
+        }
+        else -> stringResource(R.string.tasks_due_in_days, days)
+    }
+}
+
+/** Localized compact value for the due-date list row. */
+@Composable
+private fun dueDateRowValueLabel(dueDate: LocalDate?): String {
+    if (dueDate == null) return stringResource(R.string.tasks_due_not_set)
+    val today = LocalDate.now()
+    return when (dueDate) {
+        today -> stringResource(
+            R.string.tasks_due_today,
+            dueDate.format(DateTimeFormatter.ofPattern("MMM d")),
+        )
+        today.plusDays(1) -> stringResource(R.string.tasks_due_tomorrow)
+        else -> dueDate.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodoScreen(
@@ -218,7 +273,7 @@ fun TodoScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     KuroScreenScaffold(
-        stickyTitle = "Tasks",
+        stickyTitle = stringResource(R.string.tasks_title),
         modifier = modifier,
         contentPadding = contentPadding,
     ) { scrollState, headerMeasureModifier ->
@@ -242,9 +297,9 @@ fun TodoScreen(
 
             FilterBar(
                 statusOptions = listOf(
-                    StatusFilterOption(TaskUiFilter.All, "All", totalCount),
-                    StatusFilterOption(TaskUiFilter.Active, "Active", activeCount),
-                    StatusFilterOption(TaskUiFilter.Done, "Done", doneCount),
+                    StatusFilterOption(TaskUiFilter.All, totalCount),
+                    StatusFilterOption(TaskUiFilter.Active, activeCount),
+                    StatusFilterOption(TaskUiFilter.Done, doneCount),
                 ),
                 selectedStatus = selectedTaskFilter,
                 onSelectStatus = { selectedTaskFilter = it },
@@ -291,7 +346,8 @@ fun TodoScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
                     if (selectedTaskFilter != TaskUiFilter.Done) {
                         TasksSectionHeader(
-                            title = if (nextFocus != null) "More tasks" else "Tasks"
+                            title = if (nextFocus != null) stringResource(R.string.tasks_section_more)
+                            else stringResource(R.string.tasks_section_tasks)
                         )
                     }
                     activeRowsForList.forEachIndexed { index, task ->
@@ -330,11 +386,12 @@ fun TodoScreen(
                         // Hide the "Done · N" label when the whole screen is
                         // already the Done filter; keep it only on All where it
                         // disambiguates from the active rows above.
-                        title = "Done · ${filteredCompletedTasks.size}"
+                        title = stringResource(R.string.tasks_section_done, filteredCompletedTasks.size)
                             .takeIf { selectedTaskFilter == TaskUiFilter.All },
                         action = {
+                            val deleteAllCd = stringResource(R.string.tasks_delete_all_cd)
                             Text(
-                                text = "Delete all",
+                                text = stringResource(R.string.tasks_delete_all),
                                 color = tokens.destructive,
                                 style = KuroType.labelMeta,
                                 modifier = Modifier
@@ -342,7 +399,7 @@ fun TodoScreen(
                                     .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.xs)
                                     .semantics {
                                         role = Role.Button
-                                        contentDescription = "Delete all completed tasks"
+                                        contentDescription = deleteAllCd
                                     },
                             )
                         },
@@ -439,14 +496,14 @@ fun TodoScreen(
             onDismissRequest = { deleteCategoryTarget = null },
             title = {
                 Text(
-                    text = "Delete ${category.name}?",
+                    text = stringResource(R.string.tasks_delete_category_title, category.name),
                     color = dialogTokens.textPrimary,
                     style = KuroType.headingCard,
                 )
             },
             text = {
                 Text(
-                    text = "Tasks in this category will become uncategorized.",
+                    text = stringResource(R.string.tasks_delete_category_body),
                     color = dialogTokens.textSecondary
                 )
             },
@@ -457,7 +514,7 @@ fun TodoScreen(
                     deleteCategoryTarget = null
                 }) {
                     Text(
-                        text = "Delete",
+                        text = stringResource(R.string.common_delete),
                         color = dialogTokens.destructive,
                         style = KuroType.labelStrong,
                     )
@@ -465,7 +522,7 @@ fun TodoScreen(
             },
             dismissButton = {
                 TextButton(onClick = { deleteCategoryTarget = null }) {
-                    Text("Cancel", color = dialogTokens.textSecondary)
+                    Text(stringResource(R.string.common_cancel), color = dialogTokens.textSecondary)
                 }
             },
             containerColor = dialogTokens.cardFill,
@@ -480,14 +537,18 @@ fun TodoScreen(
             onDismissRequest = { deleteAllCompletedVisible = false },
             title = {
                 Text(
-                    text = "Delete $confirmCount completed task${if (confirmCount == 1) "" else "s"}?",
+                    text = if (confirmCount == 1) {
+                        stringResource(R.string.tasks_delete_completed_title, confirmCount)
+                    } else {
+                        stringResource(R.string.tasks_delete_completed_title_plural, confirmCount)
+                    },
                     color = dialogTokens.textPrimary,
                     style = KuroType.headingCard,
                 )
             },
             text = {
                 Text(
-                    text = "This can't be undone.",
+                    text = stringResource(R.string.tasks_delete_completed_body),
                     color = dialogTokens.textSecondary,
                 )
             },
@@ -497,7 +558,7 @@ fun TodoScreen(
                     deleteAllCompletedVisible = false
                 }) {
                     Text(
-                        text = "Delete",
+                        text = stringResource(R.string.common_delete),
                         color = dialogTokens.destructive,
                         style = KuroType.labelStrong,
                     )
@@ -505,7 +566,7 @@ fun TodoScreen(
             },
             dismissButton = {
                 TextButton(onClick = { deleteAllCompletedVisible = false }) {
-                    Text("Cancel", color = dialogTokens.textSecondary)
+                    Text(stringResource(R.string.common_cancel), color = dialogTokens.textSecondary)
                 }
             },
             containerColor = dialogTokens.cardFill,
@@ -515,7 +576,7 @@ fun TodoScreen(
 
     if (addCategorySheetVisible) {
         CategoryNameSheet(
-            title = "New Category",
+            title = stringResource(R.string.tasks_category_new_title),
             initialName = "",
             initialColor = categoryColorChoices.first(),
             onDismiss = { addCategorySheetVisible = false },
@@ -528,7 +589,7 @@ fun TodoScreen(
 
     renameCategoryTarget?.let { category ->
         CategoryNameSheet(
-            title = "Rename Category",
+            title = stringResource(R.string.tasks_category_rename_title),
             initialName = category.name,
             initialColor = category.colorArgb
                 ?: (categoryColorFor(category, tokens.textMuted).toArgb().toLong() and 0xFFFFFFFFL),
@@ -583,19 +644,20 @@ private fun TasksScreenHeader(
         // pattern (see HabitsScreen). The sticky bar shown on scroll already
         // echoes this title.
         Text(
-            text = "Tasks",
+            text = stringResource(R.string.tasks_title),
             color = tokens.textPrimary,
             style = KuroType.headingDisplay,
         )
         // Primary add action lives top-right (replacing the old bottom FAB),
         // consistent with the Habits header's add button.
+        val addTaskCd = stringResource(R.string.tasks_add)
         Box(
             modifier = Modifier
                 .size(KuroSpacing.xxxl + KuroSpacing.sm)
                 .clip(CircleShape)
                 .background(tokens.accent)
                 .clickable(onClick = onAdd)
-                .semantics { role = Role.Button; contentDescription = "Add task" },
+                .semantics { role = Role.Button; contentDescription = addTaskCd },
             contentAlignment = Alignment.Center,
         ) {
             Text(text = "+", color = tokens.accentOn, style = KuroType.fabGlyph)
@@ -607,7 +669,6 @@ private fun TasksScreenHeader(
 
 private data class StatusFilterOption(
     val filter: TaskUiFilter,
-    val label: String,
     val count: Int,
 )
 
@@ -625,7 +686,9 @@ private fun FilterBar(
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
         KuroSegmentedControl(
-            options = statusOptions.map { "${it.label} ${it.count}" },
+            options = statusOptions.map {
+                stringResource(R.string.tasks_filter_option, taskFilterLabel(it.filter), it.count)
+            },
             selectedIndex = statusOptions.indexOfFirst { it.filter == selectedStatus }
                 .coerceAtLeast(0),
             onSelect = { idx -> onSelectStatus(statusOptions[idx].filter) },
@@ -650,6 +713,7 @@ private fun CategoryFilterPill(
     onClick: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val filterCategoryCd = stringResource(R.string.tasks_filter_category_cd)
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(KuroSpacing.radiusPill))
@@ -657,7 +721,7 @@ private fun CategoryFilterPill(
             .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
             .clickable(onClick = onClick)
             .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm)
-            .semantics { role = Role.Button; contentDescription = "Filter by category" },
+            .semantics { role = Role.Button; contentDescription = filterCategoryCd },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
     ) {
@@ -672,7 +736,7 @@ private fun CategoryFilterPill(
             )
         }
         Text(
-            text = selectedCategory?.name ?: "All",
+            text = selectedCategory?.name ?: stringResource(R.string.tasks_category_all),
             color = tokens.textPrimary,
             style = KuroType.labelStrong,
         )
@@ -715,19 +779,21 @@ private fun CategoryFilterSheet(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var page by rememberSaveable { mutableStateOf(CategoryFilterPage.Filter) }
+    val manageCategoriesCd = stringResource(R.string.tasks_manage_categories_cd)
+    val newCategoryCd = stringResource(R.string.tasks_new_category)
 
     KuroBottomSheet(title = null, onDismiss = onDismiss, contentKey = page) {
         when (page) {
             CategoryFilterPage.Filter -> {
                 Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
-                    KuroSheetHeader(title = "Filter by category")
+                    KuroSheetHeader(title = stringResource(R.string.tasks_filter_by_category))
 
                     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
                         CategoryFilterRow(
                             selected = selectedCategoryId == null,
                             dotColor = tokens.textMuted,
                             hollow = true,
-                            label = "All categories",
+                            label = stringResource(R.string.tasks_all_categories),
                             count = allCount,
                             onClick = { onSelectCategory(null) },
                         )
@@ -753,13 +819,13 @@ private fun CategoryFilterSheet(
                             .background(tokens.cardFill)
                             .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
                             .clickable { page = CategoryFilterPage.Manage }
-                            .semantics { role = Role.Button; contentDescription = "Manage categories" }
+                            .semantics { role = Role.Button; contentDescription = manageCategoriesCd }
                             .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.md),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
                         Text(
-                            text = "Manage categories",
+                            text = stringResource(R.string.tasks_manage_categories),
                             color = tokens.textPrimary,
                             style = KuroType.labelStrong,
                         )
@@ -776,15 +842,15 @@ private fun CategoryFilterSheet(
 
             CategoryFilterPage.Manage -> {
                 KuroBottomSheetSubpageHeader(
-                    title = "Manage categories",
+                    title = stringResource(R.string.tasks_manage_categories),
                     onBack = { page = CategoryFilterPage.Filter },
-                    actionLabel = "Done",
+                    actionLabel = stringResource(R.string.common_done),
                     onAction = { page = CategoryFilterPage.Filter },
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
                     if (categories.isEmpty()) {
                         Text(
-                            text = "No categories yet. Add one to group your tasks.",
+                            text = stringResource(R.string.tasks_no_categories),
                             color = tokens.textSecondary,
                             style = KuroType.bodySecondary,
                             modifier = Modifier
@@ -804,7 +870,7 @@ private fun CategoryFilterSheet(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(KuroSpacing.radiusMd))
                             .clickable(onClick = onAddCategory)
-                            .semantics { role = Role.Button; contentDescription = "New category" }
+                            .semantics { role = Role.Button; contentDescription = newCategoryCd }
                             .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
@@ -816,7 +882,7 @@ private fun CategoryFilterSheet(
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            text = "New category",
+                            text = stringResource(R.string.tasks_new_category),
                             color = tokens.accent,
                             style = KuroType.labelStrong,
                         )
@@ -909,13 +975,13 @@ private fun ManageCategoryRow(
         CategoryActionIcon(
             icon = Lucide.SquarePen,
             tint = tokens.textSecondary,
-            contentDescription = "Rename ${category.name}",
+            contentDescription = stringResource(R.string.tasks_rename_cd, category.name),
             onClick = onRename,
         )
         CategoryActionIcon(
             icon = Lucide.Trash2,
             tint = tokens.destructive,
-            contentDescription = "Delete ${category.name}",
+            contentDescription = stringResource(R.string.tasks_delete_cd, category.name),
             onClick = onDelete,
         )
     }
@@ -1040,7 +1106,7 @@ private fun AddTaskSheet(
         when (page) {
             TaskSheetPage.Main -> {
                 Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg)) {
-                    KuroSheetHeader(title = "New task")
+                    KuroSheetHeader(title = stringResource(R.string.tasks_new_task))
 
                     AddTaskTitleField(
                         title = title,
@@ -1122,13 +1188,13 @@ private fun AddTaskTitleField(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "What will you focus on?",
+                text = stringResource(R.string.tasks_what_focus),
                 color = tokens.textSecondary,
                 style = KuroType.labelMeta,
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "${title.length}/$TaskTitleMaxLength",
+                text = stringResource(R.string.tasks_char_count, title.length, TaskTitleMaxLength),
                 color = if (title.length >= TaskTitleMaxLength) tokens.accent else tokens.textMuted,
                 style = KuroType.labelMeta,
             )
@@ -1136,7 +1202,7 @@ private fun AddTaskTitleField(
         KuroInputField(
             value = title,
             onValueChange = onTitleChange,
-            placeholder = "Design onboarding flow",
+            placeholder = stringResource(R.string.tasks_title_placeholder),
             modifier = Modifier.focusRequester(focusRequester),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onSubmitIme() }),
@@ -1157,6 +1223,7 @@ private fun AddTaskPrimaryButton(enabled: Boolean, onClick: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val fill = if (enabled) tokens.accent else tokens.accent.copy(alpha = 0.35f)
     val contentColor = if (enabled) tokens.accentOn else tokens.accentOn.copy(alpha = 0.7f)
+    val addTaskLabel = stringResource(R.string.tasks_add)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1166,7 +1233,7 @@ private fun AddTaskPrimaryButton(enabled: Boolean, onClick: () -> Unit) {
             .clickable(enabled = enabled, onClick = onClick)
             .semantics {
                 role = Role.Button
-                contentDescription = "Add task"
+                contentDescription = addTaskLabel
             }
             .padding(horizontal = KuroSpacing.xl),
         verticalAlignment = Alignment.CenterVertically,
@@ -1180,7 +1247,7 @@ private fun AddTaskPrimaryButton(enabled: Boolean, onClick: () -> Unit) {
         )
         Spacer(Modifier.width(KuroSpacing.sm))
         Text(
-            text = "Add task",
+            text = addTaskLabel,
             color = contentColor,
             style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold),
         )
@@ -1199,28 +1266,28 @@ private fun TasksEmptyState(
     val message: String
     when {
         !hasAnyTask -> {
-            title = "No tasks yet"
-            message = "Tap + to capture the first thing worth focusing on."
+            title = stringResource(R.string.tasks_empty_none_title)
+            message = stringResource(R.string.tasks_empty_none_msg)
         }
         filter == TaskUiFilter.Active -> {
-            title = "Nothing active"
+            title = stringResource(R.string.tasks_empty_active_title)
             message = if (selectedCategoryName != null) {
-                "No active tasks in $selectedCategoryName. Try All, or add a new one."
+                stringResource(R.string.tasks_empty_active_msg_category, selectedCategoryName)
             } else {
-                "All caught up. Add a new task or check what's done."
+                stringResource(R.string.tasks_empty_active_msg)
             }
         }
         filter == TaskUiFilter.Done -> {
-            title = "Nothing done yet"
-            message = "Finished tasks will land here."
+            title = stringResource(R.string.tasks_empty_done_title)
+            message = stringResource(R.string.tasks_empty_done_msg)
         }
         filter == TaskUiFilter.Archived -> {
-            title = "Nothing archived"
-            message = "Archived tasks will appear here once archive support is available."
+            title = stringResource(R.string.tasks_empty_archived_title)
+            message = stringResource(R.string.tasks_empty_archived_msg)
         }
         else -> {
-            title = "No tasks here"
-            message = "Tap + to capture the next thing worth focusing on."
+            title = stringResource(R.string.tasks_empty_default_title)
+            message = stringResource(R.string.tasks_empty_default_msg)
         }
     }
     KuroTasksEmptyState(title = title, message = message)
@@ -1381,8 +1448,8 @@ private fun TaskDetailSheet(
                     }
                     FocusWithKuroButton(
                         label = when (ctaState) {
-                            DetailCtaState.OpenFocus -> "Open focus"
-                            else -> "Focus with Kuro"
+                            DetailCtaState.OpenFocus -> stringResource(R.string.tasks_open_focus)
+                            else -> stringResource(R.string.tasks_focus_with_kuro)
                         },
                         // Stay tappable even when blocked: the tap routes through
                         // attemptStartFocus, which surfaces the "A focus is in
@@ -1404,13 +1471,13 @@ private fun TaskDetailSheet(
                     DetailHelperRow(
                         message = when (ctaState) {
                             DetailCtaState.OpenFocus ->
-                                "This Pomodoro is in progress — tap to jump back to it."
+                                stringResource(R.string.tasks_helper_open)
 
                             DetailCtaState.Blocked ->
-                                "A Pomodoro is already running. Finish or stop it to focus on this task."
+                                stringResource(R.string.tasks_helper_blocked)
 
                             DetailCtaState.StartFocus ->
-                                "We'll set up the focus together — start when you're ready."
+                                stringResource(R.string.tasks_helper_start)
                         },
                     )
 
@@ -1475,17 +1542,18 @@ private fun TaskDetailSheet(
 @Composable
 private fun DeleteTaskLink(onClick: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val deleteTaskLabel = stringResource(R.string.tasks_delete_task)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .semantics { role = Role.Button; contentDescription = "Delete task" }
+            .semantics { role = Role.Button; contentDescription = deleteTaskLabel }
             .padding(vertical = KuroSpacing.sm),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Delete task",
+            text = deleteTaskLabel,
             color = tokens.destructive,
             style = KuroType.labelStrong,
         )
@@ -1523,7 +1591,7 @@ private fun DetailTitle(
                 KuroInputField(
                     value = title,
                     onValueChange = onTitleChange,
-                    placeholder = "Task name",
+                    placeholder = stringResource(R.string.tasks_title_placeholder_short),
                     modifier = Modifier
                         .weight(1f)
                         .focusRequester(focusRequester),
@@ -1532,7 +1600,7 @@ private fun DetailTitle(
                     singleLine = false,
                 )
                 Text(
-                    text = "Done",
+                    text = stringResource(R.string.common_done),
                     color = tokens.accent,
                     style = KuroType.labelStrong,
                     modifier = Modifier
@@ -1541,7 +1609,7 @@ private fun DetailTitle(
                 )
             }
             Text(
-                text = "${title.length}/$TaskTitleMaxLength",
+                text = stringResource(R.string.tasks_char_count, title.length, TaskTitleMaxLength),
                 color = if (title.length >= TaskTitleMaxLength) tokens.accent else tokens.textMuted,
                 style = KuroType.labelMeta,
                 modifier = Modifier
@@ -1551,6 +1619,7 @@ private fun DetailTitle(
             )
         }
     } else {
+        val editTitleCd = stringResource(R.string.tasks_edit_title_cd)
         Text(
             text = title,
             color = tokens.textPrimary,
@@ -1558,7 +1627,7 @@ private fun DetailTitle(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onStartEdit)
-                .semantics { role = Role.Button; contentDescription = "Edit title" },
+                .semantics { role = Role.Button; contentDescription = editTitleCd },
         )
     }
 }
@@ -1604,7 +1673,8 @@ private fun MarkDoneCheckboxRow(completed: Boolean, onToggle: () -> Unit) {
             }
         }
         Text(
-            text = if (completed) "Task marked done" else "Mark task done now",
+            text = if (completed) stringResource(R.string.tasks_marked_done)
+            else stringResource(R.string.tasks_mark_done_now),
             color = tokens.textPrimary,
             style = KuroType.labelStrong,
             modifier = Modifier.weight(1f),
@@ -1688,8 +1758,8 @@ private fun PriorityListRow(
     DetailListRow(
         icon = Lucide.Flag,
         iconTint = if (selected == TaskPriority.High) tokens.accent else tokens.textSecondary,
-        label = "Priority",
-        valueText = selected.label,
+        label = stringResource(R.string.tasks_priority),
+        valueText = taskPriorityLabel(selected),
         valueColor = valueColor,
         onClick = onClick,
     )
@@ -1712,6 +1782,7 @@ private fun CategoryListRow(
     // detail row matches the swatch shown on task chips and in the picker. Falls
     // back to a neutral muted tint when no category is selected ("None").
     val iconTint = categoryColorFor(selectedCategory, tokens.textMuted)
+    val categoryCd = stringResource(R.string.tasks_category_cd)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1719,7 +1790,7 @@ private fun CategoryListRow(
             .background(tokens.cardFill)
             .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
             .clickable(onClick = onClick)
-            .semantics { role = Role.Button; contentDescription = "Category" }
+            .semantics { role = Role.Button; contentDescription = categoryCd }
             .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md - KuroSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
@@ -1731,13 +1802,13 @@ private fun CategoryListRow(
             modifier = Modifier.size(18.dp),
         )
         Text(
-            text = "Category",
+            text = stringResource(R.string.tasks_category),
             color = tokens.textPrimary,
             style = KuroType.bodyPrimary,
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = selectedCategory?.name ?: "None",
+            text = selectedCategory?.name ?: stringResource(R.string.tasks_category_none),
             color = tokens.textSecondary,
             style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
         )
@@ -1788,10 +1859,11 @@ private fun CategoryPickerPage(
     onBack: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val newCategoryCd = stringResource(R.string.tasks_new_category)
     KuroBottomSheetSubpageHeader(
-        title = "Category",
+        title = stringResource(R.string.tasks_category),
         onBack = onBack,
-        actionLabel = "Done",
+        actionLabel = stringResource(R.string.common_done),
         onAction = onBack,
     )
     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
@@ -1799,7 +1871,7 @@ private fun CategoryPickerPage(
             selected = selectedId == null,
             onClick = { onSelect(null) },
             leading = { CategoryDot(color = tokens.textMuted, hollow = true) },
-            title = "None",
+            title = stringResource(R.string.tasks_category_none),
         )
         categories.forEach { category ->
             PickerOptionRow(
@@ -1820,7 +1892,7 @@ private fun CategoryPickerPage(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(KuroSpacing.radiusMd))
                     .clickable(onClick = onAddCategory)
-                    .semantics { role = Role.Button; contentDescription = "New category" }
+                    .semantics { role = Role.Button; contentDescription = newCategoryCd }
                     .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
@@ -1832,7 +1904,7 @@ private fun CategoryPickerPage(
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "New category",
+                    text = stringResource(R.string.tasks_new_category),
                     color = tokens.accent,
                     style = KuroType.labelStrong,
                 )
@@ -1853,9 +1925,9 @@ private fun PriorityPickerPage(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     KuroBottomSheetSubpageHeader(
-        title = "Priority",
+        title = stringResource(R.string.tasks_priority),
         onBack = onBack,
-        actionLabel = "Done",
+        actionLabel = stringResource(R.string.common_done),
         onAction = onBack,
     )
     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
@@ -1864,11 +1936,6 @@ private fun PriorityPickerPage(
                 TaskPriority.High -> tokens.accent
                 TaskPriority.Normal -> tokens.textSecondary
                 TaskPriority.Low -> tokens.textMuted
-            }
-            val description = when (option) {
-                TaskPriority.High -> "Do this first"
-                TaskPriority.Normal -> "Standard priority"
-                TaskPriority.Low -> "Can wait"
             }
             PickerOptionRow(
                 selected = option == selected,
@@ -1881,8 +1948,8 @@ private fun PriorityPickerPage(
                         modifier = Modifier.size(18.dp),
                     )
                 },
-                title = option.label,
-                subtitle = description,
+                title = taskPriorityLabel(option),
+                subtitle = taskPriorityDescription(option),
             )
         }
     }
@@ -1956,7 +2023,8 @@ private fun DueDateListRow(
     onClear: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val label = dueDateRowValue(dueDate)
+    val label = dueDateRowValueLabel(dueDate)
+    val clearDueCd = stringResource(R.string.tasks_clear_due_cd)
     val valueColor = when {
         dueDate == null -> tokens.textMuted
         dueDate.isBefore(LocalDate.now()) -> tokens.destructive
@@ -1965,7 +2033,7 @@ private fun DueDateListRow(
     DetailListRow(
         icon = Lucide.CalendarDays,
         iconTint = if (dueDate != null) tokens.accent else tokens.textSecondary,
-        label = "Due date",
+        label = stringResource(R.string.tasks_due_date),
         valueText = label,
         valueColor = valueColor,
         onClick = onPick,
@@ -1974,32 +2042,17 @@ private fun DueDateListRow(
         } else {
             {
                 Text(
-                    text = "Clear",
+                    text = stringResource(R.string.tasks_clear),
                     color = tokens.textSecondary,
                     style = KuroType.labelStrong,
                     modifier = Modifier
                         .clickable(onClick = onClear)
                         .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.xs)
-                        .semantics { role = Role.Button; contentDescription = "Clear due date" },
+                        .semantics { role = Role.Button; contentDescription = clearDueCd },
                 )
             }
         },
     )
-}
-
-/**
- * Compact "value" string for the due-date row. Uses relative wording for
- * Today / Tomorrow so the most common cases read naturally, and falls back
- * to "EEE, MMM d" for further-out dates.
- */
-private fun dueDateRowValue(dueDate: LocalDate?): String {
-    if (dueDate == null) return "Not set"
-    val today = LocalDate.now()
-    return when (dueDate) {
-        today -> "Today, ${dueDate.format(DateTimeFormatter.ofPattern("MMM d"))}"
-        today.plusDays(1) -> "Tomorrow"
-        else -> dueDate.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
-    }
 }
 
 /**
@@ -2117,11 +2170,11 @@ private fun DueDatePickerDialog(
                     ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.of("UTC")).toLocalDate() }
                 onConfirm(picked)
             }) {
-                Text("Set")
+                Text(stringResource(R.string.tasks_date_set))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         },
     ) {
         DatePicker(state = state)
@@ -2146,6 +2199,7 @@ private val LocalDateSaver = androidx.compose.runtime.saveable.Saver<LocalDate?,
 @Composable
 private fun HeroCompletionCheckbox(onToggle: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val markDoneCd = stringResource(R.string.tasks_mark_done_cd)
     Box(
         modifier = Modifier
             .size(KuroSpacing.taskCheckbox)
@@ -2157,7 +2211,7 @@ private fun HeroCompletionCheckbox(onToggle: () -> Unit) {
                 CircleShape,
             )
             .clickable(role = Role.Checkbox, onClick = onToggle)
-            .semantics { role = Role.Checkbox; contentDescription = "Mark task done" },
+            .semantics { role = Role.Checkbox; contentDescription = markDoneCd },
     )
 }
 
@@ -2199,7 +2253,7 @@ private fun NextFocusHeroCard(
     onToggleComplete: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val dueLabel = heroDueLabel(task.dueDate, today)
+    val dueLabel = rememberHeroDueLabel(task.dueDate, today)
     val showHighFlag = task.priority == TaskPriority.High
     Column(
         modifier = Modifier
@@ -2212,7 +2266,8 @@ private fun NextFocusHeroCard(
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
     ) {
         Text(
-            text = if (isLive) "NOW FOCUSING" else "NEXT FOCUS",
+            text = if (isLive) stringResource(R.string.tasks_now_focusing)
+            else stringResource(R.string.tasks_next_focus),
             color = tokens.accent,
             style = KuroType.labelCaption,
         )
@@ -2269,7 +2324,7 @@ private fun NextFocusHeroCard(
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
-                            text = "$focusMinutes min focus",
+                            text = stringResource(R.string.tasks_minutes_focus, focusMinutes),
                             color = tokens.textSecondary,
                             style = KuroType.labelMeta,
                         )
@@ -2278,9 +2333,9 @@ private fun NextFocusHeroCard(
                     // focus is blocking a new start ("Finish first" — tapping
                     // surfaces the busy dialog), or a normal "Start".
                     val (pillLabel, pillIcon) = when {
-                        isLive -> "Open" to Lucide.Play
-                        isStartBlocked -> "Finish first" to Lucide.Lock
-                        else -> "Start" to Lucide.Play
+                        isLive -> stringResource(R.string.tasks_pill_open) to Lucide.Play
+                        isStartBlocked -> stringResource(R.string.tasks_pill_finish_first) to Lucide.Lock
+                        else -> stringResource(R.string.tasks_pill_start) to Lucide.Play
                     }
                     StartPill(
                         label = pillLabel,
@@ -2338,7 +2393,7 @@ private fun HeroMetadataRow(
             HeroMetaChip(
                 icon = Lucide.Flag,
                 iconTint = tokens.accent,
-                text = "High",
+                text = stringResource(R.string.tasks_priority_high),
                 textColor = tokens.accent,
             )
         }
@@ -2385,13 +2440,14 @@ private fun StartPill(
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val fill = if (muted) tokens.accent.copy(alpha = 0.35f) else tokens.accent
     val contentColor = if (muted) tokens.accentOn.copy(alpha = 0.7f) else tokens.accentOn
+    val pillCd = stringResource(R.string.tasks_pill_focus_cd, label)
     Row(
         modifier = Modifier
             .height(40.dp)
             .clip(RoundedCornerShape(KuroSpacing.radiusPill))
             .background(fill)
             .clickable(onClick = onClick)
-            .semantics { role = Role.Button; contentDescription = "$label focus" }
+            .semantics { role = Role.Button; contentDescription = pillCd }
             .padding(start = KuroSpacing.md, end = KuroSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
@@ -2430,11 +2486,11 @@ private fun CategoryNameSheet(
         KuroInputField(
             value = name,
             onValueChange = { name = it },
-            placeholder = "Category name",
+            placeholder = stringResource(R.string.tasks_category_name_placeholder),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         )
         Text(
-            text = "COLOR",
+            text = stringResource(R.string.tasks_category_color),
             color = tokens.textMuted,
             style = KuroType.labelCaption,
             textAlign = TextAlign.Start,
@@ -2447,7 +2503,7 @@ private fun CategoryNameSheet(
             onSelect = { colorArgb = it },
         )
         KuroPrimaryButton(
-            text = "Confirm",
+            text = stringResource(R.string.tasks_confirm),
             onClick = {
                 val trimmed = name.trim()
                 if (trimmed.isNotEmpty()) {
@@ -2470,6 +2526,7 @@ private fun CategoryColorPicker(
     onSelect: (Long) -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val colorCd = stringResource(R.string.tasks_category_color_cd)
     // Plain Row (not FlowRow) — mirrors the habit editor's color row and avoids a
     // FlowRow ABI mismatch with the bundled Compose foundation runtime. The fixed
     // 8-swatch palette fits on a single row.
@@ -2496,7 +2553,7 @@ private fun CategoryColorPicker(
                         role = Role.RadioButton,
                         onClick = { onSelect(choice) },
                     )
-                    .semantics { contentDescription = "Category color" },
+                    .semantics { contentDescription = colorCd },
             )
         }
     }
