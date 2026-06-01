@@ -54,7 +54,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -189,8 +188,7 @@ fun KuroJourneyMetricCard(
         Text(
             value,
             color = tokens.textPrimary,
-            fontFamily = FontFamily.Serif,
-            style = KuroType.metricValueSerif,
+            style = KuroType.metricValueLarge,
         )
         Spacer(Modifier.height(KuroSpacing.xs))
         Text(
