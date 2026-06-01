@@ -69,6 +69,78 @@
                 android:resource="@xml/today_progress_widget_info" />
         </receiver>
 
+        <receiver
+            android:name=".widget.NudgeDashboardWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_dashboard_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/dashboard_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.DailyPlanWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_daily_plan_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/daily_plan_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.StreakHeroWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_streak_hero_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/streak_hero_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.CalmMinimalWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_calm_minimal_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calm_minimal_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.StatsGridWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_stats_grid_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/stats_grid_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.CozySceneWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_cozy_scene_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cozy_scene_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>
