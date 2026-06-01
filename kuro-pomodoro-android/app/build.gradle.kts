@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+    implementation(libs.androidx.work.runtime.ktx)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)

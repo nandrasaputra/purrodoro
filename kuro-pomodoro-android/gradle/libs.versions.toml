@@ -13,6 +13,7 @@ coroutines = "1.7.3"
 lifecycleRuntimeCompose = "2.10.0"
 lucideIcons = "1.1.0"
 glance = "1.1.1"
+workManager = "2.9.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -36,6 +37,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

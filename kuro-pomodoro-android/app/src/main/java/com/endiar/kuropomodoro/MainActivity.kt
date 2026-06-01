@@ -17,12 +17,19 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
 import com.endiar.kuropomodoro.model.AppLanguage
+import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.timer.TimerConnection
 import com.endiar.kuropomodoro.timer.TimerNotification
 import com.endiar.kuropomodoro.ui.KuroLocalizationProvider
 import com.endiar.kuropomodoro.ui.theme.KuroPomodoroTheme
 import com.endiar.kuropomodoro.widget.QuickStartWidget
+import com.endiar.kuropomodoro.widget.WidgetActions
+import com.endiar.kuropomodoro.widget.WidgetRefreshWorker
+import com.endiar.kuropomodoro.widget.WidgetUpdater
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -44,12 +51,22 @@ class MainActivity : ComponentActivity() {
     )
     val autoOpenStartFocus: SharedFlow<Unit> = _autoOpenStartFocus.asSharedFlow()
 
+    /**
+     * One-shot signal pushed by the reactive 4x4 widgets asking the app to
+     * switch to a specific tab (e.g. a habit nudge opens the Habits tab).
+     */
+    private val _openTab = MutableSharedFlow<AppTab>(
+        replay = 0,
+        extraBufferCapacity = 1,
+    )
+    val openTab: SharedFlow<AppTab> = _openTab.asSharedFlow()
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        maybeRequestAutoOpenStartFocus(intent)
+        handleWidgetIntent(intent)
         // Initial transparent setup; style (light/dark icons) is updated reactively below.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
@@ -66,6 +83,14 @@ class MainActivity : ComponentActivity() {
             initialAppState?.notificationSoundEnabled ?: true,
         )
         timerConnection = TimerConnection(applicationContext)
+
+        // Keep the home-screen widgets honest: schedule the daily "new day"
+        // refresh and push an immediate update so opening the app reflects the
+        // latest focus / habit / task state on the home screen.
+        WidgetRefreshWorker.schedule(applicationContext)
+        CoroutineScope(Dispatchers.IO).launch {
+            WidgetUpdater.refreshAll(applicationContext)
+        }
 
         setContent {
             val repo = AppRepository.get(this)
@@ -99,6 +124,7 @@ class MainActivity : ComponentActivity() {
                         timerConnection = timerConnection,
                         requestNotificationPermission = ::requestNotificationPermissionIfNeeded,
                         autoOpenStartFocus = autoOpenStartFocus,
+                        openTab = openTab,
                     )
                 }
             }
@@ -108,14 +134,19 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        maybeRequestAutoOpenStartFocus(intent)
+        handleWidgetIntent(intent)
     }
 
-    private fun maybeRequestAutoOpenStartFocus(intent: Intent?) {
-        if (intent?.getBooleanExtra(QuickStartWidget.EXTRA_AUTO_OPEN_START_FOCUS, false) == true) {
+    private fun handleWidgetIntent(intent: Intent?) {
+        if (intent == null) return
+        if (intent.getBooleanExtra(QuickStartWidget.EXTRA_AUTO_OPEN_START_FOCUS, false)) {
             _autoOpenStartFocus.tryEmit(Unit)
             // Consume the flag so a config change replay doesn't re-trigger.
             intent.removeExtra(QuickStartWidget.EXTRA_AUTO_OPEN_START_FOCUS)
+        }
+        intent.getStringExtra(WidgetActions.EXTRA_OPEN_TAB)?.let { name ->
+            AppTab.entries.firstOrNull { it.name == name }?.let { _openTab.tryEmit(it) }
+            intent.removeExtra(WidgetActions.EXTRA_OPEN_TAB)
         }
     }
 
