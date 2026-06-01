@@ -97,6 +97,147 @@ fun journeySummary(
     )
 }
 
+/** Lifetime ("All time") rollups for the Journey hero card. */
+data class JourneyAllTime(
+    val totalFocusMinutes: Int,
+    val totalFocusLabel: String,
+    val bestStreakDays: Int,
+    val totalSessions: Int,
+)
+
+/**
+ * Aggregates every [SessionRecord] into lifetime totals.
+ *
+ * - [totalSessions] counts completed Focus segments (consistent with the rest
+ *   of the Journey screen's "sessions" = focus count).
+ * - [bestStreakDays] is the longest run of consecutive calendar days that each
+ *   had at least one minute of focus.
+ */
+fun allTimeSummary(
+    records: List<SessionRecord>,
+    zone: ZoneId = ZoneId.systemDefault(),
+): JourneyAllTime {
+    val totalFocusMinutes = records.focusMinutes()
+    val totalSessions = records.sumOf { it.completedFocusCount.coerceAtLeast(0) }
+    val focusDates = records
+        .groupBy { it.startedDate(zone) }
+        .filterValues { it.focusMinutes() > 0 }
+        .keys
+        .sorted()
+    return JourneyAllTime(
+        totalFocusMinutes = totalFocusMinutes,
+        totalFocusLabel = if (totalFocusMinutes >= 60) "${totalFocusMinutes / 60}h"
+            else "${totalFocusMinutes.coerceAtLeast(0)}m",
+        bestStreakDays = longestConsecutiveRun(focusDates),
+        totalSessions = totalSessions,
+    )
+}
+
+/**
+ * Longest run of consecutive focused days that fall inside [month], derived
+ * from the shared heatmap [intensities] map (level > 0 == focused).
+ */
+internal fun monthBestStreakDays(intensities: Map<LocalDate, Int>, month: java.time.YearMonth): Int {
+    val days = intensities
+        .filterValues { it > 0 }
+        .keys
+        .filter { java.time.YearMonth.from(it) == month }
+        .sorted()
+    return longestConsecutiveRun(days)
+}
+
+private fun longestConsecutiveRun(sortedDates: List<LocalDate>): Int {
+    if (sortedDates.isEmpty()) return 0
+    var best = 1
+    var current = 1
+    for (i in 1 until sortedDates.size) {
+        current = if (sortedDates[i] == sortedDates[i - 1].plusDays(1)) current + 1 else 1
+        best = maxOf(best, current)
+    }
+    return best
+}
+
+/** Per-month rollup driving the read-only "This month" heatmap on Journey. */
+data class JourneyMonth(
+    val focusDays: Int,
+    val focusMinutes: Int,
+    val focusTimeLabel: String,
+)
+
+fun monthSummary(
+    records: List<SessionRecord>,
+    month: java.time.YearMonth,
+    zone: ZoneId = ZoneId.systemDefault(),
+): JourneyMonth {
+    val byDate = records.groupBy { it.startedDate(zone) }
+    val days = (1..month.lengthOfMonth()).map { month.atDay(it) }
+    val focusMinutes = days.sumOf { byDate[it].orEmpty().focusMinutes() }
+    val focusDays = days.count { byDate[it].orEmpty().focusMinutes() > 0 }
+    return JourneyMonth(
+        focusDays = focusDays,
+        focusMinutes = focusMinutes,
+        focusTimeLabel = journeyMinutesLabel(focusMinutes),
+    )
+}
+
+/**
+ * Maps each focused calendar date to a 1..4 intensity bucket, used to shade
+ * the heatmap cells on the Journey month grid and the History calendar.
+ * Days with no focus are absent from the map (treated as level 0).
+ */
+fun focusIntensitiesByDate(
+    records: List<SessionRecord>,
+    zone: ZoneId = ZoneId.systemDefault(),
+): Map<LocalDate, Int> =
+    records.groupBy { it.startedDate(zone) }
+        .mapNotNull { (date, recs) ->
+            val minutes = recs.focusMinutes()
+            if (minutes > 0) date to focusIntensityLevel(minutes) else null
+        }
+        .toMap()
+
+/** Buckets a day's focus minutes into a 0..4 heatmap intensity level. */
+fun focusIntensityLevel(minutes: Int): Int = when {
+    minutes <= 0 -> 0
+    minutes < 60 -> 1
+    minutes < 120 -> 2
+    minutes < 180 -> 3
+    else -> 4
+}
+
+/** Full detail for a single day, shown on the History screen below the calendar. */
+data class HistoryDayDetail(
+    val date: LocalDate,
+    val focusMinutes: Int,
+    val focusTimeLabel: String,
+    val focusSessions: Int,
+    val restMinutes: Int,
+    val restLabel: String,
+    val rows: List<JourneyTimelineRow>,
+)
+
+fun historyDayDetail(
+    records: List<SessionRecord>,
+    date: LocalDate,
+    zone: ZoneId = ZoneId.systemDefault(),
+): HistoryDayDetail {
+    val dayRecords = records.filter { it.startedDate(zone) == date }
+    val focusMinutes = dayRecords.focusMinutes()
+    val restMinutes = dayRecords.sumOf {
+        it.completedShortBreakCount.coerceAtLeast(0) * it.shortBreakMinutes.coerceAtLeast(0) +
+            it.completedLongBreakCount.coerceAtLeast(0) * it.longBreakMinutes.coerceAtLeast(0)
+    }
+    return HistoryDayDetail(
+        date = date,
+        focusMinutes = focusMinutes,
+        focusTimeLabel = journeyMinutesLabel(focusMinutes),
+        focusSessions = dayRecords.sumOf { it.completedFocusCount.coerceAtLeast(0) },
+        restMinutes = restMinutes,
+        restLabel = journeyMinutesLabel(restMinutes),
+        rows = dayRecords.sortedBy { it.startedAt }.map { it.toTimelineRow(zone) },
+    )
+}
+
 fun journeyMinutesLabel(minutes: Int): String {
     val safeMinutes = minutes.coerceAtLeast(0)
     val hours = safeMinutes / 60

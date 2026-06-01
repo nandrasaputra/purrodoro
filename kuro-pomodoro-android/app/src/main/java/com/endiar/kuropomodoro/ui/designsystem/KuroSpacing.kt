@@ -34,7 +34,6 @@ object KuroSpacing {
     val journeyChartAxisWidth = 34.dp
     val journeyChartAxisHeight = 86.dp
     val journeyChartCatWidth = 78.dp
-    val journeyHeaderAvatar = 64.dp
     val journeyCalendarDayOuter = 30.dp
     val journeyCalendarDaySize = 28.dp
     val journeyCalendarFocusDot = 4.dp
