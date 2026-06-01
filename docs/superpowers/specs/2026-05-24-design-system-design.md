@@ -166,7 +166,7 @@ Rule: Sheets own their local state and emit a single commit callback. They do no
 **Used by:** Home / Timer tab only
 
 ```
-CatBackdrop (or KuroFlatSurface when backdrop disabled)
+KuroFlatSurface
   └─ glass card stack (GlassCard, glassTokens)
   └─ KuroDock
 ```

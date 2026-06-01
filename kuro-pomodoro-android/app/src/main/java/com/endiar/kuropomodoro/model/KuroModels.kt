@@ -327,29 +327,6 @@ data class SessionRecord(
     val completedLongBreakCount: Int = 0
 )
 
-/**
- * Maps a [LocalTime] to the corresponding cat background drawable resource.
- *
- * Ranges:
- *  - Mid Night : 22:00 – 04:59
- *  - Dawn      : 05:00 – 07:59
- *  - Morning   : 08:00 – 10:59
- *  - Day       : 11:00 – 16:59
- *  - Evening   : 17:00 – 19:59
- *  - Night     : 20:00 – 21:59
- */
-fun backgroundImageForTime(time: LocalTime = LocalTime.now()): Int {
-    val hour = time.hour
-    return when {
-        hour >= 22 || hour < 5  -> R.drawable.cat_mid_night
-        hour < 8                -> R.drawable.cat_dawn
-        hour < 11               -> R.drawable.cat_morning
-        hour < 17               -> R.drawable.cat_day
-        hour < 20               -> R.drawable.cat_evening
-        else                    -> R.drawable.cat_night  // 20–21
-    }
-}
-
 /** Returns the segment duration in seconds, regardless of variant. */
 fun SessionItemType.seconds(): Int = when (this) {
     is SessionItemType.Focus -> seconds

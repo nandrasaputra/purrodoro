@@ -78,8 +78,6 @@ import com.endiar.kuropomodoro.model.AppearanceMode
 import com.endiar.kuropomodoro.model.AppTab
 import com.endiar.kuropomodoro.model.GlassTreatment
 import com.endiar.kuropomodoro.model.TimerMode
-import com.endiar.kuropomodoro.model.backgroundImageForTime
-import java.time.LocalTime
 import com.endiar.kuropomodoro.ui.theme.Cocoa
 import com.endiar.kuropomodoro.ui.theme.Coral
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
@@ -483,59 +481,10 @@ fun DecorativeBackground(modifier: Modifier = Modifier, content: @Composable () 
     }
 }
 
-@Composable
-fun CatBackdrop(
-    modifier: Modifier = Modifier,
-    glassTreatment: GlassTreatment = GlassTreatment.Clear,
-    time: LocalTime = LocalTime.now(),
-    /**
-     * 0f..1f multiplier on the top/bottom gradient scrim alphas.
-     * Used by focus mode to fade the edge dims out (1f -> 0f) so the cat
-     * photo opens up while the user is focusing.
-     */
-    edgeScrimAlphaMultiplier: Float = 1f,
-    content: @Composable BoxScope.() -> Unit
-) {
-    val darkBase = Color(0xFF0A0816)
-    val tokens = glassTokens(glassTreatment)
-    val effectiveScrimAlpha = tokens.scrimAlpha * edgeScrimAlphaMultiplier
-    Box(modifier = modifier.fillMaxSize().background(darkBase)) {
-        Image(
-            painter = painterResource(id = backgroundImageForTime(time)),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(darkBase.copy(alpha = effectiveScrimAlpha), Color.Transparent)
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(260.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, darkBase.copy(alpha = effectiveScrimAlpha))
-                    )
-                )
-        )
-        content()
-    }
-}
-
 /**
- * The non-Focus tabs' background: a flat fill from the active scheme.
+ * The app background: a flat fill from the active scheme.
  *
- * Unlike [CatBackdrop] this does not paint a photo or scrim — it is the
- * "quiet workspace" surface for content-heavy tabs.
+ * The "quiet workspace" surface used across all tabs.
  */
 @Composable
 fun KuroFlatSurface(

@@ -209,10 +209,10 @@ var dockHeightPx by remember { mutableIntStateOf(0) }
 
 - [ ] **Step 3: Replace the outer `Column` with `Box` + overlay layout**
 
-Find this block near the bottom of `KuroPomodoroApp` (starts around the `CatBackdrop` call):
+Find this block near the bottom of `KuroPomodoroApp` (starts around the root surface (`KuroFlatSurface`) call):
 
 ```kotlin
-CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
+KuroFlatSurface {
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -240,7 +240,7 @@ CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
 Replace it with:
 
 ```kotlin
-CatBackdrop(glassTreatment = glassTreatment, time = backdropTime) {
+KuroFlatSurface {
     val density = LocalDensity.current
     val dockHeightDp = with(density) { dockHeightPx.toDp() }
     val screenContentPadding = PaddingValues(bottom = dockHeightDp)

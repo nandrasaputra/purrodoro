@@ -86,7 +86,6 @@ import com.endiar.kuropomodoro.ui.todayFocusMetrics
 import com.endiar.kuropomodoro.model.InterruptedFocus
 import com.endiar.kuropomodoro.model.effectiveTarget
 import com.endiar.kuropomodoro.model.progressOn
-import com.endiar.kuropomodoro.ui.components.CatBackdrop
 import com.endiar.kuropomodoro.ui.components.CycleCompleteDialog
 import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
 import com.endiar.kuropomodoro.ui.components.DashboardDock
@@ -306,20 +305,6 @@ fun KuroPomodoroApp(
     val focusActive = isFocusMode && (isStarted || runtimeState == null)
     val focusTransition = updateTransition(targetState = focusActive, label = "focusMode")
 
-    val scrimAlpha by focusTransition.animateFloat(
-        transitionSpec = FocusModeMotion.spec(),
-        label = "scrimAlpha"
-    ) { active -> if (active) 0f else FocusModeMotion.ScrimAlphaDashboard }
-
-    // Edge gradient scrims in CatBackdrop fade out alongside the full-screen
-    // scrim when entering focus, opening up the cat photo. Stays at 1f on
-    // non-Timer tabs because focusActive can only be true on the Timer tab
-    // (the dock is hidden in focus mode, so no other tab is reachable).
-    val edgeScrimMultiplier by focusTransition.animateFloat(
-        transitionSpec = FocusModeMotion.spec(),
-        label = "edgeScrimMultiplier"
-    ) { active -> if (active) 0f else 1f }
-
     // Drive recomposition every 250ms while playing so the displayed countdown ticks.
     var tickNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(isRunning) {
@@ -369,12 +354,11 @@ fun KuroPomodoroApp(
     )
     val glassTreatment = glassTreatmentFor(glassReadabilityMode, backdropTime)
 
-    val useCatBackdrop = false
     val overBackdrop = false
 
-    // Hoisted so it survives the CatBackdrop/KuroFlatSurface slot swap on tab
-    // switches. Otherwise it resets to 0 on every return to the Timer tab,
-    // which makes BoxWithConstraints.maxHeight grow then shrink, causing the
+    // Hoisted so it survives surface recomposition on tab switches. Otherwise
+    // it resets to 0 on every return to the Timer tab, which makes
+    // BoxWithConstraints.maxHeight grow then shrink, causing the
     // animateDp-driven topSpacer to slide the cluster upward on re-entry.
     var dockHeightPx by remember { mutableIntStateOf(0) }
 
@@ -384,18 +368,6 @@ fun KuroPomodoroApp(
         val screenContentPadding = PaddingValues(bottom = dockHeightDp)
 
         Box(modifier = Modifier.fillMaxSize()) {
-            // Scrim belongs to the Timer dashboard only — render it nowhere else
-            // so tab switches don't fade a black overlay in/out behind content.
-            // Only used with CatBackdrop to dim the photo; skip on flat surface.
-            if (useCatBackdrop && selectedTab == AppTab.Timer) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(scrimAlpha)
-                        .background(Color.Black)
-                )
-            }
-
             // For the cream-background tabs (Todo, Habits) paint the background
             // edge-to-edge including behind the status bar, before the
             // statusBarsPadding box constrains the content area below.
@@ -890,16 +862,7 @@ fun KuroPomodoroApp(
         }
     }
 
-    if (useCatBackdrop) {
-        CatBackdrop(
-            glassTreatment = glassTreatment,
-            time = backdropTime,
-            edgeScrimAlphaMultiplier = edgeScrimMultiplier,
-            content = surfaceContent
-        )
-    } else {
-        KuroFlatSurface(content = surfaceContent)
-    }
+    KuroFlatSurface(content = surfaceContent)
 }
 
 @Composable

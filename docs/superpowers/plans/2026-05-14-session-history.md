@@ -15,7 +15,7 @@
 **Files:**
 - Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`
 
-- [ ] **Step 1: Add the new types at the bottom of `KuroModels.kt` (before `backgroundImageForTime`)**
+- [ ] **Step 1: Add the new types at the bottom of `KuroModels.kt`**
 
 Add after line 183 (after `addUnfinishedStamp`):
 

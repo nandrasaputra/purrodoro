@@ -686,7 +686,7 @@ private fun FocusModeScreen(
 
 - [ ] **Step 2: Show FocusModeScreen when isFocusMode is true**
 
-In `KuroPomodoroApp.kt`, the `CatBackdrop` block at line 219 wraps a `Column`. After the `Box` that holds the tab content (the `Box` with `weight(1f)`) and before the `premiumSheetMessage?.let` block, add this overlay. The simplest approach: wrap the existing `Box(weight(1f))` content in a `Box` that can host the overlay:
+In `KuroPomodoroApp.kt`, the root surface (`KuroFlatSurface`) block at line 219 wraps a `Column`. After the `Box` that holds the tab content (the `Box` with `weight(1f)`) and before the `premiumSheetMessage?.let` block, add this overlay. The simplest approach: wrap the existing `Box(weight(1f))` content in a `Box` that can host the overlay:
 
 Replace lines 221-300 (the `Column` contents) — specifically the `Box(weight(1f))` block — so the overlay can float on top. Replace the inner `Box` (lines 221-299) with:
 
