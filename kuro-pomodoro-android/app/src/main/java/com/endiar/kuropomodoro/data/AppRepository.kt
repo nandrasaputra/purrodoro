@@ -88,6 +88,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_HABITS = stringPreferencesKey("habits_json")
         private val KEY_NEXT_HABIT_ID = intPreferencesKey("next_habit_id")
         private val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
+        private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial")
         private val KEY_INTERRUPTED_FOCUS = stringPreferencesKey("interrupted_focus")
 
         // Singleton instance for production use
@@ -120,6 +121,18 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
      */
     val hasSeenOnboardingFlow: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_HAS_SEEN_ONBOARDING] ?: hasPriorAppUsage(prefs)
+    }
+
+    /**
+     * True once the user has finished or dismissed the spotlight feature tour.
+     *
+     * The tour is a lighter, second-stage primer that plays on the Home tab
+     * after onboarding. For users upgrading from a build that predates the
+     * tour, [hasPriorAppUsage] proves they already know the app, so they don't
+     * get an unexpected coachmark sweep on next launch.
+     */
+    val hasSeenTutorialFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_HAS_SEEN_TUTORIAL] ?: hasPriorAppUsage(prefs)
     }
 
     private fun hasPriorAppUsage(prefs: Preferences): Boolean {
@@ -187,6 +200,9 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setHasSeenOnboarding(value: Boolean) =
         dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = value }
+
+    suspend fun setHasSeenTutorial(value: Boolean) =
+        dataStore.edit { it[KEY_HAS_SEEN_TUTORIAL] = value }
 
     suspend fun setInterruptedFocus(value: InterruptedFocus?) = dataStore.edit { prefs ->
         if (value == null) prefs.remove(KEY_INTERRUPTED_FOCUS)
