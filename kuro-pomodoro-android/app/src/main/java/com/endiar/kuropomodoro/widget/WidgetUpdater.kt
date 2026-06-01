@@ -2,6 +2,7 @@ package com.endiar.kuropomodoro.widget
 
 import android.content.Context
 import android.util.Log
+import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.updateAll
 
 /**
@@ -20,13 +21,22 @@ object WidgetUpdater {
 
     private const val TAG = "WidgetUpdater"
 
-    suspend fun refreshAll(context: Context) {
-        runCatching {
-            QuickStartWidget().updateAll(context.applicationContext)
-        }.onFailure { Log.w(TAG, "QuickStartWidget update failed", it) }
+    private val widgets: List<Pair<String, GlanceAppWidget>> = listOf(
+        "QuickStartWidget" to QuickStartWidget(),
+        "TodayProgressWidget" to TodayProgressWidget(),
+        "NudgeDashboardWidget" to NudgeDashboardWidget(),
+        "DailyPlanWidget" to DailyPlanWidget(),
+        "StreakHeroWidget" to StreakHeroWidget(),
+        "CalmMinimalWidget" to CalmMinimalWidget(),
+        "StatsGridWidget" to StatsGridWidget(),
+        "CozySceneWidget" to CozySceneWidget(),
+    )
 
-        runCatching {
-            TodayProgressWidget().updateAll(context.applicationContext)
-        }.onFailure { Log.w(TAG, "TodayProgressWidget update failed", it) }
+    suspend fun refreshAll(context: Context) {
+        val app = context.applicationContext
+        widgets.forEach { (name, widget) ->
+            runCatching { widget.updateAll(app) }
+                .onFailure { Log.w(TAG, "$name update failed", it) }
+        }
     }
 }
