@@ -221,24 +221,11 @@
 
     <!-- Journey / Calendar -->
     <string name="journey_title">Perjalanan</string>
-    <string name="journey_subtitle">Perjalanan fokusmu.</string>
     <string name="journey_period_week">Minggu ini</string>
     <string name="journey_period_month">Bulan ini</string>
-    <string name="journey_period_year">Tahun ini</string>
     <string name="journey_week_over_week">%1$s%2$d%% dibanding minggu lalu</string>
     <string name="journey_no_last_week">Belum ada data minggu lalu</string>
-    <string name="journey_focus_days">Hari fokus</string>
-    <string name="journey_focus_days_value">%1$d / 7</string>
-    <string name="journey_focus_days_note">Kamu fokus selama %1$d hari</string>
-    <string name="journey_daily_average">Rata-rata harian</string>
-    <string name="journey_daily_goal_note">Target 1j 30m</string>
-    <string name="journey_weekly_goal">Target mingguan</string>
-    <string name="journey_weekly_goal_value">%1$d%%</string>
-    <string name="journey_weekly_goal_note">%1$s / %2$s</string>
     <string name="journey_focus_time_week">Waktu fokus minggu ini</string>
-    <string name="journey_focus_calendar">Kalender fokus</string>
-    <string name="journey_selected_day_summary">%1$s • %2$s • %3$d sesi</string>
-    <string name="journey_tap_day">Ketuk hari untuk melihat detail</string>
     <string name="journey_today">Hari ini</string>
     <string name="journey_no_records_today">Belum ada catatan fokus hari ini.</string>
     <string name="journey_status_completed">Selesai</string>
@@ -252,6 +239,23 @@
     <string name="journey_delete_record">Hapus Catatan</string>
     <string name="journey_delete_title">Hapus catatan ini?</string>
     <string name="journey_delete_body">Sesi dari %1$s hingga %2$s akan dihapus permanen.</string>
+    <string name="journey_open_history">Buka riwayat</string>
+    <string name="journey_section_all_time">Sepanjang waktu</string>
+    <string name="journey_all_time_total">total</string>
+    <string name="journey_all_time_streak">rekor hari beruntun</string>
+    <string name="journey_all_time_sessions">sesi</string>
+    <string name="journey_month_summary">%1$d hari fokus · %2$s</string>
+    <string name="journey_stat_daily_avg">Rata-rata</string>
+    <string name="journey_stat_best_day">Hari terbaik</string>
+    <string name="journey_stat_none">—</string>
+    <string name="journey_stat_focus_days">hari fokus</string>
+    <string name="journey_stat_streak">hari beruntun</string>
+
+    <!-- History -->
+    <string name="history_title">Riwayat</string>
+    <string name="history_empty_day">Tidak ada sesi fokus pada hari ini.</string>
+    <string name="history_previous_month">Bulan sebelumnya</string>
+    <string name="history_next_month">Bulan berikutnya</string>
 
     <!-- Tasks -->
     <string name="tasks_title">Tugas</string>

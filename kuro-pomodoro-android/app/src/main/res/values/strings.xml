@@ -224,24 +224,11 @@
 
     <!-- Journey / Calendar -->
     <string name="journey_title">Journey</string>
-    <string name="journey_subtitle">Your focus journey.</string>
     <string name="journey_period_week">This week</string>
     <string name="journey_period_month">This month</string>
-    <string name="journey_period_year">This year</string>
     <string name="journey_week_over_week">%1$s%2$d%% vs last week</string>
     <string name="journey_no_last_week">No last week yet</string>
-    <string name="journey_focus_days">Focus days</string>
-    <string name="journey_focus_days_value">%1$d / 7</string>
-    <string name="journey_focus_days_note">You focused on %1$d days</string>
-    <string name="journey_daily_average">Daily average</string>
-    <string name="journey_daily_goal_note">Goal 1h 30m</string>
-    <string name="journey_weekly_goal">Weekly goal</string>
-    <string name="journey_weekly_goal_value">%1$d%%</string>
-    <string name="journey_weekly_goal_note">%1$s / %2$s</string>
     <string name="journey_focus_time_week">Focus time this week</string>
-    <string name="journey_focus_calendar">Focus calendar</string>
-    <string name="journey_selected_day_summary">%1$s • %2$s • %3$d sessions</string>
-    <string name="journey_tap_day">Tap a day to see details</string>
     <string name="journey_today">Today</string>
     <string name="journey_no_records_today">No focus records yet today.</string>
     <string name="journey_status_completed">Completed</string>
@@ -255,6 +242,23 @@
     <string name="journey_delete_record">Delete Record</string>
     <string name="journey_delete_title">Delete this record?</string>
     <string name="journey_delete_body">The session from %1$s to %2$s will be permanently removed.</string>
+    <string name="journey_open_history">Open history</string>
+    <string name="journey_section_all_time">All time</string>
+    <string name="journey_all_time_total">total</string>
+    <string name="journey_all_time_streak">day best streak</string>
+    <string name="journey_all_time_sessions">sessions</string>
+    <string name="journey_month_summary">%1$d focus days · %2$s</string>
+    <string name="journey_stat_daily_avg">Daily avg</string>
+    <string name="journey_stat_best_day">Best day</string>
+    <string name="journey_stat_none">—</string>
+    <string name="journey_stat_focus_days">focus days</string>
+    <string name="journey_stat_streak">day streak</string>
+
+    <!-- History -->
+    <string name="history_title">History</string>
+    <string name="history_empty_day">No focus sessions on this day.</string>
+    <string name="history_previous_month">Previous month</string>
+    <string name="history_next_month">Next month</string>
 
     <!-- Tasks -->
     <string name="tasks_title">Tasks</string>
