@@ -217,7 +217,7 @@ private fun WelcomePage() {
             .background(tokens.activeCardFill),
     ) {
         Image(
-            painter = painterResource(id = R.drawable.cat_morning),
+            painter = painterResource(id = R.drawable.cat_welcome),
             contentDescription = stringResource(R.string.onboarding_welcome_cat_cd),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
