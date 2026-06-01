@@ -397,7 +397,6 @@ import com.endiar.kuropomodoro.model.TimerMode
 import com.endiar.kuropomodoro.model.TimerSessionItem
 import com.endiar.kuropomodoro.model.TimerSettings
 import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.backgroundImageForTime
 import com.endiar.kuropomodoro.model.cycleDotsState
 import com.endiar.kuropomodoro.model.formatSeconds
 import java.time.LocalTime
@@ -676,7 +675,7 @@ private fun CatHeroImage(
     modifier: Modifier = Modifier
 ) {
     Image(
-        painter = painterResource(id = backgroundImageForTime(backdropTime)),
+        painter = painterResource(id = R.drawable.cat_home_header_day),
         contentDescription = null,
         modifier = modifier
             .aspectRatio(1.48f)

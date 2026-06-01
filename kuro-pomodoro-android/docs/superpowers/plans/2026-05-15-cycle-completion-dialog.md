@@ -17,7 +17,7 @@
 - `app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt` — add new `KEY_PENDING_CYCLE_ACK` `booleanPreferencesKey`, expose `pendingCycleCompletionAckFlow: Flow<Boolean>`, add `setPendingCycleCompletionAck(value: Boolean)` setter. Mirror existing patterns (e.g. `KEY_IS_PREMIUM` / `setIsPremium`).
 - `app/src/main/java/com/endiar/kuropomodoro/timer/TimerService.kt` — inside `finishCycleAndStop(resetState)` (line 368), launch a coroutine on the existing service scope and call `repo.setPendingCycleCompletionAck(true)` before `stopSelf()`.
 - `app/src/main/java/com/endiar/kuropomodoro/ui/CycleCompletionCopy.kt` — **new file** holding `data class CycleCompletionCopyVariant(val title: String, val body: String)` and `object CycleCompletionCopy { val variants: List<...>; val buttonLabel = "Done" }`.
-- `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` — collect `pendingCycleCompletionAckFlow` at the top of `KuroPomodoroApp` (~line 86), pick a stable variant with `remember(pendingAck) { CycleCompletionCopy.variants.random() }`, render the `AlertDialog` inside the outer `Box` of `CatBackdrop` (insert just before line 352, after the `DashboardDock` block) so it overlays every screen. On confirm: launch coroutine that calls `repo.setPendingCycleCompletionAck(false)`.
+- `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` — collect `pendingCycleCompletionAckFlow` at the top of `KuroPomodoroApp` (~line 86), pick a stable variant with `remember(pendingAck) { CycleCompletionCopy.variants.random() }`, render the `AlertDialog` inside the outer `Box` of the root surface (`KuroFlatSurface`) (insert just before line 352, after the `DashboardDock` block) so it overlays every screen. On confirm: launch coroutine that calls `repo.setPendingCycleCompletionAck(false)`.
 - `app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryTest.kt` — add round-trip tests for the new flag (default false, set true persists, set false persists).
 - `app/src/test/java/com/endiar/kuropomodoro/ui/CycleCompletionCopyTest.kt` — **new file** asserting the variant pool size, non-blank title/body, and fixed button label.
 
@@ -279,7 +279,7 @@ val ackScope = rememberCoroutineScope()
 
 - [ ] **Step 3: Insert the dialog overlay**
 
-Inside the outer `Box(modifier = Modifier.fillMaxSize())` of `CatBackdrop` (the one that closes on line 352), append the dialog **after** the `DashboardDock` `if (...)` block (currently lines 338-351) and **before** the closing `}` on line 352:
+Inside the outer `Box(modifier = Modifier.fillMaxSize())` of the root surface (`KuroFlatSurface`) (the one that closes on line 352), append the dialog **after** the `DashboardDock` `if (...)` block (currently lines 338-351) and **before** the closing `}` on line 352:
 
 ```kotlin
             if (pendingCycleAck && cycleCompletionVariant != null) {

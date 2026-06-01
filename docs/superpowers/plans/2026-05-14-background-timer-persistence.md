@@ -2092,7 +2092,7 @@ Delete lines ~252–354 (the entire `LaunchedEffect(isRunning, timerMode, settin
 
 - [ ] **Step 5: Compute derived values from `runtimeState`**
 
-Above the `CatBackdrop` call, add:
+Above the root surface (`KuroFlatSurface`) call, add:
 
 ```kotlin
 val isActive = runtimeState?.isActive == true
