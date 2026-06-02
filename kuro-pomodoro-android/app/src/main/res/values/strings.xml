@@ -31,6 +31,10 @@
     <!-- Settings / Profile -->
     <string name="settings_title">Settings</string>
     <string name="settings_subtitle">Customize your focus experience.</string>
+    <string name="settings_section_profile">PROFILE</string>
+    <string name="settings_name_label">Your name</string>
+    <string name="settings_name_unset">Not set</string>
+    <string name="settings_name_placeholder">Enter your name</string>
     <string name="settings_section_timer">TIMER</string>
     <string name="settings_focus_time">Focus time</string>
     <string name="settings_short_break">Short break</string>
@@ -70,6 +74,10 @@
     <string name="onboarding_welcome_title">A calmer focus ritual</string>
     <string name="onboarding_welcome_subtitle">Pick an intent, start the timer, and let Kuro keep the rhythm.</string>
     <string name="onboarding_welcome_cat_cd">Kuro the black cat, resting in a sunny meadow</string>
+    <string name="onboarding_name_title">What should Kuro call you?</string>
+    <string name="onboarding_name_subtitle">We\'ll use this to greet you on your home screen.</string>
+    <string name="onboarding_name_placeholder">Your name</string>
+    <string name="onboarding_name_hint">Optional — you can change this later in Settings.</string>
     <string name="onboarding_intent_title">Choose your intent</string>
     <string name="onboarding_intent_subtitle">What is this session for?</string>
     <string name="onboarding_intent_task">Task</string>
@@ -113,6 +121,7 @@
     <string name="greeting_evening_encouragement">Let\'s make this evening meaningful.</string>
 
     <!-- Home -->
+    <string name="home_default_name">friend</string>
     <string name="home_start_focus">Start Focus</string>
     <string name="home_autocomplete_task">Finish this Pomodoro and Kuro ticks it off.</string>
     <string name="home_autocomplete_habit">Finish this Pomodoro and Kuro logs it today.</string>
