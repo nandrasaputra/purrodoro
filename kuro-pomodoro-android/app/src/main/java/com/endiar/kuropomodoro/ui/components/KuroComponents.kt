@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -344,9 +345,14 @@ fun DashboardDock(
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
     overBackdrop: Boolean = true,
 ) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
     val dockShape = RoundedCornerShape(34.dp)
-    val dockFill = Color.White.copy(alpha = 0.92f)
-    val dockBorder = Color(0xFFEFE6DE).copy(alpha = 0.86f)
+    // Theme-driven, and intentionally a distinct surface from cards so the dock
+    // reads as its own elevated plane: warm cream over white cards in light,
+    // a lifted (lighter) violet-grey over dark cards in dark.
+    val dockFill = tokens.dockFill
+    val dockBorder = tokens.dockBorder
     Row(
         modifier = modifier
             .padding(horizontal = 18.dp)
@@ -356,8 +362,10 @@ fun DashboardDock(
             .shadow(
                 elevation = 18.dp,
                 shape = dockShape,
-                ambientColor = Color(0xFFD8BFAF).copy(alpha = 0.22f),
-                spotColor = Color(0xFFBFA494).copy(alpha = 0.18f)
+                // Warm, soft drop in light; a deeper neutral shadow in dark so
+                // the floating dock keeps its lift without a beige tint.
+                ambientColor = if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0xFFD8BFAF).copy(alpha = 0.22f),
+                spotColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFFBFA494).copy(alpha = 0.18f)
             )
             .border(1.dp, dockBorder, dockShape)
             .clip(dockShape)
@@ -420,12 +428,16 @@ private fun DockTabItem(
         animationSpec = tween(durationMillis = 240, easing = DockPillEasing),
         label = "dockPillProgress",
     )
+    // Active state uses a solid, saturated accent fill with a contrasting
+    // icon/label (the premium pattern from focus-app nav bars) instead of a
+    // pale tint that washes out against the dock. interactiveFill/Text are the
+    // design system's contrast-verified "active pill" pairing.
     val iconColor by animateColorAsState(
-        targetValue = if (active) tokens.accent else tokens.textMuted,
+        targetValue = if (active) tokens.interactiveText else tokens.textMuted,
         animationSpec = tween(durationMillis = 200),
         label = "dockIconColor",
     )
-    val pillColor = tokens.accentSoft
+    val pillColor = tokens.interactiveFill
 
     Box(
         modifier = modifier,
