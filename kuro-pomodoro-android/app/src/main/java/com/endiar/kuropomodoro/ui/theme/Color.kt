@@ -23,6 +23,8 @@ val NightDeep = Color(0xFF0A0816)        // page background
 val NightCard = Color(0xFF1A1428)        // flat-surface card
 val NightCardActive = Color(0xFF2B1720)  // selected card (e.g. active sound)
 val NightBorder = Color(0xFF2B2440)      // card border
+val NightDock = Color(0xFF251E3A)        // bottom dock — elevated above cards
+val NightDockBorder = Color(0xFF3A3354)  // dock hairline (lighter than card border)
 val NightDivider = Color(0xFF231D38)     // hairline between rows
 val NightMuted = Color(0xFFB8B0C8)       // text-secondary
 val NightFaint = Color(0xFF7D768B)       // text-muted — contrast 4.37→4.56:1
@@ -35,6 +37,8 @@ val NightCardLegacy = Color(0xFF342C3F)  // old value used in existing Theme.kt 
 // ── Light scheme tokens ────────────────────────────────────────────────────
 val PageWhite = Color(0xFFFAF5F2)    // flat-screen page background (all tabs)
 val CreamBorder = Color(0xFFEBDFCC)
+val CreamDock = Color(0xFFEFE0CB)        // bottom dock — warm sand, clearly distinct from white cards + page
+val CreamDockBorder = Color(0xFFDFCBAC)  // dock hairline (deeper than card border for definition)
 val CreamCardActive = Color(0xFFFFE9DD)
 val CreamDivider = Color(0xFFEFE3D0)
 val CocoaFaint = Color(0xFFA89486)       // text-muted
