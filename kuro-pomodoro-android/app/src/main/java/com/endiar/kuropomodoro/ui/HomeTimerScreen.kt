@@ -372,9 +372,9 @@ private fun ActiveHero(
     // section. We reclaim most of that band but deliberately leave ~20dp (lg) so
     // "Today's Focus" reads as a separate section rather than crowding the hero.
     // The visible gap below works out to (childOffset + columnSpacing - trim):
-    // tip present → (64 + 12 - 56) = 20dp; no tip → (72 + 12 - 64) = 20dp, so the
+    // tip present → (24 + 12 - 16) = 20dp; no tip → (32 + 12 - 24) = 20dp, so the
     // active states match the 20dp break the idle state already uses.
-    val deadSpace = if (autoCompleteMessage != null) 56.dp else 64.dp
+    val deadSpace = if (autoCompleteMessage != null) 16.dp else 24.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -396,11 +396,11 @@ private fun ActiveHero(
             onEnterFocusMode = onEnterFocusMode,
             onStop = onStop,
             modifier = Modifier
-                .offset(y = (-72).dp)
+                .offset(y = (-32).dp)
                 .padding(horizontal = 12.dp)
         )
-        // The tip rides up by -64.dp so its top edge sits just under the
-        // timer card (the card itself is offset by -72.dp). Without this
+        // The tip rides up by -24.dp so its top edge sits just under the
+        // timer card (the card itself is offset by -32.dp). Without this
         // shift the tip lands well below the visual bottom of the card and
         // gets clipped by the floating dock on shorter screens. The message
         // is intentionally short so it fits on one line and the tip stays
@@ -409,7 +409,7 @@ private fun ActiveHero(
             AutoCompleteTip(
                 message = autoCompleteMessage,
                 modifier = Modifier
-                    .offset(y = (-64).dp)
+                    .offset(y = (-24).dp)
                     .padding(horizontal = 12.dp),
             )
         }
