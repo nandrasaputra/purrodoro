@@ -68,6 +68,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.endiar.kuropomodoro.model.FocusType
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.theme.NunitoFamily
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import kotlinx.coroutines.delay
 import kotlin.math.hypot
@@ -220,7 +221,7 @@ fun CycleCompleteDialog(
                     Text(
                         text = title,
                         color = tokens.textPrimary,
-                        fontFamily = FontFamily.Serif,
+                        fontFamily = NunitoFamily,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 24.sp,
                         lineHeight = 28.sp,
@@ -366,7 +367,7 @@ private fun FocusSummary(
             Text(
                 text = focusMinutesTotal.toString(),
                 color = tokens.textPrimary,
-                fontFamily = FontFamily.Serif,
+                fontFamily = NunitoFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 56.sp,
                 lineHeight = 58.sp,
@@ -374,7 +375,7 @@ private fun FocusSummary(
             Text(
                 text = stringResource(R.string.cycle_minutes_unit),
                 color = tokens.textPrimary,
-                fontFamily = FontFamily.Serif,
+                fontFamily = NunitoFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 28.sp,
                 modifier = Modifier.padding(start = 2.dp, bottom = 8.dp),

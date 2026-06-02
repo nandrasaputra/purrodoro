@@ -35,8 +35,8 @@ object KuroType {
     /** Journey metric card icon letter */
     val metricHero = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
 
-    /** Journey metric card serif value (apply FontFamily.Serif at call site) */
-    val metricHeroSerif = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Normal)
+    /** Journey metric card numeric value */
+    val metricHeroValue = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Normal)
 
     /** Journey stat card label, e.g. "This week" */
     val labelMetric = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Normal)

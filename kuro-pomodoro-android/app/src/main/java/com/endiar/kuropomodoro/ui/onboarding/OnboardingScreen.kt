@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.endiar.kuropomodoro.R
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.theme.NunitoFamily
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import kotlinx.coroutines.launch
 
@@ -198,7 +199,7 @@ private fun WelcomePage() {
     Text(
         text = "Kuro",
         color = tokens.textPrimary,
-        fontFamily = FontFamily.Serif,
+        fontFamily = NunitoFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 56.sp,
         lineHeight = 60.sp,
@@ -230,7 +231,7 @@ private fun WelcomePage() {
     Text(
         text = stringResource(R.string.onboarding_welcome_title),
         color = tokens.textPrimary,
-        fontFamily = FontFamily.Serif,
+        fontFamily = NunitoFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 28.sp,
@@ -387,7 +388,7 @@ private fun RhythmPage() {
         Text(
             text = stringResource(R.string.onboarding_rhythm_quote),
             color = tokens.textSecondary,
-            style = KuroType.bodySecondary.copy(fontFamily = FontFamily.Serif),
+            style = KuroType.bodySecondary.copy(fontFamily = NunitoFamily),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -536,7 +537,7 @@ private fun PageTitle(text: String) {
     Text(
         text = text,
         color = tokens.textPrimary,
-        fontFamily = FontFamily.Serif,
+        fontFamily = NunitoFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 32.sp,
         lineHeight = 36.sp,
