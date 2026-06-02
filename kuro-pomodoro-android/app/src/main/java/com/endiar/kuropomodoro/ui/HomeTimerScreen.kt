@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +26,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
@@ -46,18 +54,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -88,6 +100,7 @@ import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.designsystem.pressScale
 import com.endiar.kuropomodoro.ui.theme.Mint
+import com.endiar.kuropomodoro.ui.theme.NunitoFamily
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 import com.endiar.kuropomodoro.ui.tutorial.TutorialTarget
 import com.endiar.kuropomodoro.ui.tutorial.tutorialAnchor
@@ -122,6 +135,21 @@ fun HomeTimerScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
+    val scrollState = rememberScrollState()
+    // Raw status-bar inset. The parent applies statusBarsPadding to the whole
+    // tab surface, so the sticky bar would otherwise start below the status
+    // bar and leave a mismatched strip above it. We let the sticky bar extend
+    // up behind the status bar (offset up by this, content padded down by it).
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    // Measured height of the full (scrolling) header. Once the user has
+    // scrolled roughly past it, the compact sticky bar fades in so the name +
+    // profile avatar stay reachable without jumping back to the top.
+    var headerHeightPx by remember { mutableIntStateOf(0) }
+    val showStickyBar by remember {
+        derivedStateOf {
+            headerHeightPx > 0 && scrollState.value > headerHeightPx * 0.6f
+        }
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -129,7 +157,7 @@ fun HomeTimerScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(contentPadding)
                 .padding(horizontal = KuroSpacing.lg)
                 // dockClearance keeps the last content row (e.g. the
@@ -138,7 +166,11 @@ fun HomeTimerScreen(
                 .padding(top = 18.dp, bottom = KuroSpacing.dockClearance),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            HomeHeader(greeting = greeting, onOpenProfile = onOpenProfile)
+            HomeHeader(
+                greeting = greeting,
+                onOpenProfile = onOpenProfile,
+                modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
+            )
             if (isStarted) {
                 // Auto-complete tip rides along with the ActiveHero (rendered
                 // inside its Column at the bottom) so it can't be pushed off
@@ -195,20 +227,85 @@ fun HomeTimerScreen(
             TodayMetricsCard(metrics = todayMetrics)
             QuoteCard()
         }
+
+        // Collapsing sticky header: pinned to the top, sliding/fading in once
+        // the full header has scrolled away. Sits above the scrolling content
+        // and paints the page background so rows pass cleanly beneath it.
+        AnimatedVisibility(
+            visible = showStickyBar,
+            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it },
+            exit = fadeOut(tween(160)) + slideOutVertically(tween(200)) { -it },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = -statusBarTop),
+        ) {
+            HomeStickyBar(onOpenProfile = onOpenProfile, topInset = statusBarTop)
+        }
+    }
+}
+
+@Composable
+private fun HomeStickyBar(
+    onOpenProfile: () -> Unit,
+    topInset: Dp = 0.dp,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    // Uses the dock surface so the top bar + bottom dock read as one "app
+    // chrome" plane, clearly distinct from both the page background and the
+    // content cards. A soft shadow + hairline give it lift off the content.
+    // The fill extends up behind the status bar (topInset), while the title
+    // row is padded down by the same amount to clear the system clock/icons.
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(elevation = 6.dp)
+            .background(tokens.dockFill),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = topInset)
+                .padding(horizontal = KuroSpacing.lg)
+                .padding(top = 8.dp, bottom = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.app_name),
+                color = tokens.textPrimary,
+                fontSize = 22.sp,
+                lineHeight = 26.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = NunitoFamily,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(KuroSpacing.md))
+            CatAvatar(onClick = onOpenProfile, size = 48.dp)
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(tokens.dockBorder)
+        )
     }
 }
 
 @Composable
 private fun HomeHeader(
     greeting: HomeGreeting,
-    onOpenProfile: () -> Unit = {}
+    onOpenProfile: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val dateLabel = remember {
         LocalDate.now().format(DateTimeFormatter.ofPattern("MMM d"))
     }
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -229,7 +326,7 @@ private fun HomeHeader(
                         fontSize = 37.sp,
                         lineHeight = 40.sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontFamily = FontFamily.Serif
+                        fontFamily = NunitoFamily
                     )
                 }
                 LeafSprig(
@@ -247,7 +344,7 @@ private fun HomeHeader(
                 lineHeight = 18.sp,
                 fontWeight = FontWeight.Normal,
                 fontStyle = FontStyle.Italic,
-                fontFamily = FontFamily.Serif
+                fontFamily = NunitoFamily
             )
             Spacer(Modifier.height(5.dp))
             Text(
@@ -504,7 +601,7 @@ private fun ActiveTimerCard(
                 fontSize = 72.sp,
                 lineHeight = 76.sp,
                 fontWeight = FontWeight.Normal,
-                fontFamily = FontFamily.Serif,
+                fontFamily = NunitoFamily,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1145,16 +1242,20 @@ private fun FullCycleDots(
 }
 
 @Composable
-private fun CatAvatar(onClick: () -> Unit = {}) {
+private fun CatAvatar(onClick: () -> Unit = {}, size: Dp = 64.dp) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(modifier = Modifier.size(64.dp).clickable(onClick = onClick)) {
+    // Scale the inner padding + status dot with the avatar so the compact
+    // sticky-bar variant stays proportional to the full header one.
+    val innerPadding = size * (6f / 64f)
+    val dotSize = size * (16f / 64f)
+    Box(modifier = Modifier.size(size).clickable(onClick = onClick)) {
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(CircleShape)
                 .background(tokens.cardFill)
                 .border(1.dp, tokens.cardBorder, CircleShape)
-                .padding(6.dp)
+                .padding(innerPadding)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.cat_face),
@@ -1168,7 +1269,7 @@ private fun CatAvatar(onClick: () -> Unit = {}) {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .size(16.dp)
+                .size(dotSize)
                 .clip(CircleShape)
                 .background(tokens.accent)
                 .border(2.dp, tokens.pageBackground, CircleShape)

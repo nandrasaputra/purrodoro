@@ -71,6 +71,7 @@ import com.endiar.kuropomodoro.model.formatSeconds
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
 import com.endiar.kuropomodoro.ui.designsystem.pressScale
+import com.endiar.kuropomodoro.ui.theme.NunitoFamily
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
 /**
@@ -248,7 +249,7 @@ fun FocusModeOverlay(
                 fontSize = 84.sp,
                 lineHeight = 88.sp,
                 fontWeight = FontWeight.Normal,
-                fontFamily = FontFamily.Serif,
+                fontFamily = NunitoFamily,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()

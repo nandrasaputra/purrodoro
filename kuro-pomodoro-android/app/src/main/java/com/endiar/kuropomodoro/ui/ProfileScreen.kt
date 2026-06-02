@@ -80,6 +80,7 @@ import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroStepper
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.theme.NunitoFamily
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -413,7 +414,7 @@ private fun NotificationPermissionHero(onAllow: () -> Unit) {
         Text(
             text = stringResource(R.string.settings_notif_hero_title),
             style = KuroType.headingCard,
-            fontFamily = FontFamily.Serif,
+            fontFamily = NunitoFamily,
             fontWeight = FontWeight.SemiBold,
             color = tokens.textPrimary,
             textAlign = TextAlign.Center,

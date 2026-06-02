@@ -1,10 +1,12 @@
 package com.endiar.kuropomodoro.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import com.endiar.kuropomodoro.model.AppearanceMode
 
 private val DarkColorScheme = darkColorScheme(
@@ -51,6 +53,13 @@ fun KuroPomodoroTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content,
-    )
+    ) {
+        // Force Nunito as the default family for every Text, so styles that
+        // don't name a family (e.g. KuroType.*) render in the brand font
+        // instead of falling back to the platform default.
+        CompositionLocalProvider(
+            LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = NunitoFamily),
+            content = content,
+        )
+    }
 }
