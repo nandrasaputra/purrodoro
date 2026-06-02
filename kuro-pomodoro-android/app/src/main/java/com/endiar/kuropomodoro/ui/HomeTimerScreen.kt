@@ -31,9 +31,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -1224,18 +1226,33 @@ private fun FullCycleDots(
         focusIndices.forEach { originalIndex ->
             val isActive = originalIndex == cycleIndex && currentTimerState != TimerState.Idle
             val isPast = originalIndex < cycleIndex
+            // State change = scale + colour. The active dot springs up with a
+            // light settle (Playful-light, matching pressScale) while the fill
+            // eases between calm tokens, so progress reads as a soft "fill"
+            // rather than a hard flip when a focus segment completes.
+            val dotSize by animateDpAsState(
+                targetValue = if (isActive) 13.dp else 10.dp,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                label = "cycleDotSize",
+            )
+            val dotColor by animateColorAsState(
+                targetValue = when {
+                    isActive -> tokens.accent
+                    isPast -> tokens.accent.copy(alpha = 0.55f)
+                    else -> tokens.cardBorder
+                },
+                animationSpec = tween(durationMillis = 260, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)),
+                label = "cycleDotColor",
+            )
             Box(
                 modifier = Modifier
                     .padding(horizontal = 5.dp)
-                    .size(if (isActive) 13.dp else 10.dp)
+                    .size(dotSize)
                     .clip(CircleShape)
-                    .background(
-                        when {
-                            isActive -> tokens.accent
-                            isPast -> tokens.accent.copy(alpha = 0.55f)
-                            else -> tokens.cardBorder
-                        }
-                    )
+                    .background(dotColor)
             )
         }
     }

@@ -17,9 +17,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -44,8 +48,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.kuropomodoro.data.AppRepository
+import com.endiar.kuropomodoro.model.SessionRecord
+import com.endiar.kuropomodoro.model.SessionStatus
 // addFocusStamp removed — use inline stamp increment instead
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 class DebugActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,6 +80,7 @@ class DebugActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DebugScreen(
     debugRepo: DebugRepository,
@@ -273,6 +285,124 @@ private fun DebugScreen(
 
                 HorizontalDivider()
 
+                // --- Day Data Injection ---
+                // Seeds full SessionRecords (not just stamps) on a chosen day so
+                // every Journey surface lights up: today timeline, weekly focus,
+                // month heatmap, all-time totals, and the streak.
+                SectionTitle("DAY DATA INJECTION")
+                Text(
+                    "Inserts completed focus sessions on a chosen day (~25 min each). " +
+                        "Where it shows on Journey: Today timeline = today only · Weekly = last 7 days · " +
+                        "Heatmap = current month only · All-time + History = any date. " +
+                        "Reopen the Journey tab to refresh.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+
+                var targetDate by remember { mutableStateOf(LocalDate.now()) }
+                var sessionsForDay by remember { mutableIntStateOf(4) }
+                var showDatePicker by remember { mutableStateOf(false) }
+
+                // Date selector — opens a Material date picker so any specific day
+                // can be chosen, plus quick presets for the common cases.
+                Text("Target day", style = MaterialTheme.typography.labelSmall)
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val suffix = if (targetDate == LocalDate.now()) " (today)" else ""
+                    Text("📅  $targetDate$suffix")
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0 to "Today", 1 to "−1d", 7 to "−7d", 30 to "−30d").forEach { (off, label) ->
+                        OutlinedButton(onClick = { targetDate = LocalDate.now().minusDays(off.toLong()) }) {
+                            Text(label, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                if (showDatePicker) {
+                    val pickerState = rememberDatePickerState(
+                        initialSelectedDateMillis = targetDate
+                            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+                    )
+                    DatePickerDialog(
+                        onDismissRequest = { showDatePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                pickerState.selectedDateMillis?.let { millis ->
+                                    targetDate = Instant.ofEpochMilli(millis)
+                                        .atZone(ZoneOffset.UTC).toLocalDate()
+                                }
+                                showDatePicker = false
+                            }) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                        }
+                    ) {
+                        DatePicker(state = pickerState)
+                    }
+                }
+
+                // Sessions stepper.
+                Column {
+                    Text("Sessions", style = MaterialTheme.typography.labelSmall)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(onClick = { if (sessionsForDay > 1) sessionsForDay-- }) { Text("−") }
+                        Text("$sessionsForDay", style = MaterialTheme.typography.titleMedium)
+                        OutlinedButton(onClick = { if (sessionsForDay < 12) sessionsForDay++ }) { Text("+") }
+                    }
+                }
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val records = buildDaySessions(targetDate, sessionsForDay, idBase = System.currentTimeMillis())
+                            appRepo.appendSessionRecords(records)
+                            appRepo.setStamps(appState.stamps + (targetDate to ((appState.stamps[targetDate] ?: 0) + sessionsForDay)))
+                            appRepo.setCompletedSessions(appState.completedSessions + sessionsForDay)
+                            snackbarHostState.showSnackbar(
+                                message = "Seeded $sessionsForDay session${if (sessionsForDay > 1) "s" else ""} on $targetDate",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Insert on $targetDate")
+                }
+                // Bulk helper to make the heatmap + streak pop instantly.
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            var nextId = System.currentTimeMillis()
+                            val all = mutableListOf<SessionRecord>()
+                            var stamps = appState.stamps
+                            var total = 0
+                            repeat(30) { d ->
+                                val date = LocalDate.now().minusDays(d.toLong())
+                                val n = (1..6).random()
+                                all += buildDaySessions(date, n, idBase = nextId)
+                                nextId += n
+                                stamps = stamps + (date to ((stamps[date] ?: 0) + n))
+                                total += n
+                            }
+                            appRepo.appendSessionRecords(all)
+                            appRepo.setStamps(stamps)
+                            appRepo.setCompletedSessions(appState.completedSessions + total)
+                            snackbarHostState.showSnackbar(
+                                message = "Filled last 30 days ($total sessions)",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Fill last 30 days (random)")
+                }
+
+                HorizontalDivider()
+
                 // --- Cycle Complete Dialog ---
                 SectionTitle("CYCLE COMPLETE DIALOG")
                 Text(
@@ -368,6 +498,7 @@ private fun DebugScreen(
                                     scope.launch {
                                         appRepo.setStamps(emptyMap())
                                         appRepo.setCompletedSessions(0)
+                                        appRepo.clearSessionRecords()
                                     }
                                     resetConfirming = false
                                 }
@@ -391,7 +522,7 @@ private fun DebugScreen(
                             }
                         }
                         Text(
-                            "Wipes stamps, sessions, and todos back to seed state.",
+                            "Wipes stamps, session records, and counters back to seed state.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
                         )
@@ -479,5 +610,44 @@ private fun SectionTitle(text: String, color: Color = Color.Unspecified) {
         letterSpacing = 1.2.sp,
         color = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else color
     )
+}
+
+private val DEBUG_TASK_NAMES = listOf(
+    "Deep Work", "Reading", "Writing", "Study", "Design", "Email", "Planning", "Coding"
+)
+
+/**
+ * Builds [sessions] completed focus [SessionRecord]s on [date], one per focus
+ * block, spaced 45 min apart starting at 09:00. Each block is [focusMinutes]
+ * long, so the day's total focus is sessions × focusMinutes — enough to drive
+ * the Journey timeline rows, weekly/monthly stats, heatmap intensity, and the
+ * all-time totals. IDs are derived from [idBase] so a batch stays unique.
+ */
+private fun buildDaySessions(
+    date: LocalDate,
+    sessions: Int,
+    idBase: Long,
+    focusMinutes: Int = 25,
+): List<SessionRecord> {
+    val zone = ZoneId.systemDefault()
+    return (0 until sessions).map { i ->
+        val startTime = LocalTime.of(9, 0).plusMinutes((i * 45).toLong())
+        val startMillis = date.atTime(startTime).atZone(zone).toInstant().toEpochMilli()
+        val endMillis = startMillis + focusMinutes * 60_000L
+        SessionRecord(
+            id = idBase + i,
+            startedAt = startMillis,
+            endedAt = endMillis,
+            focusMinutes = focusMinutes,
+            shortBreakMinutes = 5,
+            longBreakMinutes = 15,
+            completedFocusCount = 1,
+            totalFocusCount = 1,
+            status = SessionStatus.Completed,
+            taskName = DEBUG_TASK_NAMES[i % DEBUG_TASK_NAMES.size],
+            completedShortBreakCount = if (i < sessions - 1) 1 else 0,
+            completedLongBreakCount = 0,
+        )
+    }
 }
 
