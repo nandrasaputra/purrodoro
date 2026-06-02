@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.draw.scale
 import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.Bell
 import com.composables.icons.lucide.Check
@@ -80,6 +89,7 @@ import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
 import com.endiar.kuropomodoro.ui.designsystem.KuroStepper
 import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.kuropomodoro.ui.designsystem.pressScale
 import com.endiar.kuropomodoro.ui.theme.NunitoFamily
 import com.endiar.kuropomodoro.ui.theme.kuroTokens
 
@@ -534,13 +544,40 @@ private fun PickerOptionRow(
     onClick: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
+    // State feedback = colour crossfade + a check that pops in. The fill/text
+    // ease between fully-opaque tokens (clean, no muddy mid-tones) on a calm
+    // 240ms emphasized curve; the check uses a light overshoot spring so the
+    // selection lands with a small, satisfying "tick".
+    val selectEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+    val backgroundColor by animateColorAsState(
+        targetValue = if (selected) tokens.interactiveFill else tokens.segmentedTrack,
+        animationSpec = tween(durationMillis = 240, easing = selectEasing),
+        label = "pickerBackground",
+    )
+    val textColor by animateColorAsState(
+        targetValue = if (selected) tokens.interactiveText else tokens.textPrimary,
+        animationSpec = tween(durationMillis = 200, easing = selectEasing),
+        label = "pickerText",
+    )
+    val checkScale by animateFloatAsState(
+        targetValue = if (selected) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "pickerCheckScale",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .pressScale(interactionSource, pressedScale = 0.98f)
             .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) tokens.interactiveFill else tokens.segmentedTrack)
+            .background(backgroundColor)
             .selectable(
                 selected = selected,
+                interactionSource = interactionSource,
+                indication = null,
                 role = Role.RadioButton,
                 onClick = onClick,
             )
@@ -551,16 +588,21 @@ private fun PickerOptionRow(
             text = label,
             style = KuroType.bodyPrimary,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) tokens.interactiveText else tokens.textPrimary,
+            color = textColor,
             modifier = Modifier.weight(1f),
         )
-        if (selected) {
-            Icon(
-                imageVector = Lucide.Check,
-                contentDescription = null,
-                tint = tokens.interactiveText,
-                modifier = Modifier.size(18.dp),
-            )
+        // Reserve the trailing slot so the row never reflows; the glyph pops in.
+        Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+            if (checkScale > 0.01f) {
+                Icon(
+                    imageVector = Lucide.Check,
+                    contentDescription = null,
+                    tint = tokens.interactiveText,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .scale(checkScale),
+                )
+            }
         }
     }
 }

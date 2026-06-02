@@ -214,6 +214,16 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing + record)
     }
 
+    /** Appends several records in a single edit (used by debug data seeding). */
+    suspend fun appendSessionRecords(records: List<SessionRecord>) = dataStore.edit { prefs ->
+        if (records.isEmpty()) return@edit
+        val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
+        prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing + records)
+    }
+
+    /** Removes all stored session records (used by debug reset). */
+    suspend fun clearSessionRecords() = dataStore.edit { it.remove(KEY_SESSION_RECORDS) }
+
     suspend fun setRuntimeSnapshot(snapshot: TimerRuntimeState?) = dataStore.edit { prefs ->
         if (snapshot == null) {
             prefs.remove(KEY_RUNTIME_SNAPSHOT)
