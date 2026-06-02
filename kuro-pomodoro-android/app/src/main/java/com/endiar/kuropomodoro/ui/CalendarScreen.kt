@@ -22,6 +22,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -185,9 +194,17 @@ private fun JourneyHeader(onOpenHistory: () -> Unit) {
     }
 }
 
+/** Material 3 emphasized-decelerate — calm arrival for entrance motion. */
+private val JourneyEnterEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+
 @Composable
 private fun WeeklyFocusCard(summary: JourneySummary) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    // One-shot entrance: bars grow up from the baseline in a left-to-right wave.
+    // Vertical growth reads as "building up" the week; the per-bar delay stays
+    // well under the skill's 500ms stagger budget (6 * 45ms = 270ms).
+    var barsShown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { barsShown = true }
     val weekNote = summary.weekOverWeekPercent?.let { pct ->
         stringResource(R.string.journey_week_over_week, if (pct >= 0) "+" else "", pct)
     } ?: stringResource(R.string.journey_no_last_week)
@@ -225,12 +242,21 @@ private fun WeeklyFocusCard(summary: JourneySummary) {
                 val maxMinutes = maxOf(180, summary.weekBars.maxOfOrNull { it.focusMinutes } ?: 0)
                 summary.weekBars.forEachIndexed { index, bar ->
                     val ratio = if (maxMinutes == 0) 0f else bar.focusMinutes.toFloat() / maxMinutes.toFloat()
+                    val grow by animateFloatAsState(
+                        targetValue = if (barsShown) 1f else 0f,
+                        animationSpec = tween(
+                            durationMillis = 520,
+                            delayMillis = index * 45,
+                            easing = JourneyEnterEasing,
+                        ),
+                        label = "weekBarGrow",
+                    )
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
                         if (bar.focusMinutes > 0) {
                             Box(
                                 modifier = Modifier
                                     .width(KuroSpacing.journeyChartBarWidth)
-                                    .height(KuroSpacing.journeyChartBarMaxHeight * ratio)
+                                    .height(KuroSpacing.journeyChartBarMaxHeight * ratio * grow)
                                     .clip(RoundedCornerShape(topStart = KuroSpacing.xs, topEnd = KuroSpacing.xs))
                                     .background(if (index == 6) tokens.accentSoft else tokens.accent),
                             )
@@ -297,6 +323,11 @@ private fun ChartAxis() {
 @Composable
 private fun MonthHeatmapCard(displayMonth: YearMonth, intensities: Map<LocalDate, Int>, month: JourneyMonth, bestStreakDays: Int) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    // One-shot diagonal wave: cells fade + scale in, delayed by their (row+col)
+    // position so the month "develops" from the top-left corner. Diagonal span
+    // is 5+6=11 steps * 18ms = ~200ms, keeping the wave under budget.
+    var cellsShown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { cellsShown = true }
     KuroElevatedCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -319,11 +350,21 @@ private fun MonthHeatmapCard(displayMonth: YearMonth, intensities: Map<LocalDate
                         repeat(7) { col ->
                             val date = firstVisible.plusDays((row * 7 + col).toLong())
                             val inMonth = YearMonth.from(date) == displayMonth
+                            val reveal by animateFloatAsState(
+                                targetValue = if (cellsShown) 1f else 0f,
+                                animationSpec = tween(
+                                    durationMillis = 280,
+                                    delayMillis = if (inMonth) (row + col) * 18 else 0,
+                                    easing = JourneyEnterEasing,
+                                ),
+                                label = "heatCellReveal",
+                            )
                             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
+                                        .then(if (inMonth) Modifier.scale(0.7f + 0.3f * reveal).alpha(reveal) else Modifier)
                                         .clip(RoundedCornerShape(KuroSpacing.xs))
                                         .background(if (inMonth) heatCellColor(intensities[date] ?: 0) else Color.Transparent),
                                 )
