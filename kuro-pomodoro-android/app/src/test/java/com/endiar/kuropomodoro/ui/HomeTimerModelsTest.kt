@@ -34,6 +34,20 @@ class HomeTimerModelsTest {
             HomeGreeting("Good evening,", "Let's make this evening meaningful."),
             homeGreetingFor(LocalTime.of(20, 0))
         )
+        // Pre-dawn hours read as evening/night, not morning.
+        assertEquals(
+            HomeGreeting("Good evening,", "Let's make this evening meaningful."),
+            homeGreetingFor(LocalTime.of(0, 34))
+        )
+        assertEquals(
+            HomeGreeting("Good evening,", "Let's make this evening meaningful."),
+            homeGreetingFor(LocalTime.of(4, 59))
+        )
+        // First "real" morning hour.
+        assertEquals(
+            HomeGreeting("Good morning,", "Let's make this morning meaningful."),
+            homeGreetingFor(LocalTime.of(5, 0))
+        )
     }
 
     @Test

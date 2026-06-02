@@ -121,6 +121,7 @@ fun HomeTimerScreen(
     suggestionFocusMinutes: Int,
     activeFocusType: FocusType = FocusType.Empty,
     greeting: HomeGreeting,
+    userName: String = "",
     todayMetrics: TodayFocusMetrics,
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
@@ -170,6 +171,7 @@ fun HomeTimerScreen(
         ) {
             HomeHeader(
                 greeting = greeting,
+                userName = userName,
                 onOpenProfile = onOpenProfile,
                 modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
             )
@@ -299,6 +301,7 @@ private fun HomeStickyBar(
 @Composable
 private fun HomeHeader(
     greeting: HomeGreeting,
+    userName: String,
     onOpenProfile: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -306,6 +309,9 @@ private fun HomeHeader(
     val dateLabel = remember {
         LocalDate.now().format(DateTimeFormatter.ofPattern("MMM d"))
     }
+    // Fall back to a warm, generic greeting target until the user sets a name
+    // in Settings, so the 37sp header line is never empty.
+    val displayName = userName.trim().ifBlank { stringResource(R.string.home_default_name) }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -323,12 +329,14 @@ private fun HomeHeader(
                         lineHeight = 17.sp
                     )
                     Text(
-                        text = "Nandra",
+                        text = displayName,
                         color = tokens.textPrimary,
                         fontSize = 37.sp,
                         lineHeight = 40.sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontFamily = NunitoFamily
+                        fontFamily = NunitoFamily,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 LeafSprig(
@@ -1190,12 +1198,14 @@ private fun timerModeLabel(mode: TimerMode): String = when (mode) {
 @Composable
 fun rememberHomeGreeting(time: LocalTime): HomeGreeting {
     val hour = time.hour
-    return when {
-        hour < 12 -> HomeGreeting(
+    return when (hour) {
+        // Pre-dawn hours (00:00–04:59) read as night/evening to a human, not
+        // "morning" — so they fall through to the evening copy below.
+        in 5..11 -> HomeGreeting(
             salutation = stringResource(R.string.greeting_morning_salutation),
             encouragement = stringResource(R.string.greeting_morning_encouragement),
         )
-        hour < 17 -> HomeGreeting(
+        in 12..16 -> HomeGreeting(
             salutation = stringResource(R.string.greeting_afternoon_salutation),
             encouragement = stringResource(R.string.greeting_afternoon_encouragement),
         )

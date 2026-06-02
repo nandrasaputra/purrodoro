@@ -39,6 +39,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
+import com.composables.icons.lucide.User
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +47,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -105,6 +108,8 @@ fun ProfileScreen(
     onUpdateAppearanceMode: (AppearanceMode) -> Unit = {},
     language: AppLanguage = AppLanguage.System,
     onUpdateLanguage: (AppLanguage) -> Unit = {},
+    userName: String = "",
+    onUpdateUserName: (String) -> Unit = {},
     onRequestEnableNotifications: () -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -170,6 +175,19 @@ fun ProfileScreen(
                 color = tokens.textSecondary,
                 modifier = Modifier.padding(top = KuroSpacing.xs)
             )
+            Spacer(modifier = Modifier.height(KuroSpacing.xl))
+
+            KuroSectionHeader(title = stringResource(R.string.settings_section_profile))
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            KuroCard(modifier = Modifier.fillMaxWidth()) {
+                TappableRow(
+                    icon = Lucide.User,
+                    label = stringResource(R.string.settings_name_label),
+                    value = userName.ifBlank { stringResource(R.string.settings_name_unset) },
+                    onClick = { editingField = "name" },
+                )
+            }
+
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
             KuroSectionHeader(title = stringResource(R.string.settings_section_timer))
@@ -288,6 +306,14 @@ fun ProfileScreen(
     }
 
     when (editingField) {
+        "name" -> TextEditDialog(
+            title = stringResource(R.string.settings_name_label),
+            value = userName,
+            placeholder = stringResource(R.string.settings_name_placeholder),
+            maxLength = 24,
+            onConfirm = { onUpdateUserName(it); editingField = null },
+            onDismiss = { editingField = null }
+        )
         "focus" -> NumericEditDialog(
             title = stringResource(R.string.settings_focus_time),
             value = settings.focusMinutes,
@@ -605,6 +631,59 @@ private fun PickerOptionRow(
             }
         }
     }
+}
+
+@Composable
+private fun TextEditDialog(
+    title: String,
+    value: String,
+    placeholder: String,
+    maxLength: Int,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    var current by remember(value) { mutableStateOf(value) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = tokens.pageBackground,
+        title = { Text(text = title, style = KuroType.headingCard, color = tokens.textPrimary) },
+        text = {
+            OutlinedTextField(
+                value = current,
+                onValueChange = { if (it.length <= maxLength) current = it },
+                placeholder = { Text(placeholder, color = tokens.textSecondary) },
+                singleLine = true,
+                supportingText = {
+                    Text(
+                        text = "${current.length}/$maxLength",
+                        color = tokens.textSecondary,
+                        style = KuroType.labelMeta,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = tokens.textPrimary,
+                    unfocusedTextColor = tokens.textPrimary,
+                    cursorColor = tokens.accent,
+                    focusedBorderColor = tokens.accent,
+                    unfocusedBorderColor = tokens.cardBorder,
+                ),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(current.trim()) }) {
+                Text(stringResource(R.string.common_ok), color = tokens.accent, style = KuroType.labelStrong)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel), color = tokens.textSecondary)
+            }
+        }
+    )
 }
 
 @Composable
