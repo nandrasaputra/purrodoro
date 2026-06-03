@@ -80,7 +80,7 @@ invoked before `_state.value = resetState`. This guarantees both the natural-com
 
 ### UI layer
 
-`KuroPomodoroApp.kt` (root composable):
+`PurrodoroApp.kt` (root composable):
 
 1. Collect the flag as state: `val pendingAck by repo.pendingCycleCompletionAckFlow.collectAsState(initial = false)`.
 2. When `pendingAck == true`, render an `AlertDialog`:
@@ -107,7 +107,7 @@ TimerService.finishCycleAndStop(resetState)
 [ Anytime app is in foreground ]
         │
         ▼
-KuroPomodoroApp observes pendingCycleCompletionAckFlow
+PurrodoroApp observes pendingCycleCompletionAckFlow
         │
         ├─► flag == true → render AlertDialog (random copy)
         └─► user taps Done → repo.setPendingCycleCompletionAck(false) → dialog dismisses
@@ -146,5 +146,5 @@ KuroPomodoroApp observes pendingCycleCompletionAckFlow
 - `app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt` — add flag flow + setter.
 - DataStore prefs file (wherever `Preferences.Key<…>` definitions live alongside `AppRepository`) — add new key.
 - `app/src/main/java/com/endiar/purrodoro/timer/TimerService.kt` — set flag inside `finishCycleAndStop`.
-- `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` — collect flag, render dialog, define `CycleCompletionCopy` object.
+- `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` — collect flag, render dialog, define `CycleCompletionCopy` object.
 - `app/src/test/java/com/endiar/purrodoro/data/AppRepositoryTest.kt` (or equivalent) — round-trip test.

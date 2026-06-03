@@ -4,7 +4,7 @@
 
 **Goal:** Replace the current Timer tab dashboard with a near-1:1 Compose implementation of the provided warm, card-based Home/Timer reference.
 
-**Architecture:** Keep `TimerService`, `TimerConnection`, `TimerStateMachine`, DataStore, records, stamps, habits, and notification behavior unchanged. Add pure Home display helpers for greeting, metrics, and Pomodoro labels, then create a focused `HomeTimerScreen` composable that reads the existing runtime inputs and invokes the existing timer callbacks. Wire `KuroPomodoroApp` to use the new Home composable in the `AppTab.Timer` branch.
+**Architecture:** Keep `TimerService`, `TimerConnection`, `TimerStateMachine`, DataStore, records, stamps, habits, and notification behavior unchanged. Add pure Home display helpers for greeting, metrics, and Pomodoro labels, then create a focused `HomeTimerScreen` composable that reads the existing runtime inputs and invokes the existing timer callbacks. Wire `PurrodoroApp` to use the new Home composable in the `AppTab.Timer` branch.
 
 **Tech Stack:** Kotlin, Jetpack Compose, Material3, existing app models and timer controller.
 
@@ -17,7 +17,7 @@
 | `app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt` | Create pure display helpers for greeting, today metrics, task selection, and Pomodoro progress |
 | `app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt` | Create unit tests for the new pure helpers |
 | `app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt` | Create the new Home/Timer Compose screen and visual subcomponents |
-| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Replace the `FocusDashboard` Timer branch with `HomeTimerScreen`; keep existing callbacks and completion dialog |
+| `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` | Replace the `FocusDashboard` Timer branch with `HomeTimerScreen`; keep existing callbacks and completion dialog |
 | `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt` | No planned change unless import cleanup is required by the wiring swap |
 
 ## Task 1: Add Home display model helpers
@@ -1120,14 +1120,14 @@ git add app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt
 git commit -m "feat: add home timer screen UI"
 ```
 
-## Task 3: Wire HomeTimerScreen into KuroPomodoroApp
+## Task 3: Wire HomeTimerScreen into PurrodoroApp
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Add imports**
 
-In `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`, add these imports near the other `com.endiar.purrodoro.ui` imports:
+In `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`, add these imports near the other `com.endiar.purrodoro.ui` imports:
 
 ```kotlin
 import com.endiar.purrodoro.ui.HomeTimerScreen
@@ -1139,7 +1139,7 @@ import com.endiar.purrodoro.ui.todayFocusMetrics
 
 - [ ] **Step 2: Derive Home display values**
 
-Inside `KuroPomodoroApp`, after `val currentTimerState = runtimeState?.session?.timerState ?: TimerState.Idle`, add:
+Inside `PurrodoroApp`, after `val currentTimerState = runtimeState?.session?.timerState ?: TimerState.Idle`, add:
 
 ```kotlin
     val homeGreeting = homeGreetingFor(backdropTime)
@@ -1213,9 +1213,9 @@ In the `when (selectedTab)` block, replace the current `AppTab.Timer -> FocusDas
 
 - [ ] **Step 4: Remove unused imports and dead FocusDashboard code**
 
-After replacing the Timer branch, remove the old private `FocusDashboard` composable and the old private `MusicButton` composable from `KuroPomodoroApp.kt`.
+After replacing the Timer branch, remove the old private `FocusDashboard` composable and the old private `MusicButton` composable from `PurrodoroApp.kt`.
 
-Remove imports from `KuroPomodoroApp.kt` that become unused because those old composables are gone. The expected removable imports include:
+Remove imports from `PurrodoroApp.kt` that become unused because those old composables are gone. The expected removable imports include:
 
 ```kotlin
 import androidx.compose.animation.EnterTransition
@@ -1252,7 +1252,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: show revamped home timer screen"
 ```
 
@@ -1307,7 +1307,7 @@ If verification required fixes, commit only the touched files:
 ```bash
 git add app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt \
         app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt \
-        app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+        app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt \
         app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt
 git commit -m "fix: polish home timer revamp"
 ```
@@ -1332,7 +1332,7 @@ Expected: only unrelated pre-existing `.idea` changes may remain.
 ```bash
 git diff HEAD~3..HEAD -- app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt \
                          app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt \
-                         app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+                         app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt \
                          app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt
 ```
 

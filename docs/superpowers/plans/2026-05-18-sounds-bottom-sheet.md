@@ -16,7 +16,7 @@
 |------|--------|
 | `app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt` | Remove `AppTab.Sounds` entry |
 | `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt` | Remove `isSoundPlaying` param and Sounds `DockTabItem` from `DashboardDock` |
-| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Remove Sounds tab branch, add sheet state + `ModalBottomSheet`, add `MusicButton` composable, update `FocusDashboard` signature, fix `AppTabSaver` |
+| `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` | Remove Sounds tab branch, add sheet state + `ModalBottomSheet`, add `MusicButton` composable, update `FocusDashboard` signature, fix `AppTabSaver` |
 | `app/src/test/java/com/endiar/purrodoro/model/KuroModelsTest.kt` | Add test: AppTab has 4 entries, Sounds is absent |
 
 ---
@@ -93,9 +93,9 @@ git commit -m "feat: remove AppTab.Sounds from enum"
 
 **Files:**
 - Modify: `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt:315-370`
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:505-516`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt:505-516`
 
-After Task 1, the project won't compile because `DashboardDock` references `AppTab.Sounds` and `KuroPomodoroApp` passes `isSoundPlaying`. Fix both.
+After Task 1, the project won't compile because `DashboardDock` references `AppTab.Sounds` and `PurrodoroApp` passes `isSoundPlaying`. Fix both.
 
 - [ ] **Step 1: Remove `isSoundPlaying` param and Sounds `DockTabItem` from `DashboardDock`**
 
@@ -220,7 +220,7 @@ Also remove the `Notifications` import from KuroComponents.kt since it is no lon
 import androidx.compose.material.icons.filled.Notifications
 ```
 
-- [ ] **Step 2: Remove `isSoundPlaying` from the `DashboardDock` call in `KuroPomodoroApp.kt`**
+- [ ] **Step 2: Remove `isSoundPlaying` from the `DashboardDock` call in `PurrodoroApp.kt`**
 
 Find the `DashboardDock(` call (around line 505). Change:
 
@@ -267,7 +267,7 @@ Expected: compile error referencing `AppTab.Sounds` in the `when (selectedTab)` 
 
 ```bash
 git add app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt \
-        app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+        app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: remove DashboardDock sounds tab and isSoundPlaying param"
 ```
 
@@ -276,12 +276,12 @@ git commit -m "feat: remove DashboardDock sounds tab and isSoundPlaying param"
 ## Task 3: Remove `AppTab.Sounds` tab branch + fix `AppTabSaver`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:414-434` (Sounds branch)
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:1115-1118` (AppTabSaver)
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt:414-434` (Sounds branch)
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt:1115-1118` (AppTabSaver)
 
 - [ ] **Step 1: Remove the `AppTab.Sounds` branch from the `when (selectedTab)` block**
 
-In `KuroPomodoroApp.kt`, delete the entire `AppTab.Sounds -> SoundsScreen(...)` case. It looks like this:
+In `PurrodoroApp.kt`, delete the entire `AppTab.Sounds -> SoundsScreen(...)` case. It looks like this:
 
 ```kotlin
 AppTab.Sounds -> SoundsScreen(
@@ -350,7 +350,7 @@ Expected: all tests pass
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: remove sounds tab branch and harden AppTabSaver fallback"
 ```
 
@@ -359,9 +359,9 @@ git commit -m "feat: remove sounds tab branch and harden AppTabSaver fallback"
 ## Task 4: Add sounds bottom sheet state and `ModalBottomSheet`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
-- [ ] **Step 1: Add new imports to `KuroPomodoroApp.kt`**
+- [ ] **Step 1: Add new imports to `PurrodoroApp.kt`**
 
 After the existing import block (after line ~107), add these imports:
 
@@ -377,7 +377,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 
 - [ ] **Step 2: Add `showSoundsSheet` state variable**
 
-In `KuroPomodoroApp`, after the existing `premiumSheetMessage` state declaration (around line 159):
+In `PurrodoroApp`, after the existing `premiumSheetMessage` state declaration (around line 159):
 
 ```kotlin
 var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
@@ -445,7 +445,7 @@ After that closing brace, add:
         }
 ```
 
-Note: `tokens` is already available inside `surfaceContent` (declared at line ~325 as `val tokens = ...`). Wait — actually `tokens` is used inside `surfaceContent` via the dock block. Confirm `tokens` is in scope; if not, use `glassTokens(GlassTreatment.Clear, false)` directly for `containerColor` and `contentColor`. In `surfaceContent`, look at line 325: `val tokens = glassTokens(glassTreatment, overBackdrop)` — this is inside a nested `Box` scope, and `glassTreatment` / `overBackdrop` are outer-scope vals from `KuroPomodoroApp`. So use `glassTokens(GlassTreatment.Clear, false)` directly inside the sheet:
+Note: `tokens` is already available inside `surfaceContent` (declared at line ~325 as `val tokens = ...`). Wait — actually `tokens` is used inside `surfaceContent` via the dock block. Confirm `tokens` is in scope; if not, use `glassTokens(GlassTreatment.Clear, false)` directly for `containerColor` and `contentColor`. In `surfaceContent`, look at line 325: `val tokens = glassTokens(glassTreatment, overBackdrop)` — this is inside a nested `Box` scope, and `glassTreatment` / `overBackdrop` are outer-scope vals from `PurrodoroApp`. So use `glassTokens(GlassTreatment.Clear, false)` directly inside the sheet:
 
 ```kotlin
         if (showSoundsSheet) {
@@ -499,7 +499,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: add sounds ModalBottomSheet with existing SoundsScreen content"
 ```
 
@@ -508,13 +508,13 @@ git commit -m "feat: add sounds ModalBottomSheet with existing SoundsScreen cont
 ## Task 5: Add `MusicButton` composable and wire into `FocusDashboard`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 This task adds the music icon entry point on the home screen. It has two parts: (a) define the `MusicButton` composable, and (b) update `FocusDashboard`'s signature and body to use it.
 
 - [ ] **Step 1: Add `MusicButton` private composable**
 
-At the bottom of `KuroPomodoroApp.kt`, after the existing `PremiumMessage` composable (around line 1113) and before `AppTabSaver`, add:
+At the bottom of `PurrodoroApp.kt`, after the existing `PremiumMessage` composable (around line 1113) and before `AppTabSaver`, add:
 
 ```kotlin
 @Composable
@@ -714,7 +714,7 @@ Expected: all tests pass
 - [ ] **Step 7: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: add MusicButton to Focus screen opening sounds bottom sheet"
 ```
 
@@ -723,7 +723,7 @@ git commit -m "feat: add MusicButton to Focus screen opening sounds bottom sheet
 ## Task 6: Remove unused `SoundsScreen` import (cleanup)
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:98`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt:98`
 
 `SoundsScreen` is still used (inside the bottom sheet), so this import is still needed. However, `isSoundPlaying` was a local val derived from `playingSoundId`. Verify it is still used in `FocusDashboard` call (`isSoundPlaying = isSoundPlaying`) — it is. No import cleanup needed.
 
@@ -736,7 +736,7 @@ Check for any other dead references introduced by the removal. Run:
 Fix any unused imports that appear as warnings. Commit if any changes were made:
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt \
         app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt
 git commit -m "chore: remove unused imports after sounds tab removal"
 ```

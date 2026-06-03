@@ -4,7 +4,7 @@
 
 **Goal:** Add a configurable Pomodoro cycle (N focus sessions before long break) with dot progress display above the timer and a skip button for breaks.
 
-**Architecture:** Extend `TimerSettings` with `focusSessionsPerCycle`, add `buildCycle()` to construct the full session item list, wire cycle reset on completion in `KuroPomodoroApp`, add `CycleDotsRow` composable above the timer digits, and show a Skip button during breaks.
+**Architecture:** Extend `TimerSettings` with `focusSessionsPerCycle`, add `buildCycle()` to construct the full session item list, wire cycle reset on completion in `PurrodoroApp`, add `CycleDotsRow` composable above the timer digits, and show a Skip button during breaks.
 
 **Tech Stack:** Kotlin, Jetpack Compose, AndroidX DataStore, no new dependencies.
 
@@ -16,9 +16,9 @@
 |---|---|
 | `model/KuroModels.kt` | Add `focusSessionsPerCycle` to `TimerSettings`, add `buildCycle()`, add `buildSession()` |
 | `data/AppRepository.kt` | Persist `focusSessionsPerCycle` via DataStore |
-| `KuroPomodoroApp.kt` | Replace ad-hoc timer completion logic with cycle-aware logic using `buildCycle`; add skip handler; thread `cycleItems`/`cycleIndex` state; add `onSkip` to `FocusDashboard` |
+| `PurrodoroApp.kt` | Replace ad-hoc timer completion logic with cycle-aware logic using `buildCycle`; add skip handler; thread `cycleItems`/`cycleIndex` state; add `onSkip` to `FocusDashboard` |
 | `ui/ProfileScreen.kt` | Add `DurationRow`-style stepper for `focusSessionsPerCycle` |
-| `KuroPomodoroApp.kt` (FocusDashboard) | Pass `cycleItems`, `cycleIndex`, `isBreak` to new `CycleDotsRow`; show Skip button when on a break |
+| `PurrodoroApp.kt` (FocusDashboard) | Pass `cycleItems`, `cycleIndex`, `isBreak` to new `CycleDotsRow`; show Skip button when on a break |
 | `ui/components/KuroComponents.kt` | Add `CycleDotsRow` composable |
 
 ---
@@ -255,7 +255,7 @@ private fun DurationRow(
 cd purrodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
 ```
 
-Expected: errors only from `KuroPomodoroApp.kt` (missing `onCycleSizeChanged` argument) — that's fine, fixed in Task 4.
+Expected: errors only from `PurrodoroApp.kt` (missing `onCycleSizeChanged` argument) — that's fine, fixed in Task 4.
 
 - [ ] **Step 5: Commit**
 
@@ -358,7 +358,7 @@ fun CycleDotsRow(
 cd purrodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
 ```
 
-Expected: `BUILD SUCCESSFUL` (aside from the still-unresolved `onCycleSizeChanged` in KuroPomodoroApp from Task 3).
+Expected: `BUILD SUCCESSFUL` (aside from the still-unresolved `onCycleSizeChanged` in PurrodoroApp from Task 3).
 
 - [ ] **Step 5: Commit**
 
@@ -369,10 +369,10 @@ git commit -m "feat: add CycleDotsRow composable"
 
 ---
 
-## Task 5: Wire cycle state and skip into `KuroPomodoroApp`
+## Task 5: Wire cycle state and skip into `PurrodoroApp`
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 This is the largest task. Read the full file before starting.
 
@@ -681,8 +681,8 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 10: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
-git commit -m "feat: wire cycle state, dots, and skip into KuroPomodoroApp"
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
+git commit -m "feat: wire cycle state, dots, and skip into PurrodoroApp"
 ```
 
 ---

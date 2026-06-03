@@ -4,7 +4,7 @@
 
 **Goal:** Replace the instant focus-mode swap with a calm, cinematic transition: dim scrim fades in, dock slides + fades out, chrome (cycle dots, controls) collapses, the timer text morphs to a larger weight-200 hero style with a one-shot "breath" pulse — all driven by a single `updateTransition`. Exit is the same motion in reverse, slightly faster.
 
-**Architecture:** One `updateTransition(focusActive)` at the `KuroPomodoroApp` level drives the dock's `AnimatedVisibility`, a new dim-scrim layer, and the `FocusDashboard` interior. The timer text never unmounts; its size, weight, and letter-spacing are animated. Auxiliary chrome (cycle dots, control buttons, "enter focus mode" pill) is wrapped in `AnimatedVisibility` blocks gated on `!focusActive`; focus-only chrome (FOCUS label, "tap anywhere…" hint) is gated on `focusActive`.
+**Architecture:** One `updateTransition(focusActive)` at the `PurrodoroApp` level drives the dock's `AnimatedVisibility`, a new dim-scrim layer, and the `FocusDashboard` interior. The timer text never unmounts; its size, weight, and letter-spacing are animated. Auxiliary chrome (cycle dots, control buttons, "enter focus mode" pill) is wrapped in `AnimatedVisibility` blocks gated on `!focusActive`; focus-only chrome (FOCUS label, "tap anywhere…" hint) is gated on `focusActive`.
 
 **Tech Stack:** Kotlin, Jetpack Compose (already in BOM `2024.09.00`), JUnit 4 (already configured). No new dependencies.
 
@@ -18,7 +18,7 @@
 | ---- | ------ |
 | `app/src/main/java/com/endiar/purrodoro/ui/components/FocusModeMotion.kt` | **NEW** — motion constants (durations, easings, alpha/scale targets) |
 | `app/src/test/java/com/endiar/purrodoro/ui/components/FocusModeMotionTest.kt` | **NEW** — JVM unit test pinning the motion constants |
-| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Introduce `focusActive` + `updateTransition`; wrap dock in `AnimatedVisibility`; add dim-scrim overlay; refactor `FocusDashboard` (remove early-return, animate timer style, wrap chrome in `AnimatedVisibility`, add breath pulse) |
+| `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` | Introduce `focusActive` + `updateTransition`; wrap dock in `AnimatedVisibility`; add dim-scrim overlay; refactor `FocusDashboard` (remove early-return, animate timer style, wrap chrome in `AnimatedVisibility`, add breath pulse) |
 
 ---
 
@@ -149,9 +149,9 @@ git commit -m "feat(ui): add FocusModeMotion constants for focus transition"
 Hoist `focusActive = isFocusMode && isRunning` into an `updateTransition` so the dock fade/slide and the dim scrim animate from the same clock.
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
-- [ ] **Step 1: Add the new imports to `KuroPomodoroApp.kt`**
+- [ ] **Step 1: Add the new imports to `PurrodoroApp.kt`**
 
 Add these imports alongside the existing `androidx.compose.*` imports near the top of the file:
 
@@ -170,7 +170,7 @@ import com.endiar.purrodoro.ui.components.FocusModeMotion
 
 - [ ] **Step 2: Introduce `focusActive` and the shared transition**
 
-In `KuroPomodoroApp`, immediately after the existing line:
+In `PurrodoroApp`, immediately after the existing line:
 
 ```kotlin
 val isStarted = runtimeState != null && runtimeState?.session?.timerState != TimerState.Idle
@@ -306,7 +306,7 @@ Expected: `BUILD SUCCESSFUL`. If there are compile errors (likely missing import
 - [ ] **Step 6: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat(ui): animate dock and dim scrim via shared focus transition"
 ```
 
@@ -317,11 +317,11 @@ git commit -m "feat(ui): animate dock and dim scrim via shared focus transition"
 Remove the early-return. Render one layout where the timer always exists and its style animates between dashboard and focus presentations. Wrap dashboard chrome in `AnimatedVisibility(!focusActive)` and focus-only chrome in `AnimatedVisibility(focusActive)` — `AnimatedVisibility` inside a `Column` collapses the layout space smoothly, so the timer drifts toward center naturally as chrome disappears.
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Add the new imports needed by `FocusDashboard`**
 
-Append to the existing imports in `KuroPomodoroApp.kt`. `FontWeight` is already imported (used in the existing dashboard) — only add the ones that aren't already present:
+Append to the existing imports in `PurrodoroApp.kt`. `FontWeight` is already imported (used in the existing dashboard) — only add the ones that aren't already present:
 
 ```kotlin
 import androidx.compose.animation.core.Animatable
@@ -972,7 +972,7 @@ If any of these feel off (jank, mis-timed stagger, jumpy layout), tweak `FocusMo
 - [ ] **Step 7: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat(ui): animate focus mode transition with shared timer style and chrome stagger"
 ```
 

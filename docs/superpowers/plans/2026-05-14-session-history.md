@@ -4,7 +4,7 @@
 
 **Goal:** Persist per-cycle Pomodoro session records to DataStore and display them on the Records screen filtered by the calendar-selected date.
 
-**Architecture:** Add `SessionRecord`/`SessionStatus` models, encode/decode them in `AppRepository` (same URL-encode pattern as todo lists), track an in-progress record in `KuroPomodoroApp` (open on first play, increment on Focus completion, close on Stop or cycle completion), and render session cards in `CalendarScreen` below the calendar heatmap.
+**Architecture:** Add `SessionRecord`/`SessionStatus` models, encode/decode them in `AppRepository` (same URL-encode pattern as todo lists), track an in-progress record in `PurrodoroApp` (open on first play, increment on Focus completion, close on Stop or cycle completion), and render session cards in `CalendarScreen` below the calendar heatmap.
 
 **Tech Stack:** Kotlin, Jetpack Compose, AndroidX DataStore Preferences, `java.time`
 
@@ -149,10 +149,10 @@ git commit -m "feat: persist session records in DataStore"
 
 ---
 
-### Task 3: Track in-progress record in `KuroPomodoroApp` and save on close
+### Task 3: Track in-progress record in `PurrodoroApp` and save on close
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 This task wires up three things:
 1. **Open** an in-memory record when `isStarted` transitions `false → true`
@@ -262,7 +262,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: track and persist session records during cycle"
 ```
 
@@ -271,10 +271,10 @@ git commit -m "feat: track and persist session records during cycle"
 ### Task 4: Thread `sessionRecords` down to `CalendarScreen`
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 - Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt`
 
-- [ ] **Step 1: Expose `sessionRecords` from `appState` in `KuroPomodoroApp`**
+- [ ] **Step 1: Expose `sessionRecords` from `appState` in `PurrodoroApp`**
 
 After the existing `var todoLists by remember...` line (around line 120), add:
 
@@ -327,7 +327,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt \
         purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt
 git commit -m "feat: thread sessionRecords to CalendarScreen"
 ```

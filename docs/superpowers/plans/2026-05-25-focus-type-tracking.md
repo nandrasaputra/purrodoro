@@ -21,7 +21,7 @@
 | `timer/TimerController.kt` | Add `focusType` param to `start()` |
 | `timer/TimerConnection.kt` | Thread `focusType` through `PendingStart` and `start()` |
 | `data/AppRepository.kt` | Encode/decode `focusType` as v4 field |
-| `KuroPomodoroApp.kt` | Pass `focusType` when calling `timerConnection.controller.start()` and pass it to `HomeTimerScreen` |
+| `PurrodoroApp.kt` | Pass `focusType` when calling `timerConnection.controller.start()` and pass it to `HomeTimerScreen` |
 | `ui/HomeTimerScreen.kt` | Replace `CodeTile` + "Deep Work" with icon + type label derived from `focusType` |
 | `test/.../AppRepositoryRuntimeSnapshotTest.kt` | Update existing tests, add focusType round-trip test |
 
@@ -476,10 +476,10 @@ git commit -m "feat: persist focusType in runtime snapshot (v4)"
 
 ---
 
-### Task 6: Pass `focusType` from `KuroPomodoroApp` when starting the timer
+### Task 6: Pass `focusType` from `PurrodoroApp` when starting the timer
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Find where `timerConnection.controller.start(...)` is called**
 
@@ -496,7 +496,7 @@ timerConnection.controller.start(
 )
 ```
 
-Apply this pattern to **every** call site that calls `controller.start(...)` in `KuroPomodoroApp.kt`.
+Apply this pattern to **every** call site that calls `controller.start(...)` in `PurrodoroApp.kt`.
 
 - [ ] **Step 2: Expose `focusType` to `HomeTimerScreen`**
 
@@ -508,7 +508,7 @@ Find the `HomeTimerScreen(...)` call (around line 346) and add:
 activeFocusType = runtimeState?.focusType ?: FocusType.Empty,
 ```
 
-Add the import at the top of `KuroPomodoroApp.kt`:
+Add the import at the top of `PurrodoroApp.kt`:
 
 ```kotlin
 import com.endiar.purrodoro.model.FocusType
@@ -682,7 +682,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 8: Commit Tasks 6 + 7 together**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt
 git commit -m "feat: show focus type icon and label in active timer card"
 ```

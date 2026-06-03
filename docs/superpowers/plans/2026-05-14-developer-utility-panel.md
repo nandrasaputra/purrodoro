@@ -16,7 +16,7 @@
 - `app/src/main/java/com/endiar/purrodoro/model/AppClock.kt` — `ClockDebugSource` interface + `AppClock` object
 
 ### Modified files — main source set
-- `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` — replace `LocalTime.now()` on line 239, replace `delay(250)` on line 235
+- `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` — replace `LocalTime.now()` on line 239, replace `delay(250)` on line 235
 
 ### New files — debug source set
 - `app/src/debug/java/com/endiar/purrodoro/debug/DebugRepository.kt`
@@ -179,14 +179,14 @@ git commit -m "feat: add AppClock and ClockDebugSource for injectable time"
 
 ---
 
-## Task 2: Wire `AppClock` into `KuroPomodoroApp`
+## Task 2: Wire `AppClock` into `PurrodoroApp`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` (lines 235, 239)
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` (lines 235, 239)
 
 - [ ] **Step 1: Replace `LocalTime.now()` on line 239**
 
-In `KuroPomodoroApp.kt`, find:
+In `PurrodoroApp.kt`, find:
 ```kotlin
     val backdropTime = LocalTime.now()
 ```
@@ -197,7 +197,7 @@ Replace with:
 
 - [ ] **Step 2: Replace `delay(250)` on line 235**
 
-In `KuroPomodoroApp.kt`, find:
+In `PurrodoroApp.kt`, find:
 ```kotlin
             delay(250)
 ```
@@ -208,7 +208,7 @@ Replace with:
 
 - [ ] **Step 3: Add import if not already present**
 
-Ensure this import exists in `KuroPomodoroApp.kt` (add after existing model imports):
+Ensure this import exists in `PurrodoroApp.kt` (add after existing model imports):
 ```kotlin
 import com.endiar.purrodoro.model.AppClock
 ```
@@ -224,8 +224,8 @@ Expected: All existing tests PASSED.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
-git commit -m "feat: use AppClock.now() and tickIntervalMs() in KuroPomodoroApp"
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
+git commit -m "feat: use AppClock.now() and tickIntervalMs() in PurrodoroApp"
 ```
 
 ---

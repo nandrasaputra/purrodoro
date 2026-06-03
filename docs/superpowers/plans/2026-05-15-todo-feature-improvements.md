@@ -17,7 +17,7 @@
 | `model/KuroModels.kt` | Modify | Add `Category` data class; add `categoryId: Int?` to `FocusTask`; keep `TodoListState` temporarily (removed in Task 9) |
 | `data/AppRepository.kt` | Modify | Add new DataStore keys; add `AppState` fields; add category/task CRUD operations; update encode/decode helpers |
 | `timer/TimerStateMachine.kt` | Modify | Bug 1 fix — increment `completedSessions` on focus segment complete |
-| `KuroPomodoroApp.kt` | Modify | Bug 2 fix — replace hardcoded `25` with `settings.focusMinutes`; rewire TodoScreen call site |
+| `PurrodoroApp.kt` | Modify | Bug 2 fix — replace hardcoded `25` with `settings.focusMinutes`; rewire TodoScreen call site |
 | `ui/TodoScreen.kt` | Rewrite | New pill row, edit mode, task row with tap-to-detail, `TaskDetailSheet`, completed section |
 
 ---
@@ -344,11 +344,11 @@ git commit -m "fix(timer): increment completedSessions on active task when focus
 ## Task 4: Fix Bug 2 — `addTask` hardcodes `minutes = 25`
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Update `addTask` lambda to use `settings.focusMinutes`**
 
-In `KuroPomodoroApp.kt`, the `addTask` lambda is around line 158. Change:
+In `PurrodoroApp.kt`, the `addTask` lambda is around line 158. Change:
 
 ```kotlin
 list.copy(tasks = list.tasks + FocusTask(nextTaskId, title, 25))
@@ -370,20 +370,20 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 3: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "fix(todo): addTask uses settings.focusMinutes instead of hardcoded 25"
 ```
 
 ---
 
-## Task 5: Rewire `KuroPomodoroApp` to flat task/category model
+## Task 5: Rewire `PurrodoroApp` to flat task/category model
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Add state variables for new fields**
 
-In `KuroPomodoroApp.kt`, after the existing `var todoLists by remember(...)` line (~line 135), add:
+In `PurrodoroApp.kt`, after the existing `var todoLists by remember(...)` line (~line 135), add:
 
 ```kotlin
 var tasks by remember(appState.tasks) { mutableStateOf(appState.tasks) }
@@ -496,7 +496,7 @@ selectedCategoryId = null
 
 Errors for `TodoScreen` are expected. No other errors should appear.
 
-- [ ] **Step 8: Commit the KuroPomodoroApp changes (even with compile errors on TodoScreen stubs)**
+- [ ] **Step 8: Commit the PurrodoroApp changes (even with compile errors on TodoScreen stubs)**
 
 Skip committing until after Task 6 resolves the compile errors.
 
@@ -1634,7 +1634,7 @@ Expected: BUILD SUCCESSFUL
 
 ```bash
 git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt \
-        purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat(todo): rewrite TodoScreen with categories, task detail sheet, completed section"
 ```
 
@@ -1644,7 +1644,7 @@ git commit -m "feat(todo): rewrite TodoScreen with categories, task detail sheet
 
 **Files:**
 - Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 - Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`
 
 **Note:** Only remove `TodoListState`, `KEY_TODOS`, `KEY_SELECTED_LIST`, and related fields from `AppState` if there are no remaining callers. Verify before deleting.
@@ -1662,7 +1662,7 @@ grep -rn "TodoListState\|KEY_TODOS\|KEY_SELECTED_LIST\|todoLists\|selectedTodoLi
 For each file that still references the legacy fields:
 - In `KuroModels.kt`: Delete `data class TodoListState(...)` if only `AppRepository` used it.
 - In `AppRepository.kt`: Remove `KEY_TODOS`, `KEY_SELECTED_LIST` key constants; remove `todoLists` and `selectedTodoListId` fields from `AppState`; remove `setTodoLists` and `setSelectedTodoListId` methods; remove `encodeTodoLists`/`decodeTodoLists`; remove the `SEED_TODO_LISTS` constant; remove `TodoListState` import.
-- In `KuroPomodoroApp.kt`: Remove `todoLists` and `selectedTodoListId` state variables; remove `persistTodoLists` and `persistSelectedTodoListId` helpers; remove legacy initial value fields from `collectAsStateWithLifecycle`; remove `TodoListState` import.
+- In `PurrodoroApp.kt`: Remove `todoLists` and `selectedTodoListId` state variables; remove `persistTodoLists` and `persistSelectedTodoListId` helpers; remove legacy initial value fields from `collectAsStateWithLifecycle`; remove `TodoListState` import.
 
 - [ ] **Step 3: Build to confirm no regressions**
 

@@ -131,11 +131,11 @@ Behaviour:
 ## Section 3: Bug Fixes
 
 ### Bug 1 — `completedSessions` never increments
-**Location:** `TimerStateMachine.applyTimerComplete`  
+**Location:** `TimerStateMachine.applyTimerComplete`
 **Fix:** After a Focus segment completes, if `activeTask != null`, increment `task.completedSessions` by 1 and persist the updated task list via `AppRepository`.
 
 ### Bug 2 — `addTask` hardcodes `minutes = 25`
-**Location:** `KuroPomodoroApp.kt` `addTask` lambda  
+**Location:** `PurrodoroApp.kt` `addTask` lambda
 **Fix:** Replace `FocusTask(nextTaskId, title, 25)` with `FocusTask(nextTaskId, title, settings.focusMinutes)`.
 
 ---

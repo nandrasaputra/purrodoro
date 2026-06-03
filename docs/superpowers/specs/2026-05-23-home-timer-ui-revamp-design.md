@@ -105,7 +105,7 @@ The new Home UI reads the same inputs currently used by the Timer tab:
 
 - `runtimeState` from `TimerConnection.state`.
 - `settings` from `AppState.settings`.
-- `tasks`, `sessionRecords`, `stamps`, and selected task state from `KuroPomodoroApp`.
+- `tasks`, `sessionRecords`, `stamps`, and selected task state from `PurrodoroApp`.
 - Timer actions from `TimerConnection.controller`.
 
 Display-only derived values:
@@ -119,7 +119,7 @@ No new persistence fields are required.
 
 ## Components
 
-Prefer small, focused composables rather than expanding the already large `KuroPomodoroApp.kt` further.
+Prefer small, focused composables rather than expanding the already large `PurrodoroApp.kt` further.
 
 Candidate components:
 

@@ -5,7 +5,7 @@
 
 ## Problem
 
-The `DashboardDock` in `KuroPomodoroApp.kt` is stacked *below* screen content in a `Column`, not overlaid on top of it. Content screens work around this with a hardcoded `bottom = 100.dp` padding. This is fragile — the magic number doesn't respond to actual dock height or system navigation bar insets.
+The `DashboardDock` in `PurrodoroApp.kt` is stacked *below* screen content in a `Column`, not overlaid on top of it. Content screens work around this with a hardcoded `bottom = 100.dp` padding. This is fragile — the magic number doesn't respond to actual dock height or system navigation bar insets.
 
 ```
 Current layout:
@@ -29,7 +29,7 @@ Box(fillMaxSize)
 
 ## Changes
 
-### `KuroPomodoroApp.kt`
+### `PurrodoroApp.kt`
 - Replace outer `Column` with `Box`
 - Remove `Box(weight=1f)` wrapper around screen content — content fills full size
 - Measure dock height via `onSizeChanged`, store as `dockHeightPx` → convert to `Dp`
@@ -57,7 +57,7 @@ Box(fillMaxSize)
 
 | File | Change |
 |------|--------|
-| `KuroPomodoroApp.kt` | Layout refactor, dock height measurement, pass contentPadding |
+| `PurrodoroApp.kt` | Layout refactor, dock height measurement, pass contentPadding |
 | `CalendarScreen.kt` | Add `contentPadding` param, remove hardcoded bottom padding |
 | `TodoScreen.kt` | Same |
 | `SoundsScreen.kt` | Same |

@@ -5,7 +5,7 @@
 
 ## Problem
 
-Entering and exiting Focus Mode in `KuroPomodoroApp.kt` is currently an instantaneous swap. The `FocusDashboard` composable short-circuits with `if (isFocusMode && isRunning) { ... return }`, and the dock is conditionally removed from the layout (`if (!(isFocusMode && isRunning)) DashboardDock(...)`). The result: the dock pops, the cycle dots and controls vanish, and the timer text snaps to a new size — all in a single frame.
+Entering and exiting Focus Mode in `PurrodoroApp.kt` is currently an instantaneous swap. The `FocusDashboard` composable short-circuits with `if (isFocusMode && isRunning) { ... return }`, and the dock is conditionally removed from the layout (`if (!(isFocusMode && isRunning)) DashboardDock(...)`). The result: the dock pops, the cycle dots and controls vanish, and the timer text snaps to a new size — all in a single frame.
 
 This is functionally correct but undersells the moment. Focus Mode is the emotional centerpiece of a Pomodoro app: the user is committing to a block of attention. The transition should *feel* like the room dimming and the world receding, not like a screen change.
 
@@ -15,10 +15,10 @@ Animate the enter/exit of Focus Mode with a calm, cinematic motion that matches 
 
 ## Solution: Single-Source Transition with Layered Choreography
 
-Drive the entire transition from one `updateTransition(targetState = isFocusMode)` at the `KuroPomodoroApp` level so the dock, the dim scrim, and the dashboard interior animate in perfect lockstep. The timer text never unmounts — its style (size, weight, position) is animated rather than swapped — so the countdown stays smooth across the transition.
+Drive the entire transition from one `updateTransition(targetState = isFocusMode)` at the `PurrodoroApp` level so the dock, the dim scrim, and the dashboard interior animate in perfect lockstep. The timer text never unmounts — its style (size, weight, position) is animated rather than swapped — so the countdown stays smooth across the transition.
 
 ```
-KuroPomodoroApp
+PurrodoroApp
   Transition(focusActive = isFocusMode && isRunning)
     ├─ DashboardDock (AnimatedVisibility: slide + fade)
     ├─ DimScrim       (animateFloat alpha; always mounted)
@@ -81,7 +81,7 @@ object FocusModeMotion {
 
 ### Single Transition Source
 
-In `KuroPomodoroApp`, lift `isFocusMode && isRunning` into a single derived boolean and feed it to `updateTransition` so all dependent animations share one clock:
+In `PurrodoroApp`, lift `isFocusMode && isRunning` into a single derived boolean and feed it to `updateTransition` so all dependent animations share one clock:
 
 ```kotlin
 val focusActive = isFocusMode && isRunning
@@ -131,7 +131,7 @@ This way the pulse only runs when the user actively *enters* focus mode in the f
 
 | File | Change |
 | ---- | ------ |
-| `KuroPomodoroApp.kt` | Wrap dock in `AnimatedVisibility`; add dim-scrim layer; introduce `updateTransition` for focus mode; refactor `FocusDashboard` to use animated style instead of early-return |
+| `PurrodoroApp.kt` | Wrap dock in `AnimatedVisibility`; add dim-scrim layer; introduce `updateTransition` for focus mode; refactor `FocusDashboard` to use animated style instead of early-return |
 | `ui/components/FocusModeMotion.kt` | **NEW** — motion constants (durations, easings, alpha/scale targets) |
 
 ## Edge Cases

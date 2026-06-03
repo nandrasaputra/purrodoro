@@ -7,7 +7,7 @@
 
 ## Overview
 
-The timer currently lives entirely inside `KuroPomodoroApp.kt` Compose state. When the user closes the app (task-swipe or process death), the running timer is lost: state is not preserved, the cycle does not advance, and no notification is shown when a Focus or Break segment ends.
+The timer currently lives entirely inside `PurrodoroApp.kt` Compose state. When the user closes the app (task-swipe or process death), the running timer is lost: state is not preserved, the cycle does not advance, and no notification is shown when a Focus or Break segment ends.
 
 This spec makes the Pomodoro timer **truly run in the background**, with:
 
@@ -39,7 +39,7 @@ com.endiar.purrodoro/
 │   └── KuroModels.kt               ← Unchanged
 ├── data/
 │   └── AppRepository.kt            ← Extended with runtime-snapshot persistence
-└── KuroPomodoroApp.kt              ← Slims down ~150 lines; timer state moves out
+└── PurrodoroApp.kt              ← Slims down ~150 lines; timer state moves out
 ```
 
 ---
@@ -53,7 +53,7 @@ data class TimerRuntimeState(
     val session: TimerSession,          // existing: items, currentIndex, remainingSeconds, timerState
     val endsAtMillis: Long?,            // wall-clock end of current segment; null when paused/idle
     val activeTask: FocusTask?,         // task driving the current focus (if any)
-    val openRecord: SessionRecord?      // moved from KuroPomodoroApp
+    val openRecord: SessionRecord?      // moved from PurrodoroApp
 )
 ```
 
@@ -83,7 +83,7 @@ All state changes go through the existing reducer `model/TimerSessionReducer.kt`
 The reducer's `ReducerResult` returns `stamps: Map<LocalDate, FocusStamp>` (a richer counted shape with `completed` and `unfinished`), but the app's persisted heatmap uses `Map<LocalDate, Int>` (a flat completed-counter). The service does **not** use the reducer's stamps return value. Instead:
 
 - The service calls `reduce(...)` purely for its `session` output.
-- When the reducer applies `TimerComplete` on a Focus segment, the service itself increments the persisted `Int` stamp for today (matching the existing `KuroPomodoroApp` behavior).
+- When the reducer applies `TimerComplete` on a Focus segment, the service itself increments the persisted `Int` stamp for today (matching the existing `PurrodoroApp` behavior).
 - The reducer's `FocusStamp` model remains internal-to-reducer dead code for now. Unifying the stamp model is explicitly out of scope (see Out of Scope).
 
 ### Shared state-transition logic between service and alarm receiver
@@ -206,7 +206,7 @@ All methods dispatch to the service; the service is the only object that mutates
 
 ```kotlin
 @Composable
-fun KuroPomodoroApp(repo: AppRepository, connection: TimerConnection) {
+fun PurrodoroApp(repo: AppRepository, connection: TimerConnection) {
     val runtimeState by connection.state.collectAsStateWithLifecycle(null)
     // when runtimeState != null → render running/paused dashboard
     // when null → render idle dashboard with "Focus Now" CTA
@@ -342,7 +342,7 @@ Snapshot encoding follows the existing repo convention (pipe-separated, URL-enco
 
 ---
 
-## Migration of `KuroPomodoroApp.kt`
+## Migration of `PurrodoroApp.kt`
 
 **Removed:**
 
@@ -359,7 +359,7 @@ Snapshot encoding follows the existing repo convention (pipe-separated, URL-enco
 
 **Stays in the composable** (pure UI state): `activeTask`, `isFocusMode`, `selectedTab`, `premiumSheetMessage`, `playingSoundId`, the saver definitions.
 
-**Net change:** `KuroPomodoroApp.kt` drops from ~930 lines to ~400. The duplicated state between `KuroPomodoroApp` and DataStore disappears.
+**Net change:** `PurrodoroApp.kt` drops from ~930 lines to ~400. The duplicated state between `PurrodoroApp` and DataStore disappears.
 
 ---
 

@@ -4,7 +4,7 @@
 
 **Goal:** Remove the manual mode selector from the idle timer screen and replace the small play button with a prominent full-width "Focus Now" pill CTA.
 
-**Architecture:** All changes are confined to `KuroPomodoroApp.kt`. The `FocusDashboard` composable's idle branch loses the mode dropdown and small circle play button; both are replaced by a single pill `Box`. The `onModeSelected` callback is removed from `FocusDashboard`'s signature and its call site in `KuroPomodoroApp`.
+**Architecture:** All changes are confined to `PurrodoroApp.kt`. The `FocusDashboard` composable's idle branch loses the mode dropdown and small circle play button; both are replaced by a single pill `Box`. The `onModeSelected` callback is removed from `FocusDashboard`'s signature and its call site in `PurrodoroApp`.
 
 **Tech Stack:** Kotlin, Jetpack Compose
 
@@ -13,7 +13,7 @@
 ### Task 1: Remove mode selector and replace idle CTA in `FocusDashboard`
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Remove `onModeSelected` from `FocusDashboard` signature**
 
@@ -87,7 +87,7 @@ Also remove `MenuDefaults` if unused:
 import androidx.compose.material3.MenuDefaults
 ```
 
-- [ ] **Step 5: Remove `onModeSelected` from the `FocusDashboard` call site in `KuroPomodoroApp`**
+- [ ] **Step 5: Remove `onModeSelected` from the `FocusDashboard` call site in `PurrodoroApp`**
 
 Find the `FocusDashboard(...)` call (inside `AppTab.Timer ->`) and remove the `onModeSelected` argument:
 
@@ -168,7 +168,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: replace idle mode selector with Focus Now pill CTA"
 ```
 

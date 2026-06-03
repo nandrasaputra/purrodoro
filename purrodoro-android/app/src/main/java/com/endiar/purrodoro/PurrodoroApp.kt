@@ -104,7 +104,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun KuroPomodoroApp(
+fun PurrodoroApp(
     repo: AppRepository,
     timerConnection: TimerConnection,
     requestNotificationPermission: () -> Unit,

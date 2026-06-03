@@ -220,7 +220,7 @@ data class TimerSettings(
 - Old format (plain int) decodes correctly as migration path
 
 ### Obsolete tests
-- `KuroPomodoroAppTest.kt` — `timerDisplayTotalSeconds` and `timerStartTotalSeconds` are replaced by state machine tests above
+- `PurrodoroAppTest.kt` — `timerDisplayTotalSeconds` and `timerStartTotalSeconds` are replaced by state machine tests above
 
 ---
 

@@ -40,7 +40,7 @@ object AppClock {
 ```
 
 - `source` is `null` in release builds — `AppClock` behaves identically to `LocalTime.now()`
-- `KuroPomodoroApp.kt` replaces `LocalTime.now()` call sites with `AppClock.now()`
+- `PurrodoroApp.kt` replaces `LocalTime.now()` call sites with `AppClock.now()`
 - The timer `LaunchedEffect` replaces `delay(250)` with `delay(AppClock.tickIntervalMs())`
 
 ### `DebugRepository` — debug source set only
@@ -92,7 +92,7 @@ Declared in the debug `AndroidManifest.xml` as `android:name=".KuroDebugApplicat
 
 **UI:** Four preset time buttons: `08:00` (morning), `12:00` (day), `17:00` (evening), `22:00` (night). Current override shown. `[Clear]` button resets to `null` (real time).
 
-**Behavior:** Sets `DebugRepository.clockOverride`. The main app re-renders immediately on next recomposition tick — `backdropTime = AppClock.now()` in `KuroPomodoroApp.kt` picks up the new value.
+**Behavior:** Sets `DebugRepository.clockOverride`. The main app re-renders immediately on next recomposition tick — `backdropTime = AppClock.now()` in `PurrodoroApp.kt` picks up the new value.
 
 **Persistence:** In-memory only. Clears on process death.
 
@@ -152,7 +152,7 @@ app/src/
     java/com/endiar/purrodoro/
       model/
         AppClock.kt              ← new: ClockDebugSource interface + AppClock object
-      KuroPomodoroApp.kt         ← modified: LocalTime.now() → AppClock.now(),
+      PurrodoroApp.kt         ← modified: LocalTime.now() → AppClock.now(),
                                               delay(250) → delay(AppClock.tickIntervalMs())
   debug/
     java/com/endiar/purrodoro/

@@ -14,14 +14,14 @@
 
 | File | Change |
 |---|---|
-| `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Add `showStopConfirmDialog` state; gate stop button; add `AlertDialog` composable in `FocusDashboard` |
+| `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` | Add `showStopConfirmDialog` state; gate stop button; add `AlertDialog` composable in `FocusDashboard` |
 
 ---
 
 ## Task 1: Add stop confirmation dialog to `FocusDashboard`
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Add `showStopConfirmDialog` state**
 
@@ -111,7 +111,7 @@ Expected: `BUILD SUCCESSFUL` (no new errors).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: add stop confirmation dialog for paused focus session"
 ```
 
