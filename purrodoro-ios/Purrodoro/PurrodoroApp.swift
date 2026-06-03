@@ -10,11 +10,18 @@ import SwiftUI
 @main
 struct PurrodoroApp: App {
     @StateObject private var engine = TimerEngine()
+    @StateObject private var tasks = TaskStore()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(engine)
+                .environmentObject(tasks)
+                .onAppear {
+                    engine.onFocusSessionCompleted = { [weak tasks] in
+                        tasks?.creditActiveFocusSession()
+                    }
+                }
         }
     }
 }
