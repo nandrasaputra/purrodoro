@@ -13,7 +13,7 @@ struct PurrodoroApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            RootView()
                 .environmentObject(engine)
         }
     }

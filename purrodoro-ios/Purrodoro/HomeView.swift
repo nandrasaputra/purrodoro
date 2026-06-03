@@ -41,7 +41,7 @@ struct HomeView: View {
             }
             .padding(.horizontal, 28)
             .padding(.top, 12)
-            .padding(.bottom, 28)
+            .padding(.bottom, 96)
         }
         .environment(\.pColors, colors)
         .sheet(isPresented: $showSettings) {
