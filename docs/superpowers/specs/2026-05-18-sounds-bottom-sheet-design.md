@@ -22,8 +22,8 @@ Move the Sounds feature from a dedicated dock tab into a `ModalBottomSheet`, acc
 
 ### In scope
 - Remove `AppTab.Sounds` from `KuroModels.kt`
-- Remove the `AppTab.Sounds` branch from `KuroPomodoroApp`'s tab switch
-- Add `showSoundsSheet` state and `ModalBottomSheet` in `KuroPomodoroApp`
+- Remove the `AppTab.Sounds` branch from `PurrodoroApp`'s tab switch
+- Add `showSoundsSheet` state and `ModalBottomSheet` in `PurrodoroApp`
 - Add `MusicButton` composable inside `FocusDashboard`
 - Rotating vinyl animation on the icon when a sound is playing
 
@@ -49,7 +49,7 @@ enum class AppTab(val label: String, val symbol: String) {
 }
 ```
 
-### `KuroPomodoroApp.kt` — sheet state
+### `PurrodoroApp.kt` — sheet state
 
 Add alongside existing sheet state:
 
@@ -89,7 +89,7 @@ The `PremiumMessage` surface (shown when a locked sound is tapped) is rendered *
 
 ### `FocusDashboard` — `MusicButton`
 
-A new private `MusicButton` composable added to `KuroPomodoroApp.kt`. Placed inside `FocusDashboard`, centered horizontally, below the controls row (pause/play/stop/skip or "Focus Now"), always rendered regardless of timer state.
+A new private `MusicButton` composable added to `PurrodoroApp.kt`. Placed inside `FocusDashboard`, centered horizontally, below the controls row (pause/play/stop/skip or "Focus Now"), always rendered regardless of timer state.
 
 #### Idle state (no sound playing)
 - Circular icon button, Material `MusicNote` icon
@@ -113,7 +113,7 @@ A new private `MusicButton` composable added to `KuroPomodoroApp.kt`. Placed ins
 
 ## Data Flow
 
-No data flow changes. `playingSoundId` remains a `rememberSaveable` in `KuroPomodoroApp`. `selectedSoundId` persists via `AppRepository` as before. The sheet's open/close state (`showSoundsSheet`) is ephemeral UI state.
+No data flow changes. `playingSoundId` remains a `rememberSaveable` in `PurrodoroApp`. `selectedSoundId` persists via `AppRepository` as before. The sheet's open/close state (`showSoundsSheet`) is ephemeral UI state.
 
 ```
 MusicButton tap

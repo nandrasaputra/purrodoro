@@ -36,7 +36,7 @@ data class SessionRecord(
 
 ---
 
-## Recording Logic (in `KuroPomodoroApp.kt`)
+## Recording Logic (in `PurrodoroApp.kt`)
 
 ### Open a record
 - Trigger: `isStarted` transitions `false → true` (user presses Play for the first time in a fresh session)

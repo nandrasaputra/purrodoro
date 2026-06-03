@@ -29,7 +29,7 @@
 - `purrodoro-android/app/src/main/AndroidManifest.xml`
 - `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
 - `purrodoro-android/app/src/main/java/com/endiar/purrodoro/MainActivity.kt`
-- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 ---
 
@@ -877,13 +877,13 @@ Replace the entire `AndroidManifest.xml`:
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.KuroPomodoro">
+        android:theme="@style/Theme.Purrodoro">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.KuroPomodoro">
+            android:theme="@style/Theme.Purrodoro">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -1962,7 +1962,7 @@ import androidx.core.content.ContextCompat
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
-import com.endiar.purrodoro.ui.theme.KuroPomodoroTheme
+import com.endiar.purrodoro.ui.theme.PurrodoroTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -1979,8 +1979,8 @@ class MainActivity : ComponentActivity() {
         timerConnection = TimerConnection(applicationContext)
 
         setContent {
-            KuroPomodoroTheme {
-                KuroPomodoroApp(
+            PurrodoroTheme {
+                PurrodoroApp(
                     repo = AppRepository.get(this),
                     timerConnection = timerConnection,
                     requestNotificationPermission = ::requestNotificationPermissionIfNeeded
@@ -2011,15 +2011,15 @@ class MainActivity : ComponentActivity() {
 }
 ```
 
-- [ ] **Step 2: Build — will fail because `KuroPomodoroApp` doesn't accept the new params yet. Task 12 fixes this.**
+- [ ] **Step 2: Build — will fail because `PurrodoroApp` doesn't accept the new params yet. Task 12 fixes this.**
 
-Skip ahead to Task 12 to update `KuroPomodoroApp`'s signature.
+Skip ahead to Task 12 to update `PurrodoroApp`'s signature.
 
 - [ ] **Step 3: After Task 12 passes build, commit Task 11 changes together with Task 12 (one combined commit). Continue to Task 12.**
 
 ---
 
-## Task 12: Migrate `KuroPomodoroApp.kt` to service-driven state
+## Task 12: Migrate `PurrodoroApp.kt` to service-driven state
 
 This is the biggest single change. We:
 1. Add new parameters (`timerConnection`, `requestNotificationPermission`).
@@ -2029,11 +2029,11 @@ This is the biggest single change. We:
 5. Replace control-flow lambdas to call the controller.
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Update the function signature and imports**
 
-Add imports at the top of `KuroPomodoroApp.kt`:
+Add imports at the top of `PurrodoroApp.kt`:
 
 ```kotlin
 import com.endiar.purrodoro.timer.TimerConnection
@@ -2044,7 +2044,7 @@ Change the function signature:
 
 ```kotlin
 @Composable
-fun KuroPomodoroApp(
+fun PurrodoroApp(
     repo: AppRepository,
     timerConnection: TimerConnection,
     requestNotificationPermission: () -> Unit
@@ -2053,7 +2053,7 @@ fun KuroPomodoroApp(
 
 - [ ] **Step 2: Add state collection from the connection**
 
-Inside `KuroPomodoroApp`, immediately after `val appState by repo.appState.collectAsStateWithLifecycle(...)`, add:
+Inside `PurrodoroApp`, immediately after `val appState by repo.appState.collectAsStateWithLifecycle(...)`, add:
 
 ```kotlin
 val runtimeState by timerConnection.state.collectAsStateWithLifecycle(initialValue = null)
@@ -2061,7 +2061,7 @@ val runtimeState by timerConnection.state.collectAsStateWithLifecycle(initialVal
 
 - [ ] **Step 3: Remove duplicated timer state vars**
 
-Delete the following declarations from `KuroPomodoroApp` (currently around lines 125–183):
+Delete the following declarations from `PurrodoroApp` (currently around lines 125–183):
 
 ```kotlin
 // DELETE these:
@@ -2131,7 +2131,7 @@ LaunchedEffect(isRunning) {
 val now = tickNow
 ```
 
-Add this import at the top of `KuroPomodoroApp.kt` if it's not already there:
+Add this import at the top of `PurrodoroApp.kt` if it's not already there:
 
 ```kotlin
 import androidx.compose.runtime.mutableLongStateOf
@@ -2204,9 +2204,9 @@ onFocusTask = { task ->
 },
 ```
 
-- [ ] **Step 9: Delete obsolete tests in `KuroPomodoroAppTest.kt`**
+- [ ] **Step 9: Delete obsolete tests in `PurrodoroAppTest.kt`**
 
-The pre-existing test file `purrodoro-android/app/src/test/java/com/endiar/purrodoro/KuroPomodoroAppTest.kt` tests two internal helpers (`timerDisplayTotalSeconds`, `timerStartTotalSeconds`) that this task removed from `KuroPomodoroApp.kt`. With those helpers gone, the tests no longer compile. Replace the entire file contents with:
+The pre-existing test file `purrodoro-android/app/src/test/java/com/endiar/purrodoro/PurrodoroAppTest.kt` tests two internal helpers (`timerDisplayTotalSeconds`, `timerStartTotalSeconds`) that this task removed from `PurrodoroApp.kt`. With those helpers gone, the tests no longer compile. Replace the entire file contents with:
 
 ```kotlin
 package com.endiar.purrodoro
@@ -2232,8 +2232,8 @@ Expected: `BUILD SUCCESSFUL`. If you hit errors about removed savers or unused i
 
 ```bash
 git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/MainActivity.kt \
-        purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
-git commit -m "feat: migrate KuroPomodoroApp to service-driven timer state"
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
+git commit -m "feat: migrate PurrodoroApp to service-driven timer state"
 ```
 
 ---
@@ -2373,7 +2373,7 @@ For any ❌ above, file a bug, root-cause it, and fix. No commit needed for this
   - Reconciliation ✓ Task 3, 13
   - Persistence ✓ Task 4
   - Permissions & manifest ✓ Task 5
-  - Migration of `KuroPomodoroApp` ✓ Task 12
+  - Migration of `PurrodoroApp` ✓ Task 12
   - Unit tests for reducer, reconciler, repo encode/decode ✓ Task 1, 3, 4
   - Manual checklist ✓ Task 14
 

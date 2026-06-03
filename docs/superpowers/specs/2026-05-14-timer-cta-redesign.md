@@ -31,7 +31,7 @@ Remove the manual mode selector from the timer screen and replace the small idle
 - Paused state: resume circle + stop circle (+ skip during breaks)
 - Cycle dots row
 - Timer countdown display
-- `onModeSelected` call site in `KuroPomodoroApp` removed (no longer passed to `FocusDashboard`)
+- `onModeSelected` call site in `PurrodoroApp` removed (no longer passed to `FocusDashboard`)
 
 ## Layout Detail (Idle State)
 

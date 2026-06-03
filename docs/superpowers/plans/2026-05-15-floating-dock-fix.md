@@ -4,7 +4,7 @@
 
 **Goal:** Make `DashboardDock` truly float above screen content by overlaying it with a `Box`, and replace all hardcoded `bottom = 100.dp` workarounds with dynamic padding derived from the dock's measured height.
 
-**Architecture:** Outer `Column` in `KuroPomodoroApp` becomes a `Box`. The content area fills full size. The dock is overlaid at `Alignment.BottomCenter`. The dock's pixel height is measured via `onSizeChanged`, converted to `Dp`, and passed as `contentPadding: PaddingValues` to each scrollable screen.
+**Architecture:** Outer `Column` in `PurrodoroApp` becomes a `Box`. The content area fills full size. The dock is overlaid at `Alignment.BottomCenter`. The dock's pixel height is measured via `onSizeChanged`, converted to `Dp`, and passed as `contentPadding: PaddingValues` to each scrollable screen.
 
 **Tech Stack:** Kotlin, Jetpack Compose — no new dependencies.
 
@@ -14,7 +14,7 @@
 
 | File | Change |
 |------|--------|
-| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Layout refactor: `Column` → `Box`, measure dock height, pass `contentPadding` to screens |
+| `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` | Layout refactor: `Column` → `Box`, measure dock height, pass `contentPadding` to screens |
 | `app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt` | Add `contentPadding: PaddingValues` param, remove hardcoded bottom padding |
 | `app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt` | Same |
 | `app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt` | Same |
@@ -176,14 +176,14 @@ git commit -m "refactor: add contentPadding param to all scrollable screens"
 
 ---
 
-## Task 2: Refactor `KuroPomodoroApp` layout to floating dock
+## Task 2: Refactor `PurrodoroApp` layout to floating dock
 
 Replace the outer `Column` + `Box(weight=1f)` structure with a `Box` overlay. Measure the dock height and pass it as `contentPadding` to each screen.
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
-- [ ] **Step 1: Add required imports to `KuroPomodoroApp.kt`**
+- [ ] **Step 1: Add required imports to `PurrodoroApp.kt`**
 
 Ensure these imports are present (add any that are missing):
 
@@ -199,9 +199,9 @@ import androidx.compose.ui.platform.LocalDensity
 
 `onSizeChanged` and `LocalDensity` are the new ones needed.
 
-- [ ] **Step 2: Add dock height state variable inside `KuroPomodoroApp`**
+- [ ] **Step 2: Add dock height state variable inside `PurrodoroApp`**
 
-Find the block of `var`/`val` state declarations near the top of `KuroPomodoroApp` (after the `appState` collection) and add:
+Find the block of `var`/`val` state declarations near the top of `PurrodoroApp` (after the `appState` collection) and add:
 
 ```kotlin
 var dockHeightPx by remember { mutableIntStateOf(0) }
@@ -209,7 +209,7 @@ var dockHeightPx by remember { mutableIntStateOf(0) }
 
 - [ ] **Step 3: Replace the outer `Column` with `Box` + overlay layout**
 
-Find this block near the bottom of `KuroPomodoroApp` (starts around the root surface (`KuroFlatSurface`) call):
+Find this block near the bottom of `PurrodoroApp` (starts around the root surface (`KuroFlatSurface`) call):
 
 ```kotlin
 KuroFlatSurface {
@@ -321,7 +321,7 @@ Expected: `BUILD SUCCESSFUL`. If there are compile errors, fix them (likely miss
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: float DashboardDock above content using Box overlay and dynamic contentPadding"
 ```
 

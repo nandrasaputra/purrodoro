@@ -30,7 +30,7 @@ Both fields are primitive `Int` — compatible with `rememberSaveable`. No persi
 
 ---
 
-## 2. State in KuroPomodoroApp
+## 2. State in PurrodoroApp
 
 Two new state variables:
 
@@ -106,7 +106,7 @@ When `isFocusMode = false` and timer is running, the Timer tab (Running state) s
 
 ## 7. Session Complete Logic
 
-Fires inside the existing `LaunchedEffect` timer countdown block in `KuroPomodoroApp.kt` when focus timer reaches 0:
+Fires inside the existing `LaunchedEffect` timer countdown block in `PurrodoroApp.kt` when focus timer reaches 0:
 
 ```
 activeTask.pomodorosDone++
@@ -132,7 +132,7 @@ Task list mutation uses `.map { ... .copy(...) }` — no new persistence needed.
 | File | Change |
 |---|---|
 | `model/KuroModels.kt` | Add `plannedSessions`, `pomodorosDone` to `FocusTask` |
-| `KuroPomodoroApp.kt` | Add `activeTask`, `isFocusMode` state; session complete logic; pass callbacks down |
+| `PurrodoroApp.kt` | Add `activeTask`, `isFocusMode` state; session complete logic; pass callbacks down |
 | `ui/TodoScreen.kt` | Add `SwipeToDismiss` leading swipe to `TaskGlassRow`; add pre-session `ModalBottomSheet` |
 | `ui/TimerScreen.kt` | Unused/legacy — no changes |
 

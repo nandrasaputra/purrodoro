@@ -4,7 +4,7 @@
 
 **Goal:** Build a broad local-first Jetpack Compose clone of Pomocat with a working timer, cute cat UI, tabs, todos, calendar stamps, sound selection, and simulated premium/profile/settings flows.
 
-**Architecture:** Keep the app in the existing single Android module. `MainActivity` owns the root Compose state and renders a `KuroPomodoroApp` app shell with focused model, component, and screen files. State is local Compose runtime state only; no backend, persistence, billing, ads, audio playback, or navigation library is introduced.
+**Architecture:** Keep the app in the existing single Android module. `MainActivity` owns the root Compose state and renders a `PurrodoroApp` app shell with focused model, component, and screen files. State is local Compose runtime state only; no backend, persistence, billing, ads, audio playback, or navigation library is introduced.
 
 **Tech Stack:** Kotlin, Jetpack Compose, Material3, Android Gradle Plugin 9.0.1, Kotlin 2.0.21, JUnit 4.
 
@@ -12,9 +12,9 @@
 
 ## File Structure
 
-- Modify `app/src/main/java/com/endiar/purrodoro/MainActivity.kt`: replace generated greeting with `KuroPomodoroApp`.
+- Modify `app/src/main/java/com/endiar/purrodoro/MainActivity.kt`: replace generated greeting with `PurrodoroApp`.
 - Create `app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`: enums and data classes for tabs, timer modes, tasks, todo lists, sound options, settings, and calendar stamps.
-- Create `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`: root local state, timer ticking, app shell, and routing between tabs.
+- Create `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`: root local state, timer ticking, app shell, and routing between tabs.
 - Create `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`: reusable cards, buttons, chips, bottom nav, timer ring, cat illustration, and helper UI.
 - Create `app/src/main/java/com/endiar/purrodoro/ui/TimerScreen.kt`: Pomodoro focus screen.
 - Create `app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt`: local todo lists.
@@ -249,7 +249,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun KuroPomodoroTheme(
+fun PurrodoroTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
@@ -529,7 +529,7 @@ git commit -m "feat: add pomocat inspired compose theme"
 
 **Files:**
 - Modify: `app/src/main/java/com/endiar/purrodoro/MainActivity.kt`
-- Create: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Create: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Replace MainActivity**
 
@@ -542,15 +542,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.endiar.purrodoro.ui.theme.KuroPomodoroTheme
+import com.endiar.purrodoro.ui.theme.PurrodoroTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            KuroPomodoroTheme {
-                KuroPomodoroApp()
+            PurrodoroTheme {
+                PurrodoroApp()
             }
         }
     }
@@ -559,7 +559,7 @@ class MainActivity : ComponentActivity() {
 
 - [ ] **Step 2: Add root app shell with temporary tab content**
 
-Create `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` with:
+Create `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` with:
 
 ```kotlin
 package com.endiar.purrodoro
@@ -592,7 +592,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.delay
 
 @Composable
-fun KuroPomodoroApp() {
+fun PurrodoroApp() {
     var selectedTab by remember { mutableStateOf(AppTab.Timer) }
     var timerMode by remember { mutableStateOf(TimerMode.Focus) }
     var settings by remember { mutableStateOf(TimerSettings()) }
@@ -665,7 +665,7 @@ Run: `git rev-parse --is-inside-work-tree`
 Expected in this workspace: FAIL. If git exists, run:
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/MainActivity.kt app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/MainActivity.kt app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: add local compose app shell"
 ```
 
@@ -673,7 +673,7 @@ git commit -m "feat: add local compose app shell"
 
 **Files:**
 - Create: `app/src/main/java/com/endiar/purrodoro/ui/TimerScreen.kt`
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Add timer screen**
 
@@ -769,7 +769,7 @@ fun TimerScreen(
 
 - [ ] **Step 2: Wire timer screen into root app**
 
-In `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`, add imports:
+In `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`, add imports:
 
 ```kotlin
 import com.endiar.purrodoro.ui.TimerScreen
@@ -814,7 +814,7 @@ Run: `git rev-parse --is-inside-work-tree`
 Expected in this workspace: FAIL. If git exists, run:
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/ui/TimerScreen.kt app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/TimerScreen.kt app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: add pomodoro timer screen"
 ```
 
@@ -822,7 +822,7 @@ git commit -m "feat: add pomodoro timer screen"
 
 **Files:**
 - Create: `app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt`
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Add todo screen**
 
@@ -928,7 +928,7 @@ fun TodoScreen(
 
 - [ ] **Step 2: Wire todo actions into root app**
 
-In `KuroPomodoroApp.kt`, add imports:
+In `PurrodoroApp.kt`, add imports:
 
 ```kotlin
 import com.endiar.purrodoro.ui.TodoScreen
@@ -983,7 +983,7 @@ Run: `git rev-parse --is-inside-work-tree`
 Expected in this workspace: FAIL. If git exists, run:
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: add local todo lists"
 ```
 
@@ -992,7 +992,7 @@ git commit -m "feat: add local todo lists"
 **Files:**
 - Create: `app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt`
 - Create: `app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt`
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Add calendar screen**
 
@@ -1132,7 +1132,7 @@ fun SoundsScreen(
 
 - [ ] **Step 3: Wire calendar and sounds into root app**
 
-In `KuroPomodoroApp.kt`, add imports:
+In `PurrodoroApp.kt`, add imports:
 
 ```kotlin
 import com.endiar.purrodoro.ui.CalendarScreen
@@ -1179,7 +1179,7 @@ Run: `git rev-parse --is-inside-work-tree`
 Expected in this workspace: FAIL. If git exists, run:
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: add calendar stamps and sound picker"
 ```
 
@@ -1187,7 +1187,7 @@ git commit -m "feat: add calendar stamps and sound picker"
 
 **Files:**
 - Create: `app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt`
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Add profile screen**
 
@@ -1277,7 +1277,7 @@ private fun DurationRow(label: String, value: Int, onValueChanged: (Int) -> Unit
 
 - [ ] **Step 2: Wire profile into root app**
 
-In `KuroPomodoroApp.kt`, add import:
+In `PurrodoroApp.kt`, add import:
 
 ```kotlin
 import com.endiar.purrodoro.ui.ProfileScreen
@@ -1313,7 +1313,7 @@ Run: `git rev-parse --is-inside-work-tree`
 Expected in this workspace: FAIL. If git exists, run:
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: add local profile settings"
 ```
 

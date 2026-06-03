@@ -24,7 +24,7 @@ import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
 import com.endiar.purrodoro.ui.KuroLocalizationProvider
-import com.endiar.purrodoro.ui.theme.KuroPomodoroTheme
+import com.endiar.purrodoro.ui.theme.PurrodoroTheme
 import com.endiar.purrodoro.widget.QuickStartWidget
 import com.endiar.purrodoro.widget.WidgetActions
 import com.endiar.purrodoro.widget.WidgetRefreshWorker
@@ -130,8 +130,8 @@ class MainActivity : ComponentActivity() {
             }
 
             KuroLocalizationProvider(language = language) {
-                KuroPomodoroTheme(appearanceMode = appearanceMode) {
-                    KuroPomodoroApp(
+                PurrodoroTheme(appearanceMode = appearanceMode) {
+                    PurrodoroApp(
                         repo = repo,
                         timerConnection = timerConnection,
                         requestNotificationPermission = ::requestNotificationPermissionIfNeeded,

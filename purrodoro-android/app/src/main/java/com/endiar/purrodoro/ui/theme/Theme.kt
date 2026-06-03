@@ -42,7 +42,7 @@ private val LightColorScheme = lightColorScheme(
  * [appearanceMode]. `Auto` defers to [isSystemInDarkTheme].
  */
 @Composable
-fun KuroPomodoroTheme(
+fun PurrodoroTheme(
     appearanceMode: AppearanceMode = AppearanceMode.Auto,
     systemInDark: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,

@@ -4,7 +4,7 @@
 
 **Goal:** Migrate all user preferences and app data from `rememberSaveable` to `DataStore<Preferences>` so they survive process death, force-stop, and reboots.
 
-**Architecture:** A single `AppRepository` object owns the `DataStore` instance and exposes a `Flow<AppState>` plus individual `suspend` write functions. `KuroPomodoroApp` collects the flow with `collectAsStateWithLifecycle` and writes back on every state change via `LaunchedEffect`. No ViewModel, no DI.
+**Architecture:** A single `AppRepository` object owns the `DataStore` instance and exposes a `Flow<AppState>` plus individual `suspend` write functions. `PurrodoroApp` collects the flow with `collectAsStateWithLifecycle` and writes back on every state change via `LaunchedEffect`. No ViewModel, no DI.
 
 **Tech Stack:** `androidx.datastore:datastore-preferences:1.1.1`, `kotlinx-coroutines-android:1.7.3`, `androidx.lifecycle:lifecycle-runtime-compose` (for `collectAsStateWithLifecycle`)
 
@@ -17,7 +17,7 @@
 | `gradle/libs.versions.toml` | Modify | Add `datastore`, `coroutines`, `lifecycleRuntimeCompose` version entries + library aliases |
 | `app/build.gradle.kts` | Modify | Add three new `implementation` dependencies |
 | `app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt` | Create | DataStore instance, `AppState` data class, `Flow<AppState>`, all `suspend` write functions |
-| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Modify | Replace `rememberSaveable` for 10 persisted fields with DataStore-backed reads/writes; keep 8 ephemeral fields as `rememberSaveable` |
+| `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` | Modify | Replace `rememberSaveable` for 10 persisted fields with DataStore-backed reads/writes; keep 8 ephemeral fields as `rememberSaveable` |
 | `app/src/test/java/com/endiar/purrodoro/data/AppRepositoryTest.kt` | Create | Unit tests for `AppRepository` serialization round-trips using `DataStoreFactory` in-memory |
 
 ---
@@ -428,33 +428,33 @@ git commit -m "feat: add AppRepository with DataStore persistence"
 
 ---
 
-## Task 3: Wire AppRepository into KuroPomodoroApp
+## Task 3: Wire AppRepository into PurrodoroApp
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 The strategy:
-1. Accept a `Context` parameter in `KuroPomodoroApp` (or pass `AppRepository` directly — use the latter for testability).
+1. Accept a `Context` parameter in `PurrodoroApp` (or pass `AppRepository` directly — use the latter for testability).
 2. Collect `repo.appState` as Compose state using `collectAsStateWithLifecycle`.
 3. On first composition, block on the first emission to initialise the 8 ephemeral `rememberSaveable` fields that depend on `settings` (e.g. `remainingSeconds`).
 4. Replace each of the 10 persisted `rememberSaveable` vars with derived state from the collected `AppState`.
 5. Add `LaunchedEffect` blocks that write back to the repo whenever each persisted value changes.
 
-**Concrete changes to `KuroPomodoroApp.kt`:**
+**Concrete changes to `PurrodoroApp.kt`:**
 
 - [ ] **Step 1: Add the `repo` parameter and the `collectAsStateWithLifecycle` import**
 
-Change the composable signature and add imports. The `MainActivity` (or wherever `KuroPomodoroApp()` is called) will need to pass `AppRepository.get(context)`.
+Change the composable signature and add imports. The `MainActivity` (or wherever `PurrodoroApp()` is called) will need to pass `AppRepository.get(context)`.
 
 Replace the function signature:
 ```kotlin
 // Before
 @Composable
-fun KuroPomodoroApp() {
+fun PurrodoroApp() {
 
 // After
 @Composable
-fun KuroPomodoroApp(repo: com.endiar.purrodoro.data.AppRepository) {
+fun PurrodoroApp(repo: com.endiar.purrodoro.data.AppRepository) {
 ```
 
 Add these imports:
@@ -566,19 +566,19 @@ Keep `AppTabSaver` and `TimerModeSaver` (still used for the ephemeral `selectedT
 
 - [ ] **Step 5: Update MainActivity to pass the repo**
 
-Find the file that calls `KuroPomodoroApp()` and update the call site. Locate it:
+Find the file that calls `PurrodoroApp()` and update the call site. Locate it:
 ```bash
-grep -r "KuroPomodoroApp()" purrodoro-android/app/src/main/java --include="*.kt" -l
+grep -r "PurrodoroApp()" purrodoro-android/app/src/main/java --include="*.kt" -l
 ```
 
 In `MainActivity.kt` (or equivalent), the call site will look like:
 ```kotlin
-KuroPomodoroApp()
+PurrodoroApp()
 ```
 
 Change it to:
 ```kotlin
-KuroPomodoroApp(repo = AppRepository.get(this))
+PurrodoroApp(repo = AppRepository.get(this))
 ```
 
 Add the import:
@@ -603,9 +603,9 @@ Expected: All tests PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt \
         app/src/main/java/com/endiar/purrodoro/MainActivity.kt
-git commit -m "feat: wire DataStore persistence into KuroPomodoroApp"
+git commit -m "feat: wire DataStore persistence into PurrodoroApp"
 ```
 
 ---

@@ -32,14 +32,14 @@ Excluded from the first pass:
 
 ## Architecture
 
-The implementation will stay in the existing single Android app module. `MainActivity` will host a `KuroPomodoroApp` root composable.
+The implementation will stay in the existing single Android app module. `MainActivity` will host a `PurrodoroApp` root composable.
 
 Use a small in-memory state holder at the Compose root instead of introducing database, networking, or dependency injection. This keeps the first clone easy to inspect and avoids unnecessary infrastructure.
 
 Suggested package structure:
 
 - `com.endiar.purrodoro.MainActivity`: Android entry point.
-- `com.endiar.purrodoro.KuroPomodoroApp`: top-level app shell and state ownership.
+- `com.endiar.purrodoro.PurrodoroApp`: top-level app shell and state ownership.
 - `com.endiar.purrodoro.model`: simple data classes and enums for tabs, timer modes, tasks, sound options, calendar stamps, and mock premium state.
 - `com.endiar.purrodoro.ui`: screen composables.
 - `com.endiar.purrodoro.ui.components`: reusable buttons, cards, cat illustration, timer ring, bottom navigation, chips, and empty states.

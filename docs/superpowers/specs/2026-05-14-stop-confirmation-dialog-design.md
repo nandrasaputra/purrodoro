@@ -64,4 +64,4 @@ The stop button is only visible in the paused (`isStarted && !isRunning`) state,
 
 | File | Change |
 |---|---|
-| `KuroPomodoroApp.kt` (`FocusDashboard`) | Add `showStopConfirmDialog` state, gate stop button, add `AlertDialog` composable |
+| `PurrodoroApp.kt` (`FocusDashboard`) | Add `showStopConfirmDialog` state, gate stop button, add `AlertDialog` composable |

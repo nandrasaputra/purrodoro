@@ -4,17 +4,17 @@
 
 **Goal:** Replace the flat list `ProfileScreen` with a reference-image-faithful design: large header, white rounded section cards, per-row leading icons, subtitles on toggle rows, chevrons on tappable rows, and a NOTIFICATIONS section with an "Enable notification sound" toggle.
 
-**Architecture:** Single file replacement — `ProfileScreen.kt` is rewritten entirely. `KuroPomodoroApp.kt` needs two parameter additions to the `ProfileScreen` call: `notificationSoundEnabled` and `onUpdateNotificationSound`. No model changes needed; `notificationSoundEnabled` already exists in `AppState` and `AppRepository`.
+**Architecture:** Single file replacement — `ProfileScreen.kt` is rewritten entirely. `PurrodoroApp.kt` needs two parameter additions to the `ProfileScreen` call: `notificationSoundEnabled` and `onUpdateNotificationSound`. No model changes needed; `notificationSoundEnabled` already exists in `AppState` and `AppRepository`.
 
 **Tech Stack:** Kotlin, Jetpack Compose, Material3, existing `AppRepository`/`AppState`
 
 ---
 
-### Task 1: Add notification sound parameters to ProfileScreen signature and KuroPomodoroApp call site
+### Task 1: Add notification sound parameters to ProfileScreen signature and PurrodoroApp call site
 
 **Files:**
 - Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt`
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 Current `ProfileScreen` signature:
 ```kotlin
@@ -25,7 +25,7 @@ fun ProfileScreen(
 )
 ```
 
-Current call site in `KuroPomodoroApp.kt` (lines ~503–508):
+Current call site in `PurrodoroApp.kt` (lines ~503–508):
 ```kotlin
 ProfileScreen(
     settings = settings,
@@ -34,7 +34,7 @@ ProfileScreen(
 )
 ```
 
-`notificationSoundEnabled` is already available as a `var` at line 141 of `KuroPomodoroApp.kt`:
+`notificationSoundEnabled` is already available as a `var` at line 141 of `PurrodoroApp.kt`:
 ```kotlin
 var notificationSoundEnabled by remember(appState.notificationSoundEnabled) { mutableStateOf(appState.notificationSoundEnabled) }
 ```
@@ -55,9 +55,9 @@ fun ProfileScreen(
 )
 ```
 
-- [ ] **Step 2: Update KuroPomodoroApp call site**
+- [ ] **Step 2: Update PurrodoroApp call site**
 
-Find `setNotificationSound` or `notificationSoundEnabled` usage in `KuroPomodoroApp.kt` to confirm the lambda name. Then update the `ProfileScreen(...)` call to pass:
+Find `setNotificationSound` or `notificationSoundEnabled` usage in `PurrodoroApp.kt` to confirm the lambda name. Then update the `ProfileScreen(...)` call to pass:
 ```kotlin
 ProfileScreen(
     settings = settings,
@@ -79,7 +79,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 4: Commit**
 ```bash
 git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt \
-        purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat(profile): add notification sound params to ProfileScreen signature"
 ```
 

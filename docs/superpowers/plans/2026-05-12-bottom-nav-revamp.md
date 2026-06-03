@@ -4,7 +4,7 @@
 
 **Goal:** Revamp `DashboardDock` so all five items have equal width, the Home button is navigation-only with a timer-state icon, the Sounds item shows a play-state icon, and both animated items share a consistent pulse/breathe animation.
 
-**Architecture:** All changes are in-place edits to existing files — no new files created. `KuroComponents.kt` gets a private `PulseWrapper` composable and refactored `DockHomeButton` / `DockTabItem`. `KuroPomodoroApp.kt` removes `onStartPause` from the `DashboardDock` call-site and passes `isSoundPlaying`. `SoundsScreen.kt` gains `playingSoundId` and `onToggleSound` params (sound toggling stays in the screen, dock is navigation-only).
+**Architecture:** All changes are in-place edits to existing files — no new files created. `KuroComponents.kt` gets a private `PulseWrapper` composable and refactored `DockHomeButton` / `DockTabItem`. `PurrodoroApp.kt` removes `onStartPause` from the `DashboardDock` call-site and passes `isSoundPlaying`. `SoundsScreen.kt` gains `playingSoundId` and `onToggleSound` params (sound toggling stays in the screen, dock is navigation-only).
 
 **Tech Stack:** Kotlin, Jetpack Compose, `androidx.compose.animation.core` (infiniteTransition, animateFloat, FastOutSlowInEasing)
 
@@ -15,7 +15,7 @@
 | File | What changes |
 |------|-------------|
 | `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt` | Add `PulseWrapper`; refactor `DockHomeButton` to nav-only + icon; add `isSoundPlaying` param to `DashboardDock` + `DockTabItem`; `weight(1f)` on all items; remove `onStartPause` param |
-| `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Remove `onStartPause` from `DashboardDock` call; add `isSoundPlaying` arg; add `playingSoundId` state; wire `onToggleSound`; pass `playingSoundId`+`onToggleSound` to `SoundsScreen` |
+| `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` | Remove `onStartPause` from `DashboardDock` call; add `isSoundPlaying` arg; add `playingSoundId` state; wire `onToggleSound`; pass `playingSoundId`+`onToggleSound` to `SoundsScreen` |
 | `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt` | Add `playingSoundId: Int?` and `onToggleSound: (SoundOption) -> Unit` params; use `playingSoundId` for play-state; tint playing row background coral |
 
 ---
@@ -227,7 +227,7 @@ private fun DockHomeButton(isRunning: Boolean, modifier: Modifier = Modifier, on
 cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
-Expected: compile errors about `onStartPause` at the call site in `KuroPomodoroApp.kt` — that is expected and will be fixed in Task 3.
+Expected: compile errors about `onStartPause` at the call site in `PurrodoroApp.kt` — that is expected and will be fixed in Task 3.
 
 - [ ] **Step 5: Commit (components only)**
 
@@ -238,10 +238,10 @@ git commit -m "feat: refactor DashboardDock — equal width, nav-only Home, Soun
 
 ---
 
-## Task 3: Update `KuroPomodoroApp.kt` call site
+## Task 3: Update `PurrodoroApp.kt` call site
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Replace the `DashboardDock` call**
 
@@ -292,7 +292,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: wire isSoundPlaying to DashboardDock, remove onStartPause from dock"
 ```
 
@@ -450,7 +450,7 @@ fun SoundsScreen(
 }
 ```
 
-- [ ] **Step 3: Build — expect call-site errors in KuroPomodoroApp.kt**
+- [ ] **Step 3: Build — expect call-site errors in PurrodoroApp.kt**
 
 ```bash
 cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
@@ -467,10 +467,10 @@ git commit -m "feat: SoundsScreen uses playingSoundId, coral tint on playing row
 
 ---
 
-## Task 5: Update `KuroPomodoroApp.kt` — wire `playingSoundId` and `onToggleSound`
+## Task 5: Update `PurrodoroApp.kt` — wire `playingSoundId` and `onToggleSound`
 
 **Files:**
-- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 - [ ] **Step 1: Replace `isSoundPlaying: Boolean` state with `playingSoundId: Int?`**
 
@@ -551,7 +551,7 @@ Expected: all tests pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat: wire playingSoundId state, connect SoundsScreen toggle"
 ```
 

@@ -4,7 +4,7 @@
 
 **Goal:** When a full Pomodoro cycle finishes (natural tick-down OR final skip), show an in-app non-cancelable `AlertDialog` with a randomized warm-and-affirming copy variant that the user must acknowledge with a single "Done" button before returning to the fresh idle state.
 
-**Architecture:** A persistent boolean flag (`pendingCycleCompletionAck`) is written to DataStore by `TimerService.finishCycleAndStop(...)`. The root Compose function `KuroPomodoroApp` collects the flag as state and renders an `AlertDialog` overlay whenever it's `true`. Tapping "Done" clears the flag. Persistence handles the backgrounded case for free: if the user backgrounded the app when the cycle finished, the dialog appears the next time the composable is composed. The dialog renders one of five copy variants chosen via `remember(showFlag) { pool.random() }` so it is stable for the lifetime of a single display.
+**Architecture:** A persistent boolean flag (`pendingCycleCompletionAck`) is written to DataStore by `TimerService.finishCycleAndStop(...)`. The root Compose function `PurrodoroApp` collects the flag as state and renders an `AlertDialog` overlay whenever it's `true`. Tapping "Done" clears the flag. Persistence handles the backgrounded case for free: if the user backgrounded the app when the cycle finished, the dialog appears the next time the composable is composed. The dialog renders one of five copy variants chosen via `remember(showFlag) { pool.random() }` so it is stable for the lifetime of a single display.
 
 **Tech Stack:** Kotlin, Jetpack Compose Material3 (`AlertDialog`), AndroidX DataStore Preferences, JUnit4 + `kotlinx-coroutines-test` for repo tests.
 
@@ -17,7 +17,7 @@
 - `app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt` — add new `KEY_PENDING_CYCLE_ACK` `booleanPreferencesKey`, expose `pendingCycleCompletionAckFlow: Flow<Boolean>`, add `setPendingCycleCompletionAck(value: Boolean)` setter. Mirror existing patterns (e.g. `KEY_IS_PREMIUM` / `setIsPremium`).
 - `app/src/main/java/com/endiar/purrodoro/timer/TimerService.kt` — inside `finishCycleAndStop(resetState)` (line 368), launch a coroutine on the existing service scope and call `repo.setPendingCycleCompletionAck(true)` before `stopSelf()`.
 - `app/src/main/java/com/endiar/purrodoro/ui/CycleCompletionCopy.kt` — **new file** holding `data class CycleCompletionCopyVariant(val title: String, val body: String)` and `object CycleCompletionCopy { val variants: List<...>; val buttonLabel = "Done" }`.
-- `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` — collect `pendingCycleCompletionAckFlow` at the top of `KuroPomodoroApp` (~line 86), pick a stable variant with `remember(pendingAck) { CycleCompletionCopy.variants.random() }`, render the `AlertDialog` inside the outer `Box` of the root surface (`KuroFlatSurface`) (insert just before line 352, after the `DashboardDock` block) so it overlays every screen. On confirm: launch coroutine that calls `repo.setPendingCycleCompletionAck(false)`.
+- `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt` — collect `pendingCycleCompletionAckFlow` at the top of `PurrodoroApp` (~line 86), pick a stable variant with `remember(pendingAck) { CycleCompletionCopy.variants.random() }`, render the `AlertDialog` inside the outer `Box` of the root surface (`KuroFlatSurface`) (insert just before line 352, after the `DashboardDock` block) so it overlays every screen. On confirm: launch coroutine that calls `repo.setPendingCycleCompletionAck(false)`.
 - `app/src/test/java/com/endiar/purrodoro/data/AppRepositoryTest.kt` — add round-trip tests for the new flag (default false, set true persists, set false persists).
 - `app/src/test/java/com/endiar/purrodoro/ui/CycleCompletionCopyTest.kt` — **new file** asserting the variant pool size, non-blank title/body, and fixed button label.
 
@@ -244,16 +244,16 @@ git commit -m "feat(ui): add cycle completion copy variants"
 
 ---
 
-## Task 4: Render the AlertDialog in `KuroPomodoroApp`
+## Task 4: Render the AlertDialog in `PurrodoroApp`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt`
 
 (No automated UI test — project does not currently have Compose UI tests. Manual verification in Task 5.)
 
 - [ ] **Step 1: Add imports**
 
-At the top of `KuroPomodoroApp.kt`, ensure these imports exist (add any missing):
+At the top of `PurrodoroApp.kt`, ensure these imports exist (add any missing):
 
 ```kotlin
 import androidx.compose.ui.window.DialogProperties
@@ -262,7 +262,7 @@ import com.endiar.purrodoro.ui.CycleCompletionCopy
 
 `AlertDialog`, `Text`, `TextButton`, `RoundedCornerShape`, `Color`, `FontWeight`, `remember`, `rememberCoroutineScope`, `getValue`, `collectAsStateWithLifecycle`, and `kotlinx.coroutines.launch` are already imported.
 
-- [ ] **Step 2: Collect the flag near the top of `KuroPomodoroApp`**
+- [ ] **Step 2: Collect the flag near the top of `PurrodoroApp`**
 
 Right after the `runtimeState` line (currently line 118):
 
@@ -332,7 +332,7 @@ Expected: BUILD SUCCESSFUL, no regressions.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
 git commit -m "feat(ui): render cycle completion AlertDialog"
 ```
 
