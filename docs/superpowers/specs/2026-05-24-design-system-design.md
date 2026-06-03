@@ -1,4 +1,4 @@
-# Design System — Kuro Pomodoro
+# Design System — Purrodoro
 
 **Date:** 2026-05-24
 **Scope:** `ui/designsystem/` package inside `:app` module
@@ -100,7 +100,7 @@ Composed from atoms. May have simple local state (e.g. expansion).
 | `KuroSectionHeader` | Label text + optional trailing action (e.g. "Add", "See all") |
 | `KuroFilterBar` | Horizontal scrolling row of `KuroChip`s with a selected index |
 | `KuroBottomSheet` | Wraps `ModalBottomSheet` with standard drag handle, title row, and content padding |
-| `KuroInputField` | Wraps `TextField`; Kuro styling: warm border, no underline, `radiusMd` corners |
+| `KuroInputField` | Wraps `TextField`; Purrodoro styling: warm border, no underline, `radiusMd` corners |
 | `KuroSegmentedControl` | Generalizes `AppearanceModeToggle` for any N string options |
 
 ### 2.3 Organisms

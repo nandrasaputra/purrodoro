@@ -4,7 +4,7 @@
 
 **Goal:** Make the Pomodoro timer truly run in the background via a foreground service, with a live-updating ongoing notification (Pause / Resume / Stop / Skip actions), `AlarmManager` backstop, and deterministic state reconciliation on app reopen.
 
-**Architecture:** A new `com.endiar.kuropomodoro.timer/` package introduces a foreground service (`TimerService`) that owns runtime state. The existing-but-unused `TimerSessionReducer` becomes the single source of state transitions. UI binds to the service via `TimerConnection` and observes a `StateFlow<TimerRuntimeState>`. A pure `TimerReconciler` function restores state on app reopen by replaying segment completions against the wall clock. An `AlarmManager` exact alarm acts as a backstop in case the service is killed.
+**Architecture:** A new `com.endiar.purrodoro.timer/` package introduces a foreground service (`TimerService`) that owns runtime state. The existing-but-unused `TimerSessionReducer` becomes the single source of state transitions. UI binds to the service via `TimerConnection` and observes a `StateFlow<TimerRuntimeState>`. A pure `TimerReconciler` function restores state on app reopen by replaying segment completions against the wall clock. An `AlarmManager` exact alarm acts as a backstop in case the service is killed.
 
 **Tech Stack:** Kotlin, Jetpack Compose, Android `Service` + `BroadcastReceiver`, `AlarmManager`, `NotificationCompat`, AndroidX DataStore Preferences, JUnit 4, kotlinx-coroutines-test, `java.time`.
 
@@ -13,23 +13,23 @@
 ## File Map
 
 **New files:**
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/TimerRuntimeState.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerReconciler.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerStateMachine.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerNotification.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerAlarmReceiver.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerService.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerController.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerConnection.kt`
-- `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/model/TimerSessionReducerTest.kt`
-- `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/timer/TimerReconcilerTest.kt`
-- `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryRuntimeSnapshotTest.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/TimerRuntimeState.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerReconciler.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerStateMachine.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerNotification.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerAlarmReceiver.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerService.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerController.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerConnection.kt`
+- `purrodoro-android/app/src/test/java/com/endiar/purrodoro/model/TimerSessionReducerTest.kt`
+- `purrodoro-android/app/src/test/java/com/endiar/purrodoro/timer/TimerReconcilerTest.kt`
+- `purrodoro-android/app/src/test/java/com/endiar/purrodoro/data/AppRepositoryRuntimeSnapshotTest.kt`
 
 **Modified files:**
-- `kuro-pomodoro-android/app/src/main/AndroidManifest.xml`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/MainActivity.kt`
-- `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- `purrodoro-android/app/src/main/AndroidManifest.xml`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/MainActivity.kt`
+- `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 ---
 
@@ -40,12 +40,12 @@
 The reducer already exists in `model/TimerSessionReducer.kt` but is not called anywhere. Before wiring it in, write tests so refactors don't silently change behavior.
 
 **Files:**
-- ~~Create: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/model/TimerSessionReducerTest.kt`~~ — already exists.
+- ~~Create: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/model/TimerSessionReducerTest.kt`~~ — already exists.
 
 - [ ] **Step 1: Create the test file with all behavior cases**
 
 ```kotlin
-package com.endiar.kuropomodoro.model
+package com.endiar.purrodoro.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -186,7 +186,7 @@ class TimerSessionReducerTest {
 - [ ] **Step 2: Run the tests to verify they pass against the existing reducer**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew test --tests "com.endiar.kuropomodoro.model.TimerSessionReducerTest" 2>&1 | tail -20
+cd purrodoro-android && ./gradlew test --tests "com.endiar.purrodoro.model.TimerSessionReducerTest" 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`, all 11 tests pass.
@@ -196,7 +196,7 @@ If any test fails, the reducer has a behavior the spec didn't anticipate. Read t
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/model/TimerSessionReducerTest.kt
+git add purrodoro-android/app/src/test/java/com/endiar/purrodoro/model/TimerSessionReducerTest.kt
 git commit -m "test: lock down TimerSessionReducer behavior"
 ```
 
@@ -205,12 +205,12 @@ git commit -m "test: lock down TimerSessionReducer behavior"
 ## Task 2: Add `TimerRuntimeState` runtime wrapper model
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/TimerRuntimeState.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/TimerRuntimeState.kt`
 
 - [ ] **Step 1: Create the runtime state model**
 
 ```kotlin
-package com.endiar.kuropomodoro.model
+package com.endiar.purrodoro.model
 
 /**
  * Runtime wrapper around [TimerSession] that the foreground service owns while a cycle is active.
@@ -233,7 +233,7 @@ data class TimerRuntimeState(
 - [ ] **Step 2: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -241,7 +241,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/TimerRuntimeState.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/TimerRuntimeState.kt
 git commit -m "feat: add TimerRuntimeState model"
 ```
 
@@ -252,23 +252,23 @@ git commit -m "feat: add TimerRuntimeState model"
 The reconciler is the heart of "the timer feels correct after I reopen the app." It's a pure function; we drive it with tests first.
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/timer/TimerReconcilerTest.kt`
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerReconciler.kt`
+- Create: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/timer/TimerReconcilerTest.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerReconciler.kt`
 
 - [ ] **Step 1: Write the failing tests first**
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
-import com.endiar.kuropomodoro.model.TimerRuntimeState
-import com.endiar.kuropomodoro.model.TimerSession
-import com.endiar.kuropomodoro.model.TimerSessionItem
-import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.buildCycle
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerSession
+import com.endiar.purrodoro.model.TimerSessionItem
+import com.endiar.purrodoro.model.TimerSettings
+import com.endiar.purrodoro.model.TimerState
+import com.endiar.purrodoro.model.buildCycle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -429,7 +429,7 @@ class TimerReconcilerTest {
 - [ ] **Step 2: Run tests — they should fail (no `TimerReconciler` yet)**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew test --tests "com.endiar.kuropomodoro.timer.TimerReconcilerTest" 2>&1 | tail -20
+cd purrodoro-android && ./gradlew test --tests "com.endiar.purrodoro.timer.TimerReconcilerTest" 2>&1 | tail -20
 ```
 
 Expected: compile error — `Unresolved reference: TimerReconciler`.
@@ -437,14 +437,14 @@ Expected: compile error — `Unresolved reference: TimerReconciler`.
 - [ ] **Step 3: Implement `TimerReconciler`**
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
-import com.endiar.kuropomodoro.model.TimerRuntimeState
-import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerSettings
+import com.endiar.purrodoro.model.TimerState
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -560,7 +560,7 @@ object TimerReconciler {
 - [ ] **Step 4: Run tests again — all should pass**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew test --tests "com.endiar.kuropomodoro.timer.TimerReconcilerTest" 2>&1 | tail -20
+cd purrodoro-android && ./gradlew test --tests "com.endiar.purrodoro.timer.TimerReconcilerTest" 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`, all 6 tests pass.
@@ -568,8 +568,8 @@ Expected: `BUILD SUCCESSFUL`, all 6 tests pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/timer/TimerReconcilerTest.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerReconciler.kt
+git add purrodoro-android/app/src/test/java/com/endiar/purrodoro/timer/TimerReconcilerTest.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerReconciler.kt
 git commit -m "feat: add TimerReconciler pure function with tests"
 ```
 
@@ -578,24 +578,24 @@ git commit -m "feat: add TimerReconciler pure function with tests"
 ## Task 4: Persist `TimerRuntimeState` snapshot in `AppRepository`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`
-- Create: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryRuntimeSnapshotTest.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
+- Create: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/data/AppRepositoryRuntimeSnapshotTest.kt`
 
 - [ ] **Step 1: Add the encode/decode helpers + round-trip test (TDD)**
 
 Create the test file first:
 
 ```kotlin
-package com.endiar.kuropomodoro.data
+package com.endiar.purrodoro.data
 
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
-import com.endiar.kuropomodoro.model.TimerRuntimeState
-import com.endiar.kuropomodoro.model.TimerSession
-import com.endiar.kuropomodoro.model.TimerSessionItem
-import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerSession
+import com.endiar.purrodoro.model.TimerSessionItem
+import com.endiar.purrodoro.model.TimerState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -672,7 +672,7 @@ class AppRepositoryRuntimeSnapshotTest {
 - [ ] **Step 2: Run test — should fail (helpers don't exist)**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew test --tests "com.endiar.kuropomodoro.data.AppRepositoryRuntimeSnapshotTest" 2>&1 | tail -20
+cd purrodoro-android && ./gradlew test --tests "com.endiar.purrodoro.data.AppRepositoryRuntimeSnapshotTest" 2>&1 | tail -20
 ```
 
 Expected: `Unresolved reference: encodeRuntimeSnapshot`.
@@ -682,12 +682,12 @@ Expected: `Unresolved reference: encodeRuntimeSnapshot`.
 In `AppRepository.kt`, add imports at the top:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.TimerRuntimeState
-import com.endiar.kuropomodoro.model.TimerSession
-import com.endiar.kuropomodoro.model.TimerSessionItem
-import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.FocusTask
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerSession
+import com.endiar.purrodoro.model.TimerSessionItem
+import com.endiar.purrodoro.model.TimerState
+import com.endiar.purrodoro.model.FocusTask
 ```
 
 Add a new key inside the companion object (after `KEY_SESSION_RECORDS`):
@@ -798,7 +798,7 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
         val record = parts.getOrNull(6)?.takeIf { it.isNotBlank() }?.let { r ->
             val rp = r.split(";")
             if (rp.size < 10) return@let null
-            com.endiar.kuropomodoro.model.SessionRecord(
+            com.endiar.purrodoro.model.SessionRecord(
                 id = rp[0].toLong(),
                 startedAt = rp[1].toLong(),
                 endedAt = rp[2].toLong(),
@@ -807,7 +807,7 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
                 longBreakMinutes = rp[5].toInt(),
                 completedFocusCount = rp[6].toInt(),
                 totalFocusCount = rp[7].toInt(),
-                status = com.endiar.kuropomodoro.model.SessionStatus.valueOf(rp[8]),
+                status = com.endiar.purrodoro.model.SessionStatus.valueOf(rp[8]),
                 taskName = if (rp[9].isBlank()) null else URLDecoder.decode(rp[9], "UTF-8")
             )
         }
@@ -824,7 +824,7 @@ internal fun decodeRuntimeSnapshot(raw: String): TimerRuntimeState? {
 - [ ] **Step 4: Run tests — all should pass now**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew test --tests "com.endiar.kuropomodoro.data.AppRepositoryRuntimeSnapshotTest" 2>&1 | tail -20
+cd purrodoro-android && ./gradlew test --tests "com.endiar.purrodoro.data.AppRepositoryRuntimeSnapshotTest" 2>&1 | tail -20
 ```
 
 Expected: 4 tests pass.
@@ -832,7 +832,7 @@ Expected: 4 tests pass.
 - [ ] **Step 5: Build app to ensure nothing else broke**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -840,8 +840,8 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt \
-        kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryRuntimeSnapshotTest.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt \
+        purrodoro-android/app/src/test/java/com/endiar/purrodoro/data/AppRepositoryRuntimeSnapshotTest.kt
 git commit -m "feat: persist TimerRuntimeState snapshot in AppRepository"
 ```
 
@@ -850,7 +850,7 @@ git commit -m "feat: persist TimerRuntimeState snapshot in AppRepository"
 ## Task 5: Add manifest entries for service, receiver, and permissions
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/AndroidManifest.xml`
+- Modify: `purrodoro-android/app/src/main/AndroidManifest.xml`
 
 - [ ] **Step 1: Replace the manifest contents**
 
@@ -911,7 +911,7 @@ Replace the entire `AndroidManifest.xml`:
 - [ ] **Step 2: Build — will reference unresolved `.timer.TimerService` and `.timer.TimerAlarmReceiver` but manifest parsing is lazy**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`. The manifest references classes that don't yet exist, but AGP only validates components when they're loaded at install time — not at build time. If the build fails citing missing classes, stub the classes with empty `Service()` / `BroadcastReceiver()` shells (these will be replaced in later tasks).
@@ -919,7 +919,7 @@ Expected: `BUILD SUCCESSFUL`. The manifest references classes that don't yet exi
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/AndroidManifest.xml
+git add purrodoro-android/app/src/main/AndroidManifest.xml
 git commit -m "feat: declare TimerService, alarm receiver, and runtime permissions"
 ```
 
@@ -928,12 +928,12 @@ git commit -m "feat: declare TimerService, alarm receiver, and runtime permissio
 ## Task 6: Implement `TimerNotification` builder + notification channels
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerNotification.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerNotification.kt`
 
 - [ ] **Step 1: Create the notification helper**
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -942,12 +942,12 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import com.endiar.kuropomodoro.MainActivity
-import com.endiar.kuropomodoro.R
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.TimerRuntimeState
-import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.formatSeconds
+import com.endiar.purrodoro.MainActivity
+import com.endiar.purrodoro.R
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerState
+import com.endiar.purrodoro.model.formatSeconds
 
 object TimerNotification {
 
@@ -1108,10 +1108,10 @@ object TimerNotification {
 
 - [ ] **Step 2: Build — will fail on `TimerService.ACTION_*` until Task 9. Add a placeholder.**
 
-For now, add a tiny placeholder so the file compiles. Create `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerService.kt`:
+For now, add a tiny placeholder so the file compiles. Create `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerService.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
 import android.app.Service
 import android.content.Intent
@@ -1120,12 +1120,12 @@ import android.os.IBinder
 // Placeholder — fully implemented in Task 9.
 class TimerService : Service() {
     companion object {
-        const val ACTION_START = "com.endiar.kuropomodoro.timer.START"
-        const val ACTION_PAUSE = "com.endiar.kuropomodoro.timer.PAUSE"
-        const val ACTION_RESUME = "com.endiar.kuropomodoro.timer.RESUME"
-        const val ACTION_STOP = "com.endiar.kuropomodoro.timer.STOP"
-        const val ACTION_SKIP = "com.endiar.kuropomodoro.timer.SKIP"
-        const val ACTION_ALARM_FIRED = "com.endiar.kuropomodoro.timer.ALARM_FIRED"
+        const val ACTION_START = "com.endiar.purrodoro.timer.START"
+        const val ACTION_PAUSE = "com.endiar.purrodoro.timer.PAUSE"
+        const val ACTION_RESUME = "com.endiar.purrodoro.timer.RESUME"
+        const val ACTION_STOP = "com.endiar.purrodoro.timer.STOP"
+        const val ACTION_SKIP = "com.endiar.purrodoro.timer.SKIP"
+        const val ACTION_ALARM_FIRED = "com.endiar.purrodoro.timer.ALARM_FIRED"
 
         @Volatile var isRunning: Boolean = false
             internal set
@@ -1135,7 +1135,7 @@ class TimerService : Service() {
 ```
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1143,8 +1143,8 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerNotification.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerService.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerNotification.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerService.kt
 git commit -m "feat: add notification channels and TimerNotification builder"
 ```
 
@@ -1153,22 +1153,22 @@ git commit -m "feat: add notification channels and TimerNotification builder"
 ## Task 7: Implement `TimerStateMachine` shared transition helper
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerStateMachine.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerStateMachine.kt`
 
 This helper is invoked by both `TimerService` (on natural tick to zero) and `TimerAlarmReceiver` (when the alarm wakes a dead service). Its job: apply a `TimerComplete` transition, persist all side effects, return the new state.
 
 - [ ] **Step 1: Create the helper**
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
-import com.endiar.kuropomodoro.data.AppRepository
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
-import com.endiar.kuropomodoro.model.TimerRuntimeState
-import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerSettings
+import com.endiar.purrodoro.model.TimerState
 import java.time.Instant
 import java.time.ZoneId
 
@@ -1266,7 +1266,7 @@ object TimerStateMachine {
 - [ ] **Step 2: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1274,7 +1274,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerStateMachine.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerStateMachine.kt
 git commit -m "feat: add TimerStateMachine shared transition helper"
 ```
 
@@ -1285,21 +1285,21 @@ git commit -m "feat: add TimerStateMachine shared transition helper"
 The alarm receiver runs when the exact alarm fires. If the service is alive, it's a near-no-op (the service has already advanced). If the service is dead, the receiver advances state itself, posts a completion notification, and may restart the service for the next segment if auto-advance is on.
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerAlarmReceiver.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerAlarmReceiver.kt`
 
 - [ ] **Step 1: Create the receiver**
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import androidx.core.app.NotificationManagerCompat
-import com.endiar.kuropomodoro.data.AppRepository
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.TimerState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -1371,7 +1371,7 @@ class TimerAlarmReceiver : BroadcastReceiver() {
         (SystemClock.elapsedRealtime() % Int.MAX_VALUE).toInt() and 0x0000_FFFF
 
     companion object {
-        const val EXTRA_EXPECTED_ENDS_AT = "com.endiar.kuropomodoro.timer.EXPECTED_ENDS_AT"
+        const val EXTRA_EXPECTED_ENDS_AT = "com.endiar.purrodoro.timer.EXPECTED_ENDS_AT"
     }
 }
 ```
@@ -1379,7 +1379,7 @@ class TimerAlarmReceiver : BroadcastReceiver() {
 - [ ] **Step 2: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1387,7 +1387,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerAlarmReceiver.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerAlarmReceiver.kt
 git commit -m "feat: add TimerAlarmReceiver alarm backstop"
 ```
 
@@ -1398,16 +1398,16 @@ git commit -m "feat: add TimerAlarmReceiver alarm backstop"
 Full replacement of the Task 6 placeholder. The service owns state, runs the tick loop, dispatches controller actions, schedules alarms, and persists snapshots.
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerService.kt`
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerController.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerService.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerController.kt`
 
 - [ ] **Step 1: Create `TimerController.kt` interface**
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.TimerSettings
 
 interface TimerController {
     fun start(settings: TimerSettings, task: FocusTask?)
@@ -1421,7 +1421,7 @@ interface TimerController {
 - [ ] **Step 2: Replace `TimerService.kt` placeholder with the full implementation**
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -1433,16 +1433,16 @@ import android.os.Binder
 import android.os.IBinder
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
-import com.endiar.kuropomodoro.data.AppRepository
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
-import com.endiar.kuropomodoro.model.TimerRuntimeState
-import com.endiar.kuropomodoro.model.TimerSession
-import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.buildCycle
+import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerSession
+import com.endiar.purrodoro.model.TimerSettings
+import com.endiar.purrodoro.model.TimerState
+import com.endiar.purrodoro.model.buildCycle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -1750,7 +1750,7 @@ class TimerService : Service() {
         }
     }
 
-    private fun idleState(items: List<com.endiar.kuropomodoro.model.TimerSessionItem>): TimerRuntimeState {
+    private fun idleState(items: List<com.endiar.purrodoro.model.TimerSessionItem>): TimerRuntimeState {
         val firstSeconds = items.firstOrNull()?.type?.seconds() ?: 0
         return TimerRuntimeState(
             session = TimerSession(items, 0, firstSeconds, TimerState.Idle),
@@ -1767,12 +1767,12 @@ class TimerService : Service() {
     }
 
     companion object {
-        const val ACTION_START = "com.endiar.kuropomodoro.timer.START"
-        const val ACTION_PAUSE = "com.endiar.kuropomodoro.timer.PAUSE"
-        const val ACTION_RESUME = "com.endiar.kuropomodoro.timer.RESUME"
-        const val ACTION_STOP = "com.endiar.kuropomodoro.timer.STOP"
-        const val ACTION_SKIP = "com.endiar.kuropomodoro.timer.SKIP"
-        const val ACTION_ALARM_FIRED = "com.endiar.kuropomodoro.timer.ALARM_FIRED"
+        const val ACTION_START = "com.endiar.purrodoro.timer.START"
+        const val ACTION_PAUSE = "com.endiar.purrodoro.timer.PAUSE"
+        const val ACTION_RESUME = "com.endiar.purrodoro.timer.RESUME"
+        const val ACTION_STOP = "com.endiar.purrodoro.timer.STOP"
+        const val ACTION_SKIP = "com.endiar.purrodoro.timer.SKIP"
+        const val ACTION_ALARM_FIRED = "com.endiar.purrodoro.timer.ALARM_FIRED"
 
         private const val ALARM_REQUEST_CODE = 9001
 
@@ -1785,7 +1785,7 @@ class TimerService : Service() {
 - [ ] **Step 3: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1793,8 +1793,8 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerService.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerController.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerService.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerController.kt
 git commit -m "feat: implement TimerService foreground service with binder"
 ```
 
@@ -1803,22 +1803,22 @@ git commit -m "feat: implement TimerService foreground service with binder"
 ## Task 10: Implement `TimerConnection` (UI binding helper)
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerConnection.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerConnection.kt`
 
 - [ ] **Step 1: Create the connection helper**
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import com.endiar.kuropomodoro.data.AppRepository
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.TimerRuntimeState
-import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -1926,7 +1926,7 @@ class TimerConnection(private val context: Context) {
 - [ ] **Step 2: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1934,7 +1934,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerConnection.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerConnection.kt
 git commit -m "feat: add TimerConnection UI-side binding helper"
 ```
 
@@ -1943,12 +1943,12 @@ git commit -m "feat: add TimerConnection UI-side binding helper"
 ## Task 11: Wire `TimerConnection` into `MainActivity` + notification permission
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/MainActivity.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/MainActivity.kt`
 
 - [ ] **Step 1: Replace `MainActivity.kt` contents**
 
 ```kotlin
-package com.endiar.kuropomodoro
+package com.endiar.purrodoro
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -1959,10 +1959,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import com.endiar.kuropomodoro.data.AppRepository
-import com.endiar.kuropomodoro.timer.TimerConnection
-import com.endiar.kuropomodoro.timer.TimerNotification
-import com.endiar.kuropomodoro.ui.theme.KuroPomodoroTheme
+import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.timer.TimerConnection
+import com.endiar.purrodoro.timer.TimerNotification
+import com.endiar.purrodoro.ui.theme.KuroPomodoroTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -2029,15 +2029,15 @@ This is the biggest single change. We:
 5. Replace control-flow lambdas to call the controller.
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Update the function signature and imports**
 
 Add imports at the top of `KuroPomodoroApp.kt`:
 
 ```kotlin
-import com.endiar.kuropomodoro.timer.TimerConnection
-import com.endiar.kuropomodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.timer.TimerConnection
+import com.endiar.purrodoro.model.TimerRuntimeState
 ```
 
 Change the function signature:
@@ -2206,10 +2206,10 @@ onFocusTask = { task ->
 
 - [ ] **Step 9: Delete obsolete tests in `KuroPomodoroAppTest.kt`**
 
-The pre-existing test file `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/KuroPomodoroAppTest.kt` tests two internal helpers (`timerDisplayTotalSeconds`, `timerStartTotalSeconds`) that this task removed from `KuroPomodoroApp.kt`. With those helpers gone, the tests no longer compile. Replace the entire file contents with:
+The pre-existing test file `purrodoro-android/app/src/test/java/com/endiar/purrodoro/KuroPomodoroAppTest.kt` tests two internal helpers (`timerDisplayTotalSeconds`, `timerStartTotalSeconds`) that this task removed from `KuroPomodoroApp.kt`. With those helpers gone, the tests no longer compile. Replace the entire file contents with:
 
 ```kotlin
-package com.endiar.kuropomodoro
+package com.endiar.purrodoro
 
 // Tests removed: timerDisplayTotalSeconds and timerStartTotalSeconds were internal helpers
 // for the inline timer math removed during the migration to TimerService.
@@ -2223,7 +2223,7 @@ If you prefer to delete the file outright instead, that's equivalent — both op
 - [ ] **Step 10: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -30
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -30
 ```
 
 Expected: `BUILD SUCCESSFUL`. If you hit errors about removed savers or unused imports, delete those imports (`AppTabSaver`/`TimerModeSaver` may still be used — keep them).
@@ -2231,8 +2231,8 @@ Expected: `BUILD SUCCESSFUL`. If you hit errors about removed savers or unused i
 - [ ] **Step 11: Commit Task 11 + Task 12 together**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/MainActivity.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/MainActivity.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: migrate KuroPomodoroApp to service-driven timer state"
 ```
 
@@ -2243,7 +2243,7 @@ git commit -m "feat: migrate KuroPomodoroApp to service-driven timer state"
 When `MainActivity` resumes and the service is not running but a persisted snapshot exists, we run `TimerReconciler.reconcile` and persist the reconciled state. If the result is `Playing` (auto-advance case), we start the service to take over.
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerConnection.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerConnection.kt`
 
 - [ ] **Step 1: Add a `reconcileOnBind` step to `TimerConnection.bind`**
 
@@ -2294,14 +2294,14 @@ fun bind() {
 Add the imports needed:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.TimerState
+import com.endiar.purrodoro.model.TimerState
 import kotlinx.coroutines.flow.first
 ```
 
 - [ ] **Step 2: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -2309,7 +2309,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 3: Run all unit tests to ensure nothing regressed**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew test 2>&1 | tail -20
+cd purrodoro-android && ./gradlew test 2>&1 | tail -20
 ```
 
 Expected: All tests pass.
@@ -2317,7 +2317,7 @@ Expected: All tests pass.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerConnection.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerConnection.kt
 git commit -m "feat: reconcile persisted timer state on app open"
 ```
 
@@ -2330,7 +2330,7 @@ This task has no code; it documents the manual tests an engineer should run on a
 - [ ] **Step 1: Install the debug build on a device or emulator**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew installDebug
+cd purrodoro-android && ./gradlew installDebug
 ```
 
 Expected: app installs and launches.
@@ -2348,7 +2348,7 @@ Open the app and follow each scenario in order, marking each ✅ or ❌:
 7. **Auto-advance off, focus ends while app closed** → reopening app shows paused at ShortBreak with full duration; persisted snapshot reflects this.
 8. **Auto-advance on, focus ends while app closed** → reopening app shows ShortBreak running with correct remaining time; service is alive.
 9. **Tap Stop in notification** → ongoing notification disappears; reopen app → idle dashboard; a `Partial` SessionRecord is added to Records.
-10. **Long-running cycle: kill app process (`adb shell am kill com.endiar.kuropomodoro`)** while running → wait for segment to end → completion notification still fires (alarm backstop). Reopen app → state is correct.
+10. **Long-running cycle: kill app process (`adb shell am kill com.endiar.purrodoro`)** while running → wait for segment to end → completion notification still fires (alarm backstop). Reopen app → state is correct.
 11. **Skip action on a break** → cycle advances; on a Focus, **Skip** button is hidden.
 12. **Cycle complete** → `Cycle complete` notification fires; Records shows a `Completed` SessionRecord.
 

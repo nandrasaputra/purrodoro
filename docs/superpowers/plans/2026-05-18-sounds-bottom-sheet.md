@@ -14,18 +14,18 @@
 
 | File | Change |
 |------|--------|
-| `app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt` | Remove `AppTab.Sounds` entry |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt` | Remove `isSoundPlaying` param and Sounds `DockTabItem` from `DashboardDock` |
-| `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` | Remove Sounds tab branch, add sheet state + `ModalBottomSheet`, add `MusicButton` composable, update `FocusDashboard` signature, fix `AppTabSaver` |
-| `app/src/test/java/com/endiar/kuropomodoro/model/KuroModelsTest.kt` | Add test: AppTab has 4 entries, Sounds is absent |
+| `app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt` | Remove `AppTab.Sounds` entry |
+| `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt` | Remove `isSoundPlaying` param and Sounds `DockTabItem` from `DashboardDock` |
+| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Remove Sounds tab branch, add sheet state + `ModalBottomSheet`, add `MusicButton` composable, update `FocusDashboard` signature, fix `AppTabSaver` |
+| `app/src/test/java/com/endiar/purrodoro/model/KuroModelsTest.kt` | Add test: AppTab has 4 entries, Sounds is absent |
 
 ---
 
 ## Task 1: Remove `AppTab.Sounds` from the enum
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt:7-13`
-- Test: `app/src/test/java/com/endiar/kuropomodoro/model/KuroModelsTest.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt:7-13`
+- Test: `app/src/test/java/com/endiar/purrodoro/model/KuroModelsTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -41,15 +41,15 @@ fun appTabHasFourEntriesAndNoSoundsTab() {
 
 - [ ] **Step 2: Run the test to confirm it fails**
 
-Run from `kuro-pomodoro-android/`:
+Run from `purrodoro-android/`:
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.model.KuroModelsTest.appTabHasFourEntriesAndNoSoundsTab"
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.model.KuroModelsTest.appTabHasFourEntriesAndNoSoundsTab"
 ```
 Expected: FAIL — `expected:<4> but was:<5>`
 
 - [ ] **Step 3: Remove `Sounds` from the `AppTab` enum**
 
-In `app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`, change:
+In `app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`, change:
 
 ```kotlin
 enum class AppTab(val label: String, val symbol: String) {
@@ -75,15 +75,15 @@ enum class AppTab(val label: String, val symbol: String) {
 - [ ] **Step 4: Run the test to confirm it passes**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.model.KuroModelsTest.appTabHasFourEntriesAndNoSoundsTab"
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.model.KuroModelsTest.appTabHasFourEntriesAndNoSoundsTab"
 ```
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt \
-        app/src/test/java/com/endiar/kuropomodoro/model/KuroModelsTest.kt
+git add app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt \
+        app/src/test/java/com/endiar/purrodoro/model/KuroModelsTest.kt
 git commit -m "feat: remove AppTab.Sounds from enum"
 ```
 
@@ -92,8 +92,8 @@ git commit -m "feat: remove AppTab.Sounds from enum"
 ## Task 2: Update `DashboardDock` — remove Sounds tab item and unused `isSoundPlaying` param
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt:315-370`
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt:505-516`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt:315-370`
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:505-516`
 
 After Task 1, the project won't compile because `DashboardDock` references `AppTab.Sounds` and `KuroPomodoroApp` passes `isSoundPlaying`. Fix both.
 
@@ -266,8 +266,8 @@ Expected: compile error referencing `AppTab.Sounds` in the `when (selectedTab)` 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt \
-        app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt \
+        app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: remove DashboardDock sounds tab and isSoundPlaying param"
 ```
 
@@ -276,8 +276,8 @@ git commit -m "feat: remove DashboardDock sounds tab and isSoundPlaying param"
 ## Task 3: Remove `AppTab.Sounds` tab branch + fix `AppTabSaver`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt:414-434` (Sounds branch)
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt:1115-1118` (AppTabSaver)
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:414-434` (Sounds branch)
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:1115-1118` (AppTabSaver)
 
 - [ ] **Step 1: Remove the `AppTab.Sounds` branch from the `when (selectedTab)` block**
 
@@ -350,7 +350,7 @@ Expected: all tests pass
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: remove sounds tab branch and harden AppTabSaver fallback"
 ```
 
@@ -359,7 +359,7 @@ git commit -m "feat: remove sounds tab branch and harden AppTabSaver fallback"
 ## Task 4: Add sounds bottom sheet state and `ModalBottomSheet`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Add new imports to `KuroPomodoroApp.kt`**
 
@@ -499,7 +499,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: add sounds ModalBottomSheet with existing SoundsScreen content"
 ```
 
@@ -508,7 +508,7 @@ git commit -m "feat: add sounds ModalBottomSheet with existing SoundsScreen cont
 ## Task 5: Add `MusicButton` composable and wire into `FocusDashboard`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 This task adds the music icon entry point on the home screen. It has two parts: (a) define the `MusicButton` composable, and (b) update `FocusDashboard`'s signature and body to use it.
 
@@ -714,7 +714,7 @@ Expected: all tests pass
 - [ ] **Step 7: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: add MusicButton to Focus screen opening sounds bottom sheet"
 ```
 
@@ -723,7 +723,7 @@ git commit -m "feat: add MusicButton to Focus screen opening sounds bottom sheet
 ## Task 6: Remove unused `SoundsScreen` import (cleanup)
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt:98`
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:98`
 
 `SoundsScreen` is still used (inside the bottom sheet), so this import is still needed. However, `isSoundPlaying` was a local val derived from `playingSoundId`. Verify it is still used in `FocusDashboard` call (`isSoundPlaying = isSoundPlaying`) — it is. No import cleanup needed.
 
@@ -736,8 +736,8 @@ Check for any other dead references introduced by the removal. Run:
 Fix any unused imports that appear as warnings. Commit if any changes were made:
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt \
-        app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt
+git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+        app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt
 git commit -m "chore: remove unused imports after sounds tab removal"
 ```
 

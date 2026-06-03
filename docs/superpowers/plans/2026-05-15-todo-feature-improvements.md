@@ -25,7 +25,7 @@
 ## Task 1: Add `Category` model and `categoryId` to `FocusTask`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`
 
 - [ ] **Step 1: Add `Category` data class after the `FocusTask` declaration**
 
@@ -63,7 +63,7 @@ Expected: BUILD SUCCESSFUL (warnings OK, no errors)
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt
 git commit -m "feat(model): add Category type and categoryId to FocusTask"
 ```
 
@@ -72,14 +72,14 @@ git commit -m "feat(model): add Category type and categoryId to FocusTask"
 ## Task 2: Update `AppRepository` — new DataStore keys, new `AppState` fields, encode/decode helpers
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
 
 - [ ] **Step 1: Add new imports**
 
 At the top of `AppRepository.kt`, add:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.Category
+import com.endiar.purrodoro.model.Category
 ```
 
 - [ ] **Step 2: Add new DataStore key constants inside the `companion object`**
@@ -255,7 +255,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 9: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt
 git commit -m "feat(repo): add flat tasks/categories DataStore keys and CRUD operations"
 ```
 
@@ -264,7 +264,7 @@ git commit -m "feat(repo): add flat tasks/categories DataStore keys and CRUD ope
 ## Task 3: Fix Bug 1 — `completedSessions` never increments
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerStateMachine.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerStateMachine.kt`
 
 - [ ] **Step 1: Update `applyTimerComplete` to increment `completedSessions` on Focus segment complete**
 
@@ -334,8 +334,8 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerStateMachine.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerStateMachine.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt
 git commit -m "fix(timer): increment completedSessions on active task when focus segment completes"
 ```
 
@@ -344,7 +344,7 @@ git commit -m "fix(timer): increment completedSessions on active task when focus
 ## Task 4: Fix Bug 2 — `addTask` hardcodes `minutes = 25`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Update `addTask` lambda to use `settings.focusMinutes`**
 
@@ -370,7 +370,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "fix(todo): addTask uses settings.focusMinutes instead of hardcoded 25"
 ```
 
@@ -379,7 +379,7 @@ git commit -m "fix(todo): addTask uses settings.focusMinutes instead of hardcode
 ## Task 5: Rewire `KuroPomodoroApp` to flat task/category model
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Add state variables for new fields**
 
@@ -480,9 +480,9 @@ tasks = listOf(
     FocusTask(6, "Plan next sprint", 25, categoryId = 3)
 ),
 categories = listOf(
-    com.endiar.kuropomodoro.model.Category(1, "Study"),
-    com.endiar.kuropomodoro.model.Category(2, "Home"),
-    com.endiar.kuropomodoro.model.Category(3, "Ideas")
+    com.endiar.purrodoro.model.Category(1, "Study"),
+    com.endiar.purrodoro.model.Category(2, "Home"),
+    com.endiar.purrodoro.model.Category(3, "Ideas")
 ),
 nextCategoryId = 4,
 selectedCategoryId = null
@@ -505,7 +505,7 @@ Skip committing until after Task 6 resolves the compile errors.
 ## Task 6: Rewrite `TodoScreen` — filter pill row with Edit mode
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt`
 
 This task rewrites the top portion of `TodoScreen`: the new function signature, header row, and filter pill row with Edit mode. The task rows and sheets are added in Tasks 7 and 8.
 
@@ -514,7 +514,7 @@ This task rewrites the top portion of `TodoScreen`: the new function signature, 
 Replace the entire file content with:
 
 ```kotlin
-package com.endiar.kuropomodoro.ui
+package com.endiar.purrodoro.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -575,12 +575,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.endiar.kuropomodoro.model.Category
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.GlassTreatment
-import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.ui.components.GlassCard
-import com.endiar.kuropomodoro.ui.components.GlassPill
+import com.endiar.purrodoro.model.Category
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.GlassTreatment
+import com.endiar.purrodoro.model.TimerSettings
+import com.endiar.purrodoro.ui.components.GlassCard
+import com.endiar.purrodoro.ui.components.GlassPill
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -1062,7 +1062,7 @@ Expected: errors only for missing composables we'll add next.
 ## Task 7: Add `CategoryPill` and updated `TaskGlassRow` composables
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt`
 
 Append the following private composables at the end of the file:
 
@@ -1170,7 +1170,7 @@ private fun TaskGlassRow(
             ) {
                 when {
                     isLeading -> Text(
-                        text = "▶  Focus with Kuro",
+                        text = "▶  Focus with Purrodoro",
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -1254,7 +1254,7 @@ Expected: errors only for `TaskDetailSheet` and `CategoryNameSheet`.
 ## Task 8: Add `TaskDetailSheet` and `CategoryNameSheet` composables
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt`
 
 Append at the end of the file:
 
@@ -1470,7 +1470,7 @@ private fun TaskDetailSheet(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
-            // Focus with Kuro button
+            // Focus with Purrodoro button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1489,7 +1489,7 @@ private fun TaskDetailSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "▶  Focus with Kuro",
+                    text = "▶  Focus with Purrodoro",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
@@ -1633,8 +1633,8 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 6: Commit Tasks 5–8 together**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat(todo): rewrite TodoScreen with categories, task detail sheet, completed section"
 ```
 
@@ -1643,9 +1643,9 @@ git commit -m "feat(todo): rewrite TodoScreen with categories, task detail sheet
 ## Task 9: Clean up legacy `TodoListState` references
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`
 
 **Note:** Only remove `TodoListState`, `KEY_TODOS`, `KEY_SELECTED_LIST`, and related fields from `AppState` if there are no remaining callers. Verify before deleting.
 
@@ -1653,7 +1653,7 @@ git commit -m "feat(todo): rewrite TodoScreen with categories, task detail sheet
 
 ```bash
 grep -rn "TodoListState\|KEY_TODOS\|KEY_SELECTED_LIST\|todoLists\|selectedTodoListId\|setTodoLists\|persistTodoLists" \
-  kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ \
+  purrodoro-android/app/src/main/java/com/endiar/purrodoro/ \
   --include="*.kt"
 ```
 

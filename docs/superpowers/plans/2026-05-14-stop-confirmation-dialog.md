@@ -14,14 +14,14 @@
 
 | File | Change |
 |---|---|
-| `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` | Add `showStopConfirmDialog` state; gate stop button; add `AlertDialog` composable in `FocusDashboard` |
+| `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Add `showStopConfirmDialog` state; gate stop button; add `AlertDialog` composable in `FocusDashboard` |
 
 ---
 
 ## Task 1: Add stop confirmation dialog to `FocusDashboard`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Add `showStopConfirmDialog` state**
 
@@ -103,7 +103,7 @@ import androidx.compose.material3.AlertDialog
 - [ ] **Step 4: Verify compile**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -10
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL` (no new errors).
@@ -111,7 +111,7 @@ Expected: `BUILD SUCCESSFUL` (no new errors).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: add stop confirmation dialog for paused focus session"
 ```
 
@@ -122,7 +122,7 @@ git commit -m "feat: add stop confirmation dialog for paused focus session"
 - [ ] **Step 1: Run full debug build**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -10
 ```
 
 Expected: `BUILD SUCCESSFUL` with APK at `app/build/outputs/apk/debug/app-debug.apk`.

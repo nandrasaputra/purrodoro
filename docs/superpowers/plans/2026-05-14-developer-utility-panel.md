@@ -13,36 +13,36 @@
 ## File Map
 
 ### New files — main source set
-- `app/src/main/java/com/endiar/kuropomodoro/model/AppClock.kt` — `ClockDebugSource` interface + `AppClock` object
+- `app/src/main/java/com/endiar/purrodoro/model/AppClock.kt` — `ClockDebugSource` interface + `AppClock` object
 
 ### Modified files — main source set
-- `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` — replace `LocalTime.now()` on line 239, replace `delay(250)` on line 235
+- `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` — replace `LocalTime.now()` on line 239, replace `delay(250)` on line 235
 
 ### New files — debug source set
-- `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugRepository.kt`
-- `app/src/debug/java/com/endiar/kuropomodoro/debug/KuroDebugApplication.kt`
-- `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugNotification.kt`
-- `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugActivity.kt`
+- `app/src/debug/java/com/endiar/purrodoro/debug/DebugRepository.kt`
+- `app/src/debug/java/com/endiar/purrodoro/debug/KuroDebugApplication.kt`
+- `app/src/debug/java/com/endiar/purrodoro/debug/DebugNotification.kt`
+- `app/src/debug/java/com/endiar/purrodoro/debug/DebugActivity.kt`
 - `app/src/debug/AndroidManifest.xml`
 
 ### New files — test source set
-- `app/src/test/java/com/endiar/kuropomodoro/model/AppClockTest.kt`
-- `app/src/test/java/com/endiar/kuropomodoro/debug/DebugRepositoryTest.kt`
+- `app/src/test/java/com/endiar/purrodoro/model/AppClockTest.kt`
+- `app/src/test/java/com/endiar/purrodoro/debug/DebugRepositoryTest.kt`
 
 ---
 
 ## Task 1: `AppClock` — interface + object in main source set
 
 **Files:**
-- Create: `app/src/main/java/com/endiar/kuropomodoro/model/AppClock.kt`
-- Create: `app/src/test/java/com/endiar/kuropomodoro/model/AppClockTest.kt`
+- Create: `app/src/main/java/com/endiar/purrodoro/model/AppClock.kt`
+- Create: `app/src/test/java/com/endiar/purrodoro/model/AppClockTest.kt`
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `app/src/test/java/com/endiar/kuropomodoro/model/AppClockTest.kt`:
+Create `app/src/test/java/com/endiar/purrodoro/model/AppClockTest.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.model
+package com.endiar.purrodoro.model
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -118,18 +118,18 @@ class AppClockTest {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd kuro-pomodoro-android
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.model.AppClockTest" 2>&1 | tail -20
+cd purrodoro-android
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.model.AppClockTest" 2>&1 | tail -20
 ```
 
 Expected: FAILED — `AppClock` and `ClockDebugSource` not defined.
 
 - [ ] **Step 3: Create `AppClock.kt`**
 
-Create `app/src/main/java/com/endiar/kuropomodoro/model/AppClock.kt`:
+Create `app/src/main/java/com/endiar/purrodoro/model/AppClock.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.model
+package com.endiar.purrodoro.model
 
 import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalTime
@@ -164,7 +164,7 @@ object AppClock {
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.model.AppClockTest" 2>&1 | tail -20
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.model.AppClockTest" 2>&1 | tail -20
 ```
 
 Expected: 6 tests PASSED.
@@ -172,8 +172,8 @@ Expected: 6 tests PASSED.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/model/AppClock.kt \
-        app/src/test/java/com/endiar/kuropomodoro/model/AppClockTest.kt
+git add app/src/main/java/com/endiar/purrodoro/model/AppClock.kt \
+        app/src/test/java/com/endiar/purrodoro/model/AppClockTest.kt
 git commit -m "feat: add AppClock and ClockDebugSource for injectable time"
 ```
 
@@ -182,7 +182,7 @@ git commit -m "feat: add AppClock and ClockDebugSource for injectable time"
 ## Task 2: Wire `AppClock` into `KuroPomodoroApp`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` (lines 235, 239)
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` (lines 235, 239)
 
 - [ ] **Step 1: Replace `LocalTime.now()` on line 239**
 
@@ -210,7 +210,7 @@ Replace with:
 
 Ensure this import exists in `KuroPomodoroApp.kt` (add after existing model imports):
 ```kotlin
-import com.endiar.kuropomodoro.model.AppClock
+import com.endiar.purrodoro.model.AppClock
 ```
 
 - [ ] **Step 4: Run existing tests to verify nothing broke**
@@ -224,7 +224,7 @@ Expected: All existing tests PASSED.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: use AppClock.now() and tickIntervalMs() in KuroPomodoroApp"
 ```
 
@@ -233,15 +233,15 @@ git commit -m "feat: use AppClock.now() and tickIntervalMs() in KuroPomodoroApp"
 ## Task 3: `DebugRepository` in debug source set
 
 **Files:**
-- Create: `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugRepository.kt`
-- Create: `app/src/test/java/com/endiar/kuropomodoro/debug/DebugRepositoryTest.kt`
+- Create: `app/src/debug/java/com/endiar/purrodoro/debug/DebugRepository.kt`
+- Create: `app/src/test/java/com/endiar/purrodoro/debug/DebugRepositoryTest.kt`
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `app/src/test/java/com/endiar/kuropomodoro/debug/DebugRepositoryTest.kt`:
+Create `app/src/test/java/com/endiar/purrodoro/debug/DebugRepositoryTest.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.debug
+package com.endiar.purrodoro.debug
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -296,7 +296,7 @@ class DebugRepositoryTest {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.debug.DebugRepositoryTest" 2>&1 | tail -20
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.debug.DebugRepositoryTest" 2>&1 | tail -20
 ```
 
 Expected: FAILED — `DebugRepository` not defined.
@@ -304,15 +304,15 @@ Expected: FAILED — `DebugRepository` not defined.
 - [ ] **Step 3: Create the debug source set directory and `DebugRepository.kt`**
 
 ```bash
-mkdir -p app/src/debug/java/com/endiar/kuropomodoro/debug
+mkdir -p app/src/debug/java/com/endiar/purrodoro/debug
 ```
 
-Create `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugRepository.kt`:
+Create `app/src/debug/java/com/endiar/purrodoro/debug/DebugRepository.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.debug
+package com.endiar.purrodoro.debug
 
-import com.endiar.kuropomodoro.model.ClockDebugSource
+import com.endiar.purrodoro.model.ClockDebugSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.LocalTime
 
@@ -342,7 +342,7 @@ class DebugRepository : ClockDebugSource {
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.debug.DebugRepositoryTest" 2>&1 | tail -20
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.debug.DebugRepositoryTest" 2>&1 | tail -20
 ```
 
 Expected: 6 tests PASSED.
@@ -350,8 +350,8 @@ Expected: 6 tests PASSED.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/debug/java/com/endiar/kuropomodoro/debug/DebugRepository.kt \
-        app/src/test/java/com/endiar/kuropomodoro/debug/DebugRepositoryTest.kt
+git add app/src/debug/java/com/endiar/purrodoro/debug/DebugRepository.kt \
+        app/src/test/java/com/endiar/purrodoro/debug/DebugRepositoryTest.kt
 git commit -m "feat: add DebugRepository in debug source set"
 ```
 
@@ -360,18 +360,18 @@ git commit -m "feat: add DebugRepository in debug source set"
 ## Task 4: `DebugNotification` + `KuroDebugApplication`
 
 **Files:**
-- Create: `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugNotification.kt`
-- Create: `app/src/debug/java/com/endiar/kuropomodoro/debug/KuroDebugApplication.kt`
+- Create: `app/src/debug/java/com/endiar/purrodoro/debug/DebugNotification.kt`
+- Create: `app/src/debug/java/com/endiar/purrodoro/debug/KuroDebugApplication.kt`
 - Create: `app/src/debug/AndroidManifest.xml`
 
 No unit tests for these — they depend on Android `Context` and `NotificationManager`. Manual verification in Step 5.
 
 - [ ] **Step 1: Create `DebugNotification.kt`**
 
-Create `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugNotification.kt`:
+Create `app/src/debug/java/com/endiar/purrodoro/debug/DebugNotification.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.debug
+package com.endiar.purrodoro.debug
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -379,7 +379,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import com.endiar.kuropomodoro.R
+import com.endiar.purrodoro.R
 
 private const val CHANNEL_ID = "kuro_dev"
 private const val NOTIFICATION_ID = 9001
@@ -389,7 +389,7 @@ fun postDevNotification(context: Context) {
 
     val channel = NotificationChannel(
         CHANNEL_ID,
-        "Kuro Dev Tools",
+        "Purrodoro Dev Tools",
         NotificationManager.IMPORTANCE_LOW
     ).apply {
         description = "Developer utility panel"
@@ -407,7 +407,7 @@ fun postDevNotification(context: Context) {
 
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_launcher_foreground)
-        .setContentTitle("Kuro Dev Tools")
+        .setContentTitle("Purrodoro Dev Tools")
         .setContentText("Tap to open debug panel")
         .setContentIntent(pendingIntent)
         .setOngoing(true)
@@ -420,13 +420,13 @@ fun postDevNotification(context: Context) {
 
 - [ ] **Step 2: Create `KuroDebugApplication.kt`**
 
-Create `app/src/debug/java/com/endiar/kuropomodoro/debug/KuroDebugApplication.kt`:
+Create `app/src/debug/java/com/endiar/purrodoro/debug/KuroDebugApplication.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.debug
+package com.endiar.purrodoro.debug
 
 import android.app.Application
-import com.endiar.kuropomodoro.model.AppClock
+import com.endiar.purrodoro.model.AppClock
 
 class KuroDebugApplication : Application() {
     override fun onCreate() {
@@ -454,7 +454,7 @@ Create `app/src/debug/AndroidManifest.xml`:
         <activity
             android:name=".debug.DebugActivity"
             android:exported="false"
-            android:label="Kuro Dev Tools" />
+            android:label="Purrodoro Dev Tools" />
 
     </application>
 
@@ -472,8 +472,8 @@ Expected: All tests PASSED.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/debug/java/com/endiar/kuropomodoro/debug/DebugNotification.kt \
-        app/src/debug/java/com/endiar/kuropomodoro/debug/KuroDebugApplication.kt \
+git add app/src/debug/java/com/endiar/purrodoro/debug/DebugNotification.kt \
+        app/src/debug/java/com/endiar/purrodoro/debug/KuroDebugApplication.kt \
         app/src/debug/AndroidManifest.xml
 git commit -m "feat: add KuroDebugApplication, dev notification, debug manifest"
 ```
@@ -483,16 +483,16 @@ git commit -m "feat: add KuroDebugApplication, dev notification, debug manifest"
 ## Task 5: `DebugActivity` — Compose UI
 
 **Files:**
-- Create: `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugActivity.kt`
+- Create: `app/src/debug/java/com/endiar/purrodoro/debug/DebugActivity.kt`
 
 This is a Compose Activity — no unit tests (UI-only, depends on Android runtime). Verify manually on device/emulator after this task.
 
 - [ ] **Step 1: Create `DebugActivity.kt`**
 
-Create `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugActivity.kt`:
+Create `app/src/debug/java/com/endiar/purrodoro/debug/DebugActivity.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.debug
+package com.endiar.purrodoro.debug
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -530,8 +530,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.endiar.kuropomodoro.data.AppRepository
-import com.endiar.kuropomodoro.model.addFocusStamp
+import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.model.addFocusStamp
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -560,12 +560,12 @@ private fun DebugScreen(
     val clockOverride by debugRepo.clockOverride.collectAsStateWithLifecycle()
     val speedUpTimer by debugRepo.speedUpTimer.collectAsStateWithLifecycle()
     val appState by appRepo.appState.collectAsStateWithLifecycle(
-        initialValue = com.endiar.kuropomodoro.data.AppState(
+        initialValue = com.endiar.purrodoro.data.AppState(
             darkModePreview = false,
-            glassReadabilityMode = com.endiar.kuropomodoro.model.GlassReadabilityMode.Adaptive,
+            glassReadabilityMode = com.endiar.purrodoro.model.GlassReadabilityMode.Adaptive,
             selectedSoundId = 1,
             completedSessions = 0,
-            settings = com.endiar.kuropomodoro.model.TimerSettings(),
+            settings = com.endiar.purrodoro.model.TimerSettings(),
             nextTaskId = 7,
             selectedTodoListId = 1,
             stamps = emptyMap(),
@@ -589,7 +589,7 @@ private fun DebugScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Kuro Dev Tools", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Purrodoro Dev Tools", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 TextButton(onClick = onClose) { Text("Close") }
             }
 
@@ -765,7 +765,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add app/src/debug/java/com/endiar/kuropomodoro/debug/DebugActivity.kt
+git add app/src/debug/java/com/endiar/purrodoro/debug/DebugActivity.kt
 git commit -m "feat: add DebugActivity with clock override, timer speed-up, session injection, reset"
 ```
 
@@ -806,11 +806,11 @@ git commit -m "feat: developer utility panel complete — debug-only, notificati
 
 After installing the debug APK:
 
-- [ ] Persistent "Kuro Dev Tools" notification appears in notification shade
+- [ ] Persistent "Purrodoro Dev Tools" notification appears in notification shade
 - [ ] Tapping notification opens `DebugActivity`
 - [ ] Clock override: tap `22:00` → main app cat backdrop switches to night scene immediately
 - [ ] Clock override: tap `Clear override` → backdrop returns to current real time
 - [ ] Timer speed-up: enable toggle → start a focus session → completes in ~150 seconds
 - [ ] Session injection: add 3 sessions for today → Calendar screen shows +3 stamps for today
 - [ ] Reset all data: tap once → button label changes → tap again → stamps/sessions cleared, todos back to seed
-- [ ] Install release APK → no "Kuro Dev Tools" notification → `AppClock.source` is null (real time always used)
+- [ ] Install release APK → no "Purrodoro Dev Tools" notification → `AppClock.source` is null (real time always used)

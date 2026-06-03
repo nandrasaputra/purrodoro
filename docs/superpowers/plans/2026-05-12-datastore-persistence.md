@@ -16,17 +16,17 @@
 |------|--------|----------------|
 | `gradle/libs.versions.toml` | Modify | Add `datastore`, `coroutines`, `lifecycleRuntimeCompose` version entries + library aliases |
 | `app/build.gradle.kts` | Modify | Add three new `implementation` dependencies |
-| `app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt` | Create | DataStore instance, `AppState` data class, `Flow<AppState>`, all `suspend` write functions |
-| `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` | Modify | Replace `rememberSaveable` for 10 persisted fields with DataStore-backed reads/writes; keep 8 ephemeral fields as `rememberSaveable` |
-| `app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryTest.kt` | Create | Unit tests for `AppRepository` serialization round-trips using `DataStoreFactory` in-memory |
+| `app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt` | Create | DataStore instance, `AppState` data class, `Flow<AppState>`, all `suspend` write functions |
+| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Modify | Replace `rememberSaveable` for 10 persisted fields with DataStore-backed reads/writes; keep 8 ephemeral fields as `rememberSaveable` |
+| `app/src/test/java/com/endiar/purrodoro/data/AppRepositoryTest.kt` | Create | Unit tests for `AppRepository` serialization round-trips using `DataStoreFactory` in-memory |
 
 ---
 
 ## Task 1: Add dependencies
 
 **Files:**
-- Modify: `kuro-pomodoro-android/gradle/libs.versions.toml`
-- Modify: `kuro-pomodoro-android/app/build.gradle.kts`
+- Modify: `purrodoro-android/gradle/libs.versions.toml`
+- Modify: `purrodoro-android/app/build.gradle.kts`
 
 - [ ] **Step 1: Add version entries to libs.versions.toml**
 
@@ -56,7 +56,7 @@ implementation(libs.androidx.lifecycle.runtime.compose)
 - [ ] **Step 3: Sync and verify build compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug
+cd purrodoro-android && ./gradlew assembleDebug
 ```
 Expected: `BUILD SUCCESSFUL`
 
@@ -72,8 +72,8 @@ git commit -m "build: add datastore, coroutines, lifecycle-runtime-compose deps"
 ## Task 2: Create AppRepository
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`
-- Create: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryTest.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
+- Create: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/data/AppRepositoryTest.kt`
 
 ### Keys and AppState shape
 
@@ -104,16 +104,16 @@ Empty string = use seed data (three default lists with 6 tasks).
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryTest.kt`:
+Create `purrodoro-android/app/src/test/java/com/endiar/purrodoro/data/AppRepositoryTest.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.data
+package com.endiar.purrodoro.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.GlassReadabilityMode
-import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.TodoListState
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.GlassReadabilityMode
+import com.endiar.purrodoro.model.TimerSettings
+import com.endiar.purrodoro.model.TodoListState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -247,16 +247,16 @@ class AppRepositoryTest {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew testDebugUnitTest --tests "com.endiar.kuropomodoro.data.AppRepositoryTest"
+cd purrodoro-android && ./gradlew testDebugUnitTest --tests "com.endiar.purrodoro.data.AppRepositoryTest"
 ```
 Expected: FAILED — `AppRepository` does not exist yet.
 
 - [ ] **Step 3: Create AppRepository.kt**
 
-Create `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`:
+Create `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.data
+package com.endiar.purrodoro.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -266,10 +266,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.GlassReadabilityMode
-import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.TodoListState
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.GlassReadabilityMode
+import com.endiar.purrodoro.model.TimerSettings
+import com.endiar.purrodoro.model.TodoListState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -414,15 +414,15 @@ internal fun decodeTodoLists(raw: String): List<TodoListState> {
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew testDebugUnitTest --tests "com.endiar.kuropomodoro.data.AppRepositoryTest"
+cd purrodoro-android && ./gradlew testDebugUnitTest --tests "com.endiar.purrodoro.data.AppRepositoryTest"
 ```
 Expected: All 11 tests PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt \
-        app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryTest.kt
+git add app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt \
+        app/src/test/java/com/endiar/purrodoro/data/AppRepositoryTest.kt
 git commit -m "feat: add AppRepository with DataStore persistence"
 ```
 
@@ -431,7 +431,7 @@ git commit -m "feat: add AppRepository with DataStore persistence"
 ## Task 3: Wire AppRepository into KuroPomodoroApp
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 The strategy:
 1. Accept a `Context` parameter in `KuroPomodoroApp` (or pass `AppRepository` directly — use the latter for testability).
@@ -454,14 +454,14 @@ fun KuroPomodoroApp() {
 
 // After
 @Composable
-fun KuroPomodoroApp(repo: com.endiar.kuropomodoro.data.AppRepository) {
+fun KuroPomodoroApp(repo: com.endiar.purrodoro.data.AppRepository) {
 ```
 
 Add these imports:
 ```kotlin
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.endiar.kuropomodoro.data.AppRepository
-import com.endiar.kuropomodoro.data.AppState
+import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.data.AppState
 import kotlinx.coroutines.launch
 ```
 
@@ -568,7 +568,7 @@ Keep `AppTabSaver` and `TimerModeSaver` (still used for the ephemeral `selectedT
 
 Find the file that calls `KuroPomodoroApp()` and update the call site. Locate it:
 ```bash
-grep -r "KuroPomodoroApp()" kuro-pomodoro-android/app/src/main/java --include="*.kt" -l
+grep -r "KuroPomodoroApp()" purrodoro-android/app/src/main/java --include="*.kt" -l
 ```
 
 In `MainActivity.kt` (or equivalent), the call site will look like:
@@ -583,28 +583,28 @@ KuroPomodoroApp(repo = AppRepository.get(this))
 
 Add the import:
 ```kotlin
-import com.endiar.kuropomodoro.data.AppRepository
+import com.endiar.purrodoro.data.AppRepository
 ```
 
 - [ ] **Step 6: Build and verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug
+cd purrodoro-android && ./gradlew assembleDebug
 ```
 Expected: `BUILD SUCCESSFUL`
 
 - [ ] **Step 7: Run all unit tests**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew testDebugUnitTest
+cd purrodoro-android && ./gradlew testDebugUnitTest
 ```
 Expected: All tests PASS.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt \
-        app/src/main/java/com/endiar/kuropomodoro/MainActivity.kt
+git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+        app/src/main/java/com/endiar/purrodoro/MainActivity.kt
 git commit -m "feat: wire DataStore persistence into KuroPomodoroApp"
 ```
 
@@ -615,13 +615,13 @@ git commit -m "feat: wire DataStore persistence into KuroPomodoroApp"
 - [ ] **Step 1: Install and verify cold persistence**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew installDebug
+cd purrodoro-android && ./gradlew installDebug
 ```
 
 1. Open the app.
 2. Change a timer setting (e.g. Focus to 50 min).
 3. Add a todo item.
-4. Force-stop the app: `adb shell am force-stop com.endiar.kuropomodoro`
+4. Force-stop the app: `adb shell am force-stop com.endiar.purrodoro`
 5. Reopen the app.
 6. Verify the 50-min setting is still showing.
 7. Verify the added todo item is still present.

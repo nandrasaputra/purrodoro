@@ -1,0 +1,470 @@
+<resources>
+    <string name="widget_quick_start_label">Mulai Cepat Purrodoro</string>
+    <string name="widget_quick_start_description">Mulai sesi fokus yang tenang langsung dari layar utama.</string>
+    <string name="widget_today_label">Hari Ini Bersama Purrodoro</string>
+    <string name="widget_today_description">Lihat sesi fokusmu hari ini dan sepatah kata lembut dari Purrodoro.</string>
+
+    <!-- Common -->
+    <string name="common_ok">OK</string>
+    <string name="common_cancel">Batal</string>
+    <string name="common_back">Kembali</string>
+    <string name="common_done">Selesai</string>
+    <string name="common_save">Simpan</string>
+    <string name="common_delete">Hapus</string>
+    <string name="common_got_it">Mengerti</string>
+    <string name="common_close">Tutup</string>
+    <string name="focus_busy_title">Ada fokus yang sedang berjalan</string>
+    <string name="focus_busy_body">Selesaikan atau hentikan Pomodoro saat ini sebelum memulai yang baru.</string>
+    <string name="focus_busy_open">Buka fokus</string>
+    <string name="value_minutes">%1$d mnt</string>
+    <string name="value_sessions">%1$d sesi</string>
+    <string name="unit_min">mnt</string>
+    <string name="unit_sessions">sesi</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Beranda</string>
+    <string name="nav_tasks">Tugas</string>
+    <string name="nav_journey">Perjalanan</string>
+    <string name="nav_habits">Kebiasaan</string>
+
+    <!-- Settings / Profile -->
+    <string name="settings_title">Pengaturan</string>
+    <string name="settings_subtitle">Sesuaikan pengalaman fokusmu.</string>
+    <string name="settings_section_timer">TIMER</string>
+    <string name="settings_focus_time">Waktu fokus</string>
+    <string name="settings_short_break">Istirahat singkat</string>
+    <string name="settings_long_break">Istirahat panjang</string>
+    <string name="settings_long_break_after">Istirahat panjang setelah</string>
+    <string name="settings_auto_start_label">Mulai sesi berikutnya otomatis</string>
+    <string name="settings_auto_start_subtitle">Lanjut otomatis ke sesi berikutnya</string>
+    <string name="settings_section_notifications">NOTIFIKASI</string>
+    <string name="settings_notif_sound_label">Aktifkan suara notifikasi</string>
+    <string name="settings_notif_sound_subtitle">Putar suara saat sesi berakhir</string>
+    <string name="settings_notif_permission_title">Purrodoro belum bisa mengingatkanmu</string>
+    <string name="settings_notif_permission_body">Izinkan notifikasi agar Purrodoro bisa memberi tahu saat sesi berakhir.</string>
+    <string name="settings_notif_permission_action">Izinkan</string>
+    <string name="settings_notif_permission_cd">Purrodoro melambai di samping lonceng notifikasi</string>
+    <string name="settings_notif_hero_title">Biar Purrodoro bisa menjangkaumu</string>
+    <string name="settings_notif_hero_body">Aktifkan notifikasi agar Purrodoro bisa memberi tahu saat fokus dan istirahatmu selesai.</string>
+    <string name="settings_notif_hero_action">Aktifkan notifikasi</string>
+    <string name="settings_section_appearance">TAMPILAN</string>
+    <string name="settings_theme_label">Tema</string>
+    <string name="settings_theme_subtitle">Pilih terang, gelap, atau ikuti sistem</string>
+    <string name="settings_section_language">BAHASA</string>
+    <string name="settings_language_label">Bahasa</string>
+    <string name="settings_language_subtitle">Pilih bahasa yang kamu inginkan</string>
+    <string name="settings_language_system">Bawaan sistem</string>
+    <string name="settings_language_restart_hint">Mengubah bahasa mungkin membuat aplikasi memulai ulang sebentar agar semuanya diperbarui dengan rapi.</string>
+    <string name="settings_section_about">TENTANG</string>
+    <string name="settings_version">v1.0</string>
+
+    <!-- Appearance modes -->
+    <string name="theme_light">Terang</string>
+    <string name="theme_dark">Gelap</string>
+    <string name="theme_auto">Otomatis</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Lewati</string>
+    <string name="onboarding_welcome_to">Selamat datang di</string>
+    <string name="onboarding_welcome_title">Ritual fokus yang lebih tenang</string>
+    <string name="onboarding_welcome_subtitle">Pilih niat, mulai timer, dan biarkan Purrodoro menjaga ritmenya.</string>
+    <string name="onboarding_welcome_cat_cd">Purrodoro si kucing hangat, beristirahat di padang rumput yang cerah</string>
+    <string name="onboarding_intent_title">Pilih niatmu</string>
+    <string name="onboarding_intent_subtitle">Sesi ini untuk apa?</string>
+    <string name="onboarding_intent_task">Tugas</string>
+    <string name="onboarding_intent_habit">Kebiasaan</string>
+    <string name="onboarding_intent_note">Catatan</string>
+    <string name="onboarding_intent_free">Fokus Bebas</string>
+    <string name="onboarding_intent_hint">Kamu bisa mulai tanpa memilih apa pun.</string>
+    <string name="onboarding_rhythm_title">Lihat ritmemu</string>
+    <string name="onboarding_rhythm_subtitle">Minggumu terisi seiring kamu fokus.</string>
+    <string name="onboarding_rhythm_your_week">Minggumu</string>
+    <string name="onboarding_rhythm_preview">Pratinjau</string>
+    <string name="onboarding_rhythm_quote">Konsistensi adalah kekuatan tenangmu.</string>
+    <string name="onboarding_track_title">Tetap pada jalur</string>
+    <string name="onboarding_track_subtitle">Dentingan lembut saat fokus dan istirahat berakhir — tidak yang lain.</string>
+    <string name="onboarding_track_body">Kami sarankan mengaktifkannya agar kamu bisa larut sepenuhnya dalam fokus dan percaya Purrodoro akan memanggilmu kembali.</string>
+    <string name="onboarding_notif_title">Fokus selesai</string>
+    <string name="onboarding_notif_body">Istirahat sebentar — sesi berikutnya sudah menunggu.</string>
+    <string name="onboarding_notif_meta">Purrodoro  ·  sekarang</string>
+    <string name="onboarding_cta_get_started">Mulai</string>
+    <string name="onboarding_cta_turn_on_notifications">Aktifkan notifikasi</string>
+    <string name="onboarding_cta_next">Lanjut</string>
+    <string name="onboarding_cta_not_now">Nanti saja</string>
+
+    <!-- Timer modes -->
+    <string name="timer_mode_focus">Fokus</string>
+    <string name="timer_mode_short_break">Istirahat Singkat</string>
+    <string name="timer_mode_long_break">Istirahat Panjang</string>
+
+    <!-- Focus types -->
+    <string name="focus_type_task">Tugas</string>
+    <string name="focus_type_habit">Kebiasaan</string>
+    <string name="focus_type_simple_note">Catatan</string>
+    <string name="focus_type_focus">Fokus</string>
+
+    <!-- Greetings -->
+    <string name="greeting_morning_salutation">Selamat pagi,</string>
+    <string name="greeting_morning_encouragement">Mari jadikan pagi ini bermakna.</string>
+    <string name="greeting_afternoon_salutation">Selamat siang,</string>
+    <string name="greeting_afternoon_encouragement">Jalani sore dengan tenang.</string>
+    <string name="greeting_evening_salutation">Selamat malam,</string>
+    <string name="greeting_evening_encouragement">Mari jadikan malam ini bermakna.</string>
+
+    <!-- Home -->
+    <string name="home_start_focus">Mulai Fokus</string>
+    <string name="home_autocomplete_task">Selesaikan Pomodoro ini dan Purrodoro akan mencentangnya.</string>
+    <string name="home_autocomplete_habit">Selesaikan Pomodoro ini dan Purrodoro akan mencatatnya hari ini.</string>
+    <string name="home_taking_a_break">Sedang istirahat</string>
+    <string name="home_remaining">tersisa</string>
+    <string name="home_open_focus_mode">Buka Mode Fokus</string>
+    <string name="home_pause_focus">Jeda Fokus</string>
+    <string name="home_resume_focus">Lanjutkan Fokus</string>
+    <string name="home_stop_session">Hentikan sesi</string>
+    <string name="home_skip_break">Lewati istirahat</string>
+    <string name="home_stop_title">Mau istirahat?</string>
+    <string name="home_stop_body">Waktu fokusmu sejauh ini tetap dihitung.</string>
+    <string name="home_stop_confirm">Hentikan dulu</string>
+    <string name="home_stop_dismiss">Tetap fokus</string>
+    <string name="home_resume_header">Lanjutkan fokus</string>
+    <string name="home_ready_header">Siap saat kamu siap</string>
+    <string name="home_choose_focus_task">Pilih tugas untuk difokuskan</string>
+    <string name="home_empty_subtitle">Tempat tenang untuk memulai saat kamu siap.</string>
+    <string name="home_suggested_for_now">Disarankan untuk sekarang</string>
+    <string name="home_min_focus">fokus %1$d mnt</string>
+    <string name="home_min_left">%1$d mnt tersisa</string>
+    <string name="home_resume_left">%1$s tersisa</string>
+    <string name="home_todays_focus">Fokus Hari Ini</string>
+    <string name="home_view_all">Lihat semua</string>
+    <string name="home_metric_focus_time">Waktu fokus</string>
+    <string name="home_metric_sessions">Sesi</string>
+    <string name="home_metric_completed">Selesai</string>
+    <string name="home_quote">Sedikit demi sedikit,\nlama-lama menjadi banyak. ♡</string>
+    <plurals name="sessions_count">
+        <item quantity="other">%1$d sesi</item>
+    </plurals>
+
+    <!-- Focus type short label (cycle receipt) -->
+    <string name="focus_type_note">Catatan</string>
+
+    <!-- Cycle completion dialog -->
+    <string name="cycle_done">Selesai</string>
+    <string name="cycle_view_journey">Lihat Perjalanan</string>
+    <string name="cycle_focused">fokus</string>
+    <string name="cycle_minutes_unit">mnt</string>
+    <plurals name="cycle_focus_sessions_completed">
+        <item quantity="other">%1$d sesi fokus selesai</item>
+    </plurals>
+    <string name="cycle_v1_title">Siklus selesai</string>
+    <string name="cycle_v1_body">Satu siklus penuh sudah kamu lewati. Beristirahatlah sejenak — kamu pantas mendapatkannya.</string>
+    <string name="cycle_v2_title">Kerja bagus</string>
+    <string name="cycle_v2_body">Kamu menyelesaikan satu siklus Pomodoro penuh. Istirahatlah sebelum yang berikutnya.</string>
+    <string name="cycle_v3_title">Selesai sudah</string>
+    <string name="cycle_v3_body">Empat sesi fokus, semuanya rampung. Beranjaklah dengan pikiran yang jernih.</string>
+    <string name="cycle_v4_title">Kerja yang baik</string>
+    <string name="cycle_v4_body">Satu siklus penuh bukan hal sepele. Nikmati keberhasilanmu.</string>
+    <string name="cycle_v5_title">Semua beres</string>
+    <string name="cycle_v5_body">Satu siklus penuh sudah terlewati. Tarik napas, lalu kembalilah saat kamu siap.</string>
+
+    <!-- Focus mode overlay -->
+    <string name="focus_mode_label_focus">FOKUS</string>
+    <string name="focus_mode_label_short_break">ISTIRAHAT SINGKAT</string>
+    <string name="focus_mode_label_long_break">ISTIRAHAT PANJANG</string>
+    <string name="focus_subtext_break_ready">Istirahat siap</string>
+    <string name="focus_subtext_break_running">Beristirahat bersama Purrodoro</string>
+    <string name="focus_subtext_paused">Dijeda</string>
+    <string name="focus_exit_cd">Keluar dari mode fokus</string>
+    <string name="focus_start_break">Mulai istirahat</string>
+    <string name="focus_resume_focus">Lanjutkan fokus</string>
+    <string name="focus_tap_to_exit">ketuk di mana saja untuk keluar</string>
+    <string name="focus_pause_break_cd">Jeda istirahat</string>
+
+    <!-- Start Focus sheet -->
+    <string name="sheet_what_working_on">Sedang mengerjakan apa?</string>
+    <string name="sheet_intent_optional">Niat (opsional)</string>
+    <string name="intent_simple_note">Catatan singkat</string>
+    <string name="intent_empty">Kosong</string>
+    <string name="sheet_choose_task">Pilih tugas</string>
+    <string name="sheet_no_tasks">Belum ada tugas terbuka. Tambahkan dari tab Tugas.</string>
+    <string name="sheet_choose_habit">Pilih kebiasaan</string>
+    <string name="sheet_no_habits">Tidak ada kebiasaan tersisa untuk difokuskan hari ini.</string>
+    <string name="sheet_write_note">Tulis catatan singkat…</string>
+    <string name="sheet_change">Ubah</string>
+    <string name="sheet_edit_config">Ubah konfigurasi</string>
+    <string name="sheet_changes_apply">Perubahan hanya berlaku untuk sesi ini.</string>
+    <string name="sheet_default_config">Konfigurasi bawaan</string>
+    <string name="sheet_edit">Ubah</string>
+    <string name="config_focus">Fokus</string>
+    <string name="config_short_break">Istirahat singkat</string>
+    <string name="config_long_break">Istirahat panjang</string>
+    <string name="config_sessions">Sesi</string>
+
+    <!-- Focus already complete dialog -->
+    <string name="focus_complete_title">Semua sudah beres</string>
+    <string name="focus_complete_habit_body">Kamu sudah melakukan kebiasaan ini hari ini. Mau tetap memfokuskannya? Streak-mu tetap aman dan hanya waktu fokusmu yang dicatat.</string>
+    <string name="focus_complete_task_body">Kamu sudah menyelesaikan tugas ini. Mau tetap memfokuskannya? Tugas tetap tercentang dan hanya waktu fokusmu yang dicatat.</string>
+    <string name="focus_complete_confirm">Tetap fokus</string>
+
+    <!-- Sounds -->
+    <string name="sounds_title">Suara</string>
+    <string name="sounds_subtitle">Suara ambien untuk sesi fokusmu</string>
+    <string name="sound_pill_playing">Diputar</string>
+    <string name="sound_pill_selected">Dipilih</string>
+    <string name="sound_pill_premium">Premium</string>
+    <string name="sound_pill_tap_to_play">Ketuk untuk memutar</string>
+    <string name="sound_unlock_cd">Buka %1$s</string>
+    <string name="sound_stop_cd">Hentikan %1$s</string>
+    <string name="sound_play_cd">Putar %1$s</string>
+    <string name="sound_rain_name">Jendela Hujan</string>
+    <string name="sound_rain_desc">Hujan lembut untuk membaca dalam</string>
+    <string name="sound_cafe_name">Dengkuran Kafe</string>
+    <string name="sound_cafe_desc">Suasana ruang kafe yang hangat</string>
+    <string name="sound_forest_name">Tidur Siang di Hutan</string>
+    <string name="sound_forest_desc">Dedaunan, burung, dan angin sepoi</string>
+    <string name="sound_fire_name">Perapian</string>
+    <string name="sound_fire_desc">Api yang berderak dengan kucing mengantuk</string>
+    <string name="sound_keys_name">Keyboard Malam</string>
+    <string name="sound_keys_desc">Ketukan tombol lembut di ruang sunyi</string>
+
+    <!-- Journey / Calendar -->
+    <string name="journey_title">Perjalanan</string>
+    <string name="journey_period_week">Minggu ini</string>
+    <string name="journey_period_month">Bulan ini</string>
+    <string name="journey_week_over_week">%1$s%2$d%% dibanding minggu lalu</string>
+    <string name="journey_no_last_week">Belum ada data minggu lalu</string>
+    <string name="journey_focus_time_week">Waktu fokus minggu ini</string>
+    <string name="journey_today">Hari ini</string>
+    <string name="journey_no_records_today">Belum ada catatan fokus hari ini.</string>
+    <string name="journey_status_completed">Selesai</string>
+    <string name="journey_status_partial">Sebagian</string>
+    <string name="journey_detail">Detail perjalanan</string>
+    <string name="journey_time_range">%1$s - %2$s</string>
+    <string name="journey_stat_focused">Fokus</string>
+    <string name="journey_stat_sessions">Sesi</string>
+    <string name="journey_stat_rest">Istirahat</string>
+    <string name="journey_stat_sessions_value">%1$d/%2$d</string>
+    <string name="journey_delete_record">Hapus Catatan</string>
+    <string name="journey_delete_title">Hapus catatan ini?</string>
+    <string name="journey_delete_body">Sesi dari %1$s hingga %2$s akan dihapus permanen.</string>
+    <string name="journey_open_history">Buka riwayat</string>
+    <string name="journey_section_all_time">Sepanjang waktu</string>
+    <string name="journey_all_time_total">total</string>
+    <string name="journey_all_time_streak">rekor hari beruntun</string>
+    <string name="journey_all_time_sessions">sesi</string>
+    <string name="journey_month_summary">%1$d hari fokus · %2$s</string>
+    <string name="journey_stat_daily_avg">Rata-rata</string>
+    <string name="journey_stat_best_day">Hari terbaik</string>
+    <string name="journey_stat_none">—</string>
+    <string name="journey_stat_focus_days">hari fokus</string>
+    <string name="journey_stat_streak">hari beruntun</string>
+
+    <!-- History -->
+    <string name="history_title">Riwayat</string>
+    <string name="history_empty_day">Tidak ada sesi fokus pada hari ini.</string>
+    <string name="history_previous_month">Bulan sebelumnya</string>
+    <string name="history_next_month">Bulan berikutnya</string>
+
+    <!-- Tasks -->
+    <string name="tasks_title">Tugas</string>
+    <string name="tasks_add">Tambah tugas</string>
+    <string name="tasks_filter_all">Semua</string>
+    <string name="tasks_filter_active">Aktif</string>
+    <string name="tasks_filter_done">Selesai</string>
+    <string name="tasks_filter_archived">Arsip</string>
+    <string name="tasks_filter_option">%1$s %2$d</string>
+    <string name="tasks_filter_by_category">Saring berdasarkan kategori</string>
+    <string name="tasks_category_all">Semua</string>
+    <string name="tasks_section_more">Tugas lainnya</string>
+    <string name="tasks_section_tasks">Tugas</string>
+    <string name="tasks_section_done">Selesai · %1$d</string>
+    <string name="tasks_delete_all">Hapus semua</string>
+    <string name="tasks_delete_all_cd">Hapus semua tugas selesai</string>
+    <string name="tasks_all_categories">Semua kategori</string>
+    <string name="tasks_manage_categories">Kelola kategori</string>
+    <string name="tasks_no_categories">Belum ada kategori. Tambahkan satu untuk mengelompokkan tugasmu.</string>
+    <string name="tasks_new_category">Kategori baru</string>
+    <string name="tasks_category_new_title">Kategori Baru</string>
+    <string name="tasks_category_rename_title">Ubah Nama Kategori</string>
+    <string name="tasks_category_name_placeholder">Nama kategori</string>
+    <string name="tasks_category_color">WARNA</string>
+    <string name="tasks_category_color_cd">Warna kategori</string>
+    <string name="tasks_confirm">Konfirmasi</string>
+    <string name="tasks_rename_cd">Ubah nama %1$s</string>
+    <string name="tasks_delete_cd">Hapus %1$s</string>
+    <string name="tasks_delete_category_title">Hapus %1$s?</string>
+    <string name="tasks_delete_category_body">Tugas dalam kategori ini akan menjadi tanpa kategori.</string>
+    <string name="tasks_delete_completed_title">Hapus %1$d tugas selesai?</string>
+    <string name="tasks_delete_completed_title_plural">Hapus %1$d tugas selesai?</string>
+    <string name="tasks_delete_completed_body">Tindakan ini tidak bisa dibatalkan.</string>
+    <string name="tasks_new_task">Tugas baru</string>
+    <string name="tasks_what_focus">Apa yang mau kamu fokuskan?</string>
+    <string name="tasks_char_count">%1$d/%2$d</string>
+    <string name="tasks_title_placeholder">Rancang alur onboarding</string>
+    <string name="tasks_empty_none_title">Belum ada tugas</string>
+    <string name="tasks_empty_none_msg">Ketuk + untuk mencatat hal pertama yang ingin kamu fokuskan.</string>
+    <string name="tasks_empty_active_title">Tidak ada yang aktif</string>
+    <string name="tasks_empty_active_msg_category">Tidak ada tugas aktif di %1$s. Coba Semua, atau tambah yang baru.</string>
+    <string name="tasks_empty_active_msg">Semua beres. Tambah tugas baru atau cek yang sudah selesai.</string>
+    <string name="tasks_empty_done_title">Belum ada yang selesai</string>
+    <string name="tasks_empty_done_msg">Tugas yang selesai akan muncul di sini.</string>
+    <string name="tasks_empty_archived_title">Tidak ada arsip</string>
+    <string name="tasks_empty_archived_msg">Tugas yang diarsipkan akan muncul di sini setelah fitur arsip tersedia.</string>
+    <string name="tasks_empty_default_title">Tidak ada tugas di sini</string>
+    <string name="tasks_empty_default_msg">Ketuk + untuk mencatat hal berikutnya yang ingin kamu fokuskan.</string>
+    <string name="tasks_delete_task">Hapus tugas</string>
+    <string name="tasks_edit_title_cd">Ubah judul</string>
+    <string name="tasks_title_placeholder_short">Nama tugas</string>
+    <string name="tasks_mark_done_now">Tandai tugas selesai sekarang</string>
+    <string name="tasks_marked_done">Tugas ditandai selesai</string>
+    <string name="tasks_open_focus">Buka fokus</string>
+    <string name="tasks_focus_with_kuro">Fokus bareng Purrodoro</string>
+    <string name="tasks_helper_open">Pomodoro ini sedang berjalan — ketuk untuk kembali ke sana.</string>
+    <string name="tasks_helper_blocked">Sudah ada Pomodoro yang berjalan. Selesaikan atau hentikan dulu untuk fokus ke tugas ini.</string>
+    <string name="tasks_helper_start">Kita siapkan fokusnya bareng — mulai kapan pun kamu siap.</string>
+    <string name="tasks_priority">Prioritas</string>
+    <string name="tasks_category">Kategori</string>
+    <string name="tasks_category_none">Tidak ada</string>
+    <string name="tasks_priority_high">Tinggi</string>
+    <string name="tasks_priority_normal">Normal</string>
+    <string name="tasks_priority_low">Rendah</string>
+    <string name="tasks_priority_high_desc">Kerjakan ini dulu</string>
+    <string name="tasks_priority_normal_desc">Prioritas standar</string>
+    <string name="tasks_priority_low_desc">Bisa nanti</string>
+    <string name="tasks_due_date">Tenggat</string>
+    <string name="tasks_due_not_set">Belum diatur</string>
+    <string name="tasks_due_today">Hari ini, %1$s</string>
+    <string name="tasks_due_tomorrow">Besok</string>
+    <string name="tasks_due_today_short">Hari ini</string>
+    <string name="tasks_clear">Hapus</string>
+    <string name="tasks_clear_due_cd">Hapus tenggat</string>
+    <string name="tasks_minutes_focus">Fokus %1$d mnt</string>
+    <string name="tasks_now_focusing">SEDANG FOKUS</string>
+    <string name="tasks_next_focus">FOKUS BERIKUTNYA</string>
+    <string name="tasks_pill_open">Buka</string>
+    <string name="tasks_pill_finish_first">Selesaikan dulu</string>
+    <string name="tasks_pill_start">Mulai</string>
+    <string name="tasks_pill_focus_cd">Fokus %1$s</string>
+    <string name="tasks_mark_done_cd">Tandai tugas selesai</string>
+    <string name="tasks_due_today_hero">Tenggat hari ini</string>
+    <string name="tasks_due_tomorrow_hero">Tenggat besok</string>
+    <string name="tasks_overdue_one">Terlambat 1 hari</string>
+    <string name="tasks_overdue_many">Terlambat %1$d hari</string>
+    <string name="tasks_due_in_days">Tenggat dalam %1$d hari</string>
+    <string name="tasks_date_set">Atur</string>
+    <string name="tasks_category_cd">Kategori</string>
+    <string name="tasks_filter_category_cd">Saring berdasarkan kategori</string>
+    <string name="tasks_manage_categories_cd">Kelola kategori</string>
+
+    <!-- Habits -->
+    <string name="habits_title">Kebiasaan</string>
+    <string name="habits_add">Tambah kebiasaan</string>
+    <string name="habits_section_today">Hari ini</string>
+    <string name="habits_section_coming_up">Akan datang</string>
+    <string name="habits_all_done">Semua selesai 🎉</string>
+    <string name="habits_to_go">%1$d lagi</string>
+    <string name="habits_motivation_quote">Konsistensi adalah rahasia di balik setiap kemajuan.</string>
+    <string name="habits_motivation_encouragement">Kamu hebat! 🌟</string>
+    <string name="habits_empty_title">Belum ada kebiasaan</string>
+    <string name="habits_empty_msg">Tambahkan satu aksi kecil yang bisa diulang dan biarkan Purrodoro menemanimu.</string>
+    <string name="habits_back_tomorrow">kembali besok</string>
+    <string name="habits_back_day">kembali %1$s</string>
+    <string name="habits_status_tomorrow">Besok</string>
+    <string name="habits_status_next">Berikutnya %1$s</string>
+    <string name="habits_status_done_today">Selesai hari ini</string>
+    <string name="habits_status_due_today">Hari ini</string>
+    <string name="habits_streak_day">hari beruntun</string>
+    <string name="habits_streak_week">minggu beruntun</string>
+    <string name="habits_every_day">Setiap hari</string>
+    <string name="habits_weekdays">Hari kerja</string>
+    <string name="habits_weekends">Akhir pekan</string>
+    <string name="habits_add_sheet_title">Tambah kebiasaan</string>
+    <string name="habits_name_label">NAMA</string>
+    <string name="habits_color_label">WARNA</string>
+    <string name="habits_repeat_label">ULANGI</string>
+    <string name="habits_name_placeholder">mis. Meditasi</string>
+    <string name="habits_add_button">Tambah Kebiasaan</string>
+    <string name="habits_save_button">Simpan Perubahan</string>
+    <string name="habits_delete_button">Hapus Kebiasaan</string>
+    <string name="habits_choose_icon">Pilih ikon</string>
+    <string name="habits_choose_icon_sub">Pilih yang cocok dengan kebiasaanmu.</string>
+    <string name="habits_delete_title">Hapus kebiasaan?</string>
+    <string name="habits_delete_body">Semua catatan dan data rentetan akan dihapus permanen.</string>
+    <string name="habits_edit">Ubah</string>
+    <string name="habits_edit_cd">Ubah kebiasaan</string>
+    <string name="habits_edit_habit">Ubah kebiasaan</string>
+    <string name="habits_current_streak">Rentetan saat ini</string>
+    <string name="habits_best_streak">Rentetan terbaik</string>
+    <string name="habits_completed_today">Selesai hari ini ✓</string>
+    <string name="habits_mark_done_today">Tandai selesai hari ini</string>
+    <string name="habits_not_scheduled">Tidak dijadwalkan hari ini · %1$s</string>
+    <string name="habits_open_focus">Buka fokus</string>
+    <string name="habits_focus_with_kuro">Fokus bareng Purrodoro</string>
+    <string name="habits_helper_open">Pomodoro ini sedang berjalan — ketuk untuk kembali ke sana.</string>
+    <string name="habits_helper_blocked">Sudah ada Pomodoro yang berjalan. Selesaikan atau hentikan dulu untuk fokus ke kebiasaan ini.</string>
+    <string name="habits_helper_start">Fokuskan satu Pomodoro untuk kebiasaan ini saat kamu siap.</string>
+    <string name="habits_this_week">Minggu ini</string>
+    <string name="habits_monthly_progress">Progres bulanan</string>
+    <string name="habits_mark_not_done_cd">Tandai belum selesai</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_running_name">Timer berjalan</string>
+    <string name="notif_channel_running_desc">Notifikasi berjalan saat Pomodoro aktif</string>
+    <string name="notif_channel_complete_sound_name">Segmen selesai (dengan suara)</string>
+    <string name="notif_channel_complete_silent_name">Segmen selesai (senyap)</string>
+    <string name="notif_channel_complete_desc">Notifikasi saat segmen Fokus atau Istirahat berakhir</string>
+    <string name="notif_action_pause">Jeda</string>
+    <string name="notif_action_resume">Lanjut</string>
+    <string name="notif_action_stop">Berhenti</string>
+    <string name="notif_action_skip">Lewati</string>
+    <string name="notif_focus_complete_title">Fokus selesai</string>
+    <string name="notif_focus_complete_body">Ketuk untuk mulai istirahat</string>
+    <string name="notif_break_complete_title">Istirahat selesai</string>
+    <string name="notif_break_complete_body">Siap untuk sesi fokus lagi?</string>
+    <string name="notif_cycle_complete_title">Siklus selesai</string>
+    <string name="notif_cycle_complete_body">Kerja bagus — siklus Pomodoro-mu selesai</string>
+    <string name="notif_timer_stopped_title">Timer dihentikan</string>
+    <string name="notif_timer_stopped_body">Sesi berakhir lebih awal</string>
+    <string name="notif_segment_focus">Fokus</string>
+    <string name="notif_segment_short_break">Istirahat Singkat</string>
+    <string name="notif_segment_long_break">Istirahat Panjang</string>
+    <string name="notif_segment_timer">Timer</string>
+    <string name="notif_title_playing">%1$s · %2$s</string>
+    <string name="notif_title_paused">%1$s · Jeda</string>
+    <string name="notif_remaining">%1$s tersisa</string>
+    <string name="notif_task_progress">%1$s · %2$d / %3$d</string>
+
+    <!-- Widget content -->
+    <string name="widget_qs_celebrating_title">Kerja bagus hari ini</string>
+    <string name="widget_qs_celebrating_subtitle">Purrodoro bangga padamu</string>
+    <string name="widget_qs_celebrating_action">Buka Purrodoro</string>
+    <string name="widget_qs_ready_title">Purrodoro siap</string>
+    <string name="widget_qs_ready_subtitle">Mulai fokus dengan tenang</string>
+    <string name="widget_qs_ready_action">Mulai Fokus</string>
+    <string name="widget_qs_focusing_title">Purrodoro sedang fokus</string>
+    <string name="widget_qs_focusing_subtitle">Tetap di sesimu</string>
+    <string name="widget_qs_focusing_action">Buka Timer</string>
+    <string name="widget_qs_waiting_title">Purrodoro menunggu</string>
+    <string name="widget_qs_waiting_subtitle">Ketuk untuk lanjut</string>
+    <string name="widget_qs_waiting_action">Buka Timer</string>
+    <string name="widget_today_title">Hari ini bareng Purrodoro</string>
+    <string name="widget_today_focus_unit">fokus</string>
+    <string name="widget_today_enc_soft">Mulai pelan pun cukup</string>
+    <string name="widget_today_enc_first">Purrodoro melihat fokus pertamamu</string>
+    <string name="widget_today_enc_goal">Target tercapai bareng Purrodoro</string>
+    <string name="widget_today_enc_proud">Purrodoro bangga hari ini</string>
+
+    <!-- Spotlight tutorial -->
+    <string name="tutorial_skip">Lewati</string>
+    <string name="tutorial_previous">Kembali</string>
+    <string name="tutorial_next">Lanjut</string>
+    <string name="tutorial_done">Mengerti</string>
+    <string name="tutorial_cat_cd">Purrodoro si kucing</string>
+    <string name="tutorial_start_focus_title">Mulai fokus pertamamu</string>
+    <string name="tutorial_start_focus_body">Ketuk di sini untuk memulai Pomodoro dan biarkan Purrodoro menghitung waktunya.</string>
+    <string name="tutorial_tasks_title">Rencanakan yang penting</string>
+    <string name="tutorial_tasks_body">Tambahkan tugas di sini, lalu pilih satu untuk difokuskan bersama Purrodoro.</string>
+    <string name="tutorial_habits_title">Bangun kebiasaan lembut</string>
+    <string name="tutorial_habits_body">Pantau rutinitas kecil dan fokuskan saat perlu perhatian.</string>
+    <string name="tutorial_journey_title">Lihat hasilnya bertambah</string>
+    <string name="tutorial_journey_body">Setiap siklus yang selesai akan muncul di perjalananmu seiring waktu.</string>
+</resources>

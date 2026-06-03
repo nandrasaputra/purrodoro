@@ -14,16 +14,16 @@
 
 | File | What changes |
 |------|-------------|
-| `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt` | Add `PulseWrapper`; refactor `DockHomeButton` to nav-only + icon; add `isSoundPlaying` param to `DashboardDock` + `DockTabItem`; `weight(1f)` on all items; remove `onStartPause` param |
-| `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` | Remove `onStartPause` from `DashboardDock` call; add `isSoundPlaying` arg; add `playingSoundId` state; wire `onToggleSound`; pass `playingSoundId`+`onToggleSound` to `SoundsScreen` |
-| `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/SoundsScreen.kt` | Add `playingSoundId: Int?` and `onToggleSound: (SoundOption) -> Unit` params; use `playingSoundId` for play-state; tint playing row background coral |
+| `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt` | Add `PulseWrapper`; refactor `DockHomeButton` to nav-only + icon; add `isSoundPlaying` param to `DashboardDock` + `DockTabItem`; `weight(1f)` on all items; remove `onStartPause` param |
+| `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Remove `onStartPause` from `DashboardDock` call; add `isSoundPlaying` arg; add `playingSoundId` state; wire `onToggleSound`; pass `playingSoundId`+`onToggleSound` to `SoundsScreen` |
+| `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt` | Add `playingSoundId: Int?` and `onToggleSound: (SoundOption) -> Unit` params; use `playingSoundId` for play-state; tint playing row background coral |
 
 ---
 
 ## Task 1: Add `PulseWrapper` to `KuroComponents.kt`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`
 
 - [ ] **Step 1: Add animation imports**
 
@@ -68,7 +68,7 @@ private fun PulseWrapper(active: Boolean, content: @Composable () -> Unit) {
 - [ ] **Step 3: Build to confirm no compile errors**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -76,7 +76,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt
 git commit -m "feat: add PulseWrapper composable for dock animation"
 ```
 
@@ -85,7 +85,7 @@ git commit -m "feat: add PulseWrapper composable for dock animation"
 ## Task 2: Refactor `DashboardDock` — equal width + nav-only Home + Sounds play state
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`
 
 - [ ] **Step 1: Update `DashboardDock` signature and body**
 
@@ -224,7 +224,7 @@ private fun DockHomeButton(isRunning: Boolean, modifier: Modifier = Modifier, on
 - [ ] **Step 4: Build**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: compile errors about `onStartPause` at the call site in `KuroPomodoroApp.kt` — that is expected and will be fixed in Task 3.
@@ -232,7 +232,7 @@ Expected: compile errors about `onStartPause` at the call site in `KuroPomodoroA
 - [ ] **Step 5: Commit (components only)**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt
 git commit -m "feat: refactor DashboardDock — equal width, nav-only Home, Sounds play icon"
 ```
 
@@ -241,7 +241,7 @@ git commit -m "feat: refactor DashboardDock — equal width, nav-only Home, Soun
 ## Task 3: Update `KuroPomodoroApp.kt` call site
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Replace the `DashboardDock` call**
 
@@ -284,7 +284,7 @@ Replace with:
 - [ ] **Step 2: Build**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -292,7 +292,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: wire isSoundPlaying to DashboardDock, remove onStartPause from dock"
 ```
 
@@ -301,7 +301,7 @@ git commit -m "feat: wire isSoundPlaying to DashboardDock, remove onStartPause f
 ## Task 4: Update `SoundsScreen.kt` — `playingSoundId` param + coral tint on playing row
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/SoundsScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt`
 
 Context: The screen currently uses `isPlaying: Boolean` (true = something is playing) + `selectedSoundId: Int` to compute pill state. We replace `isPlaying` with `playingSoundId: Int?` (null = nothing playing) so each row knows whether *it* is the playing one. We also add `onToggleSound` so the playing row can be toggled off — `onSoundSelected` remains for selecting a new sound.
 
@@ -321,7 +321,7 @@ Both are already present — no change needed, just verify.
 Replace the entire function signature and the `sounds.forEach` block. The full new file content:
 
 ```kotlin
-package com.endiar.kuropomodoro.ui
+package com.endiar.purrodoro.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -342,12 +342,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.endiar.kuropomodoro.model.SoundOption
-import com.endiar.kuropomodoro.model.GlassTreatment
-import com.endiar.kuropomodoro.ui.components.GlassCard
-import com.endiar.kuropomodoro.ui.components.MockBadge
-import com.endiar.kuropomodoro.ui.components.StatusPill
-import com.endiar.kuropomodoro.ui.components.StatusPillKind
+import com.endiar.purrodoro.model.SoundOption
+import com.endiar.purrodoro.model.GlassTreatment
+import com.endiar.purrodoro.ui.components.GlassCard
+import com.endiar.purrodoro.ui.components.MockBadge
+import com.endiar.purrodoro.ui.components.StatusPill
+import com.endiar.purrodoro.ui.components.StatusPillKind
 
 private val PlayingTint = Color(0xFFFF8B6F).copy(alpha = 0.15f)
 
@@ -453,7 +453,7 @@ fun SoundsScreen(
 - [ ] **Step 3: Build — expect call-site errors in KuroPomodoroApp.kt**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: errors at the `SoundsScreen(...)` call about missing `playingSoundId`/`onToggleSound` and unknown `isPlaying`. Fixed in Task 5.
@@ -461,7 +461,7 @@ Expected: errors at the `SoundsScreen(...)` call about missing `playingSoundId`/
 - [ ] **Step 4: Commit (screen file only)**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/SoundsScreen.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt
 git commit -m "feat: SoundsScreen uses playingSoundId, coral tint on playing row"
 ```
 
@@ -470,7 +470,7 @@ git commit -m "feat: SoundsScreen uses playingSoundId, coral tint on playing row
 ## Task 5: Update `KuroPomodoroApp.kt` — wire `playingSoundId` and `onToggleSound`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Replace `isSoundPlaying: Boolean` state with `playingSoundId: Int?`**
 
@@ -535,7 +535,7 @@ Replace with:
 - [ ] **Step 3: Build**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -543,7 +543,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 4: Run unit tests**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew test 2>&1 | tail -20
+cd purrodoro-android && ./gradlew test 2>&1 | tail -20
 ```
 
 Expected: all tests pass.
@@ -551,7 +551,7 @@ Expected: all tests pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: wire playingSoundId state, connect SoundsScreen toggle"
 ```
 

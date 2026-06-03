@@ -23,7 +23,7 @@
 ## Task 1: Extend FocusTask data model
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt:23-30`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt:23-30`
 
 - [ ] **Step 1: Add fields to FocusTask**
 
@@ -45,7 +45,7 @@ data class FocusTask(
 - [ ] **Step 2: Build and verify no compile errors**
 
 ```bash
-cd kuro-pomodoro-android
+cd purrodoro-android
 ./gradlew assembleDebug 2>&1 | tail -20
 ```
 Expected: `BUILD SUCCESSFUL`
@@ -53,7 +53,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt
 git commit -m "feat: add plannedSessions and pomodorosDone to FocusTask"
 ```
 
@@ -62,7 +62,7 @@ git commit -m "feat: add plannedSessions and pomodorosDone to FocusTask"
 ## Task 2: Add activeTask and isFocusMode state to KuroPomodoroApp
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt:116-123`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:116-123`
 
 - [ ] **Step 1: Add state variables after line 123 (after `premiumSheetMessage`)**
 
@@ -107,7 +107,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: add activeTask and isFocusMode state to KuroPomodoroApp"
 ```
 
@@ -116,8 +116,8 @@ git commit -m "feat: add activeTask and isFocusMode state to KuroPomodoroApp"
 ## Task 3: Wire onFocusTask callback through TodoScreen
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt:53-63`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt:250-258`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt:53-63`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:250-258`
 
 - [ ] **Step 1: Add onFocusTask parameter to TodoScreen signature**
 
@@ -204,8 +204,8 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 6: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: wire onFocusTask callback through TodoScreen to KuroPomodoroApp"
 ```
 
@@ -214,7 +214,7 @@ git commit -m "feat: wire onFocusTask callback through TodoScreen to KuroPomodor
 ## Task 4: Add Pre-Session ModalBottomSheet to TodoScreen
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt`
 
 This task adds a `PreSessionSheet` composable and opens it when `TaskGlassRow` triggers `onFocusTask`.
 
@@ -375,7 +375,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt
 git commit -m "feat: add PreSessionSheet bottom sheet to TodoScreen"
 ```
 
@@ -384,7 +384,7 @@ git commit -m "feat: add PreSessionSheet bottom sheet to TodoScreen"
 ## Task 5: Add SwipeToDismiss leading swipe to TaskGlassRow
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt`
 
 - [ ] **Step 1: Add SwipeToDismiss imports**
 
@@ -458,7 +458,7 @@ private fun TaskGlassRow(
             ) {
                 if (isLeading) {
                     Text(
-                        text = "▶  Focus with Kuro",
+                        text = "▶  Focus with Purrodoro",
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -538,8 +538,8 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt
-git commit -m "feat: add leading swipe Focus with Kuro and trailing swipe delete to TaskGlassRow"
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt
+git commit -m "feat: add leading swipe Focus with Purrodoro and trailing swipe delete to TaskGlassRow"
 ```
 
 ---
@@ -547,7 +547,7 @@ git commit -m "feat: add leading swipe Focus with Kuro and trailing swipe delete
 ## Task 6: Add session-complete logic to timer LaunchedEffect
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt:196-209`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt:196-209`
 
 - [ ] **Step 1: Extend timer-complete block to handle active task**
 
@@ -612,7 +612,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: session-complete logic — auto-mark task done and return to Todo tab"
 ```
 
@@ -621,7 +621,7 @@ git commit -m "feat: session-complete logic — auto-mark task done and return t
 ## Task 7: Add Focus Mode fullscreen overlay
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Add FocusModeScreen composable at the bottom of KuroPomodoroApp.kt (before the Saver objects)**
 
@@ -799,7 +799,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: add FocusModeScreen fullscreen overlay when isFocusMode is true"
 ```
 
@@ -808,7 +808,7 @@ git commit -m "feat: add FocusModeScreen fullscreen overlay when isFocusMode is 
 ## Task 8: Update FocusDashboard Running state — add task context and controls
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` — `FocusDashboard` composable (lines 337-452)
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` — `FocusDashboard` composable (lines 337-452)
 
 - [ ] **Step 1: Update FocusDashboard signature to accept activeTask and onBackToFocusMode**
 
@@ -888,7 +888,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: show active task info and back-to-focus chip in FocusDashboard running state"
 ```
 

@@ -1,10 +1,10 @@
-# Kuro Pomodoro — Product Reference
+# Purrodoro — Product Reference
 
-A practical reference for how Kuro Pomodoro models a Pomodoro **session**, the
+A practical reference for how Purrodoro models a Pomodoro **session**, the
 state transitions a session goes through, and how each end-path (stop, natural
 finish, skip-to-end) differs.
 
-> Source of truth: code in `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/`.
+> Source of truth: code in `purrodoro-android/app/src/main/java/com/endiar/purrodoro/`.
 > If this doc and the code disagree, the code wins — please update this file.
 
 ---
@@ -31,9 +31,9 @@ Focus  ShortBreak  Focus  ShortBreak  Focus  ShortBreak  Focus  LongBreak
   1                  2                  3                  4
 ```
 
-Built by [`buildCycle(settings)`](../kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt) in `KuroModels.kt:103`.
+Built by [`buildCycle(settings)`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt) in `KuroModels.kt:103`.
 
-This is the unit recorded as a [`SessionRecord`](../kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt) (`KuroModels.kt:215`):
+This is the unit recorded as a [`SessionRecord`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt) (`KuroModels.kt:215`):
 one record per cycle attempt, written when the cycle ends (any path).
 
 ### 2. Segment-sense (per-segment terminology)
@@ -152,7 +152,7 @@ Only skipping the final segment terminates the cycle.
 
 ## Settings that shape the cycle
 
-[`TimerSettings`](../kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt) (`KuroModels.kt:69`) drives `buildCycle`:
+[`TimerSettings`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt) (`KuroModels.kt:69`) drives `buildCycle`:
 
 | Field | Default | Range | Notes |
 |---|---|---|---|

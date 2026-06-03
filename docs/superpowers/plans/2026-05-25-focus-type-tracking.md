@@ -30,7 +30,7 @@
 ### Task 1: Add `FocusType` enum to the model
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`
 
 - [ ] **Step 1: Add the enum**
 
@@ -43,7 +43,7 @@ enum class FocusType { Task, Habit, SimpleNote, Empty }
 - [ ] **Step 2: Verify it compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin
 ```
 
 Expected: BUILD SUCCESSFUL
@@ -51,7 +51,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt
 git commit -m "feat: add FocusType enum to KuroModels"
 ```
 
@@ -60,14 +60,14 @@ git commit -m "feat: add FocusType enum to KuroModels"
 ### Task 2: Add `focusType` to `TimerRuntimeState`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/TimerRuntimeState.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/TimerRuntimeState.kt`
 
 - [ ] **Step 1: Add the field**
 
 Replace the entire file content with:
 
 ```kotlin
-package com.endiar.kuropomodoro.model
+package com.endiar.purrodoro.model
 
 /**
  * Runtime wrapper around [TimerSession] that the foreground service owns while a cycle is active.
@@ -92,7 +92,7 @@ data class TimerRuntimeState(
 - [ ] **Step 2: Verify it compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin
 ```
 
 Expected: BUILD SUCCESSFUL (existing callers that don't pass `focusType` will default to `FocusType.Empty`)
@@ -100,7 +100,7 @@ Expected: BUILD SUCCESSFUL (existing callers that don't pass `focusType` will de
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/TimerRuntimeState.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/TimerRuntimeState.kt
 git commit -m "feat: add focusType field to TimerRuntimeState"
 ```
 
@@ -109,7 +109,7 @@ git commit -m "feat: add focusType field to TimerRuntimeState"
 ### Task 3: Add `focusType` to `StartFocusRequest` and populate it
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/StartFocusSheet.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/StartFocusSheet.kt`
 
 - [ ] **Step 1: Add `focusType` to `StartFocusRequest`**
 
@@ -170,13 +170,13 @@ Find `buildStartFocusRequest` (around line 284) and replace the return expressio
 At the top of `StartFocusSheet.kt`, add:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.purrodoro.model.FocusType
 ```
 
 - [ ] **Step 4: Verify it compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin
 ```
 
 Expected: BUILD SUCCESSFUL
@@ -184,7 +184,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/StartFocusSheet.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/StartFocusSheet.kt
 git commit -m "feat: add focusType to StartFocusRequest"
 ```
 
@@ -193,20 +193,20 @@ git commit -m "feat: add focusType to StartFocusRequest"
 ### Task 4: Thread `focusType` through `TimerController` → `TimerConnection` → `TimerService`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerController.kt`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerConnection.kt`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/TimerService.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerController.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerConnection.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/TimerService.kt`
 
 - [ ] **Step 1: Update `TimerController.kt`**
 
 Replace the entire file:
 
 ```kotlin
-package com.endiar.kuropomodoro.timer
+package com.endiar.purrodoro.timer
 
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.FocusType
-import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.FocusType
+import com.endiar.purrodoro.model.TimerSettings
 
 interface TimerController {
     fun start(settings: TimerSettings, task: FocusTask?, activeHabitId: Int? = null, focusType: FocusType = FocusType.Empty)
@@ -249,7 +249,7 @@ lb.controller.start(ps.settings, ps.task, ps.activeHabitId, ps.focusType)
 Add the missing import at the top of `TimerConnection.kt`:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.purrodoro.model.FocusType
 ```
 
 - [ ] **Step 3: Update `TimerService.kt`**
@@ -289,13 +289,13 @@ val state = TimerRuntimeState(
 Add the missing import at the top of `TimerService.kt`:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.purrodoro.model.FocusType
 ```
 
 - [ ] **Step 4: Verify it compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin
 ```
 
 Expected: BUILD SUCCESSFUL
@@ -303,7 +303,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/timer/
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/timer/
 git commit -m "feat: thread focusType through TimerController/Connection/Service"
 ```
 
@@ -312,8 +312,8 @@ git commit -m "feat: thread focusType through TimerController/Connection/Service
 ### Task 5: Update snapshot encode/decode (v4)
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`
-- Modify: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryRuntimeSnapshotTest.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
+- Modify: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/data/AppRepositoryRuntimeSnapshotTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -356,13 +356,13 @@ fun encode_then_decode_roundTrips_focusType_task() {
 Also add the import at the top:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.purrodoro.model.FocusType
 ```
 
 - [ ] **Step 2: Run the tests to confirm they fail**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:testDebugUnitTest --tests "*.AppRepositoryRuntimeSnapshotTest.encode_then_decode_roundTrips_focusType*"
+cd purrodoro-android && ./gradlew :app:testDebugUnitTest --tests "*.AppRepositoryRuntimeSnapshotTest.encode_then_decode_roundTrips_focusType*"
 ```
 
 Expected: FAIL (encode/decode don't know about focusType yet)
@@ -430,7 +430,7 @@ TimerRuntimeState(
 Add the import at the top of `AppRepository.kt`:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.purrodoro.model.FocusType
 ```
 
 - [ ] **Step 5: Update existing snapshot round-trip tests that construct `TimerRuntimeState` directly**
@@ -461,7 +461,7 @@ Also **remove** the `decode_v2_snapshot_without_activeHabitId_defaults_to_null` 
 - [ ] **Step 6: Run all snapshot tests**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:testDebugUnitTest --tests "*.AppRepositoryRuntimeSnapshotTest"
+cd purrodoro-android && ./gradlew :app:testDebugUnitTest --tests "*.AppRepositoryRuntimeSnapshotTest"
 ```
 
 Expected: All pass
@@ -469,8 +469,8 @@ Expected: All pass
 - [ ] **Step 7: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt
-git add kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/data/AppRepositoryRuntimeSnapshotTest.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt
+git add purrodoro-android/app/src/test/java/com/endiar/purrodoro/data/AppRepositoryRuntimeSnapshotTest.kt
 git commit -m "feat: persist focusType in runtime snapshot (v4)"
 ```
 
@@ -479,7 +479,7 @@ git commit -m "feat: persist focusType in runtime snapshot (v4)"
 ### Task 6: Pass `focusType` from `KuroPomodoroApp` when starting the timer
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Find where `timerConnection.controller.start(...)` is called**
 
@@ -511,13 +511,13 @@ activeFocusType = runtimeState?.focusType ?: FocusType.Empty,
 Add the import at the top of `KuroPomodoroApp.kt`:
 
 ```kotlin
-import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.purrodoro.model.FocusType
 ```
 
 - [ ] **Step 3: Verify it compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin
 ```
 
 Expected: BUILD SUCCESSFUL (HomeTimerScreen will error until Task 7)
@@ -529,7 +529,7 @@ Expected: BUILD SUCCESSFUL (HomeTimerScreen will error until Task 7)
 ### Task 7: Update `HomeTimerScreen` to show icon + focus type label
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt`
 
 - [ ] **Step 1: Add `activeFocusType` parameter to `HomeTimerScreen`**
 
@@ -666,7 +666,7 @@ import androidx.compose.material.icons.outlined.CropSquare
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.TaskAlt
-import com.endiar.kuropomodoro.model.FocusType
+import com.endiar.purrodoro.model.FocusType
 ```
 
 Remove the now-unused `import androidx.compose.foundation.Image` if `CodeTile` was the only user (check first).
@@ -674,7 +674,7 @@ Remove the now-unused `import androidx.compose.foundation.Image` if `CodeTile` w
 - [ ] **Step 7: Verify it compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin
 ```
 
 Expected: BUILD SUCCESSFUL
@@ -682,8 +682,8 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 8: Commit Tasks 6 + 7 together**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt
 git commit -m "feat: show focus type icon and label in active timer card"
 ```
 
@@ -694,7 +694,7 @@ git commit -m "feat: show focus type icon and label in active timer card"
 - [ ] **Step 1: Run the full test suite**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:testDebugUnitTest
+cd purrodoro-android && ./gradlew :app:testDebugUnitTest
 ```
 
 Expected: BUILD SUCCESSFUL, 0 failures

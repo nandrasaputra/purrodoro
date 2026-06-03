@@ -100,7 +100,7 @@ Existing seed tasks are migrated to the flat task list with their `categoryId` s
 |---|---|
 | Tap circle checkmark | Toggle done / undone |
 | Tap anywhere else on row | Open `TaskDetailSheet` |
-| Swipe right | "Focus with Kuro" → `PreSessionSheet` (unchanged) |
+| Swipe right | "Focus with Purrodoro" → `PreSessionSheet` (unchanged) |
 | Swipe left | Delete task (unchanged) |
 
 - In "All" view: show category name as a dim subtitle below task title (blank if uncategorized)
@@ -112,7 +112,7 @@ Fields:
 - **Minutes** — stepper (same style as session stepper in `PreSessionSheet`)
 - **Planned sessions** — stepper (1–8)
 - **Completed sessions** — read-only display: "2 of 4 sessions done"
-- **"Focus with Kuro"** button at the bottom → same flow as swipe-right
+- **"Focus with Purrodoro"** button at the bottom → same flow as swipe-right
 
 Behaviour:
 - Changes auto-save on sheet dismiss (no explicit Save button)

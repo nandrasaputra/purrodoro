@@ -13,8 +13,8 @@
 ### Task 1: Add notification sound parameters to ProfileScreen signature and KuroPomodoroApp call site
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 Current `ProfileScreen` signature:
 ```kotlin
@@ -71,15 +71,15 @@ ProfileScreen(
 
 - [ ] **Step 3: Build to confirm no compile errors**
 ```
-cd kuro-pomodoro-android
+cd purrodoro-android
 ./gradlew assembleDebug 2>&1 | tail -20
 ```
 Expected: `BUILD SUCCESSFUL`
 
 - [ ] **Step 4: Commit**
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat(profile): add notification sound params to ProfileScreen signature"
 ```
 
@@ -88,7 +88,7 @@ git commit -m "feat(profile): add notification sound params to ProfileScreen sig
 ### Task 2: Rewrite ProfileScreen UI to reference design
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt`
 
 Read the file before editing. Replace the entire file contents with the implementation below.
 
@@ -97,7 +97,7 @@ Read the file before editing. Replace the entire file contents with the implemen
 Replace the entire file with:
 
 ```kotlin
-package com.endiar.kuropomodoro.ui
+package com.endiar.purrodoro.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -152,7 +152,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.purrodoro.model.TimerSettings
 
 // ── Colour tokens ──────────────────────────────────────────────────────────────
 private val CreamBg        = Color(0xFFFFF8F0)
@@ -299,7 +299,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = "Kuro Pomodoro", fontSize = 15.sp, color = LabelDark)
+                        Text(text = "Purrodoro", fontSize = 15.sp, color = LabelDark)
                     }
                     Text(text = "v1.0", fontSize = 13.sp, color = ValueBrown)
                 }
@@ -534,14 +534,14 @@ private fun NumericEditDialog(
 
 - [ ] **Step 2: Build to confirm no compile errors**
 ```
-cd kuro-pomodoro-android
+cd purrodoro-android
 ./gradlew assembleDebug 2>&1 | tail -20
 ```
 Expected: `BUILD SUCCESSFUL`
 
 If there are missing icon imports (e.g. `Icons.Outlined.Coffee` doesn't exist in Material Icons Extended), substitute with the closest available icon — check by searching the existing codebase for icon import patterns:
 ```
-grep -r "Icons\." kuro-pomodoro-android/app/src/main/java --include="*.kt" | grep -o "Icons\.[A-Za-z.]*" | sort -u | head -40
+grep -r "Icons\." purrodoro-android/app/src/main/java --include="*.kt" | grep -o "Icons\.[A-Za-z.]*" | sort -u | head -40
 ```
 
 Common substitutions if needed:
@@ -559,6 +559,6 @@ Expected: all tests pass.
 
 - [ ] **Step 4: Commit**
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt
 git commit -m "feat(profile): redesign UI — cards, icons, subtitles, notification sound toggle"
 ```

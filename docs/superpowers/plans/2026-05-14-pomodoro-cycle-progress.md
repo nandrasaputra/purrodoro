@@ -26,7 +26,7 @@
 ## Task 1: Add `focusSessionsPerCycle` to `TimerSettings` and add `buildCycle()`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`
 
 - [ ] **Step 1: Add `focusSessionsPerCycle` field to `TimerSettings`**
 
@@ -89,7 +89,7 @@ fun buildCycle(settings: TimerSettings): List<TimerSessionItem> {
 - [ ] **Step 3: Verify the file compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL` (or only pre-existing warnings, no new errors).
@@ -97,7 +97,7 @@ Expected: `BUILD SUCCESSFUL` (or only pre-existing warnings, no new errors).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt
 git commit -m "feat: add focusSessionsPerCycle to TimerSettings and buildCycle()"
 ```
 
@@ -106,7 +106,7 @@ git commit -m "feat: add focusSessionsPerCycle to TimerSettings and buildCycle()
 ## Task 2: Persist `focusSessionsPerCycle` in `AppRepository`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
 
 - [ ] **Step 1: Add DataStore key**
 
@@ -155,7 +155,7 @@ suspend fun setSettings(value: TimerSettings) = dataStore.edit { prefs ->
 - [ ] **Step 4: Verify the file compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -163,7 +163,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt
 git commit -m "feat: persist focusSessionsPerCycle in AppRepository"
 ```
 
@@ -172,7 +172,7 @@ git commit -m "feat: persist focusSessionsPerCycle in AppRepository"
 ## Task 3: Add cycle stepper to `ProfileScreen`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt`
 
 - [ ] **Step 1: Add `onCycleSizeChanged` parameter to `ProfileScreen`**
 
@@ -252,7 +252,7 @@ private fun DurationRow(
 - [ ] **Step 4: Verify compile**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
 ```
 
 Expected: errors only from `KuroPomodoroApp.kt` (missing `onCycleSizeChanged` argument) — that's fine, fixed in Task 4.
@@ -260,7 +260,7 @@ Expected: errors only from `KuroPomodoroApp.kt` (missing `onCycleSizeChanged` ar
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt
 git commit -m "feat: add cycle size stepper to ProfileScreen"
 ```
 
@@ -269,7 +269,7 @@ git commit -m "feat: add cycle size stepper to ProfileScreen"
 ## Task 4: Add `CycleDotsRow` composable to `KuroComponents.kt`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`
 
 - [ ] **Step 1: Read the current KuroComponents.kt to find insertion point**
 
@@ -355,7 +355,7 @@ fun CycleDotsRow(
 - [ ] **Step 4: Verify compile**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL` (aside from the still-unresolved `onCycleSizeChanged` in KuroPomodoroApp from Task 3).
@@ -363,7 +363,7 @@ Expected: `BUILD SUCCESSFUL` (aside from the still-unresolved `onCycleSizeChange
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt
 git commit -m "feat: add CycleDotsRow composable"
 ```
 
@@ -372,7 +372,7 @@ git commit -m "feat: add CycleDotsRow composable"
 ## Task 5: Wire cycle state and skip into `KuroPomodoroApp`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 This is the largest task. Read the full file before starting.
 
@@ -412,9 +412,9 @@ var cycleIndex by rememberSaveable { mutableIntStateOf(0) }
 Also add the required imports at the top of the file (if not present):
 
 ```kotlin
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.TimerSessionItem
-import com.endiar.kuropomodoro.model.buildCycle
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.TimerSessionItem
+import com.endiar.purrodoro.model.buildCycle
 ```
 
 - [ ] **Step 2: Replace the timer completion logic in `LaunchedEffect`**
@@ -629,7 +629,7 @@ Spacer(Modifier.height(4.dp))
 
 Add the import at the top of the file:
 ```kotlin
-import com.endiar.kuropomodoro.ui.components.CycleDotsRow
+import com.endiar.purrodoro.ui.components.CycleDotsRow
 ```
 
 - [ ] **Step 8: Add Skip button in `FocusDashboard` break state**
@@ -673,7 +673,7 @@ if (isOnBreak) {
 - [ ] **Step 9: Verify compile**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
+cd purrodoro-android && ./gradlew :app:compileDebugKotlin 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -681,7 +681,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 10: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: wire cycle state, dots, and skip into KuroPomodoroApp"
 ```
 
@@ -692,7 +692,7 @@ git commit -m "feat: wire cycle state, dots, and skip into KuroPomodoroApp"
 - [ ] **Step 1: Run full debug build**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -30
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -30
 ```
 
 Expected: `BUILD SUCCESSFUL` with an APK at `app/build/outputs/apk/debug/app-debug.apk`.

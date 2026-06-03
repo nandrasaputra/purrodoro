@@ -2,7 +2,7 @@
 
 > **Status:** approved (mockups in this folder)
 > **Mockups:** `01-records-dark.png` … `08-profile-light.png`
-> **Author:** Nandra + Kuro (assistant)
+> **Author:** Nandra + Purrodoro (assistant)
 > **Date:** 2026-05-16
 
 ## Problem

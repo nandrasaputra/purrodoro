@@ -1,4 +1,4 @@
-# Kuro Pomodoro Design System
+# Purrodoro Design System
 
 ## Rules
 

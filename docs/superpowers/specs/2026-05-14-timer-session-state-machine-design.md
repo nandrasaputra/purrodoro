@@ -122,7 +122,7 @@ Replaces the manual mode chips (`Focus / Short Break / Long Break`).
 ### Timer screen layout
 
 ```
-Kuro focus time
+Purrodoro focus time
 A soft timer for one cozy session at a time
 
 ● ◉ ○ ○  Focus 2 of 4          ← sequence indicator
