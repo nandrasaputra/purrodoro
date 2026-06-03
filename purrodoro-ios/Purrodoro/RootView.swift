@@ -35,6 +35,7 @@ enum AppTab: String, CaseIterable, Identifiable {
 
 struct RootView: View {
     @EnvironmentObject private var engine: TimerEngine
+    @EnvironmentObject private var tasks: TaskStore
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
 
@@ -48,11 +49,12 @@ struct RootView: View {
                 switch tab {
                 case .focus: HomeView()
                 case .tasks:
-                    PlaceholderScreen(
-                        title: "Tasks",
-                        subtitle: "Plan what to focus on, then attach a task to your next session.",
-                        image: "CatChecklist"
-                    )
+                    TasksView { task in
+                        tasks.setActive(task)
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                            tab = .focus
+                        }
+                    }
                 case .journey:
                     PlaceholderScreen(
                         title: "Journey",
@@ -178,5 +180,7 @@ struct PlaceholderScreen: View {
 }
 
 #Preview {
-    RootView().environmentObject(TimerEngine())
+    RootView()
+        .environmentObject(TimerEngine())
+        .environmentObject(TaskStore())
 }

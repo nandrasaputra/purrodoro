@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var engine: TimerEngine
+    @EnvironmentObject private var tasks: TaskStore
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSettings = false
@@ -97,6 +98,10 @@ struct HomeView: View {
     @ViewBuilder
     private var controls: some View {
         VStack(spacing: 16) {
+            if let task = tasks.activeTask {
+                activeTaskCard(task)
+            }
+
             todayStat
 
             switch engine.session.timerState {
@@ -118,6 +123,38 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private func activeTaskCard(_ task: TaskItem) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "target")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Brand.coral)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(task.title)
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textPrimary)
+                    .lineLimit(1)
+                Text("Focusing · \(task.completedSessions)/\(task.plannedSessions) sessions")
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(colors.textFaint)
+            }
+            Spacer()
+            Button {
+                tasks.clearActive()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(colors.textFaint)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Detach task")
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Brand.coral.opacity(0.5), lineWidth: 1))
     }
 
     private var todayStat: some View {
@@ -300,5 +337,7 @@ struct SecondaryButton: View {
 }
 
 #Preview {
-    HomeView().environmentObject(TimerEngine())
+    HomeView()
+        .environmentObject(TimerEngine())
+        .environmentObject(TaskStore())
 }
