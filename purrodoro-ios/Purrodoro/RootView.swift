@@ -36,6 +36,7 @@ enum AppTab: String, CaseIterable, Identifiable {
 struct RootView: View {
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var tasks: TaskStore
+    @EnvironmentObject private var habits: HabitStore
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
 
@@ -50,19 +51,18 @@ struct RootView: View {
                 case .focus: HomeView()
                 case .tasks:
                     TasksView { task in
+                        habits.clearActive()
                         tasks.setActive(task)
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-                            tab = .focus
-                        }
+                        focusOnSelectedIntent()
                     }
                 case .journey:
                     JourneyView()
                 case .habits:
-                    PlaceholderScreen(
-                        title: "Habits",
-                        subtitle: "Build gentle daily rituals and keep your streak alive.",
-                        image: "CatCelebrate"
-                    )
+                    HabitsView { habit in
+                        tasks.clearActive()
+                        habits.setActive(habit)
+                        focusOnSelectedIntent()
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,6 +70,12 @@ struct RootView: View {
             BottomDock(selected: $tab, colors: colors)
         }
         .environment(\.pColors, colors)
+    }
+
+    private func focusOnSelectedIntent() {
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+            tab = .focus
+        }
     }
 }
 
@@ -179,4 +185,5 @@ struct PlaceholderScreen: View {
     RootView()
         .environmentObject(TimerEngine())
         .environmentObject(TaskStore())
+        .environmentObject(HabitStore())
 }
