@@ -8,7 +8,7 @@
 
 ## Background
 
-An audit of the Kuro Pomodoro Android app's light and dark color tokens against WCAG 2.1 AA standards and Material Design 3 best practices revealed six contrast failures.
+An audit of the Purrodoro Android app's light and dark color tokens against WCAG 2.1 AA standards and Material Design 3 best practices revealed six contrast failures.
 
 The root cause is structural: `Coral (#FF7F73, L=0.376)` and `DockCoral (#FF8B6F, L=0.408)` are mid-tone colors. No single text color can achieve the required 4.5:1 ratio against a mid-tone background, so these colors cannot serve as both decorative accent and interactive button background.
 

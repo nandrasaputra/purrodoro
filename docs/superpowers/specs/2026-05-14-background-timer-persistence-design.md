@@ -22,10 +22,10 @@ The existing `TimerSessionReducer` (currently dead code) becomes the single sour
 
 ## Architecture
 
-New package `com.endiar.kuropomodoro.timer/` is introduced. Compose UI becomes a thin observer of service state.
+New package `com.endiar.purrodoro.timer/` is introduced. Compose UI becomes a thin observer of service state.
 
 ```
-com.endiar.kuropomodoro/
+com.endiar.purrodoro/
 ├── timer/                          ← NEW package
 │   ├── TimerService.kt             ← Foreground service, owns runtime state
 │   ├── TimerController.kt          ← Bound API: start/pause/resume/stop/skip

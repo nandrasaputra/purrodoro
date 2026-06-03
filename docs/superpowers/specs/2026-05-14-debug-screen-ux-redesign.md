@@ -24,7 +24,7 @@ The current Dev Tools screen has several UX issues:
 
 ```
 ┌─────────────────────────────────┐
-│  Kuro Dev Tools        [Close]  │  ← header row (outside scroll)
+│  Purrodoro Dev Tools        [Close]  │  ← header row (outside scroll)
 ├─────────────────────────────────┤
 │  Clock: 08:00 · Premium: ON     │  ← sticky status banner (outside scroll)
 │                    [Restart ↺]  │
@@ -101,7 +101,7 @@ Fires on every override mutation:
 
 ## Files Changed
 
-- `app/src/debug/java/com/endiar/kuropomodoro/debug/DebugActivity.kt` only
+- `app/src/debug/java/com/endiar/purrodoro/debug/DebugActivity.kt` only
 
 ## Out of Scope
 

@@ -13,7 +13,7 @@
 ### Task 1: Remove mode selector and replace idle CTA in `FocusDashboard`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Remove `onModeSelected` from `FocusDashboard` signature**
 
@@ -160,7 +160,7 @@ AppTab.Timer -> FocusDashboard(
 - [ ] **Step 6: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -168,7 +168,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: replace idle mode selector with Focus Now pill CTA"
 ```
 

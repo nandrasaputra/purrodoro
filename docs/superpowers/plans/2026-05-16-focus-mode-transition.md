@@ -16,9 +16,9 @@
 
 | File | Change |
 | ---- | ------ |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/components/FocusModeMotion.kt` | **NEW** — motion constants (durations, easings, alpha/scale targets) |
-| `app/src/test/java/com/endiar/kuropomodoro/ui/components/FocusModeMotionTest.kt` | **NEW** — JVM unit test pinning the motion constants |
-| `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` | Introduce `focusActive` + `updateTransition`; wrap dock in `AnimatedVisibility`; add dim-scrim overlay; refactor `FocusDashboard` (remove early-return, animate timer style, wrap chrome in `AnimatedVisibility`, add breath pulse) |
+| `app/src/main/java/com/endiar/purrodoro/ui/components/FocusModeMotion.kt` | **NEW** — motion constants (durations, easings, alpha/scale targets) |
+| `app/src/test/java/com/endiar/purrodoro/ui/components/FocusModeMotionTest.kt` | **NEW** — JVM unit test pinning the motion constants |
+| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Introduce `focusActive` + `updateTransition`; wrap dock in `AnimatedVisibility`; add dim-scrim overlay; refactor `FocusDashboard` (remove early-return, animate timer style, wrap chrome in `AnimatedVisibility`, add breath pulse) |
 
 ---
 
@@ -27,15 +27,15 @@
 A small constants object is the right home for shared motion values so dock, scrim, timer, and chrome stay in lockstep. A pinning test makes accidental drift loud.
 
 **Files:**
-- Create: `app/src/main/java/com/endiar/kuropomodoro/ui/components/FocusModeMotion.kt`
-- Test:   `app/src/test/java/com/endiar/kuropomodoro/ui/components/FocusModeMotionTest.kt`
+- Create: `app/src/main/java/com/endiar/purrodoro/ui/components/FocusModeMotion.kt`
+- Test:   `app/src/test/java/com/endiar/purrodoro/ui/components/FocusModeMotionTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `app/src/test/java/com/endiar/kuropomodoro/ui/components/FocusModeMotionTest.kt`:
+Create `app/src/test/java/com/endiar/purrodoro/ui/components/FocusModeMotionTest.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.components
+package com.endiar.purrodoro.ui.components
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -84,17 +84,17 @@ class FocusModeMotionTest {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.ui.components.FocusModeMotionTest"
+cd purrodoro-android && ./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.ui.components.FocusModeMotionTest"
 ```
 
 Expected: FAIL with `Unresolved reference: FocusModeMotion`.
 
 - [ ] **Step 3: Create the `FocusModeMotion` file**
 
-Create `app/src/main/java/com/endiar/kuropomodoro/ui/components/FocusModeMotion.kt`:
+Create `app/src/main/java/com/endiar/purrodoro/ui/components/FocusModeMotion.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.components
+package com.endiar.purrodoro.ui.components
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -129,7 +129,7 @@ object FocusModeMotion {
 - [ ] **Step 4: Run the test to verify it passes**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.ui.components.FocusModeMotionTest"
+cd purrodoro-android && ./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.ui.components.FocusModeMotionTest"
 ```
 
 Expected: `BUILD SUCCESSFUL`, all 5 tests pass.
@@ -137,8 +137,8 @@ Expected: `BUILD SUCCESSFUL`, all 5 tests pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/FocusModeMotion.kt \
-        kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/ui/components/FocusModeMotionTest.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/FocusModeMotion.kt \
+        purrodoro-android/app/src/test/java/com/endiar/purrodoro/ui/components/FocusModeMotionTest.kt
 git commit -m "feat(ui): add FocusModeMotion constants for focus transition"
 ```
 
@@ -149,7 +149,7 @@ git commit -m "feat(ui): add FocusModeMotion constants for focus transition"
 Hoist `focusActive = isFocusMode && isRunning` into an `updateTransition` so the dock fade/slide and the dim scrim animate from the same clock.
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Add the new imports to `KuroPomodoroApp.kt`**
 
@@ -165,7 +165,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.ui.draw.alpha
-import com.endiar.kuropomodoro.ui.components.FocusModeMotion
+import com.endiar.purrodoro.ui.components.FocusModeMotion
 ```
 
 - [ ] **Step 2: Introduce `focusActive` and the shared transition**
@@ -298,7 +298,7 @@ Note: `navigationBarsPadding()` moves to the `AnimatedVisibility` modifier so th
 - [ ] **Step 5: Verify the project compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug
+cd purrodoro-android && ./gradlew assembleDebug
 ```
 
 Expected: `BUILD SUCCESSFUL`. If there are compile errors (likely missing imports) fix them before committing.
@@ -306,7 +306,7 @@ Expected: `BUILD SUCCESSFUL`. If there are compile errors (likely missing import
 - [ ] **Step 6: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat(ui): animate dock and dim scrim via shared focus transition"
 ```
 
@@ -317,7 +317,7 @@ git commit -m "feat(ui): animate dock and dim scrim via shared focus transition"
 Remove the early-return. Render one layout where the timer always exists and its style animates between dashboard and focus presentations. Wrap dashboard chrome in `AnimatedVisibility(!focusActive)` and focus-only chrome in `AnimatedVisibility(focusActive)` — `AnimatedVisibility` inside a `Column` collapses the layout space smoothly, so the timer drifts toward center naturally as chrome disappears.
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Add the new imports needed by `FocusDashboard`**
 
@@ -935,7 +935,7 @@ Delete everything inside `FocusDashboard` from the opening brace to the closing 
 - [ ] **Step 4: Verify the project compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug
+cd purrodoro-android && ./gradlew assembleDebug
 ```
 
 Expected: `BUILD SUCCESSFUL`. If there are compile errors (likely missing imports, unused imports, or type mismatches), fix them before committing.
@@ -943,7 +943,7 @@ Expected: `BUILD SUCCESSFUL`. If there are compile errors (likely missing import
 - [ ] **Step 5: Run the unit test suite to confirm nothing logical regressed**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew :app:testDebugUnitTest
+cd purrodoro-android && ./gradlew :app:testDebugUnitTest
 ```
 
 Expected: `BUILD SUCCESSFUL` — all existing tests still pass (we only touched UI composables).
@@ -953,7 +953,7 @@ Expected: `BUILD SUCCESSFUL` — all existing tests still pass (we only touched 
 Install the debug APK and verify each transition feels right:
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew installDebug
+cd purrodoro-android && ./gradlew installDebug
 ```
 
 Then manually verify:
@@ -972,7 +972,7 @@ If any of these feel off (jank, mis-timed stagger, jumpy layout), tweak `FocusMo
 - [ ] **Step 7: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat(ui): animate focus mode transition with shared timer style and chrome stagger"
 ```
 

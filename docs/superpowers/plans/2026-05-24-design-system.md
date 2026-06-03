@@ -28,23 +28,23 @@
 | `docs/DESIGN_SYSTEM.md` | Create | Enforcement rules reference doc |
 
 Base package for all `ui/designsystem/` files:
-`com.endiar.kuropomodoro.ui.designsystem`
+`com.endiar.purrodoro.ui.designsystem`
 
 Base package for debug files:
-`com.endiar.kuropomodoro.debug`
+`com.endiar.purrodoro.debug`
 
 ---
 
 ## Task 1: KuroSpacing
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/designsystem/KuroSpacing.kt`
-- Test: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/ui/designsystem/KuroSpacingTest.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/designsystem/KuroSpacing.kt`
+- Test: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/ui/designsystem/KuroSpacingTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.designsystem
+package com.endiar.purrodoro.ui.designsystem
 
 import androidx.compose.ui.unit.dp
 import org.junit.Test
@@ -79,7 +79,7 @@ Expected: compilation error — `KuroSpacing` not found.
 - [ ] **Step 3: Create `KuroSpacing.kt`**
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.designsystem
+package com.endiar.purrodoro.ui.designsystem
 
 import androidx.compose.ui.unit.dp
 
@@ -111,13 +111,13 @@ Expected: `BUILD SUCCESSFUL`
 ## Task 2: KuroType
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/designsystem/KuroType.kt`
-- Test: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/ui/designsystem/KuroTypeTest.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/designsystem/KuroType.kt`
+- Test: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/ui/designsystem/KuroTypeTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.designsystem
+package com.endiar.purrodoro.ui.designsystem
 
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
@@ -150,7 +150,7 @@ Expected: compilation error — `KuroType` not found.
 - [ ] **Step 3: Create `KuroType.kt`**
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.designsystem
+package com.endiar.purrodoro.ui.designsystem
 
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -192,14 +192,14 @@ Expected: `BUILD SUCCESSFUL`
 ## Task 3: KuroAtoms
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/designsystem/KuroAtoms.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/designsystem/KuroAtoms.kt`
 
 No unit tests for pure Composables (no Espresso in this project). Visual verification via the catalog in Task 7.
 
 - [ ] **Step 1: Create `KuroAtoms.kt`**
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.designsystem
+package com.endiar.purrodoro.ui.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -220,7 +220,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.purrodoro.ui.theme.kuroTokens
 
 // ── KuroChip ─────────────────────────────────────────────────────────────────
 // Flat-surface filter chip. Used in Todo and Habits filter bars.
@@ -355,12 +355,12 @@ Expected: `BUILD SUCCESSFUL`
 ## Task 4: KuroMolecules
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/designsystem/KuroMolecules.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/designsystem/KuroMolecules.kt`
 
 - [ ] **Step 1: Create `KuroMolecules.kt`**
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.designsystem
+package com.endiar.purrodoro.ui.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -395,7 +395,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.purrodoro.ui.theme.kuroTokens
 
 // ── KuroListRow ───────────────────────────────────────────────────────────────
 // Standard content row: leading slot + title + optional subtitle + trailing slot.
@@ -598,12 +598,12 @@ Expected: `BUILD SUCCESSFUL`
 ## Task 5: KuroOrganisms
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/designsystem/KuroOrganisms.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/designsystem/KuroOrganisms.kt`
 
 - [ ] **Step 1: Create `KuroOrganisms.kt`**
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.designsystem
+package com.endiar.purrodoro.ui.designsystem
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -627,8 +627,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.endiar.kuropomodoro.ui.components.KuroFlatSurface
-import com.endiar.kuropomodoro.ui.components.ScreenStickyBar
+import com.endiar.purrodoro.ui.components.KuroFlatSurface
+import com.endiar.purrodoro.ui.components.ScreenStickyBar
 
 /**
  * Root scaffold for all flat-surface tab screens (Todo, Habits, etc.).
@@ -693,7 +693,7 @@ Expected: `BUILD SUCCESSFUL`
 ## Task 6: Refactor KuroComponents to use design system tokens
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`
 
 Replace all hardcoded `dp`, `sp`, `FontWeight`, and `Color` literals with `KuroSpacing`, `KuroType`, and token references. The behavior and visual output must not change.
 
@@ -701,8 +701,8 @@ Replace all hardcoded `dp`, `sp`, `FontWeight`, and `Color` literals with `KuroS
 
 At the top of the import block, add:
 ```kotlin
-import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
-import com.endiar.kuropomodoro.ui.designsystem.KuroType
+import com.endiar.purrodoro.ui.designsystem.KuroSpacing
+import com.endiar.purrodoro.ui.designsystem.KuroType
 ```
 
 - [ ] **Step 2: Update `KuroCard`**
@@ -795,8 +795,8 @@ Expected: `BUILD SUCCESSFUL`
 ## Task 7: Delete private palettes from TodoScreen and HabitsScreen
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/HabitsScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/HabitsScreen.kt`
 
 Both files have identical 10-line `private val Reference*` blocks (lines 79–88 in TodoScreen, lines 84–93 in HabitsScreen). Every usage must be replaced with the token equivalent below.
 
@@ -813,7 +813,7 @@ Both files have identical 10-line `private val Reference*` blocks (lines 79–88
 | `ReferenceMuted` | `tokens.textSecondary` |
 | `ReferenceFaint` | `tokens.textFaint` |
 | `ReferenceCoral` | `tokens.accent` |
-| `ReferenceGreen` | `Mint` (from `com.endiar.kuropomodoro.ui.theme.Mint`) |
+| `ReferenceGreen` | `Mint` (from `com.endiar.purrodoro.ui.theme.Mint`) |
 | `ReferenceLeaf` (HabitsScreen) | `Mint` |
 
 - [ ] **Step 1: In `TodoScreen.kt` — delete lines 79–88 (the `private val Reference*` block)**
@@ -849,8 +849,8 @@ In every composable in `TodoScreen.kt`, add `val tokens = MaterialTheme.colorSch
 Add to imports if not present:
 ```kotlin
 import androidx.compose.material3.MaterialTheme
-import com.endiar.kuropomodoro.ui.theme.Mint
-import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.purrodoro.ui.theme.Mint
+import com.endiar.purrodoro.ui.theme.kuroTokens
 ```
 
 - [ ] **Step 3: In `HabitsScreen.kt` — delete lines 84–93 (the `private val Reference*` block)**
@@ -892,7 +892,7 @@ Expected: `BUILD SUCCESSFUL`
 ## Task 8: Delete private palette from HomeTimerScreen
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt`
 
 **Token mapping:**
 
@@ -906,7 +906,7 @@ Expected: `BUILD SUCCESSFUL`
 | `HomeMuted` | `tokens.textSecondary` |
 | `HomeCoral` | `tokens.accent` |
 | `HomeCoralSoft` | `tokens.accentSoft` |
-| `HomeLeaf` | `Mint` (from `com.endiar.kuropomodoro.ui.theme.Mint`) |
+| `HomeLeaf` | `Mint` (from `com.endiar.purrodoro.ui.theme.Mint`) |
 
 - [ ] **Step 1: Delete lines 67–75 (the `private val Home*` block)**
 
@@ -937,10 +937,10 @@ Apply the token mapping above. Also replace hardcoded `fontSize`/`fontWeight` li
 Add to imports:
 ```kotlin
 import androidx.compose.material3.MaterialTheme
-import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
-import com.endiar.kuropomodoro.ui.designsystem.KuroType
-import com.endiar.kuropomodoro.ui.theme.Mint
-import com.endiar.kuropomodoro.ui.theme.kuroTokens
+import com.endiar.purrodoro.ui.designsystem.KuroSpacing
+import com.endiar.purrodoro.ui.designsystem.KuroType
+import com.endiar.purrodoro.ui.theme.Mint
+import com.endiar.purrodoro.ui.theme.kuroTokens
 ```
 
 - [ ] **Step 3: Verify compilation and tests**
@@ -956,13 +956,13 @@ Both expected: `BUILD SUCCESSFUL`
 ## Task 9: Component Catalog (Debug)
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/debug/java/com/endiar/kuropomodoro/debug/ComponentCatalogScreen.kt`
-- Modify: `kuro-pomodoro-android/app/src/debug/java/com/endiar/kuropomodoro/debug/DebugActivity.kt`
+- Create: `purrodoro-android/app/src/debug/java/com/endiar/purrodoro/debug/ComponentCatalogScreen.kt`
+- Modify: `purrodoro-android/app/src/debug/java/com/endiar/purrodoro/debug/DebugActivity.kt`
 
 - [ ] **Step 1: Create `ComponentCatalogScreen.kt`**
 
 ```kotlin
-package com.endiar.kuropomodoro.debug
+package com.endiar.purrodoro.debug
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -994,32 +994,32 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.endiar.kuropomodoro.ui.designsystem.KuroBadge
-import com.endiar.kuropomodoro.ui.designsystem.KuroChip
-import com.endiar.kuropomodoro.ui.designsystem.KuroDivider
-import com.endiar.kuropomodoro.ui.designsystem.KuroFilterBar
-import com.endiar.kuropomodoro.ui.designsystem.KuroInputField
-import com.endiar.kuropomodoro.ui.designsystem.KuroListRow
-import com.endiar.kuropomodoro.ui.designsystem.KuroPill
-import com.endiar.kuropomodoro.ui.designsystem.KuroPillKind
-import com.endiar.kuropomodoro.ui.designsystem.KuroSectionHeader
-import com.endiar.kuropomodoro.ui.designsystem.KuroSegmentedControl
-import com.endiar.kuropomodoro.ui.designsystem.KuroSpacing
-import com.endiar.kuropomodoro.ui.designsystem.KuroStepper
-import com.endiar.kuropomodoro.ui.designsystem.KuroType
-import com.endiar.kuropomodoro.ui.theme.kuroTokens
-import com.endiar.kuropomodoro.ui.components.KuroCard
-import com.endiar.kuropomodoro.ui.components.KuroPrimaryButton
-import com.endiar.kuropomodoro.ui.theme.Coral
-import com.endiar.kuropomodoro.ui.theme.Cocoa
-import com.endiar.kuropomodoro.ui.theme.Cream
-import com.endiar.kuropomodoro.ui.theme.WarmCream
-import com.endiar.kuropomodoro.ui.theme.Peach
-import com.endiar.kuropomodoro.ui.theme.Blush
-import com.endiar.kuropomodoro.ui.theme.Mint
-import com.endiar.kuropomodoro.ui.theme.NightDeep
-import com.endiar.kuropomodoro.ui.theme.NightCard
-import com.endiar.kuropomodoro.ui.theme.DockCoral
+import com.endiar.purrodoro.ui.designsystem.KuroBadge
+import com.endiar.purrodoro.ui.designsystem.KuroChip
+import com.endiar.purrodoro.ui.designsystem.KuroDivider
+import com.endiar.purrodoro.ui.designsystem.KuroFilterBar
+import com.endiar.purrodoro.ui.designsystem.KuroInputField
+import com.endiar.purrodoro.ui.designsystem.KuroListRow
+import com.endiar.purrodoro.ui.designsystem.KuroPill
+import com.endiar.purrodoro.ui.designsystem.KuroPillKind
+import com.endiar.purrodoro.ui.designsystem.KuroSectionHeader
+import com.endiar.purrodoro.ui.designsystem.KuroSegmentedControl
+import com.endiar.purrodoro.ui.designsystem.KuroSpacing
+import com.endiar.purrodoro.ui.designsystem.KuroStepper
+import com.endiar.purrodoro.ui.designsystem.KuroType
+import com.endiar.purrodoro.ui.theme.kuroTokens
+import com.endiar.purrodoro.ui.components.KuroCard
+import com.endiar.purrodoro.ui.components.KuroPrimaryButton
+import com.endiar.purrodoro.ui.theme.Coral
+import com.endiar.purrodoro.ui.theme.Cocoa
+import com.endiar.purrodoro.ui.theme.Cream
+import com.endiar.purrodoro.ui.theme.WarmCream
+import com.endiar.purrodoro.ui.theme.Peach
+import com.endiar.purrodoro.ui.theme.Blush
+import com.endiar.purrodoro.ui.theme.Mint
+import com.endiar.purrodoro.ui.theme.NightDeep
+import com.endiar.purrodoro.ui.theme.NightCard
+import com.endiar.purrodoro.ui.theme.DockCoral
 
 private val catalogSections = listOf("Tokens", "Components", "Patterns", "Audit")
 
@@ -1476,7 +1476,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 1: Create `docs/DESIGN_SYSTEM.md`**
 
 ```markdown
-# Kuro Pomodoro Design System
+# Purrodoro Design System
 
 ## Rules
 

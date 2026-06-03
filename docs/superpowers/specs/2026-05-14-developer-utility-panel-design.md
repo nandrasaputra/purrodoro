@@ -7,7 +7,7 @@
 
 ## Overview
 
-A debug-only developer utility panel for Kuro Pomodoro Android. Accessible via a persistent notification (debug builds only). Tapping the notification opens a `DebugActivity` where the developer can manipulate app state in real time — overriding the clock, speeding up the timer, injecting fake pomodoro sessions, and resetting all data.
+A debug-only developer utility panel for Purrodoro Android. Accessible via a persistent notification (debug builds only). Tapping the notification opens a `DebugActivity` where the developer can manipulate app state in real time — overriding the clock, speeding up the timer, injecting fake pomodoro sessions, and resetting all data.
 
 Zero debug code is present in release builds.
 
@@ -15,7 +15,7 @@ Zero debug code is present in release builds.
 
 ## Entry Point
 
-- On app start (`Application.onCreate()`), debug builds post a persistent low-priority notification: **"Kuro Dev Tools — Tap to open debug panel"**
+- On app start (`Application.onCreate()`), debug builds post a persistent low-priority notification: **"Purrodoro Dev Tools — Tap to open debug panel"**
 - Tapping opens `DebugActivity` as a new task
 - Notification is `ongoing` (cannot be dismissed by swipe)
 - Notification channel id: `kuro_dev`, importance: `LOW`
@@ -149,13 +149,13 @@ Declared in the debug `AndroidManifest.xml` as `android:name=".KuroDebugApplicat
 ```
 app/src/
   main/
-    java/com/endiar/kuropomodoro/
+    java/com/endiar/purrodoro/
       model/
         AppClock.kt              ← new: ClockDebugSource interface + AppClock object
       KuroPomodoroApp.kt         ← modified: LocalTime.now() → AppClock.now(),
                                               delay(250) → delay(AppClock.tickIntervalMs())
   debug/
-    java/com/endiar/kuropomodoro/
+    java/com/endiar/purrodoro/
       debug/
         DebugRepository.kt       ← new
         KuroDebugApplication.kt  ← new

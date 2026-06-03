@@ -2,7 +2,7 @@
 
 ## Summary
 
-Revamp only the Home/Timer screen to closely match the provided reference UI while keeping the existing Kuro Pomodoro timer engine, persistence, records, task progress, habit progress, notifications, and completion behavior intact.
+Revamp only the Home/Timer screen to closely match the provided reference UI while keeping the existing Purrodoro timer engine, persistence, records, task progress, habit progress, notifications, and completion behavior intact.
 
 This is a presentation-layer redesign. The target is a near-1:1 Compose implementation of the reference Home screen, adapted only where current app state or existing assets require it.
 

@@ -14,29 +14,29 @@
 
 | File | Change |
 |------|--------|
-| `app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerModels.kt` | Create pure display helpers for greeting, today metrics, task selection, and Pomodoro progress |
-| `app/src/test/java/com/endiar/kuropomodoro/ui/HomeTimerModelsTest.kt` | Create unit tests for the new pure helpers |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt` | Create the new Home/Timer Compose screen and visual subcomponents |
-| `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` | Replace the `FocusDashboard` Timer branch with `HomeTimerScreen`; keep existing callbacks and completion dialog |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt` | No planned change unless import cleanup is required by the wiring swap |
+| `app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt` | Create pure display helpers for greeting, today metrics, task selection, and Pomodoro progress |
+| `app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt` | Create unit tests for the new pure helpers |
+| `app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt` | Create the new Home/Timer Compose screen and visual subcomponents |
+| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Replace the `FocusDashboard` Timer branch with `HomeTimerScreen`; keep existing callbacks and completion dialog |
+| `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt` | No planned change unless import cleanup is required by the wiring swap |
 
 ## Task 1: Add Home display model helpers
 
 **Files:**
-- Create: `app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerModels.kt`
-- Create: `app/src/test/java/com/endiar/kuropomodoro/ui/HomeTimerModelsTest.kt`
+- Create: `app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt`
+- Create: `app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt`
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `app/src/test/java/com/endiar/kuropomodoro/ui/HomeTimerModelsTest.kt`:
+Create `app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.ui
+package com.endiar.purrodoro.ui
 
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
-import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
+import com.endiar.purrodoro.model.TimerSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -185,25 +185,25 @@ class HomeTimerModelsTest {
 
 - [ ] **Step 2: Run the tests to confirm they fail**
 
-Run from `kuro-pomodoro-android/`:
+Run from `purrodoro-android/`:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.ui.HomeTimerModelsTest"
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.ui.HomeTimerModelsTest"
 ```
 
 Expected: FAIL because `HomeGreeting`, `homeGreetingFor`, `todayFocusMetrics`, `continueTask`, `PomodoroProgress`, and `pomodoroProgress` do not exist yet.
 
 - [ ] **Step 3: Add the display model helpers**
 
-Create `app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerModels.kt`:
+Create `app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.ui
+package com.endiar.purrodoro.ui
 
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
-import com.endiar.kuropomodoro.model.TimerSettings
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
+import com.endiar.purrodoro.model.TimerSettings
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -312,7 +312,7 @@ private fun formatFocusMinutes(totalMinutes: Int): String {
 - [ ] **Step 4: Run the focused tests to confirm they pass**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.ui.HomeTimerModelsTest"
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.ui.HomeTimerModelsTest"
 ```
 
 Expected: PASS.
@@ -320,22 +320,22 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerModels.kt \
-        app/src/test/java/com/endiar/kuropomodoro/ui/HomeTimerModelsTest.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt \
+        app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt
 git commit -m "feat: add home timer display helpers"
 ```
 
 ## Task 2: Create the Home/Timer Compose screen
 
 **Files:**
-- Create: `app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt`
+- Create: `app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt`
 
 - [ ] **Step 1: Create the new screen file**
 
-Create `app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt`:
+Create `app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt`:
 
 ```kotlin
-package com.endiar.kuropomodoro.ui
+package com.endiar.purrodoro.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -391,14 +391,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.endiar.kuropomodoro.model.FocusTask
-import com.endiar.kuropomodoro.model.SessionItemType
-import com.endiar.kuropomodoro.model.TimerMode
-import com.endiar.kuropomodoro.model.TimerSessionItem
-import com.endiar.kuropomodoro.model.TimerSettings
-import com.endiar.kuropomodoro.model.TimerState
-import com.endiar.kuropomodoro.model.cycleDotsState
-import com.endiar.kuropomodoro.model.formatSeconds
+import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.TimerMode
+import com.endiar.purrodoro.model.TimerSessionItem
+import com.endiar.purrodoro.model.TimerSettings
+import com.endiar.purrodoro.model.TimerState
+import com.endiar.purrodoro.model.cycleDotsState
+import com.endiar.purrodoro.model.formatSeconds
 import java.time.LocalTime
 
 private val HomeBackground = Color(0xFFFBF6EF)
@@ -1105,7 +1105,7 @@ private fun SleepingCat() {
 
 - [ ] **Step 2: Compile the new file to catch missing imports**
 
-Run from `kuro-pomodoro-android/`:
+Run from `purrodoro-android/`:
 
 ```bash
 ./gradlew :app:compileDebugKotlin
@@ -1116,25 +1116,25 @@ Expected: PASS. If it fails for missing imports or type errors in `HomeTimerScre
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt
 git commit -m "feat: add home timer screen UI"
 ```
 
 ## Task 3: Wire HomeTimerScreen into KuroPomodoroApp
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Add imports**
 
-In `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`, add these imports near the other `com.endiar.kuropomodoro.ui` imports:
+In `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`, add these imports near the other `com.endiar.purrodoro.ui` imports:
 
 ```kotlin
-import com.endiar.kuropomodoro.ui.HomeTimerScreen
-import com.endiar.kuropomodoro.ui.continueTask
-import com.endiar.kuropomodoro.ui.homeGreetingFor
-import com.endiar.kuropomodoro.ui.pomodoroProgress
-import com.endiar.kuropomodoro.ui.todayFocusMetrics
+import com.endiar.purrodoro.ui.HomeTimerScreen
+import com.endiar.purrodoro.ui.continueTask
+import com.endiar.purrodoro.ui.homeGreetingFor
+import com.endiar.purrodoro.ui.pomodoroProgress
+import com.endiar.purrodoro.ui.todayFocusMetrics
 ```
 
 - [ ] **Step 2: Derive Home display values**
@@ -1233,8 +1233,8 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
-import com.endiar.kuropomodoro.model.formatSeconds
-import com.endiar.kuropomodoro.ui.components.CycleDotsRow
+import com.endiar.purrodoro.model.formatSeconds
+import com.endiar.purrodoro.ui.components.CycleDotsRow
 ```
 
 Keep any import from that list if the compiler still needs it elsewhere in the file.
@@ -1252,7 +1252,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: show revamped home timer screen"
 ```
 
@@ -1264,7 +1264,7 @@ git commit -m "feat: show revamped home timer screen"
 - [ ] **Step 1: Run focused model tests**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.endiar.kuropomodoro.ui.HomeTimerModelsTest"
+./gradlew :app:testDebugUnitTest --tests "com.endiar.purrodoro.ui.HomeTimerModelsTest"
 ```
 
 Expected: PASS.
@@ -1305,10 +1305,10 @@ Install/run the debug build in Android Studio or on a local emulator and verify:
 If verification required fixes, commit only the touched files:
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerModels.kt \
-        app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt \
-        app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt \
-        app/src/test/java/com/endiar/kuropomodoro/ui/HomeTimerModelsTest.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt \
+        app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt \
+        app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+        app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt
 git commit -m "fix: polish home timer revamp"
 ```
 
@@ -1330,10 +1330,10 @@ Expected: only unrelated pre-existing `.idea` changes may remain.
 - [ ] **Step 2: Review the implementation diff**
 
 ```bash
-git diff HEAD~3..HEAD -- app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerModels.kt \
-                         app/src/main/java/com/endiar/kuropomodoro/ui/HomeTimerScreen.kt \
-                         app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt \
-                         app/src/test/java/com/endiar/kuropomodoro/ui/HomeTimerModelsTest.kt
+git diff HEAD~3..HEAD -- app/src/main/java/com/endiar/purrodoro/ui/HomeTimerModels.kt \
+                         app/src/main/java/com/endiar/purrodoro/ui/HomeTimerScreen.kt \
+                         app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+                         app/src/test/java/com/endiar/purrodoro/ui/HomeTimerModelsTest.kt
 ```
 
 Expected: diff is limited to Home/Timer presentation, helper tests, and wiring.

@@ -13,7 +13,7 @@
 ### Task 1: Add `SessionStatus` and `SessionRecord` to the domain model
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`
 
 - [ ] **Step 1: Add the new types at the bottom of `KuroModels.kt`**
 
@@ -39,7 +39,7 @@ data class SessionRecord(
 - [ ] **Step 2: Build the project to verify it compiles**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -47,7 +47,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt
 git commit -m "feat: add SessionRecord and SessionStatus models"
 ```
 
@@ -56,7 +56,7 @@ git commit -m "feat: add SessionRecord and SessionStatus models"
 ### Task 2: Add session record persistence to `AppRepository`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt`
 
 - [ ] **Step 1: Add the DataStore key and update `AppState`**
 
@@ -74,8 +74,8 @@ val sessionRecords: List<SessionRecord> = emptyList()
 
 3. Add import at top of file:
 ```kotlin
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
 ```
 
 - [ ] **Step 2: Read `sessionRecords` in the `appState` flow**
@@ -135,7 +135,7 @@ internal fun decodeSessionRecords(raw: String): List<SessionRecord> {
 - [ ] **Step 5: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -143,7 +143,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 6: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/data/AppRepository.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/data/AppRepository.kt
 git commit -m "feat: persist session records in DataStore"
 ```
 
@@ -152,7 +152,7 @@ git commit -m "feat: persist session records in DataStore"
 ### Task 3: Track in-progress record in `KuroPomodoroApp` and save on close
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 This task wires up three things:
 1. **Open** an in-memory record when `isStarted` transitions `false → true`
@@ -170,8 +170,8 @@ var openRecord by remember { mutableStateOf<SessionRecord?>(null) }
 
 Add this import at the top:
 ```kotlin
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
 ```
 
 - [ ] **Step 2: Add `persistSessionRecord` helper**
@@ -254,7 +254,7 @@ openRecord?.let { rec ->
 - [ ] **Step 6: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -262,7 +262,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: track and persist session records during cycle"
 ```
 
@@ -271,8 +271,8 @@ git commit -m "feat: track and persist session records during cycle"
 ### Task 4: Thread `sessionRecords` down to `CalendarScreen`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt`
 
 - [ ] **Step 1: Expose `sessionRecords` from `appState` in `KuroPomodoroApp`**
 
@@ -312,14 +312,14 @@ fun CalendarScreen(
 
 Add import at top of `CalendarScreen.kt`:
 ```kotlin
-import com.endiar.kuropomodoro.model.SessionRecord
-import com.endiar.kuropomodoro.model.SessionStatus
+import com.endiar.purrodoro.model.SessionRecord
+import com.endiar.purrodoro.model.SessionStatus
 ```
 
 - [ ] **Step 4: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -327,8 +327,8 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt \
-        kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt \
+        purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt
 git commit -m "feat: thread sessionRecords to CalendarScreen"
 ```
 
@@ -337,7 +337,7 @@ git commit -m "feat: thread sessionRecords to CalendarScreen"
 ### Task 5: Add selected-date state and session list UI to `CalendarScreen`
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt`
 
 - [ ] **Step 1: Add `selectedDate` state and make calendar cells tappable**
 
@@ -569,7 +569,7 @@ import java.time.format.DateTimeFormatter
 - [ ] **Step 6: Build to verify**
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
+cd purrodoro-android && ./gradlew assembleDebug 2>&1 | tail -20
 ```
 
 Expected: `BUILD SUCCESSFUL`
@@ -577,7 +577,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt
+git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt
 git commit -m "feat: add session history list to Records screen"
 ```
 

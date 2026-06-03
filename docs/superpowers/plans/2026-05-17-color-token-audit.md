@@ -14,26 +14,26 @@
 
 | File | Change |
 |---|---|
-| `app/src/test/java/com/endiar/kuropomodoro/ui/theme/ColorContrastTest.kt` | **Create** — WCAG regression tests |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/theme/Color.kt` | **Modify** — add `DeepCoral`, bump `NightFaint` |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/theme/SurfaceTokens.kt` | **Modify** — add `interactiveFill`/`interactiveText` fields; fix light `textMuted` |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt` | **Modify** — 6 component updates to use new tokens |
+| `app/src/test/java/com/endiar/purrodoro/ui/theme/ColorContrastTest.kt` | **Create** — WCAG regression tests |
+| `app/src/main/java/com/endiar/purrodoro/ui/theme/Color.kt` | **Modify** — add `DeepCoral`, bump `NightFaint` |
+| `app/src/main/java/com/endiar/purrodoro/ui/theme/SurfaceTokens.kt` | **Modify** — add `interactiveFill`/`interactiveText` fields; fix light `textMuted` |
+| `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt` | **Modify** — 6 component updates to use new tokens |
 
-All paths are relative to `kuro-pomodoro-android/`.
+All paths are relative to `purrodoro-android/`.
 
 ---
 
 ## Task 1 — Write Failing WCAG Contrast Tests
 
 **Files:**
-- Create: `app/src/test/java/com/endiar/kuropomodoro/ui/theme/ColorContrastTest.kt`
+- Create: `app/src/test/java/com/endiar/purrodoro/ui/theme/ColorContrastTest.kt`
 
 These tests import the actual `Color` constants from `Color.kt`. Two of them fail with the current values — `NightFaint` (4.37:1, needs 4.5:1) and `CocoaFaint` (2.75:1, needs 4.5:1). The other two are regressions verifying currently-passing pairs don't regress.
 
 - [ ] **Step 1: Create the test file**
 
 ```kotlin
-package com.endiar.kuropomodoro.ui.theme
+package com.endiar.purrodoro.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import kotlin.math.pow
@@ -99,8 +99,8 @@ class ColorContrastTest {
 - [ ] **Step 2: Run tests — verify two fail**
 
 ```bash
-cd kuro-pomodoro-android
-./gradlew :app:test --tests "com.endiar.kuropomodoro.ui.theme.ColorContrastTest" --info 2>&1 | grep -E "FAIL|PASS|ERROR|tests were"
+cd purrodoro-android
+./gradlew :app:test --tests "com.endiar.purrodoro.ui.theme.ColorContrastTest" --info 2>&1 | grep -E "FAIL|PASS|ERROR|tests were"
 ```
 
 Expected output contains:
@@ -116,7 +116,7 @@ Cocoa on Cream stays above 8 to 1 PASSED
 ## Task 2 — Update `Color.kt`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/theme/Color.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/theme/Color.kt`
 
 Two changes: bump `NightFaint` from `#7A7388` (4.37:1) to `#7D768B` (4.56:1), and add `DeepCoral` for the new light-mode interactive fill.
 
@@ -140,7 +140,7 @@ val DeepCoral = Color(0xFFC64432)        // deep terracotta; White on this = 4.9
 - [ ] **Step 2: Run the NightFaint test — verify it now passes**
 
 ```bash
-./gradlew :app:test --tests "com.endiar.kuropomodoro.ui.theme.ColorContrastTest.NightFaint on NightDeep meets WCAG AA 4-5 to 1"
+./gradlew :app:test --tests "com.endiar.purrodoro.ui.theme.ColorContrastTest.NightFaint on NightDeep meets WCAG AA 4-5 to 1"
 ```
 
 Expected:
@@ -151,8 +151,8 @@ ColorContrastTest > NightFaint on NightDeep meets WCAG AA 4-5 to 1 PASSED
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/theme/Color.kt \
-        app/src/test/java/com/endiar/kuropomodoro/ui/theme/ColorContrastTest.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/theme/Color.kt \
+        app/src/test/java/com/endiar/purrodoro/ui/theme/ColorContrastTest.kt
 git commit -m "fix(tokens): bump NightFaint to 4.56:1 and add DeepCoral"
 ```
 
@@ -161,7 +161,7 @@ git commit -m "fix(tokens): bump NightFaint to 4.56:1 and add DeepCoral"
 ## Task 3 — Update `SurfaceTokens.kt`
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/theme/SurfaceTokens.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/theme/SurfaceTokens.kt`
 
 Three changes:
 1. Add `interactiveFill` and `interactiveText` fields to `KuroSurfaceTokens`.
@@ -278,7 +278,7 @@ fun `light interactiveFill DeepCoral with White text meets WCAG AA`() {
 - [ ] **Step 5: Run all contrast tests — verify all pass**
 
 ```bash
-./gradlew :app:test --tests "com.endiar.kuropomodoro.ui.theme.ColorContrastTest"
+./gradlew :app:test --tests "com.endiar.purrodoro.ui.theme.ColorContrastTest"
 ```
 
 Expected:
@@ -304,8 +304,8 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/theme/SurfaceTokens.kt \
-        app/src/test/java/com/endiar/kuropomodoro/ui/theme/ColorContrastTest.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/theme/SurfaceTokens.kt \
+        app/src/test/java/com/endiar/purrodoro/ui/theme/ColorContrastTest.kt
 git commit -m "fix(tokens): add interactiveFill/interactiveText; fix light textMuted to CocoaSoft"
 ```
 
@@ -314,7 +314,7 @@ git commit -m "fix(tokens): add interactiveFill/interactiveText; fix light textM
 ## Task 4 — Update `KuroComponents.kt` — Interactive Token Swaps
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`
 
 Four components currently use `accent`/`accentOn` (coral) for interactive selected/active states. Replace with `interactiveFill`/`interactiveText`.
 
@@ -425,7 +425,7 @@ Expected: `BUILD SUCCESSFUL`
 - [ ] **Step 6: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt
 git commit -m "fix(components): use interactiveFill/interactiveText for buttons, dock, pills, toggle"
 ```
 
@@ -434,7 +434,7 @@ git commit -m "fix(components): use interactiveFill/interactiveText for buttons,
 ## Task 5 — Update `KuroComponents.kt` — Remove Alpha Text
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`
 
 Two components use `colorScheme.onSurface.copy(alpha = 0.72f)` for sub-label text. This produces ~2.8:1 contrast in light mode. Replace with `kuroTokens.textSecondary` (4.57:1 light / 9.52:1 dark).
 
@@ -504,7 +504,7 @@ Expected: All tests pass, no failures.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt
 git commit -m "fix(components): replace onSurface.copy(alpha=0.72) with textSecondary token"
 ```
 

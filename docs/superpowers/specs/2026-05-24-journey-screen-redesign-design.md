@@ -2,7 +2,7 @@
 
 ## Goal
 
-Replace the current Records/History screen with a Journey screen that closely follows the provided Progress reference image while using Kuro Pomodoro's real persisted session data.
+Replace the current Records/History screen with a Journey screen that closely follows the provided Progress reference image while using Purrodoro's real persisted session data.
 
 ## Scope
 

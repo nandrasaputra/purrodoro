@@ -14,11 +14,11 @@
 
 | File | Change |
 |------|--------|
-| `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt` | Layout refactor: `Column` → `Box`, measure dock height, pass `contentPadding` to screens |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt` | Add `contentPadding: PaddingValues` param, remove hardcoded bottom padding |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt` | Same |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/SoundsScreen.kt` | Same |
-| `app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt` | Same |
+| `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt` | Layout refactor: `Column` → `Box`, measure dock height, pass `contentPadding` to screens |
+| `app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt` | Add `contentPadding: PaddingValues` param, remove hardcoded bottom padding |
+| `app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt` | Same |
+| `app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt` | Same |
+| `app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt` | Same |
 
 ---
 
@@ -27,10 +27,10 @@
 Add a `contentPadding: PaddingValues` parameter to each screen and use it in place of the hardcoded `bottom = 100.dp`. Do all four screens in one commit.
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt:45-51`
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt:69-79`
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/SoundsScreen.kt:35-43`
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt:43-54`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt:45-51`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt:69-79`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt:35-43`
+- Modify: `app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt:43-54`
 
 - [ ] **Step 1: Update `CalendarScreen` signature and scroll padding**
 
@@ -167,10 +167,10 @@ import androidx.compose.foundation.layout.PaddingValues
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt \
-        app/src/main/java/com/endiar/kuropomodoro/ui/TodoScreen.kt \
-        app/src/main/java/com/endiar/kuropomodoro/ui/SoundsScreen.kt \
-        app/src/main/java/com/endiar/kuropomodoro/ui/ProfileScreen.kt
+git add app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt \
+        app/src/main/java/com/endiar/purrodoro/ui/TodoScreen.kt \
+        app/src/main/java/com/endiar/purrodoro/ui/SoundsScreen.kt \
+        app/src/main/java/com/endiar/purrodoro/ui/ProfileScreen.kt
 git commit -m "refactor: add contentPadding param to all scrollable screens"
 ```
 
@@ -181,7 +181,7 @@ git commit -m "refactor: add contentPadding param to all scrollable screens"
 Replace the outer `Column` + `Box(weight=1f)` structure with a `Box` overlay. Measure the dock height and pass it as `contentPadding` to each screen.
 
 **Files:**
-- Modify: `app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt`
+- Modify: `app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt`
 
 - [ ] **Step 1: Add required imports to `KuroPomodoroApp.kt`**
 
@@ -313,7 +313,7 @@ Key changes:
 From the project root:
 
 ```bash
-cd kuro-pomodoro-android && ./gradlew assembleDebug
+cd purrodoro-android && ./gradlew assembleDebug
 ```
 
 Expected: `BUILD SUCCESSFUL`. If there are compile errors, fix them (likely missing imports or wrong parameter names) before committing.
@@ -321,7 +321,7 @@ Expected: `BUILD SUCCESSFUL`. If there are compile errors, fix them (likely miss
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/endiar/kuropomodoro/KuroPomodoroApp.kt
+git add app/src/main/java/com/endiar/purrodoro/KuroPomodoroApp.kt
 git commit -m "feat: float DashboardDock above content using Box overlay and dynamic contentPadding"
 ```
 

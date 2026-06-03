@@ -7,7 +7,7 @@
 
 ## Overview
 
-Connect the Todo screen to the Focus timer so users can start a focused Pomodoro session directly from a task. A leading swipe on any task row reveals a "Focus with Kuro" action. The user sets how many sessions they want, then the app transitions into a fullscreen Focus Mode. When all planned sessions complete, the task is auto-marked done.
+Connect the Todo screen to the Focus timer so users can start a focused Pomodoro session directly from a task. A leading swipe on any task row reveals a "Focus with Purrodoro" action. The user sets how many sessions they want, then the app transitions into a fullscreen Focus Mode. When all planned sessions complete, the task is auto-marked done.
 
 ---
 
@@ -50,7 +50,7 @@ Tab switching uses the existing `selectedTab` state — Start Focus sets `select
 
 `TaskGlassRow` in `TodoScreen.kt` gains a swipe-to-act behavior using Jetpack Compose `SwipeToDismiss` (Material 3):
 
-- **Leading swipe (startToEnd, right):** Large orange slab, "▶ Focus with Kuro" label. Fires at ~40% row width threshold; row snaps back after action.
+- **Leading swipe (startToEnd, right):** Large orange slab, "▶ Focus with Purrodoro" label. Fires at ~40% row width threshold; row snaps back after action.
 - **Trailing swipe (endToStart, left):** Red slab, ✕ icon, deletes task (existing behavior to be wired up).
 
 The leading swipe action calls `onFocusTask(task)`, which opens the pre-session bottom sheet.

@@ -12,18 +12,18 @@
 
 ## File Structure
 
-- Create `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/JourneyModels.kt`: pure display models and helpers for metrics, bars, calendar summaries, and timeline rows.
-- Create `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/ui/JourneyModelsTest.kt`: unit tests for derived Journey data.
-- Modify `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt`: full visual replacement using `JourneyModels`.
-- Modify `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`: visible tab label/symbol text from Records to Journey.
-- Modify `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt`: bottom dock label from History to Journey.
-- Modify `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/model/KuroModelsTest.kt`: assert Journey label is present.
+- Create `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/JourneyModels.kt`: pure display models and helpers for metrics, bars, calendar summaries, and timeline rows.
+- Create `purrodoro-android/app/src/test/java/com/endiar/purrodoro/ui/JourneyModelsTest.kt`: unit tests for derived Journey data.
+- Modify `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt`: full visual replacement using `JourneyModels`.
+- Modify `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`: visible tab label/symbol text from Records to Journey.
+- Modify `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`: bottom dock label from History to Journey.
+- Modify `purrodoro-android/app/src/test/java/com/endiar/purrodoro/model/KuroModelsTest.kt`: assert Journey label is present.
 
 ### Task 1: Journey Display Models
 
 **Files:**
-- Create: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/ui/JourneyModelsTest.kt`
-- Create: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/JourneyModels.kt`
+- Create: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/ui/JourneyModelsTest.kt`
+- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/JourneyModels.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -47,8 +47,8 @@ assertEquals("Completed", summary.todayRows.first().statusLabel)
 Run:
 
 ```bash
-cd /Users/nandra.saputra/Projects/nandra/kuro-pomodoro/kuro-pomodoro-android
-./gradlew testDebugUnitTest --tests com.endiar.kuropomodoro.ui.JourneyModelsTest
+cd /Users/nandra.saputra/Projects/nandra/purrodoro/purrodoro-android
+./gradlew testDebugUnitTest --tests com.endiar.purrodoro.ui.JourneyModelsTest
 ```
 
 Expected: fail because `JourneyModels.kt` and `journeySummary` do not exist yet.
@@ -64,7 +64,7 @@ Run the same Gradle test command. Expected: tests pass.
 ### Task 2: Full Journey UI Replacement
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/CalendarScreen.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/CalendarScreen.kt`
 
 - [ ] **Step 1: Replace screen structure**
 
@@ -88,9 +88,9 @@ Ensure timeline rows do not render labels such as Pomodoro, Deep Work, Study, or
 ### Task 3: Visible Renames
 
 **Files:**
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/model/KuroModels.kt`
-- Modify: `kuro-pomodoro-android/app/src/main/java/com/endiar/kuropomodoro/ui/components/KuroComponents.kt`
-- Modify: `kuro-pomodoro-android/app/src/test/java/com/endiar/kuropomodoro/model/KuroModelsTest.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/KuroModels.kt`
+- Modify: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/components/KuroComponents.kt`
+- Modify: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/model/KuroModelsTest.kt`
 
 - [ ] **Step 1: Rename tab display text**
 
@@ -112,21 +112,21 @@ Assert the Calendar tab label is `Journey`.
 - [ ] **Step 1: Run targeted unit tests**
 
 ```bash
-cd /Users/nandra.saputra/Projects/nandra/kuro-pomodoro/kuro-pomodoro-android
-./gradlew testDebugUnitTest --tests com.endiar.kuropomodoro.ui.JourneyModelsTest --tests com.endiar.kuropomodoro.model.KuroModelsTest
+cd /Users/nandra.saputra/Projects/nandra/purrodoro/purrodoro-android
+./gradlew testDebugUnitTest --tests com.endiar.purrodoro.ui.JourneyModelsTest --tests com.endiar.purrodoro.model.KuroModelsTest
 ```
 
 - [ ] **Step 2: Run full unit tests**
 
 ```bash
-cd /Users/nandra.saputra/Projects/nandra/kuro-pomodoro/kuro-pomodoro-android
+cd /Users/nandra.saputra/Projects/nandra/purrodoro/purrodoro-android
 ./gradlew testDebugUnitTest
 ```
 
 - [ ] **Step 3: Build debug APK**
 
 ```bash
-cd /Users/nandra.saputra/Projects/nandra/kuro-pomodoro/kuro-pomodoro-android
+cd /Users/nandra.saputra/Projects/nandra/purrodoro/purrodoro-android
 ./gradlew assembleDebug
 ```
 
