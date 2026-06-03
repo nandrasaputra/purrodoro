@@ -10,6 +10,7 @@
 
 import Foundation
 import Combine
+import UserNotifications
 
 @MainActor
 final class TimerEngine: ObservableObject {
@@ -41,6 +42,7 @@ final class TimerEngine: ObservableObject {
 
     private var endsAt: Date?
     private var ticker: AnyCancellable?
+    private let notifier = NotificationScheduler.shared
     private let store = UserDefaults.standard
     private let settingsKey = "purrodoro.settings"
     private let stampsKey = "purrodoro.focusStamps"
@@ -88,6 +90,7 @@ final class TimerEngine: ObservableObject {
     // MARK: Intents
 
     func start() {
+        notifier.requestAuthorization()
         session = buildSession(settings)
         beginCurrentSegment()
     }
@@ -99,6 +102,7 @@ final class TimerEngine: ObservableObject {
         endsAt = nil
         displayRemaining = session.remainingSeconds
         stopTicker()
+        syncNotification()
     }
 
     func resume() {
@@ -106,6 +110,7 @@ final class TimerEngine: ObservableObject {
         session.timerState = .playing
         endsAt = Date().addingTimeInterval(TimeInterval(session.remainingSeconds))
         startTicker()
+        syncNotification()
     }
 
     func toggleStartPause() {
@@ -127,6 +132,7 @@ final class TimerEngine: ObservableObject {
         stopTicker()
         session = buildSession(settings)
         displayRemaining = session.remainingSeconds
+        syncNotification()
     }
 
     func acknowledgeCycleComplete() {
@@ -144,6 +150,7 @@ final class TimerEngine: ObservableObject {
             displayRemaining = remainingFromClock()
             if ticker == nil { startTicker() }
         }
+        syncNotification()
     }
 
     // MARK: Segment lifecycle
@@ -162,6 +169,7 @@ final class TimerEngine: ObservableObject {
             displayRemaining = seconds
             stopTicker()
         }
+        syncNotification()
     }
 
     /// Advance to the next segment. When [creditCurrentFocus] is true and the
@@ -194,6 +202,7 @@ final class TimerEngine: ObservableObject {
             displayRemaining = nextSeconds
             stopTicker()
         }
+        syncNotification()
     }
 
     private func finishCycle() {
@@ -202,6 +211,38 @@ final class TimerEngine: ObservableObject {
         pendingCycleComplete = true
         session = buildSession(settings)
         displayRemaining = session.remainingSeconds
+        syncNotification()
+    }
+
+    // MARK: Notifications
+
+    private func syncNotification() {
+        guard session.timerState == .playing, let endsAt, let item = session.currentItem else {
+            notifier.cancel()
+            return
+        }
+        let nextIndex = session.currentIndex + 1
+        let isLast = nextIndex >= session.items.count
+        let nextMode = session.items.indices.contains(nextIndex) ? session.items[nextIndex].type.mode : nil
+        let copy = Self.notificationCopy(current: item.type, isLast: isLast, nextMode: nextMode)
+        notifier.schedule(at: endsAt, title: copy.title, body: copy.body)
+    }
+
+    static func notificationCopy(
+        current: SessionItemType,
+        isLast: Bool,
+        nextMode: TimerMode?
+    ) -> (title: String, body: String) {
+        if isLast {
+            return ("Cycle complete", "You did it — Purrodoro is proud of you.")
+        }
+        switch current {
+        case .focus:
+            let next = nextMode?.label.lowercased() ?? "break"
+            return ("Focus complete", "Time for a \(next). Take a breather.")
+        case .shortBreak, .longBreak:
+            return ("Break's over", "Ready to focus again?")
+        }
     }
 
     // MARK: Ticking
