@@ -66,6 +66,16 @@ final class TimerEngine: ObservableObject {
     var isRunning: Bool { session.timerState == .playing }
     var isStarted: Bool { session.timerState != .idle }
 
+    /// Per-day focus-session counts, keyed "yyyy-MM-dd".
+    var focusStampsByDay: [String: Int] {
+        store.dictionary(forKey: stampsKey) as? [String: Int] ?? [:]
+    }
+
+    /// Per-day focus minutes, keyed "yyyy-MM-dd".
+    var focusMinutesByDay: [String: Int] {
+        store.dictionary(forKey: minutesKey) as? [String: Int] ?? [:]
+    }
+
     var dots: CycleDotsState {
         cycleDotsState(
             cycleItems: session.items,
