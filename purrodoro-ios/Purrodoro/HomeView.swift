@@ -11,6 +11,7 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var tasks: TaskStore
+    @EnvironmentObject private var habits: HabitStore
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSettings = false
@@ -99,7 +100,19 @@ struct HomeView: View {
     private var controls: some View {
         VStack(spacing: 16) {
             if let task = tasks.activeTask {
-                activeTaskCard(task)
+                activeIntentCard(
+                    symbol: "target",
+                    title: task.title,
+                    subtitle: "Focusing · \(task.completedSessions)/\(task.plannedSessions) sessions",
+                    onDetach: { tasks.clearActive() }
+                )
+            } else if let habit = habits.activeHabit {
+                activeIntentCard(
+                    emoji: habit.emoji,
+                    title: habit.name,
+                    subtitle: "Habit · \(habit.todayCount)/\(habit.targetPerDay) today",
+                    onDetach: { habits.clearActive() }
+                )
             }
 
             todayStat
@@ -125,30 +138,38 @@ struct HomeView: View {
         }
     }
 
-    private func activeTaskCard(_ task: TaskItem) -> some View {
+    private func activeIntentCard(
+        symbol: String? = nil,
+        emoji: String? = nil,
+        title: String,
+        subtitle: String,
+        onDetach: @escaping () -> Void
+    ) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: "target")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Brand.coral)
+            if let emoji {
+                Text(emoji).font(.system(size: 18))
+            } else if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Brand.coral)
+            }
             VStack(alignment: .leading, spacing: 1) {
-                Text(task.title)
+                Text(title)
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(colors.textPrimary)
                     .lineLimit(1)
-                Text("Focusing · \(task.completedSessions)/\(task.plannedSessions) sessions")
+                Text(subtitle)
                     .font(.system(.caption2, design: .rounded))
                     .foregroundStyle(colors.textFaint)
             }
             Spacer()
-            Button {
-                tasks.clearActive()
-            } label: {
+            Button(action: onDetach) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 18))
                     .foregroundStyle(colors.textFaint)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Detach task")
+            .accessibilityLabel("Detach")
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 16)
@@ -340,4 +361,5 @@ struct SecondaryButton: View {
     HomeView()
         .environmentObject(TimerEngine())
         .environmentObject(TaskStore())
+        .environmentObject(HabitStore())
 }
