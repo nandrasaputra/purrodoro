@@ -56,11 +56,7 @@ struct RootView: View {
                         }
                     }
                 case .journey:
-                    PlaceholderScreen(
-                        title: "Journey",
-                        subtitle: "Your focus streaks and history will bloom here over time.",
-                        image: "CatEmptyMonth"
-                    )
+                    JourneyView()
                 case .habits:
                     PlaceholderScreen(
                         title: "Habits",
