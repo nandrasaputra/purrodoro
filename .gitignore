@@ -1,8 +1,32 @@
+# ──────────────────────────────────────────────────────────────
+# General / macOS
+# ──────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+*.log
+
+# ──────────────────────────────────────────────────────────────
+# Android — Gradle
+# ──────────────────────────────────────────────────────────────
 *.iml
 .gradle
 **/.gradle
 local.properties
 **/local.properties
+build
+**/build
+captures
+**/captures
+.externalNativeBuild
+**/.externalNativeBuild
+.cxx
+**/.cxx
+.kotlin
+**/.kotlin
+
+# ──────────────────────────────────────────────────────────────
+# Android — IntelliJ / Android Studio (.idea)
+# ──────────────────────────────────────────────────────────────
 .idea/caches
 **/.idea/caches
 .idea/libraries
@@ -17,16 +41,35 @@ local.properties
 **/.idea/assetWizardSettings.xml
 .idea/deploymentTargetSelector.xml
 **/.idea/deploymentTargetSelector.xml
-.DS_Store
-build
-**/build
-captures
-**/captures
-.externalNativeBuild
-**/.externalNativeBuild
-.cxx
-**/.cxx
+.idea/shelf
+**/.idea/shelf
+
+# ──────────────────────────────────────────────────────────────
+# iOS — Xcode
+# ──────────────────────────────────────────────────────────────
+# User-specific Xcode files
+**/xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+
+# Build products
+DerivedData/
+**/DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+**/.swiftpm/
+Package.resolved
+
+# CocoaPods (if introduced later)
+Pods/
+
+# ──────────────────────────────────────────────────────────────
+# Worktrees / misc
+# ──────────────────────────────────────────────────────────────
 .worktrees
 **/.worktrees
-.kotlin
-**/.kotlin
