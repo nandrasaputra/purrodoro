@@ -11,6 +11,7 @@ import SwiftUI
 
 struct TasksView: View {
     @EnvironmentObject private var store: TaskStore
+    @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var editing: TaskItem?
     @State private var showAdd = false
@@ -37,18 +38,29 @@ struct TasksView: View {
             }
             .padding(.trailing, 24)
             .padding(.bottom, 96)
-            .accessibilityLabel("Add task")
+            .accessibilityLabel(loc.t("tasks.add"))
         }
         .environment(\.pColors, colors)
         .sheet(isPresented: $showAdd) {
-            TaskEditor(task: nil) { store.add(title: $0, priority: $1, plannedSessions: $2) }
+            TaskEditor(task: nil, suggestions: store.categories) { draft in
+                store.add(
+                    title: draft.title,
+                    priority: draft.priority,
+                    plannedSessions: draft.planned,
+                    category: draft.category,
+                    dueDate: draft.dueDate
+                )
+            }
         }
         .sheet(item: $editing) { task in
-            TaskEditor(task: task) { title, priority, planned in
+            TaskEditor(task: task, suggestions: store.categories) { draft in
                 var updated = task
-                updated.title = title
-                updated.priority = priority
-                updated.plannedSessions = max(planned, updated.completedSessions, 1)
+                updated.title = draft.title
+                updated.priority = draft.priority
+                updated.plannedSessions = max(draft.planned, updated.completedSessions, 1)
+                let cat = draft.category?.trimmingCharacters(in: .whitespacesAndNewlines)
+                updated.category = (cat?.isEmpty ?? true) ? nil : cat
+                updated.dueDate = draft.dueDate
                 store.update(updated)
             }
         }
@@ -58,25 +70,25 @@ struct TasksView: View {
     private var content: some View {
         if store.tasks.isEmpty {
             PlaceholderScreen(
-                title: "No tasks yet",
-                subtitle: "Add a task and attach it to a focus session to track your progress.",
+                title: loc.t("tasks.emptyTitle"),
+                subtitle: loc.t("tasks.emptySubtitle"),
                 image: "CatChecklist"
             )
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Tasks")
+                    Text(loc.t("tasks.title"))
                         .font(.system(.largeTitle, design: .rounded).weight(.bold))
                         .foregroundStyle(colors.textPrimary)
                         .padding(.top, 12)
 
                     if !store.activeTasks.isEmpty {
-                        section(title: "Active") {
+                        section(title: loc.t("tasks.active")) {
                             ForEach(store.activeTasks) { row(for: $0) }
                         }
                     }
                     if !store.completedTasks.isEmpty {
-                        section(title: "Done") {
+                        section(title: loc.t("tasks.done")) {
                             ForEach(store.completedTasks) { row(for: $0) }
                         }
                     }
@@ -107,9 +119,9 @@ struct TasksView: View {
             onEdit: { editing = task }
         )
         .contextMenu {
-            Button { editing = task } label: { Label("Edit", systemImage: "pencil") }
+            Button { editing = task } label: { Label(loc.t("common.edit"), systemImage: "pencil") }
             Button(role: .destructive) { store.delete(task) } label: {
-                Label("Delete", systemImage: "trash")
+                Label(loc.t("common.delete"), systemImage: "trash")
             }
         }
     }
@@ -118,6 +130,7 @@ struct TasksView: View {
 // MARK: - Row
 
 private struct TaskRow: View {
+    @EnvironmentObject private var loc: Localization
     let task: TaskItem
     let isActive: Bool
     let colors: PurrodoroColors
@@ -143,6 +156,10 @@ private struct TaskRow: View {
 
                 HStack(spacing: 8) {
                     PriorityChip(priority: task.priority)
+                    if let category = task.trimmedCategory {
+                        categoryChip(category)
+                    }
+                    dueBadge
                     if task.plannedSessions > 0 {
                         Label("\(task.completedSessions)/\(task.plannedSessions)", systemImage: "target")
                             .font(.system(.caption2, design: .rounded).weight(.semibold))
@@ -173,13 +190,50 @@ private struct TaskRow: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onEdit)
     }
+
+    private func categoryChip(_ name: String) -> some View {
+        Text(name)
+            .font(.system(.caption2, design: .rounded).weight(.semibold))
+            .foregroundStyle(colors.textSecondary)
+            .padding(.vertical, 3)
+            .padding(.horizontal, 8)
+            .background(CategoryPalette.color(for: name).opacity(0.35), in: Capsule())
+    }
+
+    @ViewBuilder
+    private var dueBadge: some View {
+        if task.isOverdue {
+            dueLabel(loc.t("tasks.overdue"), tint: Brand.deepCoral, filled: true)
+        } else if task.isDueToday {
+            dueLabel(loc.t("tasks.dueToday"), tint: Brand.coral, filled: false)
+        } else if let due = task.dueDate {
+            dueLabel(Self.shortDate(due), tint: colors.textFaint, filled: false)
+        }
+    }
+
+    private func dueLabel(_ text: String, tint: Color, filled: Bool) -> some View {
+        Label(text, systemImage: "calendar")
+            .font(.system(.caption2, design: .rounded).weight(.semibold))
+            .labelStyle(.titleAndIcon)
+            .foregroundStyle(filled ? .white : tint)
+            .padding(.vertical, 3)
+            .padding(.horizontal, 8)
+            .background(filled ? tint : tint.opacity(0.14), in: Capsule())
+    }
+
+    private static func shortDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f.string(from: date)
+    }
 }
 
 private struct PriorityChip: View {
+    @EnvironmentObject private var loc: Localization
     let priority: TaskPriority
 
     var body: some View {
-        Text(priority.label)
+        Text(loc.t("priority.\(priority.rawValue)"))
             .font(.system(.caption2, design: .rounded).weight(.bold))
             .foregroundStyle(Brand.cocoa)
             .padding(.vertical, 3)
@@ -190,24 +244,41 @@ private struct PriorityChip: View {
 
 // MARK: - Editor
 
+struct TaskDraft {
+    var title: String
+    var priority: TaskPriority
+    var planned: Int
+    var category: String?
+    var dueDate: Date?
+}
+
 private struct TaskEditor: View {
     let task: TaskItem?
-    let onSave: (String, TaskPriority, Int) -> Void
+    let suggestions: [String]
+    let onSave: (TaskDraft) -> Void
 
+    @EnvironmentObject private var loc: Localization
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
     @State private var title: String
     @State private var priority: TaskPriority
     @State private var planned: Int
+    @State private var category: String
+    @State private var hasDueDate: Bool
+    @State private var dueDate: Date
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
 
-    init(task: TaskItem?, onSave: @escaping (String, TaskPriority, Int) -> Void) {
+    init(task: TaskItem?, suggestions: [String], onSave: @escaping (TaskDraft) -> Void) {
         self.task = task
+        self.suggestions = suggestions
         self.onSave = onSave
         _title = State(initialValue: task?.title ?? "")
         _priority = State(initialValue: task?.priority ?? .normal)
         _planned = State(initialValue: task?.plannedSessions ?? 1)
+        _category = State(initialValue: task?.trimmedCategory ?? "")
+        _hasDueDate = State(initialValue: task?.dueDate != nil)
+        _dueDate = State(initialValue: task?.dueDate ?? Date())
     }
 
     var body: some View {
@@ -216,7 +287,7 @@ private struct TaskEditor: View {
                 colors.page.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 16) {
-                        TextField("What do you want to focus on?", text: $title, axis: .vertical)
+                        TextField(loc.t("tasks.whatFocus"), text: $title, axis: .vertical)
                             .font(.system(.body, design: .rounded))
                             .padding(16)
                             .background(colors.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -224,20 +295,23 @@ private struct TaskEditor: View {
 
                         card {
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("Priority")
+                                Text(loc.t("tasks.priority"))
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                     .foregroundStyle(colors.textSecondary)
-                                Picker("Priority", selection: $priority) {
-                                    ForEach(TaskPriority.allCases) { Text($0.label).tag($0) }
+                                Picker(loc.t("tasks.priority"), selection: $priority) {
+                                    ForEach(TaskPriority.allCases) { Text(loc.t("priority.\($0.rawValue)")).tag($0) }
                                 }
                                 .pickerStyle(.segmented)
                             }
                         }
 
+                        categoryCard
+                        dueDateCard
+
                         card {
                             Stepper(value: $planned, in: 1...8) {
                                 HStack {
-                                    Text("Planned sessions")
+                                    Text(loc.t("tasks.plannedSessions"))
                                         .font(.system(.body, design: .rounded).weight(.semibold))
                                         .foregroundStyle(colors.textPrimary)
                                     Spacer()
@@ -252,19 +326,74 @@ private struct TaskEditor: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(task == nil ? "New task" : "Edit task")
+            .navigationTitle(task == nil ? loc.t("tasks.new") : loc.t("tasks.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(loc.t("common.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave(title, priority, planned)
+                    Button(loc.t("common.save")) {
+                        onSave(TaskDraft(
+                            title: title,
+                            priority: priority,
+                            planned: planned,
+                            category: category,
+                            dueDate: hasDueDate ? dueDate : nil
+                        ))
                         dismiss()
                     }
                     .font(.system(.body, design: .rounded).weight(.bold))
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+
+    private var categoryCard: some View {
+        card {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(loc.t("tasks.category"))
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textSecondary)
+                TextField(loc.t("tasks.categoryPlaceholder"), text: $category)
+                    .font(.system(.body, design: .rounded))
+                    .textInputAutocapitalization(.words)
+                if !suggestions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(suggestions, id: \.self) { name in
+                                Button { category = name } label: {
+                                    Text(name)
+                                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                                        .foregroundStyle(colors.textSecondary)
+                                        .padding(.vertical, 5)
+                                        .padding(.horizontal, 10)
+                                        .background(CategoryPalette.color(for: name).opacity(0.3), in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var dueDateCard: some View {
+        card {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(isOn: $hasDueDate.animation()) {
+                    Text(loc.t("tasks.dueDate"))
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .foregroundStyle(colors.textPrimary)
+                }
+                .tint(Brand.coral)
+                if hasDueDate {
+                    DatePicker("", selection: $dueDate, displayedComponents: .date)
+                        .labelsHidden()
+                        .datePickerStyle(.graphical)
+                        .tint(Brand.coral)
                 }
             }
         }
@@ -280,5 +409,7 @@ private struct TaskEditor: View {
 }
 
 #Preview {
-    TasksView().environmentObject(TaskStore())
+    TasksView()
+        .environmentObject(TaskStore())
+        .environmentObject(Localization())
 }

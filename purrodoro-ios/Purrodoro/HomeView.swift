@@ -13,9 +13,14 @@ struct HomeView: View {
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
     @EnvironmentObject private var prefs: PreferencesStore
+    @EnvironmentObject private var sounds: SoundsStore
+    @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSettings = false
+    @State private var showStartFocus = false
+    @State private var showSounds = false
+    @State private var startPrefill: StartFocusPrefill?
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
 
@@ -23,7 +28,7 @@ struct HomeView: View {
         ZStack {
             colors.page.ignoresSafeArea()
 
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 header
 
                 Spacer(minLength: 8)
@@ -38,6 +43,8 @@ struct HomeView: View {
 
                 CycleDotsRow(dots: engine.dots, colors: colors)
 
+                musicButton
+
                 Spacer(minLength: 8)
 
                 controls
@@ -45,21 +52,29 @@ struct HomeView: View {
             .padding(.horizontal, 28)
             .padding(.top, 12)
             .padding(.bottom, 96)
+
+            if engine.pendingCycleComplete {
+                CelebrationOverlay { engine.acknowledgeCycleComplete() }
+                    .zIndex(2)
+            }
         }
         .environment(\.pColors, colors)
         .sheet(isPresented: $showSettings) {
             SettingsSheet()
                 .environmentObject(engine)
                 .environmentObject(prefs)
+                .environmentObject(loc)
+        }
+        .sheet(isPresented: $showStartFocus) {
+            StartFocusSheet(prefill: startPrefill)
+        }
+        .sheet(isPresented: $showSounds) {
+            SoundsSheet()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { engine.reconcile() }
         }
-        .alert("Cycle complete", isPresented: cycleCompleteBinding) {
-            Button("Nice") { engine.acknowledgeCycleComplete() }
-        } message: {
-            Text("Purrodoro is proud of you. Take a moment, then start fresh whenever you're ready.")
-        }
+        .animation(.easeInOut(duration: 0.25), value: engine.pendingCycleComplete)
         // Haptics: weight the feedback to the transition — starting focus is the
         // firmest, pausing/resuming softer; segment changes are a light "tick";
         // finishing a whole cycle gets a celebratory success buzz.
@@ -74,18 +89,22 @@ struct HomeView: View {
         .sensoryFeedback(.success, trigger: engine.pendingCycleComplete) { _, isComplete in isComplete }
     }
 
-    private var cycleCompleteBinding: Binding<Bool> {
-        Binding(
-            get: { engine.pendingCycleComplete },
-            set: { if !$0 { engine.acknowledgeCycleComplete() } }
-        )
+    private func openStartFocus(prefill: StartFocusPrefill? = nil) {
+        startPrefill = prefill
+        showStartFocus = true
     }
 
     // MARK: Header
 
     private var header: some View {
         let part = DayPart.current()
-        let salutation = prefs.trimmedName.map { "\(part.salutation), \($0)" } ?? part.salutation
+        let salutation: String = {
+            let key = "greeting.\(dayPartKey(part))"
+            if let name = prefs.trimmedName {
+                return loc.t(key + ".name", name)
+            }
+            return loc.t(key)
+        }()
         return HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(salutation)
@@ -93,7 +112,7 @@ struct HomeView: View {
                     .foregroundStyle(colors.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                Text(part.encouragement)
+                Text(loc.t("encourage.\(dayPartKey(part))"))
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(colors.textSecondary)
             }
@@ -108,8 +127,33 @@ struct HomeView: View {
                     .background(colors.card, in: Circle())
                     .overlay(Circle().stroke(colors.border, lineWidth: 1))
             }
-            .accessibilityLabel("Timer settings")
+            .accessibilityLabel(loc.t("home.timerSettings"))
         }
+    }
+
+    private func dayPartKey(_ part: DayPart) -> String {
+        switch part {
+        case .morning: return "morning"
+        case .afternoon: return "afternoon"
+        case .evening: return "evening"
+        }
+    }
+
+    // MARK: Music button
+
+    private var musicButton: some View {
+        Button {
+            showSounds = true
+        } label: {
+            Image(systemName: sounds.isPlaying ? "waveform" : "music.note")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(sounds.isPlaying ? .white : colors.textSecondary)
+                .frame(width: 46, height: 46)
+                .background(sounds.isPlaying ? Brand.coral : colors.card, in: Circle())
+                .overlay(Circle().stroke(sounds.isPlaying ? Color.clear : colors.border, lineWidth: 1))
+                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: sounds.isPlaying)
+        }
+        .accessibilityLabel(loc.t("sounds.title"))
     }
 
     // MARK: Controls
@@ -121,39 +165,81 @@ struct HomeView: View {
                 activeIntentCard(
                     symbol: "target",
                     title: task.title,
-                    subtitle: "Focusing · \(task.completedSessions)/\(task.plannedSessions) sessions",
+                    subtitle: loc.t("home.focusingSessions", task.completedSessions, task.plannedSessions),
                     onDetach: { tasks.clearActive() }
                 )
             } else if let habit = habits.activeHabit {
                 activeIntentCard(
                     emoji: habit.emoji,
                     title: habit.name,
-                    subtitle: "Habit · \(habit.todayCount)/\(habit.targetPerDay) today",
+                    subtitle: loc.t("home.habitToday", habit.todayCount, habit.targetPerDay),
                     onDetach: { habits.clearActive() }
                 )
+            }
+
+            if engine.session.timerState == .idle, let interrupted = engine.interruptedFocus {
+                resumeCard(interrupted)
             }
 
             todayStat
 
             switch engine.session.timerState {
             case .idle:
-                PrimaryButton(title: "Start Focus", systemImage: "play.fill", tint: Brand.coral) {
-                    engine.start()
+                PrimaryButton(title: loc.t("home.startFocus"), systemImage: "play.fill", tint: Brand.coral) {
+                    openStartFocus()
                 }
             case .playing:
                 HStack(spacing: 14) {
-                    SecondaryButton(systemImage: "stop.fill", label: "Stop", colors: colors) { engine.stop() }
-                    PrimaryButton(title: "Pause", systemImage: "pause.fill", tint: Brand.coral) { engine.pause() }
-                    SecondaryButton(systemImage: "forward.fill", label: "Skip", colors: colors) { engine.skip() }
+                    SecondaryButton(systemImage: "stop.fill", label: loc.t("home.stop"), colors: colors) { engine.stop() }
+                    PrimaryButton(title: loc.t("home.pause"), systemImage: "pause.fill", tint: Brand.coral) { engine.pause() }
+                    SecondaryButton(systemImage: "forward.fill", label: loc.t("home.skip"), colors: colors) { engine.skip() }
                 }
             case .paused:
                 HStack(spacing: 14) {
-                    SecondaryButton(systemImage: "stop.fill", label: "Stop", colors: colors) { engine.stop() }
-                    PrimaryButton(title: "Resume", systemImage: "play.fill", tint: Brand.coral) { engine.resume() }
-                    SecondaryButton(systemImage: "forward.fill", label: "Skip", colors: colors) { engine.skip() }
+                    SecondaryButton(systemImage: "stop.fill", label: loc.t("home.stop"), colors: colors) { engine.stop() }
+                    PrimaryButton(title: loc.t("home.resume"), systemImage: "play.fill", tint: Brand.coral) { engine.resume() }
+                    SecondaryButton(systemImage: "forward.fill", label: loc.t("home.skip"), colors: colors) { engine.skip() }
                 }
             }
         }
+    }
+
+    private func resumeCard(_ interrupted: InterruptedFocus) -> some View {
+        Button {
+            openStartFocus(prefill: StartFocusPrefill(focusMinutesOverride: interrupted.leftoverMinutes))
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.clockwise.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Brand.coral)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(loc.t("resume.title"))
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(colors.textPrimary)
+                        .lineLimit(1)
+                    Text(loc.t("resume.subtitle", interrupted.leftoverMinutes))
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(colors.textFaint)
+                }
+                Spacer()
+                Button {
+                    engine.clearInterruptedFocus()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(colors.textFaint)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(loc.t("home.detach"))
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .background(Brand.peach.opacity(0.18), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Brand.coral.opacity(0.5), lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func activeIntentCard(
@@ -187,7 +273,7 @@ struct HomeView: View {
                     .foregroundStyle(colors.textFaint)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Detach")
+            .accessibilityLabel(loc.t("home.detach"))
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 16)
@@ -198,9 +284,9 @@ struct HomeView: View {
 
     private var todayStat: some View {
         HStack(spacing: 18) {
-            stat(value: "\(engine.todayFocusCount)", label: "focus today")
+            stat(value: "\(engine.todayFocusCount)", label: loc.t("home.focusToday"))
             Rectangle().fill(colors.border).frame(width: 1, height: 28)
-            stat(value: "\(engine.todayFocusMinutes)m", label: "minutes")
+            stat(value: "\(engine.todayFocusMinutes)m", label: loc.t("home.minutes"))
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 22)
@@ -277,11 +363,12 @@ private struct TimerDial: View {
 }
 
 private struct ModeChip: View {
+    @EnvironmentObject private var loc: Localization
     let mode: TimerMode
     let state: TimerState
 
     var body: some View {
-        let text = state == .idle ? "Ready" : mode.label
+        let text = state == .idle ? loc.t("mode.ready") : loc.t(mode.labelKey)
         Text(text.uppercased())
             .font(.system(.caption, design: .rounded).weight(.bold))
             .tracking(1.2)
@@ -381,4 +468,6 @@ struct SecondaryButton: View {
         .environmentObject(TaskStore())
         .environmentObject(HabitStore())
         .environmentObject(PreferencesStore())
+        .environmentObject(SoundsStore())
+        .environmentObject(Localization())
 }

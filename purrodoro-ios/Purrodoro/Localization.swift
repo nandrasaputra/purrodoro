@@ -1,0 +1,238 @@
+//
+//  Localization.swift
+//  Purrodoro
+//
+//  Lightweight, runtime-switchable localization. The Android app supports
+//  changing language on the fly (no Activity restart), so rather than rely on
+//  the bundle's `.lproj` resolution (which is locked at launch) we keep an
+//  in-app string table keyed by `AppLanguage`. Views observe `Localization`
+//  via `@EnvironmentObject`, so flipping the language re-renders everything.
+//
+
+import Foundation
+import Combine
+
+enum AppLanguage: String, CaseIterable, Codable, Identifiable {
+    case en
+    case id
+
+    var id: String { rawValue }
+
+    /// Name shown in its own language (for the picker).
+    var nativeLabel: String {
+        switch self {
+        case .en: return "English"
+        case .id: return "Bahasa Indonesia"
+        }
+    }
+
+    var flag: String {
+        switch self {
+        case .en: return "🇬🇧"
+        case .id: return "🇮🇩"
+        }
+    }
+
+    /// Best guess from the device locale, used the very first launch.
+    static var systemDefault: AppLanguage {
+        let code = Locale.preferredLanguages.first?.lowercased() ?? "en"
+        return code.hasPrefix("id") ? .id : .en
+    }
+}
+
+@MainActor
+final class Localization: ObservableObject {
+
+    @Published var language: AppLanguage {
+        didSet { store.set(language.rawValue, forKey: key) }
+    }
+
+    private let store: UserDefaults
+    private let key = "purrodoro.language"
+
+    init(store: UserDefaults = .standard) {
+        self.store = store
+        if let raw = store.string(forKey: key), let lang = AppLanguage(rawValue: raw) {
+            self.language = lang
+        } else {
+            self.language = AppLanguage.systemDefault
+        }
+    }
+
+    /// Look up `key` for the active language, falling back to English then the
+    /// raw key. `args` feed `String(format:)` for interpolated strings.
+    func t(_ key: String, _ args: CVarArg...) -> String {
+        let entry = Self.table[key]
+        let template = entry?[language] ?? entry?[.en] ?? key
+        return args.isEmpty ? template : String(format: template, locale: Locale.current, arguments: args)
+    }
+
+    // MARK: - String table
+
+    private static let table: [String: [AppLanguage: String]] = [
+        // Tabs
+        "tab.focus": [.en: "Focus", .id: "Fokus"],
+        "tab.tasks": [.en: "Tasks", .id: "Tugas"],
+        "tab.journey": [.en: "Journey", .id: "Perjalanan"],
+        "tab.habits": [.en: "Habits", .id: "Kebiasaan"],
+
+        // Home greetings
+        "greeting.morning": [.en: "Good morning", .id: "Selamat pagi"],
+        "greeting.afternoon": [.en: "Good afternoon", .id: "Selamat siang"],
+        "greeting.evening": [.en: "Good evening", .id: "Selamat malam"],
+        "greeting.morning.name": [.en: "Good morning, %@", .id: "Selamat pagi, %@"],
+        "greeting.afternoon.name": [.en: "Good afternoon, %@", .id: "Selamat siang, %@"],
+        "greeting.evening.name": [.en: "Good evening, %@", .id: "Selamat malam, %@"],
+        "encourage.morning": [.en: "Let's make this morning meaningful.", .id: "Mari buat pagi ini bermakna."],
+        "encourage.afternoon": [.en: "Keep the afternoon moving gently.", .id: "Jalani siang ini dengan tenang."],
+        "encourage.evening": [.en: "Let's make this evening meaningful.", .id: "Mari buat malam ini bermakna."],
+
+        // Timer modes / chip
+        "mode.focus": [.en: "Focus", .id: "Fokus"],
+        "mode.shortBreak": [.en: "Short Break", .id: "Istirahat Singkat"],
+        "mode.longBreak": [.en: "Long Break", .id: "Istirahat Panjang"],
+        "mode.ready": [.en: "Ready", .id: "Siap"],
+
+        // Home controls
+        "home.startFocus": [.en: "Start Focus", .id: "Mulai Fokus"],
+        "home.pause": [.en: "Pause", .id: "Jeda"],
+        "home.resume": [.en: "Resume", .id: "Lanjut"],
+        "home.stop": [.en: "Stop", .id: "Berhenti"],
+        "home.skip": [.en: "Skip", .id: "Lewati"],
+        "home.focusToday": [.en: "focus today", .id: "fokus hari ini"],
+        "home.minutes": [.en: "minutes", .id: "menit"],
+        "home.timerSettings": [.en: "Timer settings", .id: "Pengaturan timer"],
+        "home.detach": [.en: "Detach", .id: "Lepas"],
+        "home.focusingSessions": [.en: "Focusing · %ld/%ld sessions", .id: "Fokus · %ld/%ld sesi"],
+        "home.habitToday": [.en: "Habit · %ld/%ld today", .id: "Kebiasaan · %ld/%ld hari ini"],
+
+        // Interrupted focus / resume
+        "resume.title": [.en: "Continue where you left off", .id: "Lanjutkan sesi sebelumnya"],
+        "resume.subtitle": [.en: "%ld min of focus left", .id: "%ld menit fokus tersisa"],
+        "resume.action": [.en: "Resume focus", .id: "Lanjutkan fokus"],
+
+        // Start Focus sheet
+        "start.title": [.en: "Start Focus", .id: "Mulai Fokus"],
+        "start.whatWorkingOn": [.en: "What are you working on?", .id: "Sedang mengerjakan apa?"],
+        "start.intentOptional": [.en: "Intent (optional)", .id: "Tujuan (opsional)"],
+        "start.none": [.en: "None", .id: "Tanpa"],
+        "start.task": [.en: "Task", .id: "Tugas"],
+        "start.habit": [.en: "Habit", .id: "Kebiasaan"],
+        "start.chooseTask": [.en: "Choose a task", .id: "Pilih tugas"],
+        "start.chooseHabit": [.en: "Choose a habit", .id: "Pilih kebiasaan"],
+        "start.noTasks": [.en: "No tasks yet — add one from the Tasks tab.", .id: "Belum ada tugas — tambah dari tab Tugas."],
+        "start.noHabits": [.en: "No habits scheduled today.", .id: "Tidak ada kebiasaan terjadwal hari ini."],
+        "start.config": [.en: "Session", .id: "Sesi"],
+        "start.focusLength": [.en: "Focus length", .id: "Durasi fokus"],
+        "start.sessions": [.en: "Focus sessions", .id: "Sesi fokus"],
+        "start.change": [.en: "Change", .id: "Ubah"],
+        "start.begin": [.en: "Start Focus", .id: "Mulai Fokus"],
+        "start.minUnit": [.en: "%ld min", .id: "%ld mnt"],
+
+        // Settings
+        "settings.title": [.en: "Settings", .id: "Pengaturan"],
+        "settings.profile": [.en: "Profile", .id: "Profil"],
+        "settings.yourName": [.en: "Your name", .id: "Nama kamu"],
+        "settings.addName": [.en: "Add your name", .id: "Tambahkan namamu"],
+        "settings.timer": [.en: "Timer", .id: "Timer"],
+        "settings.focus": [.en: "Focus", .id: "Fokus"],
+        "settings.shortBreak": [.en: "Short break", .id: "Istirahat singkat"],
+        "settings.longBreak": [.en: "Long break", .id: "Istirahat panjang"],
+        "settings.focusSessions": [.en: "Focus sessions", .id: "Sesi fokus"],
+        "settings.beforeLongBreak": [.en: "Before a long break", .id: "Sebelum istirahat panjang"],
+        "settings.autoStart": [.en: "Auto-start next", .id: "Mulai otomatis"],
+        "settings.autoStartDesc": [.en: "Flow from focus to break automatically", .id: "Lanjut dari fokus ke istirahat otomatis"],
+        "settings.appearance": [.en: "Appearance", .id: "Tampilan"],
+        "settings.theme": [.en: "Theme", .id: "Tema"],
+        "settings.language": [.en: "Language", .id: "Bahasa"],
+        "settings.done": [.en: "Done", .id: "Selesai"],
+        "appearance.auto": [.en: "Auto", .id: "Otomatis"],
+        "appearance.light": [.en: "Light", .id: "Terang"],
+        "appearance.dark": [.en: "Dark", .id: "Gelap"],
+        "unit.min": [.en: "%ld min", .id: "%ld mnt"],
+
+        // Sounds
+        "sounds.title": [.en: "Ambient Sounds", .id: "Suara Ambien"],
+        "sounds.subtitle": [.en: "Gentle background sound to settle into focus.", .id: "Suara latar lembut untuk membantu fokus."],
+        "sounds.tapToPlay": [.en: "Tap to play", .id: "Ketuk untuk putar"],
+        "sounds.playing": [.en: "Playing", .id: "Diputar"],
+        "sounds.selected": [.en: "Selected", .id: "Dipilih"],
+        "sounds.premium": [.en: "Premium", .id: "Premium"],
+        "sounds.none": [.en: "Silence", .id: "Hening"],
+        "sounds.noneDesc": [.en: "No ambient sound", .id: "Tanpa suara ambien"],
+        "sound.rain.name": [.en: "Rain", .id: "Hujan"],
+        "sound.rain.desc": [.en: "Soft, steady rainfall", .id: "Rintik hujan yang menenangkan"],
+        "sound.cafe.name": [.en: "Cafe", .id: "Kafe"],
+        "sound.cafe.desc": [.en: "Warm coffee-shop murmur", .id: "Gemuruh hangat kedai kopi"],
+        "sound.forest.name": [.en: "Forest", .id: "Hutan"],
+        "sound.forest.desc": [.en: "Wind through the trees", .id: "Angin di antara pepohonan"],
+        "sound.fire.name": [.en: "Fireplace", .id: "Perapian"],
+        "sound.fire.desc": [.en: "Crackling embers", .id: "Bara api yang berderak"],
+        "sound.waves.name": [.en: "Waves", .id: "Ombak"],
+        "sound.waves.desc": [.en: "Slow ocean swell", .id: "Deburan ombak yang pelan"],
+
+        // Celebration
+        "cycle.nice": [.en: "Nice", .id: "Mantap"],
+        "cycle.v1.title": [.en: "Cycle complete!", .id: "Siklus selesai!"],
+        "cycle.v1.body": [.en: "You did it — Purrodoro is proud of you.", .id: "Kamu berhasil — Purrodoro bangga padamu."],
+        "cycle.v2.title": [.en: "Beautifully done", .id: "Kerja bagus"],
+        "cycle.v2.body": [.en: "That's a full cycle of focus. Stretch and breathe.", .id: "Satu siklus fokus penuh. Regangkan badan dan tarik napas."],
+        "cycle.v3.title": [.en: "Purr-fect work", .id: "Kerja yang purr-fect"],
+        "cycle.v3.body": [.en: "The cat is impressed. Take a well-earned rest.", .id: "Si kucing terkesan. Nikmati istirahatmu."],
+        "cycle.v4.title": [.en: "Focus complete", .id: "Fokus selesai"],
+        "cycle.v4.body": [.en: "Another cycle in the books. You're on a roll.", .id: "Satu siklus lagi tercatat. Kamu makin lancar."],
+        "cycle.v5.title": [.en: "Look at you go!", .id: "Lihat pencapaianmu!"],
+        "cycle.v5.body": [.en: "A whole cycle done with care. Be proud.", .id: "Satu siklus penuh selesai dengan baik. Banggalah."],
+
+        // Tasks
+        "tasks.title": [.en: "Tasks", .id: "Tugas"],
+        "tasks.active": [.en: "Active", .id: "Aktif"],
+        "tasks.done": [.en: "Done", .id: "Selesai"],
+        "tasks.emptyTitle": [.en: "No tasks yet", .id: "Belum ada tugas"],
+        "tasks.emptySubtitle": [.en: "Add a task and attach it to a focus session to track your progress.", .id: "Tambahkan tugas dan kaitkan dengan sesi fokus untuk melacak kemajuanmu."],
+        "tasks.new": [.en: "New task", .id: "Tugas baru"],
+        "tasks.edit": [.en: "Edit task", .id: "Ubah tugas"],
+        "tasks.add": [.en: "Add task", .id: "Tambah tugas"],
+        "tasks.whatFocus": [.en: "What do you want to focus on?", .id: "Apa yang ingin kamu fokuskan?"],
+        "tasks.priority": [.en: "Priority", .id: "Prioritas"],
+        "tasks.plannedSessions": [.en: "Planned sessions", .id: "Sesi direncanakan"],
+        "tasks.category": [.en: "Category", .id: "Kategori"],
+        "tasks.categoryPlaceholder": [.en: "e.g. Work, Study", .id: "mis. Kerja, Belajar"],
+        "tasks.dueDate": [.en: "Due date", .id: "Tenggat"],
+        "tasks.noDue": [.en: "No due date", .id: "Tanpa tenggat"],
+        "tasks.overdue": [.en: "Overdue", .id: "Terlambat"],
+        "tasks.dueToday": [.en: "Due today", .id: "Tenggat hari ini"],
+        "priority.low": [.en: "Low", .id: "Rendah"],
+        "priority.normal": [.en: "Normal", .id: "Normal"],
+        "priority.high": [.en: "High", .id: "Tinggi"],
+        "common.edit": [.en: "Edit", .id: "Ubah"],
+        "common.delete": [.en: "Delete", .id: "Hapus"],
+        "common.cancel": [.en: "Cancel", .id: "Batal"],
+        "common.save": [.en: "Save", .id: "Simpan"],
+        "common.ok": [.en: "OK", .id: "OK"],
+        "common.back": [.en: "Back", .id: "Kembali"],
+
+        // Habits
+        "habits.title": [.en: "Habits", .id: "Kebiasaan"],
+        "habits.emptySubtitle": [.en: "Add a gentle daily ritual and keep your streak alive, one focus at a time.", .id: "Tambahkan ritual harian dan jaga rentetanmu, satu fokus setiap kali."],
+        "habits.new": [.en: "New habit", .id: "Kebiasaan baru"],
+        "habits.edit": [.en: "Edit habit", .id: "Ubah kebiasaan"],
+        "habits.add": [.en: "Add habit", .id: "Tambah kebiasaan"],
+        "habits.name": [.en: "Habit name", .id: "Nama kebiasaan"],
+        "habits.icon": [.en: "Icon", .id: "Ikon"],
+        "habits.color": [.en: "Color", .id: "Warna"],
+        "habits.dailyTarget": [.en: "Daily target", .id: "Target harian"],
+        "habits.perDay": [.en: "%ld / day", .id: "%ld / hari"],
+        "habits.occurrence": [.en: "Repeat on", .id: "Ulangi pada"],
+        "habits.everyDay": [.en: "Every day", .id: "Setiap hari"],
+        "habits.timeBlock": [.en: "Time of day", .id: "Waktu"],
+        "habits.restToday": [.en: "Rest day", .id: "Hari istirahat"],
+        "habits.notToday": [.en: "Not scheduled today", .id: "Tidak terjadwal hari ini"],
+        "habits.dayStreak": [.en: "%ld day", .id: "%ld hari"],
+        "habits.daysStreak": [.en: "%ld days", .id: "%ld hari"],
+        "timeblock.any": [.en: "Anytime", .id: "Kapan saja"],
+        "timeblock.morning": [.en: "Morning", .id: "Pagi"],
+        "timeblock.afternoon": [.en: "Afternoon", .id: "Siang"],
+        "timeblock.evening": [.en: "Evening", .id: "Malam"],
+    ]
+}

@@ -14,6 +14,8 @@ struct PurrodoroApp: App {
     @StateObject private var habits = HabitStore()
     @StateObject private var prefs = PreferencesStore()
     @StateObject private var history = SessionHistoryStore()
+    @StateObject private var sounds = SoundsStore()
+    @StateObject private var loc = Localization()
 
     var body: some Scene {
         WindowGroup {
@@ -23,6 +25,8 @@ struct PurrodoroApp: App {
                 .environmentObject(habits)
                 .environmentObject(prefs)
                 .environmentObject(history)
+                .environmentObject(sounds)
+                .environmentObject(loc)
                 .preferredColorScheme(prefs.appearanceMode.preferredColorScheme)
                 .onAppear {
                     engine.onFocusSessionCompleted = { [weak tasks, weak habits, weak history] minutes in
@@ -35,6 +39,9 @@ struct PurrodoroApp: App {
                         tasks?.creditActiveFocusSession()
                         habits?.creditActiveFocusSession()
                         history?.record(minutes: minutes, intentName: intentName)
+                    }
+                    engine.activeIntentNameProvider = { [weak tasks, weak habits] in
+                        tasks?.activeTask?.title ?? habits?.activeHabit?.name
                     }
                 }
         }

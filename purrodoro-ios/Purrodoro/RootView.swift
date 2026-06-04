@@ -23,6 +23,8 @@ enum AppTab: String, CaseIterable, Identifiable {
         }
     }
 
+    var labelKey: String { "tab.\(rawValue)" }
+
     var symbol: String {
         switch self {
         case .focus: return "timer"
@@ -121,6 +123,7 @@ private struct BottomDock: View {
 }
 
 private struct DockItem: View {
+    @EnvironmentObject private var loc: Localization
     let tab: AppTab
     let isActive: Bool
     let colors: PurrodoroColors
@@ -132,7 +135,7 @@ private struct DockItem: View {
                 Image(systemName: tab.symbol)
                     .font(.system(size: 16, weight: .semibold))
                 if isActive {
-                    Text(tab.label)
+                    Text(loc.t(tab.labelKey))
                         .font(.system(.subheadline, design: .rounded).weight(.bold))
                         .lineLimit(1)
                         .fixedSize()
@@ -149,7 +152,7 @@ private struct DockItem: View {
             .frame(maxWidth: isActive ? .infinity : nil)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tab.label)
+        .accessibilityLabel(loc.t(tab.labelKey))
     }
 }
 
@@ -197,4 +200,6 @@ struct PlaceholderScreen: View {
         .environmentObject(HabitStore())
         .environmentObject(PreferencesStore())
         .environmentObject(SessionHistoryStore())
+        .environmentObject(SoundsStore())
+        .environmentObject(Localization())
 }

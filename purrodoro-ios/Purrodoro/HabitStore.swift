@@ -12,6 +12,24 @@ import Foundation
 import SwiftUI
 import Combine
 
+/// When a day a habit is meant to happen — purely informational/scheduling
+/// metadata ported from the Android habit "time block".
+enum HabitTimeBlock: String, CaseIterable, Codable, Identifiable {
+    case any, morning, afternoon, evening
+    var id: String { rawValue }
+
+    var labelKey: String { "timeblock.\(rawValue)" }
+
+    var symbol: String {
+        switch self {
+        case .any: return "clock"
+        case .morning: return "sunrise.fill"
+        case .afternoon: return "sun.max.fill"
+        case .evening: return "moon.stars.fill"
+        }
+    }
+}
+
 struct HabitItem: Identifiable, Equatable, Codable {
     var id: UUID = UUID()
     var name: String
@@ -20,6 +38,14 @@ struct HabitItem: Identifiable, Equatable, Codable {
     var targetPerDay: Int = 1
     var log: [String: Int] = [:]
     var createdAt: Date = Date()
+    /// Calendar weekdays (1 = Sunday … 7 = Saturday) the habit recurs on. Empty
+    /// means every day. Optional default keeps older persisted habits decoding.
+    var scheduledWeekdays: Set<Int> = []
+    /// Preferred time of day (display + nudges). Defaults to anytime.
+    var timeBlock: HabitTimeBlock = .any
+    /// One-off skipped days (day-keys) — explicit rest days that don't break a
+    /// streak and aren't expected to be completed.
+    var restDays: Set<String> = []
 
     var color: Color { Color(hex: colorHex) }
 
@@ -32,15 +58,40 @@ struct HabitItem: Identifiable, Equatable, Codable {
 
     func meetsTarget(on date: Date) -> Bool { count(on: date) >= max(targetPerDay, 1) }
 
-    /// Consecutive days (ending today) meeting the daily target. If today's
-    /// target isn't met yet, count backwards from yesterday.
+    private func weekday(_ date: Date) -> Int {
+        Journey.calendar.component(.weekday, from: date)
+    }
+
+    /// Whether the habit is meant to be done on `date`: a scheduled weekday and
+    /// not an explicit rest day.
+    func isScheduled(on date: Date) -> Bool {
+        guard !restDays.contains(Journey.dayKey(date)) else { return false }
+        return scheduledWeekdays.isEmpty || scheduledWeekdays.contains(weekday(date))
+    }
+
+    func isRestDay(_ date: Date) -> Bool { restDays.contains(Journey.dayKey(date)) }
+
+    var isScheduledToday: Bool { isScheduled(on: Date()) }
+
+    /// Consecutive *scheduled* days (ending today) meeting the daily target.
+    /// Non-scheduled days and rest days are skipped without breaking the run; an
+    /// in-progress today that isn't met yet doesn't reset a legitimate streak.
     var streak: Int {
         let cal = Journey.calendar
-        let today = Date()
-        var streak = meetsTarget(on: today) ? 1 : 0
-        guard var date = cal.date(byAdding: .day, value: -1, to: today) else { return streak }
-        while meetsTarget(on: date) {
-            streak += 1
+        var date = Date()
+        var streak = 0
+        var first = true
+        var guardCount = 0
+        while guardCount < 366 {
+            guardCount += 1
+            if isScheduled(on: date) {
+                if meetsTarget(on: date) {
+                    streak += 1
+                } else if !first {
+                    break
+                }
+            }
+            first = false
             guard let prev = cal.date(byAdding: .day, value: -1, to: date) else { break }
             date = prev
         }
@@ -69,19 +120,53 @@ final class HabitStore: ObservableObject {
 
     var sortedHabits: [HabitItem] {
         habits.sorted { lhs, rhs in
-            if lhs.isDoneToday != rhs.isDoneToday { return !lhs.isDoneToday }
+            // Scheduled-and-unfinished first, then scheduled-done, then off-day.
+            let lRank = rank(lhs)
+            let rRank = rank(rhs)
+            if lRank != rRank { return lRank < rRank }
             return lhs.createdAt < rhs.createdAt
         }
     }
 
+    private func rank(_ habit: HabitItem) -> Int {
+        if !habit.isScheduledToday { return 2 }
+        return habit.isDoneToday ? 1 : 0
+    }
+
     // MARK: Mutations
 
-    func add(name: String, emoji: String, colorHex: UInt32, target: Int) {
+    func add(
+        name: String,
+        emoji: String,
+        colorHex: UInt32,
+        target: Int,
+        weekdays: Set<Int> = [],
+        timeBlock: HabitTimeBlock = .any
+    ) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         habits.append(
-            HabitItem(name: trimmed, emoji: emoji, colorHex: colorHex, targetPerDay: max(target, 1))
+            HabitItem(
+                name: trimmed,
+                emoji: emoji,
+                colorHex: colorHex,
+                targetPerDay: max(target, 1),
+                scheduledWeekdays: weekdays,
+                timeBlock: timeBlock
+            )
         )
+        persist()
+    }
+
+    /// Toggle today as an explicit rest day for the habit.
+    func toggleRestDay(_ habit: HabitItem, on date: Date = Date()) {
+        guard let idx = habits.firstIndex(where: { $0.id == habit.id }) else { return }
+        let key = Journey.dayKey(date)
+        if habits[idx].restDays.contains(key) {
+            habits[idx].restDays.remove(key)
+        } else {
+            habits[idx].restDays.insert(key)
+        }
         persist()
     }
 
