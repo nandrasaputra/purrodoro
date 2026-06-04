@@ -15,20 +15,29 @@ on the iOS 26 simulator. A recent parity pass added the **Start Focus sheet** +
 **interrupted-focus resume**, a **cycle-complete celebration**, **task
 categories & due dates**, **habit occurrence / time blocks / rest days**,
 **ambient focus sounds** (real, procedurally-synthesised audio with background
-playback), and **runtime English/Indonesian localization**. The remaining work
-is mostly **platform extras** (widgets, Live Activities, app icon) plus finishing
-localization coverage (onboarding) and engine/UI tests.
+playback), and **runtime English/Indonesian localization**. A follow-up
+platform pass added a **Live Activity / Dynamic Island** for the running timer
+and a **"Today" Home Screen widget** (WidgetKit), backed by an App Group. A
+final polish pass shipped a **custom app icon**, **chained background
+notifications** for auto-start, full **onboarding + Journey localization**, an
+**accessibility pass** on the Focus screen, **engine transition tests**, and
+moved persistence **behind a `KeyValueStore` protocol**. The main remaining work
+is **iPad/macOS layout polish** and **snapshot/UI tests**.
 
 ---
 
 ## Architecture
 
 - **UI:** SwiftUI, file-system-synchronized Xcode project (drop a `.swift` file in
-  `Purrodoro/` and it compiles — no `.pbxproj` editing).
+  `Purrodoro/` and it compiles — no `.pbxproj` editing). The `PurrodoroWidgets/`
+  extension is likewise file-system-synchronized; `PurrodoroShared/` holds code
+  compiled into *both* the app and the extension.
 - **State:** plain `ObservableObject` stores injected via `@EnvironmentObject`
   (`TimerEngine`, `TaskStore`, `HabitStore`).
-- **Persistence:** `UserDefaults` (JSON for tasks/habits/settings; per-day
-  dictionaries for focus stamps/minutes). No Core Data (the template was removed).
+- **Persistence:** behind a `KeyValueStore` protocol (`Persistence.swift`);
+  `UserDefaults` is the production conformer, `InMemoryKeyValueStore` backs
+  tests. JSON for tasks/habits/settings/history; per-day dictionaries for focus
+  stamps/minutes. No Core Data (the template was removed).
 - **Timing:** foreground `Timer` publisher driving a countdown derived from a
   target `endsAt` date, with reconcile-on-foreground for time elapsed while
   backgrounded.
@@ -57,6 +66,14 @@ localization coverage (onboarding) and engine/UI tests.
 | `SoundsStore.swift` / `SoundsSheet.swift` | Ambient-sound selection/playback state + picker sheet |
 | `AmbientAudio.swift` | Procedural (asset-free) ambient audio engine (AVAudioEngine) |
 | `Localization.swift` | Runtime-switchable EN/ID string table (`@EnvironmentObject`) |
+| `Persistence.swift` | `KeyValueStore` protocol + `UserDefaults`/in-memory conformers |
+| `LiveActivityController.swift` | Starts/updates/ends the running-timer Live Activity (ActivityKit) |
+| `PurrodoroShared/FocusActivityAttributes.swift` | Live Activity attributes/state, shared app↔extension |
+| `PurrodoroShared/SharedStore.swift` | App Group store for the "Today" widget snapshot |
+| `PurrodoroWidgets/PurrodoroWidgetsBundle.swift` | Widget extension entry (`WidgetBundle`) |
+| `PurrodoroWidgets/FocusLiveActivity.swift` | Lock Screen + Dynamic Island UI for the timer |
+| `PurrodoroWidgets/TodayWidget.swift` | Home Screen "Today" widget (sessions / minutes / streak) |
+| `PurrodoroWidgets/WidgetTheme.swift` | Brand palette mirror for the extension |
 
 ---
 
@@ -146,9 +163,8 @@ localization coverage (onboarding) and engine/UI tests.
 - [x] **Onboarding** flow (first-run intro + permission priming) — done
 - [x] **Profile / full Settings screen**: appearance ✅ + profile name ✅ +
       language ✅ — done
-- [x] **Localization** (Indonesian `id`) — main flows localized with a runtime
-      language switch. _Remaining:_ onboarding copy + a few Journey strings are
-      still English-only.
+- [x] **Localization** (Indonesian `id`) — all flows localized with a runtime
+      language switch, now including onboarding and the full Journey tab.
 - [x] **Session history records** — per completed focus session (timestamp,
       minutes, intent name), persisted + shown on Journey. (Android logs full
       per-cycle records; iOS logs per focus segment, which is the useful unit.)
@@ -162,14 +178,25 @@ localization coverage (onboarding) and engine/UI tests.
 - [x] Cycle-complete **celebration** (richer than the old alert) — done
 
 ### iOS platform extras
-- [ ] **Home Screen widgets** (WidgetKit) — Android has a Glance "Today" widget
-- [ ] **Live Activity / Dynamic Island** for the running timer
-- [ ] **App icon** (still the default placeholder)
-- [ ] True background timing audit (chained notifications when auto-start is on;
-      currently only the next boundary is scheduled)
+- [x] **Home Screen widgets** (WidgetKit) — "Today" widget (small + medium)
+      mirrors focus sessions / minutes / streak from an App Group snapshot,
+      matching the Android Glance "Today" widget
+- [x] **Live Activity / Dynamic Island** for the running timer — Lock Screen
+      banner + Dynamic Island (compact / expanded / minimal) with a live
+      countdown, mode accent, cycle dots, and attached intent name. Driven from
+      the engine's transition hooks via `LiveActivityController`
+- [x] **App icon** — custom cat-on-a-pomodoro mascot (single 1024² asset,
+      `Assets.xcassets/AppIcon.appiconset`)
+- [x] True background timing audit — when auto-start is on the engine now
+      pre-schedules the **whole chain** of upcoming segment boundaries
+      (`TimerEngine.notificationChain` → `NotificationScheduler.schedule([…])`),
+      so each transition still notifies while backgrounded
 - [x] Haptics on transitions (timer start/pause/resume, segment change, cycle
       complete, tab switch) via SwiftUI `sensoryFeedback`
-- [ ] Accessibility pass (VoiceOver labels exist in places; needs a full sweep)
+- [x] Accessibility pass on the Focus screen — the timer dial is a single
+      VoiceOver element with a spoken countdown (`a11y.*` strings), the cycle
+      dots announce progress, and all icon buttons carry labels. _Remaining:_ a
+      sweep of the Tasks / Habits / Settings forms.
 - [ ] iPad / macOS layout polish (targets are enabled but UI is phone-first)
 
 ### Engineering
@@ -177,9 +204,12 @@ localization coverage (onboarding) and engine/UI tests.
       day-part, Journey streaks/aggregation, record codable) plus the new
       parity features (interrupted focus, task category/due-date + legacy decode,
       habit scheduling/streak, localization table) via Swift Testing, all passing
-- [ ] Engine transition tests (start/pause/resume/skip — needs @MainActor harness)
+- [x] Engine transition tests (start / pause / resume / skip / stop / cycle
+      completion) on a `@MainActor` harness, plus a pure test of the
+      auto-start notification chain — `EngineTests.swift`
 - [ ] Snapshot/UI tests
-- [ ] Move persistence behind a protocol (easier testing / future iCloud sync)
+- [x] Move persistence behind a protocol (`KeyValueStore` in `Persistence.swift`);
+      every store now injects it, defaulting to `UserDefaults.standard`
 
 ---
 
@@ -195,6 +225,21 @@ localization coverage (onboarding) and engine/UI tests.
   noise) rather than shipped as audio files — keeps the app asset-free and gives
   gapless looping. `UIBackgroundModes = audio` is set via `INFOPLIST_KEY_*` in
   the build settings (the project uses a generated Info.plist).
+- The **Live Activity** is the recommended way to close the background-timing
+  gap noted above: it uses `Text(timerInterval:)` so the Lock Screen / Dynamic
+  Island countdown stays correct without push updates, and the engine pushes a
+  fresh `ContentState` on every transition (start / pause / resume / skip /
+  segment change), ending it on stop / cycle complete. Requires
+  `NSSupportsLiveActivities = YES` (set via `INFOPLIST_KEY_*`).
+- **Chained notifications:** with auto-start on, the app may be backgrounded
+  while segments auto-advance, so `syncNotification` now pre-schedules a
+  notification for *every* remaining boundary (pure builder
+  `TimerEngine.notificationChain`); with auto-start off only the current
+  boundary fires, since the next segment waits for a manual start.
+- Widget ↔ app data sharing uses an **App Group** (`group.com.endiar.Purrodoro`,
+  declared in `Purrodoro.entitlements` + `PurrodoroWidgets.entitlements`). The
+  engine writes a `TodaySnapshot` (count / minutes / streak) after every focus
+  credit and calls `WidgetCenter.reloadAllTimelines()`.
 - Localization is an **in-app table** (`Localization.swift`), not `.lproj`
   bundles, so the language can switch live like the Android app. New user-facing
   strings should be added there with both `.en` and `.id` values.

@@ -47,10 +47,10 @@ final class Localization: ObservableObject {
         didSet { store.set(language.rawValue, forKey: key) }
     }
 
-    private let store: UserDefaults
+    private let store: KeyValueStore
     private let key = "purrodoro.language"
 
-    init(store: UserDefaults = .standard) {
+    init(store: KeyValueStore = UserDefaults.standard) {
         self.store = store
         if let raw = store.string(forKey: key), let lang = AppLanguage(rawValue: raw) {
             self.language = lang
@@ -234,5 +234,41 @@ final class Localization: ObservableObject {
         "timeblock.morning": [.en: "Morning", .id: "Pagi"],
         "timeblock.afternoon": [.en: "Afternoon", .id: "Siang"],
         "timeblock.evening": [.en: "Evening", .id: "Malam"],
+
+        // Journey
+        "journey.title": [.en: "Journey", .id: "Perjalanan"],
+        "journey.emptySubtitle": [.en: "Finish your first focus session and your streak will start to bloom here.", .id: "Selesaikan sesi fokus pertamamu dan rentetanmu akan mulai mekar di sini."],
+        "journey.startToday": [.en: "Start a session today", .id: "Mulai sesi hari ini"],
+        "journey.currentStreak": [.en: "Current focus streak", .id: "Rentetan fokus saat ini"],
+        "journey.thisWeek": [.en: "this week", .id: "minggu ini"],
+        "journey.totalSessions": [.en: "total sessions", .id: "total sesi"],
+        "journey.bestStreak": [.en: "best streak", .id: "rentetan terbaik"],
+        "journey.recentSessions": [.en: "Recent sessions", .id: "Sesi terbaru"],
+        "journey.focusSession": [.en: "Focus session", .id: "Sesi fokus"],
+        "journey.less": [.en: "Less", .id: "Sedikit"],
+        "journey.more": [.en: "More", .id: "Banyak"],
+        "unit.minAbbrev": [.en: "%ldm", .id: "%ld mnt"],
+        "date.today": [.en: "Today", .id: "Hari ini"],
+        "date.yesterday": [.en: "Yesterday", .id: "Kemarin"],
+
+        // Onboarding
+        "onboard.skip": [.en: "Skip", .id: "Lewati"],
+        "onboard.welcome.title": [.en: "Welcome to Purrodoro", .id: "Selamat datang di Purrodoro"],
+        "onboard.welcome.subtitle": [.en: "A cozy focus companion. Work in gentle pomodoro cycles and let the cat cheer you on.", .id: "Teman fokus yang hangat. Bekerja dalam siklus pomodoro yang lembut dan biarkan si kucing menyemangatimu."],
+        "onboard.name.title": [.en: "What should we call you?", .id: "Kami panggil kamu siapa?"],
+        "onboard.name.subtitle": [.en: "We'll use it to greet you. You can change or skip this anytime.", .id: "Kami pakai untuk menyapamu. Bisa diubah atau dilewati kapan saja."],
+        "onboard.notif.title": [.en: "Stay in the loop", .id: "Tetap terhubung"],
+        "onboard.notif.subtitle": [.en: "Let Purrodoro nudge you when a focus block or break ends — even while the app is in the background.", .id: "Biarkan Purrodoro mengingatkanmu saat fokus atau istirahat selesai — bahkan saat aplikasi di latar belakang."],
+        "onboard.getStarted": [.en: "Get started", .id: "Mulai"],
+        "onboard.continue": [.en: "Continue", .id: "Lanjut"],
+        "onboard.enableNotif": [.en: "Enable notifications", .id: "Aktifkan notifikasi"],
+        "onboard.enabling": [.en: "Enabling…", .id: "Mengaktifkan…"],
+
+        // Accessibility
+        "a11y.timer": [.en: "%@ timer", .id: "Timer %@"],
+        "a11y.remaining": [.en: "%@ remaining", .id: "%@ tersisa"],
+        "a11y.paused": [.en: "Paused", .id: "Dijeda"],
+        "a11y.cycleProgress": [.en: "Cycle progress", .id: "Progres siklus"],
+        "a11y.sessionsOf": [.en: "%ld of %ld focus sessions", .id: "%ld dari %ld sesi fokus"],
     ]
 }

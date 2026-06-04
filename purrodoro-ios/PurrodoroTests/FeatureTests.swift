@@ -163,7 +163,11 @@ struct LocalizationTests {
     @Test func everyKeyHasBothLanguages() {
         // Guard against a half-translated key slipping in.
         let loc = manager()
-        for key in ["tab.focus", "home.startFocus", "settings.language", "sounds.title"] {
+        for key in [
+            "tab.focus", "home.startFocus", "settings.language", "sounds.title",
+            "journey.title", "journey.recentSessions", "journey.currentStreak",
+            "onboard.welcome.title", "onboard.enableNotif", "date.today",
+        ] {
             loc.language = .en
             #expect(loc.t(key) != key)
             loc.language = .id

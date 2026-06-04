@@ -40,6 +40,7 @@ struct RootView: View {
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
     @EnvironmentObject private var prefs: PreferencesStore
+    @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
 
@@ -80,6 +81,7 @@ struct RootView: View {
         )) {
             OnboardingView(onFinish: {})
                 .environmentObject(prefs)
+                .environmentObject(loc)
         }
     }
 

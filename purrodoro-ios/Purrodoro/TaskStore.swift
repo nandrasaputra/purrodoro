@@ -76,11 +76,14 @@ final class TaskStore: ObservableObject {
     @Published private(set) var tasks: [TaskItem] = []
     @Published var activeTaskID: UUID?
 
-    private let store = UserDefaults.standard
+    private let store: KeyValueStore
     private let key = "purrodoro.tasks"
     private let activeKey = "purrodoro.activeTask"
 
-    init() { load() }
+    init(store: KeyValueStore = UserDefaults.standard) {
+        self.store = store
+        load()
+    }
 
     // MARK: Derived
 

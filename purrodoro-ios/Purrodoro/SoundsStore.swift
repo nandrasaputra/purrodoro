@@ -37,10 +37,10 @@ final class SoundsStore: ObservableObject {
     @Published private(set) var playingKind: AmbientKind?
 
     private let player = AmbientAudioPlayer()
-    private let store: UserDefaults
+    private let store: KeyValueStore
     private let selectedKey = "purrodoro.selectedSound"
 
-    init(store: UserDefaults = .standard) {
+    init(store: KeyValueStore = UserDefaults.standard) {
         self.store = store
     }
 

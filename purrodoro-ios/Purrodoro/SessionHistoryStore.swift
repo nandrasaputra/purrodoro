@@ -19,10 +19,10 @@ final class SessionHistoryStore: ObservableObject {
     /// Keep history bounded; older entries are dropped past this count.
     static let maxRecords = 500
 
-    private let store: UserDefaults
+    private let store: KeyValueStore
     private let key = "purrodoro.sessionHistory"
 
-    init(store: UserDefaults = .standard) {
+    init(store: KeyValueStore = UserDefaults.standard) {
         self.store = store
         load()
     }
