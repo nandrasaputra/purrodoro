@@ -12,6 +12,7 @@ struct HomeView: View {
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
+    @EnvironmentObject private var prefs: PreferencesStore
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSettings = false
@@ -47,7 +48,9 @@ struct HomeView: View {
         }
         .environment(\.pColors, colors)
         .sheet(isPresented: $showSettings) {
-            SettingsSheet().environmentObject(engine)
+            SettingsSheet()
+                .environmentObject(engine)
+                .environmentObject(prefs)
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { engine.reconcile() }
@@ -57,6 +60,18 @@ struct HomeView: View {
         } message: {
             Text("Purrodoro is proud of you. Take a moment, then start fresh whenever you're ready.")
         }
+        // Haptics: weight the feedback to the transition — starting focus is the
+        // firmest, pausing/resuming softer; segment changes are a light "tick";
+        // finishing a whole cycle gets a celebratory success buzz.
+        .sensoryFeedback(trigger: engine.session.timerState) { old, new in
+            switch new {
+            case .playing: return old == .paused ? .impact(weight: .light) : .impact(weight: .medium)
+            case .paused: return .impact(weight: .light)
+            case .idle: return .impact(flexibility: .soft)
+            }
+        }
+        .sensoryFeedback(.selection, trigger: engine.session.currentIndex)
+        .sensoryFeedback(.success, trigger: engine.pendingCycleComplete) { _, isComplete in isComplete }
     }
 
     private var cycleCompleteBinding: Binding<Bool> {
@@ -70,11 +85,14 @@ struct HomeView: View {
 
     private var header: some View {
         let part = DayPart.current()
+        let salutation = prefs.trimmedName.map { "\(part.salutation), \($0)" } ?? part.salutation
         return HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(part.salutation)
+                Text(salutation)
                     .font(.system(.title2, design: .rounded).weight(.bold))
                     .foregroundStyle(colors.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Text(part.encouragement)
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(colors.textSecondary)
@@ -362,4 +380,5 @@ struct SecondaryButton: View {
         .environmentObject(TimerEngine())
         .environmentObject(TaskStore())
         .environmentObject(HabitStore())
+        .environmentObject(PreferencesStore())
 }

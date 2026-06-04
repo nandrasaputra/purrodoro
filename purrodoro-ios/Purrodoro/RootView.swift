@@ -37,6 +37,7 @@ struct RootView: View {
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
+    @EnvironmentObject private var prefs: PreferencesStore
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
 
@@ -70,6 +71,14 @@ struct RootView: View {
             BottomDock(selected: $tab, colors: colors)
         }
         .environment(\.pColors, colors)
+        .sensoryFeedback(.selection, trigger: tab)
+        .fullScreenCover(isPresented: Binding(
+            get: { !prefs.hasCompletedOnboarding },
+            set: { _ in }
+        )) {
+            OnboardingView(onFinish: {})
+                .environmentObject(prefs)
+        }
     }
 
     private func focusOnSelectedIntent() {
@@ -186,4 +195,6 @@ struct PlaceholderScreen: View {
         .environmentObject(TimerEngine())
         .environmentObject(TaskStore())
         .environmentObject(HabitStore())
+        .environmentObject(PreferencesStore())
+        .environmentObject(SessionHistoryStore())
 }
