@@ -107,11 +107,14 @@ final class HabitStore: ObservableObject {
     static let palette: [UInt32] = [0xFFB59E, 0xCDEEDB, 0xD8C8FF, 0xCFEAF8, 0xFFD8DF, 0xFF7F73]
     static let emojis = ["🌱", "📚", "🏃", "🧘", "💧", "🎨", "🎸", "✍️", "🧹", "☀️", "🌙", "🍎"]
 
-    private let store = UserDefaults.standard
+    private let store: KeyValueStore
     private let key = "purrodoro.habits"
     private let activeKey = "purrodoro.activeHabit"
 
-    init() { load() }
+    init(store: KeyValueStore = UserDefaults.standard) {
+        self.store = store
+        load()
+    }
 
     var activeHabit: HabitItem? {
         guard let id = activeHabitID else { return nil }

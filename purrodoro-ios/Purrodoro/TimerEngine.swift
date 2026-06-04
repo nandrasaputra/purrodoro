@@ -11,6 +11,9 @@
 import Foundation
 import Combine
 import UserNotifications
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 @MainActor
 final class TimerEngine: ObservableObject {
@@ -58,14 +61,15 @@ final class TimerEngine: ObservableObject {
     private var endsAt: Date?
     private var ticker: AnyCancellable?
     private let notifier = NotificationScheduler.shared
-    private let store = UserDefaults.standard
+    private let store: KeyValueStore
     private let settingsKey = "purrodoro.settings"
     private let stampsKey = "purrodoro.focusStamps"
     private let minutesKey = "purrodoro.focusMinutes"
 
     // MARK: Init
 
-    init() {
+    init(store: KeyValueStore = UserDefaults.standard) {
+        self.store = store
         let loaded = Self.loadSettings(store, key: settingsKey)
         self.settings = loaded
         self.runtimeSettings = loaded
@@ -266,18 +270,72 @@ final class TimerEngine: ObservableObject {
     // MARK: Notifications
 
     private func syncNotification() {
-        guard session.timerState == .playing, let endsAt, let item = session.currentItem else {
+        syncLiveActivity()
+        guard session.timerState == .playing, let endsAt, session.currentItem != nil else {
             notifier.cancel()
             return
         }
-        let nextIndex = session.currentIndex + 1
-        let isLast = nextIndex >= session.items.count
-        let nextMode = session.items.indices.contains(nextIndex) ? session.items[nextIndex].type.mode : nil
-        let copy = Self.notificationCopy(current: item.type, isLast: isLast, nextMode: nextMode)
-        notifier.schedule(at: endsAt, title: copy.title, body: copy.body)
+        notifier.schedule(Self.notificationChain(
+            items: session.items,
+            currentIndex: session.currentIndex,
+            firstBoundary: endsAt,
+            autoStart: runtimeSettings.autoStartNextSession
+        ))
     }
 
-    static func notificationCopy(
+    /// Build the list of upcoming segment-boundary notifications. With
+    /// `autoStart` on we chain every future boundary (the app may be
+    /// backgrounded while segments auto-advance, so each needs its own
+    /// pre-scheduled notification); otherwise only the current boundary fires,
+    /// since the next segment waits for a manual start.
+    nonisolated static func notificationChain(
+        items: [TimerSessionItem],
+        currentIndex: Int,
+        firstBoundary: Date,
+        autoStart: Bool
+    ) -> [NotificationEntry] {
+        guard items.indices.contains(currentIndex) else { return [] }
+        var entries: [NotificationEntry] = []
+        let last = items.count - 1
+        var boundary = firstBoundary
+        var idx = currentIndex
+        while idx <= last {
+            let isLast = idx == last
+            let nextMode = isLast ? nil : items[idx + 1].type.mode
+            let copy = notificationCopy(current: items[idx].type, isLast: isLast, nextMode: nextMode)
+            entries.append(NotificationEntry(date: boundary, title: copy.title, body: copy.body))
+            if !autoStart || isLast { break }
+            boundary = boundary.addingTimeInterval(TimeInterval(items[idx + 1].type.seconds))
+            idx += 1
+        }
+        return entries
+    }
+
+    /// Mirror the current segment onto the Live Activity (Lock Screen / Dynamic
+    /// Island). Ends the activity when idle.
+    private func syncLiveActivity() {
+        guard session.timerState != .idle, let item = session.currentItem else {
+            LiveActivityController.shared.end()
+            return
+        }
+        let running = session.timerState == .playing
+        let end = endsAt ?? Date().addingTimeInterval(TimeInterval(session.remainingSeconds))
+        let segmentStart = end.addingTimeInterval(-TimeInterval(item.type.seconds))
+        let dotsState = dots
+        LiveActivityController.shared.sync(
+            isActive: true,
+            modeRaw: item.type.mode.rawValue,
+            segmentStart: segmentStart,
+            endsAt: end,
+            isRunning: running,
+            pausedRemaining: running ? remainingFromClock() : session.remainingSeconds,
+            completedFocus: dotsState.completedFocusSessions,
+            totalFocus: dotsState.totalFocusSessions,
+            intentName: activeIntentNameProvider?()
+        )
+    }
+
+    nonisolated static func notificationCopy(
         current: SessionItemType,
         isLast: Bool,
         nextMode: TimerMode?
@@ -345,6 +403,20 @@ final class TimerEngine: ObservableObject {
         let mins = store.dictionary(forKey: minutesKey) as? [String: Int] ?? [:]
         todayFocusCount = stamps[key] ?? 0
         todayFocusMinutes = mins[key] ?? 0
+        publishTodaySnapshot(stamps: stamps)
+    }
+
+    /// Mirror today's focus tally into the App Group store and refresh the Home
+    /// Screen widget timelines.
+    private func publishTodaySnapshot(stamps: [String: Int]) {
+        SharedStore.writeToday(
+            count: todayFocusCount,
+            minutes: todayFocusMinutes,
+            streak: Journey.currentStreak(stamps)
+        )
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
 
     private func persistSettings() {
@@ -353,7 +425,7 @@ final class TimerEngine: ObservableObject {
         }
     }
 
-    private static func loadSettings(_ store: UserDefaults, key: String) -> TimerSettings {
+    private static func loadSettings(_ store: KeyValueStore, key: String) -> TimerSettings {
         guard let data = store.data(forKey: key),
               let decoded = try? JSONDecoder().decode(TimerSettings.self, from: data)
         else { return TimerSettings() }

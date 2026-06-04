@@ -309,6 +309,7 @@ struct HomeView: View {
 // MARK: - Timer dial
 
 private struct TimerDial: View {
+    @EnvironmentObject private var loc: Localization
     let remaining: Int
     let total: Int
     let mode: TimerMode
@@ -318,6 +319,25 @@ private struct TimerDial: View {
     private var progress: Double {
         guard total > 0 else { return 0 }
         return min(max(Double(total - remaining) / Double(total), 0), 1)
+    }
+
+    private static let spokenDuration: DateComponentsFormatter = {
+        let f = DateComponentsFormatter()
+        f.allowedUnits = [.minute, .second]
+        f.unitsStyle = .full
+        return f
+    }()
+
+    private var accessibilityLabelText: String {
+        let modeName = state == .idle ? loc.t("mode.ready") : loc.t(mode.labelKey)
+        return loc.t("a11y.timer", modeName)
+    }
+
+    private var accessibilityValueText: String {
+        if state == .idle { return formatSeconds(remaining) }
+        let spoken = Self.spokenDuration.string(from: Double(remaining)) ?? formatSeconds(remaining)
+        let base = loc.t("a11y.remaining", spoken)
+        return state == .paused ? "\(loc.t("a11y.paused")). \(base)" : base
     }
 
     var body: some View {
@@ -359,6 +379,9 @@ private struct TimerDial: View {
         }
         .frame(width: 300, height: 300)
         .padding(.vertical, 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityValue(accessibilityValueText)
     }
 }
 
@@ -382,6 +405,7 @@ private struct ModeChip: View {
 // MARK: - Cycle dots
 
 struct CycleDotsRow: View {
+    @EnvironmentObject private var loc: Localization
     let dots: CycleDotsState
     let colors: PurrodoroColors
 
@@ -396,6 +420,9 @@ struct CycleDotsRow: View {
             }
         }
         .frame(height: 18)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(loc.t("a11y.cycleProgress"))
+        .accessibilityValue(loc.t("a11y.sessionsOf", dots.completedFocusSessions, dots.totalFocusSessions))
     }
 
     private func isActive(_ i: Int) -> Bool {

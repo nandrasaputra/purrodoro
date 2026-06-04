@@ -11,6 +11,7 @@ import SwiftUI
 struct JourneyView: View {
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var history: SessionHistoryStore
+    @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var month: Date = Date()
 
@@ -30,14 +31,14 @@ struct JourneyView: View {
     private var content: some View {
         if Journey.total(stamps) == 0 {
             PlaceholderScreen(
-                title: "Journey",
-                subtitle: "Finish your first focus session and your streak will start to bloom here.",
+                title: loc.t("journey.title"),
+                subtitle: loc.t("journey.emptySubtitle"),
                 image: "CatEmptyMonth"
             )
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Journey")
+                    Text(loc.t("journey.title"))
                         .font(.system(.largeTitle, design: .rounded).weight(.bold))
                         .foregroundStyle(colors.textPrimary)
                         .padding(.top, 12)
@@ -65,10 +66,10 @@ struct JourneyView: View {
                     .foregroundStyle(Brand.coral)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(streak) day\(streak == 1 ? "" : "s")")
+                Text(loc.t(streak == 1 ? "habits.dayStreak" : "habits.daysStreak", streak))
                     .font(.system(.title, design: .rounded).weight(.bold))
                     .foregroundStyle(colors.textPrimary)
-                Text(streak == 0 ? "Start a session today" : "Current focus streak")
+                Text(streak == 0 ? loc.t("journey.startToday") : loc.t("journey.currentStreak"))
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(colors.textSecondary)
             }
@@ -84,9 +85,9 @@ struct JourneyView: View {
 
     private var statsRow: some View {
         HStack(spacing: 12) {
-            statCard(value: "\(Journey.sum(minutes, lastDays: 7))m", label: "this week")
-            statCard(value: "\(Journey.total(stamps))", label: "total sessions")
-            statCard(value: "\(Journey.bestStreak(stamps))", label: "best streak")
+            statCard(value: loc.t("unit.minAbbrev", Journey.sum(minutes, lastDays: 7)), label: loc.t("journey.thisWeek"))
+            statCard(value: "\(Journey.total(stamps))", label: loc.t("journey.totalSessions"))
+            statCard(value: "\(Journey.bestStreak(stamps))", label: loc.t("journey.bestStreak"))
         }
     }
 
@@ -175,7 +176,7 @@ struct JourneyView: View {
 
     private var legend: some View {
         HStack(spacing: 8) {
-            Text("Less")
+            Text(loc.t("journey.less"))
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(colors.textFaint)
             ForEach([0, 1, 2, 3], id: \.self) { c in
@@ -184,7 +185,7 @@ struct JourneyView: View {
                     .frame(width: 16, height: 16)
                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(colors.border, lineWidth: c == 0 ? 1 : 0))
             }
-            Text("More")
+            Text(loc.t("journey.more"))
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(colors.textFaint)
             Spacer()
@@ -197,7 +198,7 @@ struct JourneyView: View {
     private var recentSessionsCard: some View {
         if !history.records.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Recent sessions")
+                Text(loc.t("journey.recentSessions"))
                     .font(.system(.headline, design: .rounded).weight(.bold))
                     .foregroundStyle(colors.textPrimary)
 
@@ -229,16 +230,16 @@ struct JourneyView: View {
                     .foregroundStyle(Brand.coral)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(record.intentName ?? "Focus session")
+                Text(record.intentName ?? loc.t("journey.focusSession"))
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(colors.textPrimary)
                     .lineLimit(1)
-                Text(Self.relativeStamp(record.endedAt))
+                Text(relativeStamp(record.endedAt))
                     .font(.system(.caption2, design: .rounded))
                     .foregroundStyle(colors.textFaint)
             }
             Spacer()
-            Text("\(record.minutes) min")
+            Text(loc.t("unit.min", record.minutes))
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 .foregroundStyle(colors.textSecondary)
                 .monospacedDigit()
@@ -247,11 +248,11 @@ struct JourneyView: View {
     }
 
     /// "Today · 2:30 PM" / "Yesterday · 2:30 PM" / "Jun 3 · 2:30 PM".
-    private static func relativeStamp(_ date: Date) -> String {
+    private func relativeStamp(_ date: Date) -> String {
         let cal = Journey.calendar
         let time = Self.timeFormatter.string(from: date)
-        if cal.isDateInToday(date) { return "Today · \(time)" }
-        if cal.isDateInYesterday(date) { return "Yesterday · \(time)" }
+        if cal.isDateInToday(date) { return "\(loc.t("date.today")) · \(time)" }
+        if cal.isDateInYesterday(date) { return "\(loc.t("date.yesterday")) · \(time)" }
         return "\(Self.dayFormatter.string(from: date)) · \(time)"
     }
 
@@ -290,4 +291,5 @@ struct JourneyView: View {
     JourneyView()
         .environmentObject(TimerEngine())
         .environmentObject(SessionHistoryStore())
+        .environmentObject(Localization())
 }

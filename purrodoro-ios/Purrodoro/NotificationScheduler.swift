@@ -11,12 +11,20 @@
 import Foundation
 import UserNotifications
 
+/// One scheduled segment-boundary notification.
+struct NotificationEntry: Equatable {
+    let date: Date
+    let title: String
+    let body: String
+}
+
 @MainActor
 final class NotificationScheduler: NSObject {
     static let shared = NotificationScheduler()
 
     private let center = UNUserNotificationCenter.current()
-    private let identifier = "purrodoro.segmentEnd"
+    private let identifierPrefix = "purrodoro.segmentEnd"
+    private var scheduledIDs: [String] = []
 
     override init() {
         super.init()
@@ -34,24 +42,34 @@ final class NotificationScheduler: NSObject {
         (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
     }
 
-    /// Schedule (replacing any pending) a segment-end notification at `date`.
-    func schedule(at date: Date, title: String, body: String) {
-        let interval = date.timeIntervalSinceNow
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
-        guard interval > 0 else { return }
+    /// Schedule (replacing any pending) a chain of segment-boundary
+    /// notifications. With auto-start on, the engine passes every upcoming
+    /// boundary so the user is still nudged at each transition while the app is
+    /// backgrounded; otherwise it passes just the current boundary.
+    func schedule(_ entries: [NotificationEntry]) {
+        cancel()
+        var ids: [String] = []
+        for (index, entry) in entries.enumerated() {
+            let interval = entry.date.timeIntervalSinceNow
+            guard interval > 0 else { continue }
 
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
+            let content = UNMutableNotificationContent()
+            content.title = entry.title
+            content.body = entry.body
+            content.sound = .default
 
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-        center.add(request)
+            let id = "\(identifierPrefix).\(index)"
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+            ids.append(id)
+        }
+        scheduledIDs = ids
     }
 
     func cancel() {
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        guard !scheduledIDs.isEmpty else { return }
+        center.removePendingNotificationRequests(withIdentifiers: scheduledIDs)
+        scheduledIDs = []
     }
 }
 

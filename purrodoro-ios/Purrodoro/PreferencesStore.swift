@@ -45,12 +45,12 @@ final class PreferencesStore: ObservableObject {
 
     static let maxNameLength = 24
 
-    private let store: UserDefaults
+    private let store: KeyValueStore
     private let appearanceKey = "purrodoro.appearanceMode"
     private let nameKey = "purrodoro.userName"
     private let onboardingKey = "purrodoro.hasCompletedOnboarding"
 
-    init(store: UserDefaults = .standard) {
+    init(store: KeyValueStore = UserDefaults.standard) {
         self.store = store
         let raw = store.string(forKey: appearanceKey)
         self.appearanceMode = raw.flatMap(AppearanceMode.init(rawValue:)) ?? .auto

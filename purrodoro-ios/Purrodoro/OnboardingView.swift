@@ -12,6 +12,7 @@ import SwiftUI
 
 struct OnboardingView: View {
     @EnvironmentObject private var prefs: PreferencesStore
+    @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
 
     /// Called when onboarding finishes (or is skipped) so the host can dismiss.
@@ -65,8 +66,8 @@ struct OnboardingView: View {
     private var welcomeStep: some View {
         stepScaffold(
             image: "CatMascot",
-            title: "Welcome to Purrodoro",
-            subtitle: "A cozy focus companion. Work in gentle pomodoro cycles and let the cat cheer you on."
+            title: loc.t("onboard.welcome.title"),
+            subtitle: loc.t("onboard.welcome.subtitle")
         )
     }
 
@@ -74,17 +75,17 @@ struct OnboardingView: View {
         VStack(spacing: 22) {
             mascot("CatReady")
             VStack(spacing: 8) {
-                Text("What should we call you?")
+                Text(loc.t("onboard.name.title"))
                     .font(.system(.title, design: .rounded).weight(.bold))
                     .foregroundStyle(colors.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("We'll use it to greet you. You can change or skip this anytime.")
+                Text(loc.t("onboard.name.subtitle"))
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
             TextField(
-                "Your name",
+                loc.t("settings.yourName"),
                 text: Binding(get: { prefs.userName }, set: { prefs.userName = $0 })
             )
             .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -104,8 +105,8 @@ struct OnboardingView: View {
     private var notificationsStep: some View {
         stepScaffold(
             image: "CatCelebrate",
-            title: "Stay in the loop",
-            subtitle: "Let Purrodoro nudge you when a focus block or break ends — even while the app is in the background."
+            title: loc.t("onboard.notif.title"),
+            subtitle: loc.t("onboard.notif.subtitle")
         )
     }
 
@@ -139,7 +140,7 @@ struct OnboardingView: View {
     private var skipBar: some View {
         HStack {
             Spacer()
-            Button("Skip") { finish() }
+            Button(loc.t("onboard.skip")) { finish() }
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 .foregroundStyle(colors.textFaint)
         }
@@ -162,16 +163,16 @@ struct OnboardingView: View {
     private var primaryAction: some View {
         switch step {
         case .welcome:
-            PrimaryButton(title: "Get started", systemImage: "arrow.right", tint: Brand.coral) {
+            PrimaryButton(title: loc.t("onboard.getStarted"), systemImage: "arrow.right", tint: Brand.coral) {
                 advance(to: .name)
             }
         case .name:
-            PrimaryButton(title: "Continue", systemImage: "arrow.right", tint: Brand.coral) {
+            PrimaryButton(title: loc.t("onboard.continue"), systemImage: "arrow.right", tint: Brand.coral) {
                 advance(to: .notifications)
             }
         case .notifications:
             PrimaryButton(
-                title: requestingNotifications ? "Enabling…" : "Enable notifications",
+                title: requestingNotifications ? loc.t("onboard.enabling") : loc.t("onboard.enableNotif"),
                 systemImage: "bell.fill",
                 tint: Brand.coral
             ) {
@@ -207,4 +208,5 @@ struct OnboardingView: View {
 #Preview {
     OnboardingView(onFinish: {})
         .environmentObject(PreferencesStore())
+        .environmentObject(Localization())
 }
