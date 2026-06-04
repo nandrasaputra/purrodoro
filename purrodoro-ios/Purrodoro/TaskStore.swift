@@ -43,10 +43,31 @@ struct TaskItem: Identifiable, Equatable, Codable {
     var completedSessions: Int = 0
     var completed: Bool = false
     var createdAt: Date = Date()
+    /// Optional free-text grouping label (e.g. "Work", "Study"). `nil`/empty =
+    /// uncategorised. Added after launch, so it's Optional for backward-compatible
+    /// decoding of older persisted tasks.
+    var category: String? = nil
+    /// Optional soft deadline. Drives the overdue / due-today badges.
+    var dueDate: Date? = nil
 
     var progress: Double {
         guard plannedSessions > 0 else { return completed ? 1 : 0 }
         return min(Double(completedSessions) / Double(plannedSessions), 1)
+    }
+
+    var trimmedCategory: String? {
+        guard let c = category?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty else { return nil }
+        return c
+    }
+
+    var isOverdue: Bool {
+        guard !completed, let due = dueDate else { return false }
+        return Calendar.current.startOfDay(for: due) < Calendar.current.startOfDay(for: Date())
+    }
+
+    var isDueToday: Bool {
+        guard !completed, let due = dueDate else { return false }
+        return Calendar.current.isDateInToday(due)
     }
 }
 
@@ -71,6 +92,14 @@ final class TaskStore: ObservableObject {
     var activeTasks: [TaskItem] {
         tasks.filter { !$0.completed }
             .sorted { lhs, rhs in
+                // Overdue tasks float to the top, then due-soon, then priority.
+                if lhs.isOverdue != rhs.isOverdue { return lhs.isOverdue }
+                switch (lhs.dueDate, rhs.dueDate) {
+                case let (l?, r?) where l != r: return l < r
+                case (.some, .none): return true
+                case (.none, .some): return false
+                default: break
+                }
                 if lhs.priority.weight != rhs.priority.weight {
                     return lhs.priority.weight > rhs.priority.weight
                 }
@@ -82,16 +111,25 @@ final class TaskStore: ObservableObject {
         tasks.filter { $0.completed }.sorted { $0.createdAt > $1.createdAt }
     }
 
+    /// Distinct, sorted category labels currently in use (for suggestions).
+    var categories: [String] {
+        let names = tasks.compactMap { $0.trimmedCategory }
+        return Array(Set(names)).sorted()
+    }
+
     // MARK: Mutations
 
-    func add(title: String, priority: TaskPriority, plannedSessions: Int) {
+    func add(title: String, priority: TaskPriority, plannedSessions: Int, category: String? = nil, dueDate: Date? = nil) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        let cat = category?.trimmingCharacters(in: .whitespacesAndNewlines)
         tasks.append(
             TaskItem(
                 title: trimmed,
                 priority: priority,
-                plannedSessions: max(plannedSessions, 1)
+                plannedSessions: max(plannedSessions, 1),
+                category: (cat?.isEmpty ?? true) ? nil : cat,
+                dueDate: dueDate
             )
         )
         persist()
@@ -173,5 +211,18 @@ extension TaskPriority {
         case .normal: return Brand.peach
         case .low: return Brand.sky
         }
+    }
+}
+
+enum CategoryPalette {
+    private static let colors: [Color] = [
+        Brand.lavender, Brand.mint, Brand.sky, Brand.peach, Brand.blush, Brand.coral,
+    ]
+
+    /// Deterministic color for a category name so the same label always reads
+    /// the same hue across rows.
+    static func color(for name: String) -> Color {
+        let hash = name.unicodeScalars.reduce(0) { ($0 &* 31) &+ Int($1.value) }
+        return colors[abs(hash) % colors.count]
     }
 }

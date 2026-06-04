@@ -23,6 +23,15 @@ enum TimerMode: String, CaseIterable, Codable {
         case .longBreak: return "Long Break"
         }
     }
+
+    /// Localization key for the mode label (see `Localization`).
+    var labelKey: String {
+        switch self {
+        case .focus: return "mode.focus"
+        case .shortBreak: return "mode.shortBreak"
+        case .longBreak: return "mode.longBreak"
+        }
+    }
 }
 
 // MARK: - Cycle segments
@@ -99,6 +108,27 @@ struct FocusSessionRecord: Identifiable, Codable, Equatable {
         self.endedAt = endedAt
         self.minutes = minutes
         self.intentName = intentName
+    }
+}
+
+// MARK: - Interrupted focus
+
+/// Snapshot of a focus segment that was stopped before it finished, so the user
+/// can be offered "continue where you left off" from the Focus screen. Mirrors
+/// the Android `StartFocusPrefill.focusMinutesOverride` continue-flow.
+struct InterruptedFocus: Equatable, Codable {
+    /// Whole minutes of focus that were left when the session was stopped.
+    let leftoverMinutes: Int
+    /// Name of the intent (task/habit) that was attached, if any — purely for
+    /// the resume card copy; the active intent in the stores is the source of
+    /// truth for crediting.
+    let intentName: String?
+    let stoppedAt: Date
+
+    init(leftoverMinutes: Int, intentName: String?, stoppedAt: Date = Date()) {
+        self.leftoverMinutes = max(leftoverMinutes, 1)
+        self.intentName = intentName
+        self.stoppedAt = stoppedAt
     }
 }
 

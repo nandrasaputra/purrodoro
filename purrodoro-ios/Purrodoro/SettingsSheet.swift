@@ -12,6 +12,7 @@ import SwiftUI
 struct SettingsSheet: View {
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var prefs: PreferencesStore
+    @EnvironmentObject private var loc: Localization
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
 
@@ -23,24 +24,24 @@ struct SettingsSheet: View {
                 colors.page.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 16) {
-                        sectionHeader("Profile")
+                        sectionHeader(loc.t("settings.profile"))
                         nameCard
 
-                        sectionHeader("Timer")
+                        sectionHeader(loc.t("settings.timer"))
                         durationCard(
-                            title: "Focus",
+                            title: loc.t("settings.focus"),
                             mode: .focus,
                             minutes: engine.settings.focusMinutes,
                             step: 5
                         )
                         durationCard(
-                            title: "Short break",
+                            title: loc.t("settings.shortBreak"),
                             mode: .shortBreak,
                             minutes: engine.settings.shortBreakMinutes,
                             step: 1
                         )
                         durationCard(
-                            title: "Long break",
+                            title: loc.t("settings.longBreak"),
                             mode: .longBreak,
                             minutes: engine.settings.longBreakMinutes,
                             step: 5
@@ -49,18 +50,52 @@ struct SettingsSheet: View {
                         cycleCard
                         autoStartCard
 
-                        sectionHeader("Appearance")
+                        sectionHeader(loc.t("settings.appearance"))
                         appearanceCard
+
+                        sectionHeader(loc.t("settings.language"))
+                        languageCard
                     }
                     .padding(20)
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle(loc.t("settings.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button(loc.t("settings.done")) { dismiss() }
                         .font(.system(.body, design: .rounded).weight(.semibold))
+                }
+            }
+        }
+    }
+
+    private var languageCard: some View {
+        card {
+            VStack(spacing: 8) {
+                ForEach(AppLanguage.allCases) { lang in
+                    let selected = loc.language == lang
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { loc.language = lang }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Text(lang.flag).font(.system(size: 20))
+                            Text(lang.nativeLabel)
+                                .font(.system(.body, design: .rounded).weight(.medium))
+                                .foregroundStyle(colors.textPrimary)
+                            Spacer()
+                            if selected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Brand.coral)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    if lang != AppLanguage.allCases.last {
+                        Rectangle().fill(colors.border).frame(height: 1)
+                    }
                 }
             }
         }
@@ -86,11 +121,11 @@ struct SettingsSheet: View {
                     .frame(width: 28, height: 28)
                     .background(Brand.coral.opacity(0.14), in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Your name")
+                    Text(loc.t("settings.yourName"))
                         .font(.system(.caption, design: .rounded).weight(.semibold))
                         .foregroundStyle(colors.textFaint)
                     TextField(
-                        "Add your name",
+                        loc.t("settings.addName"),
                         text: Binding(
                             get: { prefs.userName },
                             set: { prefs.userName = $0 }
@@ -108,7 +143,7 @@ struct SettingsSheet: View {
     private var appearanceCard: some View {
         card {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Theme")
+                Text(loc.t("settings.theme"))
                     .font(.system(.headline, design: .rounded))
                     .foregroundStyle(colors.textPrimary)
                 HStack(spacing: 8) {
@@ -130,7 +165,7 @@ struct SettingsSheet: View {
             VStack(spacing: 6) {
                 Image(systemName: mode.symbol)
                     .font(.system(size: 18, weight: .semibold))
-                Text(mode.label)
+                Text(loc.t("appearance.\(mode.rawValue)"))
                     .font(.system(.caption, design: .rounded).weight(.semibold))
             }
             .foregroundStyle(isSelected ? .white : colors.textSecondary)
@@ -166,13 +201,13 @@ struct SettingsSheet: View {
                     in: TimerSettings.minMinutes...TimerSettings.maxMinutes,
                     step: step
                 ) {
-                    Text("\(minutes) min")
+                    Text(loc.t("unit.min", minutes))
                         .font(.system(.body, design: .rounded).weight(.semibold))
                         .foregroundStyle(colors.textSecondary)
                         .monospacedDigit()
                 }
                 .labelsHidden()
-                Text("\(minutes) min")
+                Text(loc.t("unit.min", minutes))
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .foregroundStyle(colors.textPrimary)
                     .monospacedDigit()
@@ -185,10 +220,10 @@ struct SettingsSheet: View {
         card {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Focus sessions")
+                    Text(loc.t("settings.focusSessions"))
                         .font(.system(.headline, design: .rounded))
                         .foregroundStyle(colors.textPrimary)
-                    Text("Before a long break")
+                    Text(loc.t("settings.beforeLongBreak"))
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(colors.textFaint)
                 }
@@ -217,10 +252,10 @@ struct SettingsSheet: View {
                 set: { engine.settings.autoStartNextSession = $0 }
             )) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Auto-start next")
+                    Text(loc.t("settings.autoStart"))
                         .font(.system(.headline, design: .rounded))
                         .foregroundStyle(colors.textPrimary)
-                    Text("Flow from focus to break automatically")
+                    Text(loc.t("settings.autoStartDesc"))
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(colors.textFaint)
                 }
@@ -242,4 +277,5 @@ struct SettingsSheet: View {
     SettingsSheet()
         .environmentObject(TimerEngine())
         .environmentObject(PreferencesStore())
+        .environmentObject(Localization())
 }

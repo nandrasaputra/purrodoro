@@ -23,10 +23,24 @@ final class TimerEngine: ObservableObject {
     @Published private(set) var todayFocusCount = 0
     @Published private(set) var todayFocusMinutes = 0
 
+    /// Set when a focus segment is stopped partway through, so the Focus screen
+    /// can offer to resume the leftover time. Cleared when a new focus starts.
+    @Published private(set) var interruptedFocus: InterruptedFocus?
+
     /// Invoked each time a Focus segment completes, with the segment's length in
     /// minutes. Wired by the app to credit the active task/habit and to log a
     /// session-history record.
     var onFocusSessionCompleted: ((Int) -> Void)?
+
+    /// Supplies the name of the currently-attached intent (active task/habit),
+    /// if any. Wired by the app so the engine can label an interrupted session
+    /// without depending on the task/habit stores directly.
+    var activeIntentNameProvider: (() -> String?)?
+
+    /// The settings a running cycle was built from. Lets a session use one-shot
+    /// overrides (e.g. an adjusted focus length from the Start Focus sheet)
+    /// without mutating the persisted defaults.
+    private var runtimeSettings: TimerSettings
 
     @Published var settings: TimerSettings {
         didSet {
@@ -54,6 +68,7 @@ final class TimerEngine: ObservableObject {
     init() {
         let loaded = Self.loadSettings(store, key: settingsKey)
         self.settings = loaded
+        self.runtimeSettings = loaded
         let session = buildSession(loaded)
         self.session = session
         self.displayRemaining = session.remainingSeconds
@@ -90,10 +105,19 @@ final class TimerEngine: ObservableObject {
 
     // MARK: Intents
 
-    func start() {
+    /// Start a fresh cycle. Pass `using:` to run this cycle with one-shot
+    /// settings (e.g. an adjusted focus length picked in the Start Focus sheet)
+    /// without changing the saved defaults.
+    func start(using overrideSettings: TimerSettings? = nil) {
         notifier.requestAuthorization()
-        session = buildSession(settings)
+        interruptedFocus = nil
+        runtimeSettings = overrideSettings ?? settings
+        session = buildSession(runtimeSettings)
         beginCurrentSegment()
+    }
+
+    func clearInterruptedFocus() {
+        interruptedFocus = nil
     }
 
     func pause() {
@@ -129,11 +153,33 @@ final class TimerEngine: ObservableObject {
     }
 
     func stop() {
+        captureInterruptedFocusIfNeeded()
         endsAt = nil
         stopTicker()
+        runtimeSettings = settings
         session = buildSession(settings)
         displayRemaining = session.remainingSeconds
         syncNotification()
+    }
+
+    /// If we're stopping partway through a focus segment, remember the leftover
+    /// time so the Focus screen can offer to continue it later.
+    private func captureInterruptedFocusIfNeeded() {
+        guard session.timerState != .idle,
+              let item = session.currentItem, item.type.isFocus else {
+            return
+        }
+        let leftoverSeconds = session.timerState == .playing ? remainingFromClock() : session.remainingSeconds
+        // Only worth resuming if there's a meaningful chunk left and the segment
+        // actually started (i.e. some time has been spent or not).
+        guard leftoverSeconds >= 60, leftoverSeconds < item.type.seconds else {
+            return
+        }
+        let minutes = Int((Double(leftoverSeconds) / 60).rounded(.up))
+        interruptedFocus = InterruptedFocus(
+            leftoverMinutes: minutes,
+            intentName: activeIntentNameProvider?()
+        )
     }
 
     func acknowledgeCycleComplete() {
@@ -157,9 +203,9 @@ final class TimerEngine: ObservableObject {
     // MARK: Segment lifecycle
 
     private func beginCurrentSegment() {
-        let seconds = session.currentItem?.type.seconds ?? settings.seconds(for: .focus)
+        let seconds = session.currentItem?.type.seconds ?? runtimeSettings.seconds(for: .focus)
         session.remainingSeconds = seconds
-        if settings.autoStartNextSession || session.currentIndex == 0 {
+        if runtimeSettings.autoStartNextSession || session.currentIndex == 0 {
             session.timerState = .playing
             endsAt = Date().addingTimeInterval(TimeInterval(seconds))
             displayRemaining = seconds
@@ -191,7 +237,7 @@ final class TimerEngine: ObservableObject {
         let nextSeconds = session.items[nextIndex].type.seconds
         session.remainingSeconds = nextSeconds
 
-        if settings.autoStartNextSession {
+        if runtimeSettings.autoStartNextSession {
             session.timerState = .playing
             let anchor = base ?? Date()
             endsAt = anchor.addingTimeInterval(TimeInterval(nextSeconds))
@@ -209,7 +255,9 @@ final class TimerEngine: ObservableObject {
     private func finishCycle() {
         endsAt = nil
         stopTicker()
+        interruptedFocus = nil
         pendingCycleComplete = true
+        runtimeSettings = settings
         session = buildSession(settings)
         displayRemaining = session.remainingSeconds
         syncNotification()
