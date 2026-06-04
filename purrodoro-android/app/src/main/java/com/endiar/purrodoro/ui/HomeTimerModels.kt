@@ -39,12 +39,14 @@ data class PomodoroProgress(
 
 fun homeGreetingFor(time: LocalTime): HomeGreeting {
     val hour = time.hour
-    return when {
-        hour < 12 -> HomeGreeting(
+    return when (hour) {
+        // Pre-dawn hours (00:00–04:59) read as night/evening to a human, not
+        // "morning" — so they fall through to the evening copy below.
+        in 5..11 -> HomeGreeting(
             salutation = "Good morning,",
             encouragement = "Let's make this morning meaningful."
         )
-        hour < 17 -> HomeGreeting(
+        in 12..16 -> HomeGreeting(
             salutation = "Good afternoon,",
             encouragement = "Keep the afternoon moving gently."
         )

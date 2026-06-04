@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,11 +37,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,25 +67,31 @@ import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import kotlinx.coroutines.launch
 
-private const val PAGE_COUNT = 4
+private const val PAGE_COUNT = 5
+
+/** Max characters accepted for the onboarding nickname. */
+private const val NAME_MAX_LENGTH = 24
 
 /**
- * First-run onboarding. Four pages, theme-native:
+ * First-run onboarding. Five pages, theme-native:
  *
  *  0. Welcome     — mascot moment, primary CTA "Get started"
- *  1. Intent      — show the four FocusType tiles, CTA "Next"
- *  2. Rhythm      — illustrative week preview, CTA "Next"
- *  3. Stay on track — soft notification ask, CTA "Turn on notifications"
+ *  1. Name        — optional nickname, CTA "Next"
+ *  2. Intent      — show the four FocusType tiles, CTA "Next"
+ *  3. Rhythm      — illustrative week preview, CTA "Next"
+ *  4. Stay on track — soft notification ask, CTA "Turn on notifications"
  *
- * The screen owns no business state — completion is signalled via callbacks.
- * Both callbacks dismiss onboarding; [onAllowNotifications] additionally asks
- * the host to fire the Android system permission prompt. Neither callback
- * starts a focus — that's the user's first decision on Home.
+ * The screen owns only the in-progress nickname; final persistence is the
+ * host's job. Both completion callbacks pass back the (trimmed) name and
+ * dismiss onboarding; [onAllowNotifications] additionally asks the host to
+ * fire the Android system permission prompt. Neither callback starts a
+ * focus — that's the user's first decision on Home. The name is also handed
+ * over on skip, so a nickname typed before skipping isn't lost.
  */
 @Composable
 fun OnboardingScreen(
-    onSkip: () -> Unit,
-    onAllowNotifications: () -> Unit,
+    onSkip: (name: String) -> Unit,
+    onAllowNotifications: (name: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -88,6 +100,7 @@ fun OnboardingScreen(
     val currentPage = pagerState.currentPage
     val isFirstPage = currentPage == 0
     val isLastPage = currentPage == PAGE_COUNT - 1
+    var name by remember { mutableStateOf("") }
 
     Box(
         modifier = modifier
@@ -95,11 +108,12 @@ fun OnboardingScreen(
             .background(tokens.pageBackground)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             OnboardingTopBar(
                 showSkip = currentPage in 1 until PAGE_COUNT - 1,
-                onSkip = onSkip,
+                onSkip = { onSkip(name.trim()) },
             )
 
             HorizontalPager(
@@ -122,8 +136,12 @@ fun OnboardingScreen(
                 ) {
                     when (page) {
                         0 -> WelcomePage()
-                        1 -> IntentPage()
-                        2 -> RhythmPage()
+                        1 -> NamePage(
+                            name = name,
+                            onNameChange = { if (it.length <= NAME_MAX_LENGTH) name = it },
+                        )
+                        2 -> IntentPage()
+                        3 -> RhythmPage()
                         else -> StayOnTrackPage()
                     }
                 }
@@ -140,12 +158,12 @@ fun OnboardingScreen(
                 isLastPage = isLastPage,
                 onPrimary = {
                     if (isLastPage) {
-                        onAllowNotifications()
+                        onAllowNotifications(name.trim())
                     } else {
                         scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
                     }
                 },
-                onSecondary = onSkip,
+                onSecondary = { onSkip(name.trim()) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
@@ -247,7 +265,65 @@ private fun WelcomePage() {
     )
 }
 
-// ── Page 1: Intent ───────────────────────────────────────────────────────────
+// ── Page 1: Name ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun NamePage(
+    name: String,
+    onNameChange: (String) -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Image(
+        painter = painterResource(id = R.drawable.cat_face),
+        contentDescription = null,
+        modifier = Modifier
+            .size(96.dp)
+            .clip(CircleShape)
+            .background(tokens.accentSoft),
+        contentScale = ContentScale.Crop,
+    )
+    Spacer(Modifier.height(KuroSpacing.lg))
+    PageTitle(text = stringResource(R.string.onboarding_name_title))
+    Spacer(Modifier.height(KuroSpacing.xs))
+    PageSubtitle(text = stringResource(R.string.onboarding_name_subtitle))
+    Spacer(Modifier.height(KuroSpacing.xl))
+    OutlinedTextField(
+        value = name,
+        onValueChange = onNameChange,
+        placeholder = { Text(stringResource(R.string.onboarding_name_placeholder), color = tokens.textMuted) },
+        singleLine = true,
+        shape = RoundedCornerShape(KuroSpacing.radiusMd),
+        supportingText = {
+            Text(
+                text = "${name.length}/$NAME_MAX_LENGTH",
+                color = tokens.textMuted,
+                style = KuroType.labelMeta,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 360.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = tokens.textPrimary,
+            unfocusedTextColor = tokens.textPrimary,
+            cursorColor = tokens.accent,
+            focusedBorderColor = tokens.accent,
+            unfocusedBorderColor = tokens.cardBorder,
+        ),
+    )
+    Spacer(Modifier.height(KuroSpacing.md))
+    Text(
+        text = stringResource(R.string.onboarding_name_hint),
+        color = tokens.textMuted,
+        style = KuroType.bodySecondary,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.widthIn(max = 320.dp),
+    )
+}
+
+// ── Page 2: Intent ───────────────────────────────────────────────────────────
 
 @Composable
 private fun IntentPage() {
@@ -330,7 +406,7 @@ private fun IntentTile(spec: IntentSpec, modifier: Modifier = Modifier) {
     }
 }
 
-// ── Page 2: Rhythm (week preview) ────────────────────────────────────────────
+// ── Page 3: Rhythm (week preview) ────────────────────────────────────────────
 
 @Composable
 private fun RhythmPage() {
@@ -436,7 +512,7 @@ private fun WeekDotsPreview(todayIndex: Int) {
     }
 }
 
-// ── Page 3: Stay on track ────────────────────────────────────────────────────
+// ── Page 4: Stay on track ────────────────────────────────────────────────────
 
 @Composable
 private fun StayOnTrackPage() {
