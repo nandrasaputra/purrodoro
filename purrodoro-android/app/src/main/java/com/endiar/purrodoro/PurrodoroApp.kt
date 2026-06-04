@@ -933,6 +933,11 @@ fun PurrodoroApp(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
+                    // NOTE: Ambient focus sounds are not active. The screen and its
+                    // selection/play state are wired for UI only — no real audio is
+                    // played (no MediaPlayer/SoundPool/ExoPlayer). The handlers below
+                    // just track which sound is "selected"/"playing"; actual looping
+                    // audio + background playback still needs to be implemented.
                     SoundsScreen(
                         sounds = sounds,
                         selectedSoundId = selectedSoundId,
