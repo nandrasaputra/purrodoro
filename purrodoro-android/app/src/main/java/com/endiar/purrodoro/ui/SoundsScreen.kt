@@ -68,6 +68,9 @@ private fun tileFillFor(soundId: Int): androidx.compose.ui.graphics.Color {
     }
 }
 
+// NOTE: Ambient focus sounds are not active. This screen is UI-only — selecting or
+// toggling a sound just updates state; no real audio is played (no MediaPlayer/
+// SoundPool/ExoPlayer). Looping audio + background playback still needs wiring.
 @Composable
 fun SoundsScreen(
     sounds: List<SoundOption>,
