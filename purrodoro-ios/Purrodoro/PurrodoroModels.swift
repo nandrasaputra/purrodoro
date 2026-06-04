@@ -83,6 +83,46 @@ struct TimerSession: Equatable, Codable {
     }
 }
 
+// MARK: - Session history
+
+/// A single completed focus session. Lighter than the Android per-cycle
+/// `SessionRecord`: we log each finished Focus segment with when it ended, how
+/// long it was, and the active intent (task/habit) name, if any.
+struct FocusSessionRecord: Identifiable, Codable, Equatable {
+    let id: UUID
+    let endedAt: Date
+    let minutes: Int
+    let intentName: String?
+
+    init(id: UUID = UUID(), endedAt: Date = Date(), minutes: Int, intentName: String? = nil) {
+        self.id = id
+        self.endedAt = endedAt
+        self.minutes = minutes
+        self.intentName = intentName
+    }
+}
+
+// MARK: - Appearance
+
+/// User-selectable color scheme preference. Ported from the Android
+/// `AppearanceMode`. The SwiftUI `ColorScheme?` mapping lives in
+/// `PurrodoroTheme.swift` to keep this file framework-free.
+enum AppearanceMode: String, CaseIterable, Codable, Identifiable {
+    case auto
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .auto: return "Auto"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+}
+
 // MARK: - Settings
 
 struct TimerSettings: Equatable, Codable {

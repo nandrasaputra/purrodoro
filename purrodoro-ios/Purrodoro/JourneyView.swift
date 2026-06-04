@@ -10,6 +10,7 @@ import SwiftUI
 
 struct JourneyView: View {
     @EnvironmentObject private var engine: TimerEngine
+    @EnvironmentObject private var history: SessionHistoryStore
     @Environment(\.colorScheme) private var scheme
     @State private var month: Date = Date()
 
@@ -44,6 +45,7 @@ struct JourneyView: View {
                     streakHero
                     statsRow
                     calendarCard
+                    recentSessionsCard
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 120)
@@ -189,6 +191,82 @@ struct JourneyView: View {
         }
     }
 
+    // MARK: Recent sessions
+
+    @ViewBuilder
+    private var recentSessionsCard: some View {
+        if !history.records.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Recent sessions")
+                    .font(.system(.headline, design: .rounded).weight(.bold))
+                    .foregroundStyle(colors.textPrimary)
+
+                VStack(spacing: 0) {
+                    let recent = Array(history.records.prefix(8))
+                    ForEach(Array(recent.enumerated()), id: \.element.id) { index, record in
+                        sessionRow(record)
+                        if index < recent.count - 1 {
+                            Rectangle()
+                                .fill(colors.border)
+                                .frame(height: 1)
+                        }
+                    }
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
+        }
+    }
+
+    private func sessionRow(_ record: FocusSessionRecord) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Brand.coral.opacity(0.15)).frame(width: 38, height: 38)
+                Image(systemName: record.intentName == nil ? "timer" : "target")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Brand.coral)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(record.intentName ?? "Focus session")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textPrimary)
+                    .lineLimit(1)
+                Text(Self.relativeStamp(record.endedAt))
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(colors.textFaint)
+            }
+            Spacer()
+            Text("\(record.minutes) min")
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(colors.textSecondary)
+                .monospacedDigit()
+        }
+        .padding(.vertical, 10)
+    }
+
+    /// "Today · 2:30 PM" / "Yesterday · 2:30 PM" / "Jun 3 · 2:30 PM".
+    private static func relativeStamp(_ date: Date) -> String {
+        let cal = Journey.calendar
+        let time = Self.timeFormatter.string(from: date)
+        if cal.isDateInToday(date) { return "Today · \(time)" }
+        if cal.isDateInYesterday(date) { return "Yesterday · \(time)" }
+        return "\(Self.dayFormatter.string(from: date)) · \(time)"
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f
+    }()
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
     private func monthButton(systemName: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
@@ -209,5 +287,7 @@ struct JourneyView: View {
 }
 
 #Preview {
-    JourneyView().environmentObject(TimerEngine())
+    JourneyView()
+        .environmentObject(TimerEngine())
+        .environmentObject(SessionHistoryStore())
 }

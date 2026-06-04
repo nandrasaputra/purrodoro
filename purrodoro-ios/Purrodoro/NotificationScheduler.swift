@@ -27,6 +27,13 @@ final class NotificationScheduler: NSObject {
         center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
+    /// Async variant used by onboarding so the UI can advance once the user has
+    /// responded to the system prompt. Returns whether permission was granted.
+    @discardableResult
+    func requestAuthorization() async -> Bool {
+        (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+    }
+
     /// Schedule (replacing any pending) a segment-end notification at `date`.
     func schedule(at date: Date, title: String, body: String) {
         let interval = date.timeIntervalSinceNow

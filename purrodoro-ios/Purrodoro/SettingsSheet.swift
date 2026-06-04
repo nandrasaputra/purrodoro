@@ -11,6 +11,7 @@ import SwiftUI
 
 struct SettingsSheet: View {
     @EnvironmentObject private var engine: TimerEngine
+    @EnvironmentObject private var prefs: PreferencesStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
 
@@ -22,6 +23,10 @@ struct SettingsSheet: View {
                 colors.page.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 16) {
+                        sectionHeader("Profile")
+                        nameCard
+
+                        sectionHeader("Timer")
                         durationCard(
                             title: "Focus",
                             mode: .focus,
@@ -43,6 +48,9 @@ struct SettingsSheet: View {
 
                         cycleCard
                         autoStartCard
+
+                        sectionHeader("Appearance")
+                        appearanceCard
                     }
                     .padding(20)
                 }
@@ -59,6 +67,88 @@ struct SettingsSheet: View {
     }
 
     // MARK: Cards
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.system(.caption, design: .rounded).weight(.bold))
+            .tracking(1.2)
+            .foregroundStyle(colors.textFaint)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+    }
+
+    private var nameCard: some View {
+        card {
+            HStack(spacing: 12) {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Brand.coral)
+                    .frame(width: 28, height: 28)
+                    .background(Brand.coral.opacity(0.14), in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your name")
+                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                        .foregroundStyle(colors.textFaint)
+                    TextField(
+                        "Add your name",
+                        text: Binding(
+                            get: { prefs.userName },
+                            set: { prefs.userName = $0 }
+                        )
+                    )
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(colors.textPrimary)
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+                }
+            }
+        }
+    }
+
+    private var appearanceCard: some View {
+        card {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Theme")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(colors.textPrimary)
+                HStack(spacing: 8) {
+                    ForEach(AppearanceMode.allCases) { mode in
+                        appearanceOption(mode)
+                    }
+                }
+            }
+        }
+    }
+
+    private func appearanceOption(_ mode: AppearanceMode) -> some View {
+        let isSelected = prefs.appearanceMode == mode
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                prefs.appearanceMode = mode
+            }
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: mode.symbol)
+                    .font(.system(size: 18, weight: .semibold))
+                Text(mode.label)
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+            }
+            .foregroundStyle(isSelected ? .white : colors.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Brand.coral : colors.page)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isSelected ? Color.clear : colors.border, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(mode.label)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
 
     private func durationCard(title: String, mode: TimerMode, minutes: Int, step: Int) -> some View {
         card {
@@ -149,5 +239,7 @@ struct SettingsSheet: View {
 }
 
 #Preview {
-    SettingsSheet().environmentObject(TimerEngine())
+    SettingsSheet()
+        .environmentObject(TimerEngine())
+        .environmentObject(PreferencesStore())
 }

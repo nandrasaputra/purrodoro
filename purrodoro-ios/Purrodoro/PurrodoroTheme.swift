@@ -50,6 +50,25 @@ enum Brand {
     static let nightFaint = Color(hex: 0x7D768B)
 }
 
+extension AppearanceMode {
+    /// SwiftUI scheme to force, or `nil` to follow the system (Auto).
+    var preferredColorScheme: ColorScheme? {
+        switch self {
+        case .auto: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .auto: return "circle.lefthalf.filled"
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.fill"
+        }
+    }
+}
+
 extension TimerMode {
     /// Soft fill used behind the timer ring / mode chip.
     var accent: Color {

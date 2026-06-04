@@ -39,10 +39,13 @@ Live Activities, app icon).
 | `PurrodoroModels.swift` | Pure domain models (cycle, settings, dots, greetings) |
 | `TimerEngine.swift` | Countdown, segment advance, auto-start, reconcile, stamps |
 | `HomeView.swift` | Focus screen (dial, dots, controls, active-intent card) |
-| `SettingsSheet.swift` | Durations / sessions-per-cycle / auto-start |
+| `SettingsSheet.swift` | Durations / sessions-per-cycle / auto-start / appearance |
+| `PreferencesStore.swift` | App-wide prefs (appearance, name, onboarding flag), persisted |
+| `OnboardingView.swift` | First-run intro: welcome / name / notification priming |
 | `TaskStore.swift` / `TasksView.swift` | Tasks feature |
 | `HabitStore.swift` / `HabitsView.swift` | Habits feature |
-| `JourneyModels.swift` / `JourneyView.swift` | Streaks, stats, calendar heatmap |
+| `JourneyModels.swift` / `JourneyView.swift` | Streaks, stats, calendar heatmap, recent sessions |
+| `SessionHistoryStore.swift` | Persisted log of completed focus sessions |
 | `NotificationScheduler.swift` | Local notifications at segment end |
 | `PurrodoroTheme.swift` | Brand palette + per-mode accents |
 
@@ -67,6 +70,8 @@ Live Activities, app icon).
 ### Settings
 - [x] Focus / short / long durations, sessions-per-cycle, auto-start
 - [x] Persisted; idle preview refreshes live
+- [x] Appearance mode (Light / Dark / Auto), persisted, applied app-wide
+- [x] Editable profile name (persisted) — personalizes the home greeting
 
 ### Navigation
 - [x] Custom warm bottom dock (Focus / Tasks / Journey / Habits)
@@ -80,6 +85,7 @@ Live Activities, app icon).
 - [x] Current streak + best streak (ported from Android `calculateStreak`)
 - [x] This-week minutes / total sessions stats
 - [x] Navigable month calendar heatmap, today ringed
+- [x] Recent sessions feed (per-session history with intent name + timestamp)
 
 ### Habits
 - [x] CRUD, emoji + color, daily target, per-day log
@@ -89,6 +95,10 @@ Live Activities, app icon).
 ### Notifications
 - [x] Local notification at segment end (focus done / break over / cycle complete)
 - [x] Foreground banner + chime; cancels on pause/stop
+
+### Onboarding
+- [x] First-run flow (welcome → name → notification priming), skippable
+- [x] Persisted completion flag; greeting + notifications wired in
 
 ### Misc
 - [x] Brand palette ported from Android `Color.kt` (light + dark tokens)
@@ -102,11 +112,13 @@ Live Activities, app icon).
 ### Parity with Android (feature gaps)
 - [ ] **Ambient focus sounds** (rain, cafe, forest, fire, keys) with looping audio
       + background playback
-- [ ] **Onboarding** flow (first-run intro + permission priming)
-- [ ] **Profile / full Settings screen**: appearance (Light/Dark/Auto), language
+- [x] **Onboarding** flow (first-run intro + permission priming) — done
+- [ ] **Profile / full Settings screen**: appearance ✅ (Light/Dark/Auto) +
+      profile name ✅ done; still need language
 - [ ] **Localization** (Indonesian `id`, currently English-only)
-- [ ] **Session history records** (per-session detail; today we only keep daily
-      stamp/minute counts — no `SessionRecord` log)
+- [x] **Session history records** — per completed focus session (timestamp,
+      minutes, intent name), persisted + shown on Journey. (Android logs full
+      per-cycle records; iOS logs per focus segment, which is the useful unit.)
 - [ ] **Start Focus sheet** (confirm minutes / pick intent before starting;
       adjust leftover time when resuming an interrupted focus)
 - [ ] **Interrupted-focus resume** ("continue where you left off")
@@ -120,12 +132,16 @@ Live Activities, app icon).
 - [ ] **App icon** (still the default placeholder)
 - [ ] True background timing audit (chained notifications when auto-start is on;
       currently only the next boundary is scheduled)
-- [ ] Haptics on transitions
+- [x] Haptics on transitions (timer start/pause/resume, segment change, cycle
+      complete, tab switch) via SwiftUI `sensoryFeedback`
 - [ ] Accessibility pass (VoiceOver labels exist in places; needs a full sweep)
 - [ ] iPad / macOS layout polish (targets are enabled but UI is phone-first)
 
 ### Engineering
-- [ ] Unit tests (cycle math, streak calc, engine transitions) — none yet
+- [x] Unit tests for pure logic (cycle build, settings clamp, dots, formatting,
+      day-part, Journey streaks/aggregation, record codable) — 26 cases via
+      Swift Testing, all passing
+- [ ] Engine transition tests (start/pause/resume/skip — needs @MainActor harness)
 - [ ] Snapshot/UI tests
 - [ ] Move persistence behind a protocol (easier testing / future iCloud sync)
 

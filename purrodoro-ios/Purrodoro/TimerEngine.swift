@@ -23,9 +23,10 @@ final class TimerEngine: ObservableObject {
     @Published private(set) var todayFocusCount = 0
     @Published private(set) var todayFocusMinutes = 0
 
-    /// Invoked each time a Focus segment completes. Wired by the app to credit
-    /// the active task so a session counts toward its planned sessions.
-    var onFocusSessionCompleted: (() -> Void)?
+    /// Invoked each time a Focus segment completes, with the segment's length in
+    /// minutes. Wired by the app to credit the active task/habit and to log a
+    /// session-history record.
+    var onFocusSessionCompleted: ((Int) -> Void)?
 
     @Published var settings: TimerSettings {
         didSet {
@@ -287,7 +288,7 @@ final class TimerEngine: ObservableObject {
         store.set(mins, forKey: minutesKey)
 
         refreshTodayMetrics()
-        onFocusSessionCompleted?()
+        onFocusSessionCompleted?(minutes)
     }
 
     private func refreshTodayMetrics() {
