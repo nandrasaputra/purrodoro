@@ -158,6 +158,7 @@ fun PurrodoroApp(
     var glassReadabilityMode by remember(appState.glassReadabilityMode) { mutableStateOf(appState.glassReadabilityMode) }
     var appearanceMode by remember(appState.appearanceMode) { mutableStateOf(appState.appearanceMode) }
     var language by remember(appState.language) { mutableStateOf(appState.language) }
+    var userName by remember(appState.userName) { mutableStateOf(appState.userName) }
     var nextTaskId by remember(appState.nextTaskId) { mutableIntStateOf(appState.nextTaskId) }
     var sessionRecords by remember(appState.sessionRecords) { mutableStateOf(appState.sessionRecords) }
     var tasks by remember(appState.tasks) { mutableStateOf(appState.tasks) }
@@ -223,9 +224,17 @@ fun PurrodoroApp(
     // notifications" additionally fires the Android system permission ask.
     if (!hasSeenOnboarding) {
         OnboardingScreen(
-            onSkip = { scope.launch { repo.setHasSeenOnboarding(true) } },
-            onAllowNotifications = {
-                scope.launch { repo.setHasSeenOnboarding(true) }
+            onSkip = { name ->
+                scope.launch {
+                    if (name.isNotBlank()) repo.setUserName(name)
+                    repo.setHasSeenOnboarding(true)
+                }
+            },
+            onAllowNotifications = { name ->
+                scope.launch {
+                    if (name.isNotBlank()) repo.setUserName(name)
+                    repo.setHasSeenOnboarding(true)
+                }
                 requestNotificationPermission()
             },
         )
@@ -258,6 +267,11 @@ fun PurrodoroApp(
 
     fun persistLanguage(v: com.endiar.purrodoro.model.AppLanguage) {
         language = v; scope.launch { repo.setLanguage(v) }
+    }
+
+    fun persistUserName(v: String) {
+        val trimmed = v.trim()
+        userName = trimmed; scope.launch { repo.setUserName(trimmed) }
     }
 
     fun persistNextTaskId(v: Int) {
@@ -425,6 +439,7 @@ fun PurrodoroApp(
                         suggestion = homeSuggestion,
                         suggestionFocusMinutes = settings.focusMinutes,
                         greeting = homeGreeting,
+                        userName = userName,
                         todayMetrics = homeMetrics,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
@@ -761,6 +776,8 @@ fun PurrodoroApp(
                     onUpdateAppearanceMode = { persistAppearanceMode(it) },
                     language = language,
                     onUpdateLanguage = { persistLanguage(it) },
+                    userName = userName,
+                    onUpdateUserName = { persistUserName(it) },
                     onRequestEnableNotifications = onEnableNotifications,
                 )
             }

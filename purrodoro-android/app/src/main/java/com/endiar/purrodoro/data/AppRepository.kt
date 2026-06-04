@@ -43,6 +43,7 @@ data class AppState(
     val glassReadabilityMode: GlassReadabilityMode,
     val appearanceMode: AppearanceMode = AppearanceMode.Auto,
     val language: AppLanguage = AppLanguage.System,
+    val userName: String = "",
     val selectedSoundId: Int,
     val completedSessions: Int,
     val settings: TimerSettings,
@@ -84,6 +85,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_SELECTED_CATEGORY_ID = stringPreferencesKey("selected_category_id")
         private val KEY_APPEARANCE_MODE = stringPreferencesKey("appearance_mode")
         private val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
+        private val KEY_USER_NAME = stringPreferencesKey("user_name")
         private val KEY_NOTIFICATION_SOUND = booleanPreferencesKey("notification_sound_enabled")
         private val KEY_HABITS = stringPreferencesKey("habits_json")
         private val KEY_NEXT_HABIT_ID = intPreferencesKey("next_habit_id")
@@ -153,6 +155,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
                 ?.let { runCatching { AppearanceMode.valueOf(it) }.getOrNull() }
                 ?: AppearanceMode.Auto,
             language = AppLanguage.fromName(prefs[KEY_APP_LANGUAGE]),
+            userName = (prefs[KEY_USER_NAME] ?: "").trim(),
             selectedSoundId = prefs[KEY_SOUND_ID] ?: 1,
             completedSessions = prefs[KEY_COMPLETED] ?: 0,
             settings = TimerSettings(
@@ -183,6 +186,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setGlassReadabilityMode(value: GlassReadabilityMode) = dataStore.edit { it[KEY_GLASS_MODE] = value.name }
     suspend fun setAppearanceMode(value: AppearanceMode) = dataStore.edit { it[KEY_APPEARANCE_MODE] = value.name }
     suspend fun setLanguage(value: AppLanguage) = dataStore.edit { it[KEY_APP_LANGUAGE] = value.name }
+    suspend fun setUserName(value: String) = dataStore.edit { it[KEY_USER_NAME] = value.trim() }
     suspend fun setSelectedSoundId(value: Int) = dataStore.edit { it[KEY_SOUND_ID] = value }
     suspend fun setCompletedSessions(value: Int) = dataStore.edit { it[KEY_COMPLETED] = value }
     suspend fun setSettings(value: TimerSettings) = dataStore.edit { prefs ->
