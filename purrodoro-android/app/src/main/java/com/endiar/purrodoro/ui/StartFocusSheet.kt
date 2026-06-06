@@ -28,21 +28,33 @@ import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.NotebookPen
 import com.composables.icons.lucide.Play
+import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.Square
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -51,10 +63,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.model.Category
 import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.Habit
+import com.endiar.purrodoro.model.HabitOccurrence
+import com.endiar.purrodoro.model.TaskPriority
+import com.endiar.purrodoro.model.TimeBlock
 import com.endiar.purrodoro.model.TimerSettings
+import kotlinx.coroutines.launch
 import com.endiar.purrodoro.model.effectiveTarget
 import com.endiar.purrodoro.model.isScheduledOn
 import com.endiar.purrodoro.model.isSkippedOn
@@ -62,9 +79,11 @@ import com.endiar.purrodoro.model.isTargetMetOn
 import com.endiar.purrodoro.model.progressOn
 import com.endiar.purrodoro.ui.components.FocusAlreadyCompleteDialog
 import com.endiar.purrodoro.ui.components.KuroCard
+import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroBottomSheetSubpageHeader
 import com.endiar.purrodoro.ui.designsystem.KuroInputField
+import com.endiar.purrodoro.ui.designsystem.KuroMoreOptionsAccordion
 import com.endiar.purrodoro.ui.designsystem.KuroSelectionList
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroStepper
@@ -91,6 +110,8 @@ private enum class StartFocusSheetPage {
     EditConfig,
     PickTask,
     PickHabit,
+    CreateTask,
+    CreateHabit,
 }
 
 sealed class StartFocusPrefill {
@@ -130,6 +151,10 @@ fun StartFocusSheet(
     onDismiss: () -> Unit,
     onStartFocus: (StartFocusRequest) -> Unit,
     prefill: StartFocusPrefill? = null,
+    categories: List<Category> = emptyList(),
+    defaultCategoryId: Int? = null,
+    onAddTask: ((String, Int?, TaskPriority, LocalDate?) -> Int)? = null,
+    onAddHabit: (suspend (HabitDraft) -> Int)? = null,
 ) {
     val initialIntent = when (prefill) {
         is StartFocusPrefill.Task -> FocusIntent.Task
@@ -167,6 +192,30 @@ fun StartFocusSheet(
     // to onStartFocus untouched, so the task/habit keeps its done state and only
     // the Pomodoro itself is recorded.
     var pendingCompletedRequest by remember { mutableStateOf<StartFocusRequest?>(null) }
+
+    // CreateTask page state
+    var createTaskTitle by rememberSaveable { mutableStateOf("") }
+    var createTaskCategoryId by rememberSaveable { mutableStateOf(defaultCategoryId) }
+    var createTaskPriority by rememberSaveable { mutableStateOf(TaskPriority.Normal) }
+    var createTaskDueDate by rememberSaveable(stateSaver = androidx.compose.runtime.saveable.Saver(
+        save = { it?.toString() ?: "" },
+        restore = { raw -> raw.takeIf { it.isNotBlank() }?.let { runCatching { LocalDate.parse(it) }.getOrNull() } }
+    )) { mutableStateOf<LocalDate?>(null) }
+    var createTaskMoreExpanded by rememberSaveable { mutableStateOf(false) }
+    var createTaskShowDatePicker by rememberSaveable { mutableStateOf(false) }
+    var createTaskSubPage by rememberSaveable { mutableStateOf<String?>(null) } // "category" | "priority" | null
+
+    // CreateHabit page state
+    var createHabitName by rememberSaveable { mutableStateOf("") }
+    var createHabitEmoji by rememberSaveable { mutableStateOf("✅") }
+    var createHabitColorArgb by rememberSaveable { mutableStateOf(PRESET_COLORS[0]) }
+    var createHabitDays by rememberSaveable(stateSaver = androidx.compose.runtime.saveable.Saver(
+        save = { days: Set<java.time.DayOfWeek> -> days.joinToString(",") { it.name } },
+        restore = { raw -> if (raw.isBlank()) java.time.DayOfWeek.entries.toSet() else raw.split(",").mapNotNull { runCatching { java.time.DayOfWeek.valueOf(it) }.getOrNull() }.toSet() }
+    )) { mutableStateOf(java.time.DayOfWeek.entries.toSet()) }
+    var createHabitMoreExpanded by rememberSaveable { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
 
     val incompleteTasks = tasks.filter { !it.completed }
     val todayHabits = habits.filter { it.isScheduledOn(today) }
@@ -308,6 +357,17 @@ fun StartFocusSheet(
                         pickerSnapshot = null
                         page = StartFocusSheetPage.Confirm
                     },
+                    createTitle = onAddTask?.let { stringResource(R.string.sheet_create_new_task) },
+                    createSubtitle = onAddTask?.let { stringResource(R.string.sheet_create_new_task_subtitle) },
+                    onCreateNew = onAddTask?.let { {
+                        createTaskTitle = ""
+                        createTaskCategoryId = defaultCategoryId
+                        createTaskPriority = TaskPriority.Normal
+                        createTaskDueDate = null
+                        createTaskMoreExpanded = false
+                        createTaskSubPage = null
+                        page = StartFocusSheetPage.CreateTask
+                    } },
                 )
             }
 
@@ -327,6 +387,101 @@ fun StartFocusSheet(
                         intent = FocusIntent.Habit
                         pickerSnapshot = null
                         page = StartFocusSheetPage.Confirm
+                    },
+                    createTitle = onAddHabit?.let { stringResource(R.string.sheet_create_new_habit) },
+                    createSubtitle = onAddHabit?.let { stringResource(R.string.sheet_create_new_habit_subtitle) },
+                    onCreateNew = onAddHabit?.let { {
+                        createHabitName = ""
+                        createHabitEmoji = "✅"
+                        createHabitColorArgb = PRESET_COLORS[0]
+                        createHabitDays = java.time.DayOfWeek.entries.toSet()
+                        createHabitMoreExpanded = false
+                        page = StartFocusSheetPage.CreateHabit
+                    } },
+                )
+            }
+
+            StartFocusSheetPage.CreateTask -> {
+                when (createTaskSubPage) {
+                    "category" -> CategoryPickerPage(
+                        categories = categories,
+                        selectedId = createTaskCategoryId,
+                        onSelect = { createTaskCategoryId = it; createTaskSubPage = null },
+                        onAddCategory = null,
+                        onBack = { createTaskSubPage = null },
+                    )
+                    "priority" -> PriorityPickerPage(
+                        selected = createTaskPriority,
+                        onSelect = { createTaskPriority = it; createTaskSubPage = null },
+                        onBack = { createTaskSubPage = null },
+                    )
+                    else -> StartFocusCreateTaskContent(
+                        title = createTaskTitle,
+                        onTitleChange = { createTaskTitle = it },
+                        categoryId = createTaskCategoryId,
+                        categories = categories,
+                        priority = createTaskPriority,
+                        dueDate = createTaskDueDate,
+                        moreExpanded = createTaskMoreExpanded,
+                        onToggleMore = { createTaskMoreExpanded = !createTaskMoreExpanded },
+                        onCategoryClick = { createTaskSubPage = "category" },
+                        onPriorityClick = { createTaskSubPage = "priority" },
+                        onDueDateClick = { createTaskShowDatePicker = true },
+                        onClearDueDate = { createTaskDueDate = null },
+                        onBack = { page = StartFocusSheetPage.PickTask },
+                        onConfirm = {
+                            val newId = onAddTask!!(
+                                createTaskTitle.trim(),
+                                createTaskCategoryId,
+                                createTaskPriority,
+                                createTaskDueDate,
+                            )
+                            selectedTaskId = newId
+                            pickerDraftId = newId
+                            intent = FocusIntent.Task
+                            pickerSnapshot = null
+                            page = StartFocusSheetPage.PickTask
+                        },
+                    )
+                }
+                if (createTaskShowDatePicker) {
+                    DueDatePickerDialog(
+                        initial = createTaskDueDate,
+                        onDismiss = { createTaskShowDatePicker = false },
+                        onConfirm = { createTaskDueDate = it; createTaskShowDatePicker = false },
+                    )
+                }
+            }
+
+            StartFocusSheetPage.CreateHabit -> {
+                StartFocusCreateHabitContent(
+                    name = createHabitName,
+                    emoji = createHabitEmoji,
+                    colorArgb = createHabitColorArgb,
+                    selectedDays = createHabitDays,
+                    moreExpanded = createHabitMoreExpanded,
+                    onToggleMore = { createHabitMoreExpanded = !createHabitMoreExpanded },
+                    onNameChange = { createHabitName = it },
+                    onEmojiChange = { createHabitEmoji = it },
+                    onColorChange = { createHabitColorArgb = it },
+                    onDaysChange = { createHabitDays = it },
+                    onBack = { page = StartFocusSheetPage.PickHabit },
+                    onConfirm = {
+                        val draft = HabitDraft(
+                            name = createHabitName.trim(),
+                            emoji = createHabitEmoji.ifBlank { "✅" },
+                            colorArgb = createHabitColorArgb,
+                            occurrence = occurrenceFromDays(createHabitDays),
+                            timeBlock = TimeBlock.Anytime,
+                        )
+                        scope.launch {
+                            val newId = onAddHabit!!(draft)
+                            selectedHabitId = newId
+                            pickerDraftId = newId
+                            intent = FocusIntent.Habit
+                            pickerSnapshot = null
+                            page = StartFocusSheetPage.PickHabit
+                        }
                     },
                 )
             }
@@ -355,6 +510,7 @@ fun StartFocusSheet(
             onDismiss = { pendingCompletedRequest = null },
         )
     }
+
 }
 
 private fun buildStartFocusRequest(
@@ -487,6 +643,9 @@ private fun StartFocusPickerContent(
     onDraftSelect: (Int) -> Unit,
     onBack: () -> Unit,
     onConfirm: () -> Unit,
+    createTitle: String? = null,
+    createSubtitle: String? = null,
+    onCreateNew: (() -> Unit)? = null,
 ) {
     val canConfirm = draftSelectedId >= 0 && options.any { it.first == draftSelectedId }
 
@@ -497,12 +656,313 @@ private fun StartFocusPickerContent(
         onAction = onConfirm,
         actionEnabled = canConfirm,
     )
-    KuroSelectionList(
-        emptyMessage = emptyMessage,
-        options = options,
-        selectedId = draftSelectedId,
-        onSelect = onDraftSelect,
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+    ) {
+        if (createTitle != null && onCreateNew != null) {
+            StartFocusCreateRow(
+                title = createTitle,
+                subtitle = createSubtitle.orEmpty(),
+                onClick = onCreateNew,
+            )
+        }
+        if (options.isEmpty()) {
+            Text(
+                text = emptyMessage,
+                style = KuroType.bodySecondary,
+                color = MaterialTheme.colorScheme.kuroTokens.textSecondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            KuroSelectionList(
+                emptyMessage = emptyMessage,
+                options = options,
+                selectedId = draftSelectedId,
+                onSelect = onDraftSelect,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StartFocusCreateTaskContent(
+    title: String,
+    onTitleChange: (String) -> Unit,
+    categoryId: Int?,
+    categories: List<Category>,
+    priority: TaskPriority,
+    dueDate: LocalDate?,
+    moreExpanded: Boolean,
+    onToggleMore: () -> Unit,
+    onCategoryClick: () -> Unit,
+    onPriorityClick: () -> Unit,
+    onDueDateClick: () -> Unit,
+    onClearDueDate: () -> Unit,
+    onBack: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val selectedCategory = categories.firstOrNull { it.id == categoryId }
+    val categoryLabel = selectedCategory?.name ?: "None"
+    val priorityLabel = when (priority) {
+        TaskPriority.High -> "High"
+        TaskPriority.Normal -> "Normal"
+        TaskPriority.Low -> "Low"
+    }
+    val dueDateLabel = if (dueDate == null) "No due date" else dueDate.toString()
+    val previewText = "$categoryLabel · $priorityLabel · $dueDateLabel"
+
+    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        runCatching { focusRequester.requestFocus() }
+    }
+
+    KuroBottomSheetSubpageHeader(
+        title = stringResource(R.string.tasks_new_task),
+        onBack = onBack,
+        actionLabel = stringResource(R.string.common_done),
+        onAction = onConfirm,
+        actionEnabled = title.trim().isNotEmpty(),
     )
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
+    ) {
+        AddTaskTitleField(
+            title = title,
+            onTitleChange = onTitleChange,
+            focusRequester = focusRequester,
+            onSubmitIme = { if (title.trim().isNotEmpty()) onConfirm() },
+        )
+        KuroMoreOptionsAccordion(
+            expanded = moreExpanded,
+            onToggle = onToggleMore,
+            previewText = previewText,
+        ) {
+            CategoryListRow(
+                categories = categories,
+                selectedId = categoryId,
+                onClick = onCategoryClick,
+            )
+            PriorityListRow(
+                selected = priority,
+                onClick = onPriorityClick,
+            )
+            DueDateListRow(
+                dueDate = dueDate,
+                onPick = onDueDateClick,
+                onClear = onClearDueDate,
+            )
+        }
+        AddTaskPrimaryButton(enabled = title.trim().isNotEmpty(), onClick = onConfirm)
+    }
+}
+
+@Composable
+private fun StartFocusCreateHabitContent(
+    name: String,
+    emoji: String,
+    colorArgb: Long,
+    selectedDays: Set<java.time.DayOfWeek>,
+    moreExpanded: Boolean,
+    onToggleMore: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onEmojiChange: (String) -> Unit,
+    onColorChange: (Long) -> Unit,
+    onDaysChange: (Set<java.time.DayOfWeek>) -> Unit,
+    onBack: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val colorName = "Custom"
+    val repeatLabel = daysSummaryLabel(selectedDays)
+    val previewText = "$colorName · $repeatLabel"
+    var showEmojiPicker by remember { mutableStateOf(false) }
+
+    KuroBottomSheetSubpageHeader(
+        title = stringResource(R.string.habits_add_sheet_title),
+        onBack = onBack,
+        actionLabel = stringResource(R.string.common_done),
+        onAction = onConfirm,
+        actionEnabled = name.trim().isNotEmpty(),
+    )
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                EditorLabel(stringResource(R.string.habits_name_label))
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "${name.length}/$HabitNameMaxLength",
+                    color = if (name.length >= HabitNameMaxLength) tokens.accent else tokens.textMuted,
+                    style = KuroType.labelCaption,
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(KuroSpacing.habitEditorEmojiButton)
+                        .clip(RoundedCornerShape(KuroSpacing.radiusSm))
+                        .background(tokens.segmentedTrack)
+                        .clickable { showEmojiPicker = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(emoji, style = KuroType.habitEmoji)
+                }
+                KuroInputField(
+                    value = name,
+                    onValueChange = { onNameChange(it.take(HabitNameMaxLength)) },
+                    placeholder = stringResource(R.string.habits_name_placeholder),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        KuroMoreOptionsAccordion(
+            expanded = moreExpanded,
+            onToggle = onToggleMore,
+            previewText = previewText,
+        ) {
+            EditorLabel(stringResource(R.string.habits_color_label))
+            Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                PRESET_COLORS.forEach { c ->
+                    Box(
+                        modifier = Modifier
+                            .size(KuroSpacing.habitColorSwatch)
+                            .clip(CircleShape)
+                            .background(Color(c.toInt()))
+                            .border(
+                                KuroSpacing.habitColorSwatchRing,
+                                if (c == colorArgb) tokens.textPrimary else Color.Transparent,
+                                CircleShape,
+                            )
+                            .clickable { onColorChange(c) },
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                EditorLabel(stringResource(R.string.habits_repeat_label))
+                Text(
+                    text = daysSummaryLabel(selectedDays),
+                    color = tokens.textSecondary,
+                    style = KuroType.labelMeta,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+            ) {
+                val dayLocale = activeLocale()
+                java.time.DayOfWeek.entries.forEach { dow ->
+                    DayToggle(
+                        label = dow.getDisplayName(java.time.format.TextStyle.NARROW, dayLocale),
+                        selected = dow in selectedDays,
+                        accent = Color(colorArgb.toInt()),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        val newDays = if (dow in selectedDays) {
+                            (selectedDays - dow).ifEmpty { selectedDays }
+                        } else {
+                            selectedDays + dow
+                        }
+                        onDaysChange(newDays)
+                    }
+                }
+            }
+        }
+
+        KuroPrimaryButton(
+            text = stringResource(R.string.habits_add_button),
+            onClick = onConfirm,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = name.trim().isNotEmpty(),
+        )
+    }
+
+    if (showEmojiPicker) {
+        HabitEmojiPickerDialog(
+            currentEmoji = emoji,
+            accentColor = Color(colorArgb.toInt()),
+            onSelect = { onEmojiChange(it); showEmojiPicker = false },
+            onDismiss = { showEmojiPicker = false },
+        )
+    }
+}
+
+@Composable
+private fun StartFocusCreateRow(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val corner = KuroSpacing.radiusMd
+    val borderColor = tokens.accent.copy(alpha = 0.55f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                val stroke = Stroke(
+                    width = 2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f),
+                )
+                drawRoundRect(
+                    color = borderColor,
+                    cornerRadius = CornerRadius(corner.toPx()),
+                    style = stroke,
+                )
+            }
+            .clip(RoundedCornerShape(corner))
+            .clickable(onClick = onClick)
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(tokens.accentSoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Lucide.Plus,
+                contentDescription = null,
+                tint = tokens.accent,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = title,
+                style = KuroType.labelStrong,
+                color = tokens.textPrimary,
+            )
+            if (subtitle.isNotEmpty()) {
+                Text(
+                    text = subtitle,
+                    style = KuroType.bodySecondary,
+                    color = tokens.textSecondary,
+                )
+            }
+        }
+    }
 }
 
 @Composable

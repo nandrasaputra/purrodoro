@@ -292,18 +292,28 @@ fun PurrodoroApp(
         scope.launch { repo.setNotificationSoundEnabled(v) }
     }
 
+    fun createTask(
+        title: String,
+        categoryId: Int?,
+        priority: com.endiar.purrodoro.model.TaskPriority,
+        dueDate: LocalDate?,
+    ): Int {
+        val newId = nextTaskId
+        val newTask = FocusTask(
+            id = newId,
+            title = title,
+            minutes = settings.focusMinutes,
+            categoryId = categoryId,
+            priority = priority,
+            dueDate = dueDate,
+        )
+        persistTasks(tasks + newTask)
+        persistNextTaskId(nextTaskId + 1)
+        return newId
+    }
     val addTask: (String, Int?, com.endiar.purrodoro.model.TaskPriority, LocalDate?) -> Unit =
         { title, categoryId, priority, dueDate ->
-            val newTask = FocusTask(
-                id = nextTaskId,
-                title = title,
-                minutes = settings.focusMinutes,
-                categoryId = categoryId,
-                priority = priority,
-                dueDate = dueDate,
-            )
-            persistTasks(tasks + newTask)
-            persistNextTaskId(nextTaskId + 1)
+            createTask(title, categoryId, priority, dueDate)
         }
     val toggleTask: (Int) -> Unit = { taskId ->
         persistTasks(tasks.map { if (it.id == taskId) it.toggleCompleted() else it })
@@ -736,6 +746,20 @@ fun PurrodoroApp(
                         habits = appState.habits,
                         today = LocalDate.now(),
                         prefill = startFocusPrefill,
+                        categories = categories,
+                        defaultCategoryId = selectedCategoryId,
+                        onAddTask = { title, categoryId, priority, dueDate ->
+                            createTask(title, categoryId, priority, dueDate)
+                        },
+                        onAddHabit = { draft ->
+                            repo.addHabit(
+                                name = draft.name,
+                                emoji = draft.emoji,
+                                colorArgb = draft.colorArgb,
+                                occurrence = draft.occurrence,
+                                timeBlock = draft.timeBlock,
+                            )
+                        },
                         onDismiss = {
                             showStartFocusSheet = false
                             startFocusPrefill = null

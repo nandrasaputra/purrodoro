@@ -323,16 +323,21 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         colorArgb: Long,
         occurrence: HabitOccurrence = HabitOccurrence.Daily,
         timeBlock: TimeBlock = TimeBlock.Anytime,
-    ) = dataStore.edit { prefs ->
-        val nextId = prefs[KEY_NEXT_HABIT_ID] ?: 1
-        val existing = decodeHabits(prefs[KEY_HABITS] ?: "")
-        val habit = Habit(
-            id = nextId, name = name, emoji = emoji, colorArgb = colorArgb,
-            createdAt = System.currentTimeMillis(),
-            occurrence = occurrence, timeBlock = timeBlock,
-        )
-        prefs[KEY_HABITS] = encodeHabits(existing + habit)
-        prefs[KEY_NEXT_HABIT_ID] = nextId + 1
+    ): Int {
+        var newId = 0
+        dataStore.edit { prefs ->
+            val nextId = prefs[KEY_NEXT_HABIT_ID] ?: 1
+            newId = nextId
+            val existing = decodeHabits(prefs[KEY_HABITS] ?: "")
+            val habit = Habit(
+                id = nextId, name = name, emoji = emoji, colorArgb = colorArgb,
+                createdAt = System.currentTimeMillis(),
+                occurrence = occurrence, timeBlock = timeBlock,
+            )
+            prefs[KEY_HABITS] = encodeHabits(existing + habit)
+            prefs[KEY_NEXT_HABIT_ID] = nextId + 1
+        }
+        return newId
     }
 
     suspend fun deleteHabit(id: Int) = dataStore.edit { prefs ->

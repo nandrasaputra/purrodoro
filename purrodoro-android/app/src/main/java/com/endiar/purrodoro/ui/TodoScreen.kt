@@ -1077,7 +1077,7 @@ private const val TaskTitleMaxLength = 50
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddTaskSheet(
+internal fun AddTaskSheet(
     categories: List<Category>,
     defaultCategoryId: Int?,
     onDismiss: () -> Unit,
@@ -1175,7 +1175,7 @@ private fun AddTaskSheet(
 }
 
 @Composable
-private fun AddTaskTitleField(
+internal fun AddTaskTitleField(
     title: String,
     onTitleChange: (String) -> Unit,
     focusRequester: FocusRequester,
@@ -1219,7 +1219,7 @@ private fun AddTaskTitleField(
  * (Add task / Focus with Purrodoro) share the same shape, height, and motion.
  */
 @Composable
-private fun AddTaskPrimaryButton(enabled: Boolean, onClick: () -> Unit) {
+internal fun AddTaskPrimaryButton(enabled: Boolean, onClick: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val fill = if (enabled) tokens.accent else tokens.accent.copy(alpha = 0.35f)
     val contentColor = if (enabled) tokens.accentOn else tokens.accentOn.copy(alpha = 0.7f)
@@ -1749,7 +1749,7 @@ private fun DetailListRow(
  * of the task properties.
  */
 @Composable
-private fun PriorityListRow(
+internal fun PriorityListRow(
     selected: TaskPriority,
     onClick: () -> Unit,
 ) {
@@ -1771,7 +1771,7 @@ private fun PriorityListRow(
  * [CategoryPickerPage]). Replaces the old horizontally-scrolling pill strip.
  */
 @Composable
-private fun CategoryListRow(
+internal fun CategoryListRow(
     categories: List<Category>,
     selectedId: Int?,
     onClick: () -> Unit,
@@ -1826,7 +1826,7 @@ private fun CategoryListRow(
  * the "None" option so the absence of a category reads clearly.
  */
 @Composable
-private fun CategoryDot(color: Color, hollow: Boolean) {
+internal fun CategoryDot(color: Color, hollow: Boolean) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Box(
         modifier = Modifier
@@ -1851,7 +1851,7 @@ private fun CategoryDot(color: Color, hollow: Boolean) {
  * an option fires [onSelect] and the host returns to the main page.
  */
 @Composable
-private fun CategoryPickerPage(
+internal fun CategoryPickerPage(
     categories: List<Category>,
     selectedId: Int?,
     onSelect: (Int?) -> Unit,
@@ -1918,7 +1918,7 @@ private fun CategoryPickerPage(
  * description so the relative weight of High / Normal / Low reads at a glance.
  */
 @Composable
-private fun PriorityPickerPage(
+internal fun PriorityPickerPage(
     selected: TaskPriority,
     onSelect: (TaskPriority) -> Unit,
     onBack: () -> Unit,
@@ -1962,7 +1962,7 @@ private fun PriorityPickerPage(
  * an optional subtitle.
  */
 @Composable
-private fun PickerOptionRow(
+internal fun PickerOptionRow(
     selected: Boolean,
     onClick: () -> Unit,
     leading: @Composable () -> Unit,
@@ -2017,7 +2017,7 @@ private fun PickerOptionRow(
  * users can drop the date without hunting through the picker.
  */
 @Composable
-private fun DueDateListRow(
+internal fun DueDateListRow(
     dueDate: LocalDate?,
     onPick: () -> Unit,
     onClear: () -> Unit,
@@ -2155,7 +2155,7 @@ private fun FocusWithKuroButton(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DueDatePickerDialog(
+internal fun DueDatePickerDialog(
     initial: LocalDate?,
     onDismiss: () -> Unit,
     onConfirm: (LocalDate?) -> Unit,
