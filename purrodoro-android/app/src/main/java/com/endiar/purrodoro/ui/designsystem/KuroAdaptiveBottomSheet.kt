@@ -1,5 +1,7 @@
 package com.endiar.purrodoro.ui.designsystem
 
+import android.graphics.drawable.ColorDrawable
+import android.view.ViewGroup
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -37,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +61,8 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.composed
 import androidx.compose.ui.unit.Dp
@@ -66,6 +70,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.X
 import com.endiar.purrodoro.R
@@ -195,6 +201,19 @@ fun KuroAdaptiveBottomSheet(
             decorFitsSystemWindows = false,
         ),
     ) {
+        // Compose Dialog defaults to wrap_content height, so the window stops
+        // above the nav bar and the activity (Home quote card) shows through.
+        // Force a full-screen transparent window; insets stay on sheet content.
+        val view = LocalView.current
+        val isInspectionMode = LocalInspectionMode.current
+        SideEffect {
+            if (isInspectionMode) return@SideEffect
+            val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+        }
+
         Box(modifier = modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visible = visible,
@@ -293,8 +312,7 @@ fun KuroAdaptiveBottomSheet(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() },
                             onClick = {},
-                        )
-                        .navigationBarsPadding(),
+                        ),
                 ) {
                     KuroBottomSheetDragHandle(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -303,6 +321,7 @@ fun KuroAdaptiveBottomSheet(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .navigationBarsPadding()
                             .padding(horizontal = horizontalPadding),
                     ) {
                         // The scrollable body uses weight(fill = false) so the sheet
