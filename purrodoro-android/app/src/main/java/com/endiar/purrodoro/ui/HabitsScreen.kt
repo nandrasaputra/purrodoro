@@ -97,6 +97,86 @@ data class HabitDraft(
     val timeBlock: TimeBlock,
 )
 
+// ─── Shared emoji picker dialog ──────────────────────────────────────────────
+
+@Composable
+internal fun HabitEmojiPickerDialog(
+    currentEmoji: String,
+    accentColor: Color,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2)) {
+                Text(stringResource(R.string.habits_choose_icon), color = tokens.textPrimary, style = KuroType.headingCard)
+                Text(
+                    stringResource(R.string.habits_choose_icon_sub),
+                    color = tokens.textSecondary,
+                    style = KuroType.bodySecondary,
+                )
+            }
+        },
+        text = {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(6),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = KuroSpacing.habitEmojiPickerMaxHeight),
+                verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+            ) {
+                items(HABIT_EMOJIS) { e ->
+                    val isSelected = e == currentEmoji
+                    Box(
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                            .background(if (isSelected) accentColor.copy(alpha = 0.22f) else tokens.segmentedTrack)
+                            .border(
+                                KuroSpacing.habitColorSwatchRing,
+                                if (isSelected) accentColor else Color.Transparent,
+                                RoundedCornerShape(KuroSpacing.radiusMd),
+                            )
+                            .clickable { onSelect(e) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(e, style = KuroType.habitEmoji, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_done), color = tokens.accent, style = KuroType.labelStrong)
+            }
+        },
+        containerColor = tokens.cardFill,
+        shape = RoundedCornerShape(KuroSpacing.radiusLg),
+    )
+}
+
+// ─── Shared add sheet (Tasks tab + Start Focus picker) ───────────────────────
+
+@Composable
+internal fun AddHabitSheet(
+    onConfirm: (HabitDraft) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    KuroBottomSheet(
+        title = stringResource(R.string.habits_add_sheet_title),
+        onDismiss = onDismiss,
+    ) {
+        HabitEditorSheet(
+            initial = null,
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+        )
+    }
+}
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -255,13 +335,10 @@ fun HabitsScreen(
     }
 
     if (showAddSheet) {
-        KuroBottomSheet(title = stringResource(R.string.habits_add_sheet_title), onDismiss = { showAddSheet = false }) {
-            HabitEditorSheet(
-                initial = null,
-                onConfirm = { draft -> onAddHabit(draft); showAddSheet = false },
-                onDismiss = { showAddSheet = false },
-            )
-        }
+        AddHabitSheet(
+            onConfirm = { draft -> onAddHabit(draft); showAddSheet = false },
+            onDismiss = { showAddSheet = false },
+        )
     }
 }
 
@@ -383,7 +460,7 @@ private fun HabitListCard(
 
 /** The locale currently applied by [KuroLocalizationProvider]. */
 @Composable
-private fun activeLocale(): Locale = LocalConfiguration.current.locales[0]
+internal fun activeLocale(): Locale = LocalConfiguration.current.locales[0]
 
 private fun habitTodayStatus(habit: Habit, today: LocalDate): KuroHabitTodayStatus = when {
     !habit.isScheduledOn(today) -> KuroHabitTodayStatus.RestDay
@@ -465,7 +542,7 @@ private fun nextScheduledLabel(habit: Habit, @Suppress("UNUSED_PARAMETER") today
 
 // ─── Habit editor sheet ───────────────────────────────────────────────────────
 
-private val PRESET_COLORS: List<Long> = listOf(
+internal val PRESET_COLORS: List<Long> = listOf(
     0xFFEF9A9AL, 0xFFFFCC80L, 0xFFFFF176L, 0xFFA5D6A7L,
     0xFF80DEEAL, 0xFF90CAF9L, 0xFFCE93D8L, 0xFFBCAAA4L,
 )
@@ -486,7 +563,7 @@ private val HABIT_EMOJIS: List<String> = listOf(
 )
 
 /** Max length for a habit name, enforced on the editor field. */
-private const val HabitNameMaxLength = 50
+internal const val HabitNameMaxLength = 50
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -636,57 +713,11 @@ private fun HabitEditorSheet(
     }
 
     if (showEmojiPicker) {
-        val accent = Color(colorArgb.toInt())
-        AlertDialog(
-            onDismissRequest = { showEmojiPicker = false },
-            title = {
-                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2)) {
-                    Text(stringResource(R.string.habits_choose_icon), color = tokens.textPrimary, style = KuroType.headingCard)
-                    Text(
-                        stringResource(R.string.habits_choose_icon_sub),
-                        color = tokens.textSecondary,
-                        style = KuroType.bodySecondary,
-                    )
-                }
-            },
-            text = {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(6),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = KuroSpacing.habitEmojiPickerMaxHeight),
-                    verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-                ) {
-                    items(HABIT_EMOJIS) { e ->
-                        val isSelected = e == emoji
-                        Box(
-                            modifier = Modifier
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-                                .background(
-                                    if (isSelected) accent.copy(alpha = 0.22f) else tokens.segmentedTrack,
-                                )
-                                .border(
-                                    KuroSpacing.habitColorSwatchRing,
-                                    if (isSelected) accent else Color.Transparent,
-                                    RoundedCornerShape(KuroSpacing.radiusMd),
-                                )
-                                .clickable { emoji = e; showEmojiPicker = false },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(e, style = KuroType.habitEmoji, textAlign = TextAlign.Center)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showEmojiPicker = false }) {
-                    Text(stringResource(R.string.common_done), color = tokens.accent, style = KuroType.labelStrong)
-                }
-            },
-            containerColor = tokens.cardFill,
-            shape = RoundedCornerShape(KuroSpacing.radiusLg),
+        HabitEmojiPickerDialog(
+            currentEmoji = emoji,
+            accentColor = Color(colorArgb.toInt()),
+            onSelect = { emoji = it; showEmojiPicker = false },
+            onDismiss = { showEmojiPicker = false },
         )
     }
 
@@ -712,14 +743,14 @@ private fun HabitEditorSheet(
 }
 
 @Composable
-private fun EditorLabel(text: String) {
+internal fun EditorLabel(text: String) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Text(text = text, color = tokens.textMuted, style = KuroType.labelCaption)
 }
 
 /** Single round day-of-week toggle used by the schedule picker. */
 @Composable
-private fun DayToggle(
+internal fun DayToggle(
     label: String,
     selected: Boolean,
     accent: Color,
@@ -752,17 +783,17 @@ private fun DayToggle(
 
 private val ALL_DAYS: Set<DayOfWeek> = DayOfWeek.entries.toSet()
 
-private fun initialSelectedDays(occurrence: HabitOccurrence): Set<DayOfWeek> = when (occurrence) {
+internal fun initialSelectedDays(occurrence: HabitOccurrence): Set<DayOfWeek> = when (occurrence) {
     HabitOccurrence.Daily -> ALL_DAYS
     is HabitOccurrence.Weekdays -> occurrence.days
 }
 
-private fun occurrenceFromDays(days: Set<DayOfWeek>): HabitOccurrence =
+internal fun occurrenceFromDays(days: Set<DayOfWeek>): HabitOccurrence =
     if (days.isEmpty() || days.size == ALL_DAYS.size) HabitOccurrence.Daily
     else HabitOccurrence.Weekdays(days)
 
 @Composable
-private fun daysSummaryLabel(days: Set<DayOfWeek>): String = when {
+internal fun daysSummaryLabel(days: Set<DayOfWeek>): String = when {
     days.isEmpty() || days.size == ALL_DAYS.size -> stringResource(R.string.habits_every_day)
     days.size == 5 && days.none { it == DayOfWeek.SATURDAY || it == DayOfWeek.SUNDAY } ->
         stringResource(R.string.habits_weekdays)

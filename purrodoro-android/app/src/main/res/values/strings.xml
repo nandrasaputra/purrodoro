@@ -197,9 +197,15 @@
     <string name="intent_simple_note">Simple note</string>
     <string name="intent_empty">Empty</string>
     <string name="sheet_choose_task">Choose a task</string>
-    <string name="sheet_no_tasks">No open tasks yet. Add one from the Tasks tab.</string>
+    <string name="sheet_create_new_task">Create new task</string>
+    <string name="sheet_create_new_task_subtitle">Add and select in one step</string>
+    <string name="sheet_no_tasks">No other open tasks yet.</string>
     <string name="sheet_choose_habit">Choose a habit</string>
-    <string name="sheet_no_habits">No habits left to focus on today.</string>
+    <string name="sheet_create_new_habit">Create new habit</string>
+    <string name="sheet_create_new_habit_subtitle">Add and select in one step</string>
+    <string name="sheet_no_habits">No other habits left to focus on today.</string>
+    <string name="sheet_new_task_hint">Task name…</string>
+    <string name="sheet_new_habit_hint">Habit name…</string>
     <string name="sheet_write_note">Write a quick note…</string>
     <string name="sheet_change">Change</string>
     <string name="sheet_edit_config">Edit config</string>

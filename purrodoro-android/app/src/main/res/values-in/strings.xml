@@ -194,9 +194,15 @@
     <string name="intent_simple_note">Catatan singkat</string>
     <string name="intent_empty">Kosong</string>
     <string name="sheet_choose_task">Pilih tugas</string>
-    <string name="sheet_no_tasks">Belum ada tugas terbuka. Tambahkan dari tab Tugas.</string>
+    <string name="sheet_create_new_task">Buat tugas baru</string>
+    <string name="sheet_create_new_task_subtitle">Tambah dan pilih sekaligus</string>
+    <string name="sheet_no_tasks">Belum ada tugas terbuka lainnya.</string>
     <string name="sheet_choose_habit">Pilih kebiasaan</string>
-    <string name="sheet_no_habits">Tidak ada kebiasaan tersisa untuk difokuskan hari ini.</string>
+    <string name="sheet_create_new_habit">Buat kebiasaan baru</string>
+    <string name="sheet_create_new_habit_subtitle">Tambah dan pilih sekaligus</string>
+    <string name="sheet_no_habits">Tidak ada kebiasaan lain untuk difokuskan hari ini.</string>
+    <string name="sheet_new_task_hint">Nama tugas…</string>
+    <string name="sheet_new_habit_hint">Nama kebiasaan…</string>
     <string name="sheet_write_note">Tulis catatan singkat…</string>
     <string name="sheet_change">Ubah</string>
     <string name="sheet_edit_config">Ubah konfigurasi</string>
