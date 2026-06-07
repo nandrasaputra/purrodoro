@@ -245,6 +245,69 @@ Reference documents:
 
 ---
 
+## Authentication & account sync
+
+Purrodoro uses **Supabase Auth** as the backend. Login is optional — guests can
+use the app locally without an account. Profile and app data sync across
+devices only after sign-in.
+
+> Current Android build still uses a local auth stub (`AuthRepository`). Wire to
+> Supabase `signInWithIdToken` / email flows when the project is connected.
+
+### Sign-in options by platform
+
+| Platform | Options | Notes |
+|---|---|---|
+| **Android** | Google, Email, Guest | No Apple Sign-In on Android |
+| **iOS** | Google, Apple, Email, Guest | **Apple is required** when Google is offered (App Store guideline 4.8) |
+
+**Guest** is not a cloud account. The user continues without signing in; data
+stays on-device until they authenticate. Optionally upgrade to Supabase
+**anonymous auth** so a guest session can later be linked to Google / Apple /
+email without losing data.
+
+**Email** can be implemented as magic link (simpler) or email + password.
+
+### Where sign-in appears
+
+| Surface | Behavior |
+|---|---|
+| Onboarding page 0 (Welcome) | Primary CTA **Sign in** opens login sheet; secondary **Continue as guest** advances to name page |
+| Profile → Account | Guest card prompts sign-in; signed-in card shows provider + sign out |
+
+### Identity rules (Supabase)
+
+One Supabase user = one `auth.users.id`. That ID is the canonical key for
+profile sync.
+
+| Scenario | Result |
+|---|---|
+| Same Google account on Android + iOS | **Same user** — profile syncs automatically |
+| Same verified email across providers (e.g. Google + magic link) | **Same user** — Supabase auto-links by email |
+| Different emails on different devices (e.g. `alice@gmail.com` + `bob@icloud.com`) | **Different users** — not merged automatically |
+| User wants two emails on one account | Enable **manual identity linking** in Supabase dashboard + add a Profile “Link account” flow |
+
+**Product default:** one person uses one Google (or Apple) account on all
+devices. Do not auto-merge unrelated emails.
+
+### Profile sync (target architecture)
+
+```
+Device (local AppState cache)
+        ↕ read / write on sign-in & on change
+Supabase Auth  →  auth.users.id
+        ↕
+profiles table (RLS: user_id = auth.uid())
+  display_name, timer_settings, language, …
+```
+
+On first sign-in, upload local guest data to the signed-in `user_id`. On
+subsequent launches, pull remote profile and merge into local storage.
+
+Sign-out clears the auth session only; local app data is kept (current behavior).
+
+---
+
 ## Glossary
 
 - **Cycle** — one full Pomodoro plan from first Focus through the trailing LongBreak. = one `SessionRecord`.

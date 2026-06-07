@@ -1,11 +1,7 @@
 package com.endiar.purrodoro.ui.onboarding
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,13 +24,19 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.composables.icons.lucide.Check
+import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.CircleCheck
+import com.composables.icons.lucide.Languages
 import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.NotebookPen
 import com.composables.icons.lucide.Square
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -61,6 +63,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.auth.AuthRepository
+import com.endiar.purrodoro.model.AppLanguage
+import com.endiar.purrodoro.ui.auth.LoginSheet
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.NunitoFamily
@@ -90,8 +95,12 @@ private const val NAME_MAX_LENGTH = 24
  */
 @Composable
 fun OnboardingScreen(
+    authRepository: AuthRepository,
+    language: AppLanguage = AppLanguage.System,
+    onUpdateLanguage: (AppLanguage) -> Unit = {},
     onSkip: (name: String) -> Unit,
     onAllowNotifications: (name: String) -> Unit,
+    onPersistUserName: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -101,6 +110,7 @@ fun OnboardingScreen(
     val isFirstPage = currentPage == 0
     val isLastPage = currentPage == PAGE_COUNT - 1
     var name by remember { mutableStateOf("") }
+    var showLoginSheet by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -112,6 +122,8 @@ fun OnboardingScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             OnboardingTopBar(
+                language = language,
+                onUpdateLanguage = onUpdateLanguage,
                 showSkip = currentPage in 1 until PAGE_COUNT - 1,
                 onSkip = { onSkip(name.trim()) },
             )
@@ -157,13 +169,18 @@ fun OnboardingScreen(
                 isFirstPage = isFirstPage,
                 isLastPage = isLastPage,
                 onPrimary = {
-                    if (isLastPage) {
-                        onAllowNotifications(name.trim())
-                    } else {
-                        scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
+                    when {
+                        isFirstPage -> showLoginSheet = true
+                        isLastPage -> onAllowNotifications(name.trim())
+                        else -> scope.launch { pagerState.animateScrollToPage(currentPage + 1) }
                     }
                 },
-                onSecondary = { onSkip(name.trim()) },
+                onSecondary = {
+                    when {
+                        isFirstPage -> scope.launch { pagerState.animateScrollToPage(1) }
+                        isLastPage -> onSkip(name.trim())
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
@@ -174,12 +191,31 @@ fun OnboardingScreen(
             )
         }
     }
+
+    if (showLoginSheet) {
+        LoginSheet(
+            authRepository = authRepository,
+            onDismiss = { showLoginSheet = false },
+            onSignedIn = { user ->
+                showLoginSheet = false
+                user.displayName?.trim()?.takeIf { it.isNotBlank() }?.let { accountName ->
+                    name = accountName
+                    onPersistUserName(accountName)
+                }
+                scope.launch { pagerState.animateScrollToPage(1) }
+            },
+            onContinueAsGuest = { showLoginSheet = false },
+            fallbackDisplayName = name.trim(),
+        )
+    }
 }
 
 // ── Top bar ──────────────────────────────────────────────────────────────────
 
 @Composable
 private fun OnboardingTopBar(
+    language: AppLanguage,
+    onUpdateLanguage: (AppLanguage) -> Unit,
     showSkip: Boolean,
     onSkip: () -> Unit,
 ) {
@@ -189,9 +225,13 @@ private fun OnboardingTopBar(
             .fillMaxWidth()
             .heightIn(min = KuroSpacing.xxxl)
             .padding(horizontal = KuroSpacing.md),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        OnboardingLanguageSelector(
+            language = language,
+            onSelect = onUpdateLanguage,
+        )
         if (showSkip) {
             TextButton(onClick = onSkip) {
                 Text(
@@ -202,6 +242,91 @@ private fun OnboardingTopBar(
             }
         }
     }
+}
+
+@Composable
+private fun OnboardingLanguageSelector(
+    language: AppLanguage,
+    onSelect: (AppLanguage) -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val displayLabel = onboardingTopBarLanguageLabel(language)
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        TextButton(onClick = { expanded = true }) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+            ) {
+                Icon(
+                    imageVector = Lucide.Languages,
+                    contentDescription = stringResource(R.string.settings_language_label),
+                    tint = tokens.textSecondary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = displayLabel,
+                    color = tokens.textSecondary,
+                    style = KuroType.labelStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 140.dp),
+                )
+                Icon(
+                    imageVector = Lucide.ChevronDown,
+                    contentDescription = null,
+                    tint = tokens.textMuted,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            AppLanguage.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = onboardingPickerLanguageLabel(option),
+                            style = KuroType.bodyPrimary,
+                        )
+                    },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    },
+                    leadingIcon = if (option == language) {
+                        {
+                            Icon(
+                                imageVector = Lucide.Check,
+                                contentDescription = null,
+                                tint = tokens.accent,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
+    }
+}
+
+private fun onboardingTopBarLanguageLabel(language: AppLanguage): String = when (language) {
+    AppLanguage.System -> AppLanguage.resolvedSystemLocaleName()
+    else -> language.label
+}
+
+@Composable
+private fun onboardingPickerLanguageLabel(option: AppLanguage): String = when (option) {
+    AppLanguage.System -> stringResource(
+        R.string.settings_language_system_picker,
+        AppLanguage.resolvedSystemLocaleName(),
+    )
+    else -> option.label
 }
 
 // ── Page 0: Welcome ──────────────────────────────────────────────────────────
@@ -236,11 +361,11 @@ private fun WelcomePage() {
             .background(tokens.activeCardFill),
     ) {
         Image(
-            painter = painterResource(id = R.drawable.cat_welcome),
+            painter = painterResource(id = R.drawable.cat_onboarding_pomodoro),
             contentDescription = stringResource(R.string.onboarding_welcome_cat_cd),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
-            alignment = Alignment.BottomCenter,
+            alignment = Alignment.Center,
         )
     }
 
@@ -670,47 +795,64 @@ private fun BottomCtaBlock(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val primaryLabel = when {
-        isFirstPage -> stringResource(R.string.onboarding_cta_get_started)
+        isFirstPage -> stringResource(R.string.onboarding_cta_sign_in)
         isLastPage -> stringResource(R.string.onboarding_cta_turn_on_notifications)
         else -> stringResource(R.string.onboarding_cta_next)
+    }
+    val secondaryLabel = when {
+        isFirstPage -> stringResource(R.string.onboarding_cta_continue_as_guest)
+        isLastPage -> stringResource(R.string.onboarding_cta_not_now)
+        else -> null
     }
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AnimatedContent(
-            targetState = primaryLabel,
-            transitionSpec = {
-                (fadeIn(tween(180)) togetherWith fadeOut(tween(120)))
-            },
-            label = "onboardingCtaSwap",
-        ) { label ->
-            Button(
-                onClick = onPrimary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(KuroSpacing.radiusPill),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = tokens.interactiveFill,
-                    contentColor = tokens.interactiveText,
-                ),
-            ) {
-                Text(
-                    text = label,
-                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
-                )
-            }
+        Button(
+            onClick = onPrimary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(KuroSpacing.radiusPill),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = tokens.interactiveFill,
+                contentColor = tokens.interactiveText,
+            ),
+        ) {
+            Text(
+                text = primaryLabel,
+                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+            )
         }
 
-        if (isLastPage) {
-            Spacer(Modifier.height(KuroSpacing.xs))
-            TextButton(onClick = onSecondary) {
-                Text(
-                    text = stringResource(R.string.onboarding_cta_not_now),
-                    color = tokens.textSecondary,
-                    style = KuroType.labelStrong,
-                )
+        secondaryLabel?.let { label ->
+            Spacer(Modifier.height(if (isFirstPage) KuroSpacing.sm else KuroSpacing.xs))
+            if (isFirstPage) {
+                OutlinedButton(
+                    onClick = onSecondary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(KuroSpacing.radiusPill),
+                    border = BorderStroke(1.dp, tokens.accent),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = tokens.pageBackground,
+                        contentColor = tokens.accent,
+                    ),
+                ) {
+                    Text(
+                        text = label,
+                        style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+                    )
+                }
+            } else {
+                TextButton(onClick = onSecondary) {
+                    Text(
+                        text = label,
+                        color = tokens.textSecondary,
+                        style = KuroType.labelStrong,
+                    )
+                }
             }
         }
     }
