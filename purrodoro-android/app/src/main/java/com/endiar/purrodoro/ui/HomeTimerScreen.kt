@@ -135,10 +135,19 @@ fun HomeTimerScreen(
     onContinueFocus: () -> Unit = {},
     onStop: () -> Unit,
     onOpenProfile: () -> Unit = {},
+    onOpenSoundscape: () -> Unit = {},
+    onMuteSoundscape: () -> Unit = {},
+    playingAmbienceName: String? = null,
+    playingMusicName: String? = null,
+    ambienceVolume: Float = 0.7f,
+    musicVolume: Float = 0.45f,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    val dockBottom = contentPadding.calculateBottomPadding()
+    val miniPlayerBottomInset = dockBottom + KuroSpacing.sm
+    val scrollBottomPadding = KuroSpacing.dockClearance + KuroSpacing.soundscapeMiniPlayerClearance
     // Raw status-bar inset. The parent applies statusBarsPadding to the whole
     // tab surface, so the sticky bar would otherwise start below the status
     // bar and leave a mismatched strip above it. We let the sticky bar extend
@@ -166,7 +175,7 @@ fun HomeTimerScreen(
                 // dockClearance keeps the last content row (e.g. the
                 // AutoCompleteTip while a cycle is running) above the
                 // floating dock instead of being half-hidden behind it.
-                .padding(top = 18.dp, bottom = KuroSpacing.dockClearance),
+                .padding(top = 18.dp, bottom = scrollBottomPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             HomeHeader(
@@ -205,6 +214,10 @@ fun HomeTimerScreen(
                     onStartPause = onStartPause,
                     onEnterFocusMode = onEnterFocusMode,
                     onStop = onStop,
+                    playingAmbienceName = playingAmbienceName,
+                    playingMusicName = playingMusicName,
+                    onOpenSoundscape = onOpenSoundscape,
+                    onMuteSoundscape = onMuteSoundscape,
                     autoCompleteMessage = autoCompleteMessage,
                 )
             } else {
@@ -245,6 +258,17 @@ fun HomeTimerScreen(
         ) {
             HomeStickyBar(onOpenProfile = onOpenProfile, topInset = statusBarTop)
         }
+
+        SoundscapeMiniPlayer(
+            playingAmbienceName = playingAmbienceName,
+            playingMusicName = playingMusicName,
+            onOpenSoundscape = onOpenSoundscape,
+            onMuteAll = onMuteSoundscape,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = KuroSpacing.lg)
+                .padding(bottom = miniPlayerBottomInset),
+        )
     }
 }
 
@@ -471,6 +495,10 @@ private fun ActiveHero(
     onStartPause: () -> Unit,
     onEnterFocusMode: () -> Unit,
     onStop: () -> Unit,
+    playingAmbienceName: String? = null,
+    playingMusicName: String? = null,
+    onOpenSoundscape: () -> Unit = {},
+    onMuteSoundscape: () -> Unit = {},
     autoCompleteMessage: String? = null,
 ) {
     // The timer card (and tip) are pulled upward with a negative offset, which
@@ -502,6 +530,10 @@ private fun ActiveHero(
             onStartPause = onStartPause,
             onEnterFocusMode = onEnterFocusMode,
             onStop = onStop,
+            playingAmbienceName = playingAmbienceName,
+            playingMusicName = playingMusicName,
+            onOpenSoundscape = onOpenSoundscape,
+            onMuteSoundscape = onMuteSoundscape,
             modifier = Modifier
                 .offset(y = (-32).dp)
                 .padding(horizontal = 12.dp)
@@ -538,6 +570,10 @@ private fun ActiveTimerCard(
     onStartPause: () -> Unit,
     onEnterFocusMode: () -> Unit,
     onStop: () -> Unit,
+    playingAmbienceName: String? = null,
+    playingMusicName: String? = null,
+    onOpenSoundscape: () -> Unit = {},
+    onMuteSoundscape: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val currentType = cycleItems.getOrNull(cycleIndex)?.type
