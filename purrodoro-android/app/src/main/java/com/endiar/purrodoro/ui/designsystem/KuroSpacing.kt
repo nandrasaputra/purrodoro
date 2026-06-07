@@ -81,4 +81,14 @@ object KuroSpacing {
     val habitDetailEmojiTile = 64.dp
     val habitCheckCircle = 32.dp
     val habitCheckGlyph = 18.dp
+
+    // Soundscape sheet
+    val soundscapeAmbienceTile = 84.dp
+    val soundscapeAmbienceIcon = 48.dp
+    val soundscapeLofiVinyl = 88.dp
+    val soundscapeLofiLabel = 56.dp
+    val soundscapeScrollPeek = 28.dp
+    val soundscapeMiniPlayerHeight = 56.dp
+    /** Extra scroll clearance so content clears the floating mini player + dock. */
+    val soundscapeMiniPlayerClearance = 72.dp
 }

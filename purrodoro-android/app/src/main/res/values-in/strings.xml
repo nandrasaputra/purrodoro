@@ -237,9 +237,34 @@
     <string name="focus_complete_task_body">Kamu sudah menyelesaikan tugas ini. Mau tetap memfokuskannya? Tugas tetap tercentang dan hanya waktu fokusmu yang dicatat.</string>
     <string name="focus_complete_confirm">Tetap fokus</string>
 
-    <!-- Sounds -->
-    <string name="sounds_title">Suara</string>
-    <string name="sounds_subtitle">Suara ambien untuk sesi fokusmu</string>
+    <!-- Soundscape -->
+    <string name="sounds_title">Soundscape</string>
+    <string name="sounds_subtitle">Campur ambien + lo-fi untuk fokusmu</string>
+    <string name="soundscape_section_ambience">Ambien</string>
+    <string name="soundscape_section_lofi">Musik lo-fi</string>
+    <string name="soundscape_volume_ambience">Ambien</string>
+    <string name="soundscape_volume_music">Musik</string>
+    <string name="soundscape_mute_all">Bisukan semua</string>
+    <string name="sound_rain_short">Hujan</string>
+    <string name="sound_cafe_short">Kafe</string>
+    <string name="sound_forest_short">Hutan</string>
+    <string name="sound_fire_short">Perapian</string>
+    <string name="sound_keys_short">Keyboard</string>
+    <string name="soundscape_compact_idle">Atur Soundscape</string>
+    <string name="soundscape_compact_playing">%1$s</string>
+    <string name="soundscape_compact_separator"> · </string>
+    <string name="soundscape_home_idle">Tidak ada yang diputar</string>
+    <string name="soundscape_home_hint">Ketuk untuk campur ambien + lo-fi</string>
+    <string name="soundscape_home_playing">Sedang diputar</string>
+    <string name="soundscape_home_open">Buka Soundscape</string>
+    <string name="soundscape_home_mute_cd">Bisukan semua suara</string>
+    <string name="soundscape_mini_open_cd">Buka Soundscape</string>
+    <string name="soundscape_mini_expand_cd">Buka kontrol Soundscape</string>
+    <string name="soundscape_volume_percent">%1$d%%</string>
+    <string name="music_study_beats">Study Beats</string>
+    <string name="music_midnight_jazz">Midnight Jazz</string>
+    <string name="music_soft_piano">Soft Piano</string>
+    <string name="music_chill_hop">Chill Hop</string>
     <string name="sound_pill_playing">Diputar</string>
     <string name="sound_pill_selected">Dipilih</string>
     <string name="sound_pill_premium">Premium</string>
