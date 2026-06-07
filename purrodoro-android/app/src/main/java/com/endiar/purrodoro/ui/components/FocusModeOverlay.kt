@@ -68,6 +68,7 @@ import com.endiar.purrodoro.model.TimerMode
 import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TimerState
 import com.endiar.purrodoro.model.formatSeconds
+import com.endiar.purrodoro.ui.SoundscapeCompactBar
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.designsystem.pressScale
@@ -109,6 +110,10 @@ fun FocusModeOverlay(
     onExit: () -> Unit,
     onStartPause: () -> Unit,
     onSkip: () -> Unit,
+    playingAmbienceName: String? = null,
+    playingMusicName: String? = null,
+    onOpenSoundscape: () -> Unit = {},
+    onMuteSoundscape: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier,
 ) {
@@ -309,6 +314,16 @@ fun FocusModeOverlay(
             )
 
             Spacer(modifier = Modifier.weight(0.85f))
+
+            SoundscapeCompactBar(
+                playingAmbienceName = playingAmbienceName,
+                playingMusicName = playingMusicName,
+                onOpenSoundscape = onOpenSoundscape,
+                onMuteAll = onMuteSoundscape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = KuroSpacing.sm),
+            )
 
             BottomActions(
                 breakReady = breakReady,
