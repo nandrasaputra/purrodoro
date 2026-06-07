@@ -88,7 +88,14 @@ data class SoundOption(
     val name: String,
     val description: String,
     val locked: Boolean,
-    val symbol: String
+    val symbol: String,
+)
+
+/** Lo-fi focus track shown in the Soundscape sheet vinyl row. */
+data class MusicOption(
+    val id: Int,
+    val name: String,
+    val locked: Boolean = false,
 )
 
 data class TimerSettings(
