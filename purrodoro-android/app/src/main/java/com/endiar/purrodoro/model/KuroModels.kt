@@ -229,6 +229,12 @@ enum class AppLanguage(val label: String, val tag: String?) {
     companion object {
         fun fromName(name: String?): AppLanguage =
             entries.firstOrNull { it.name == name } ?: System
+
+        /** Endonym for the device locale, mapped to a supported in-app language. */
+        fun resolvedSystemLocaleName(): String = when (java.util.Locale.getDefault().language) {
+            Indonesian.tag -> Indonesian.label
+            else -> English.label
+        }
     }
 }
 

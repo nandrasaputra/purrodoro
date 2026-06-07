@@ -30,7 +30,9 @@
     <!-- Settings / Profile -->
     <string name="settings_title">Pengaturan</string>
     <string name="settings_subtitle">Sesuaikan pengalaman fokusmu.</string>
+    <string name="settings_section_account">AKUN</string>
     <string name="settings_section_profile">PROFIL</string>
+    <string name="settings_name_from_account">Dari akunmu</string>
     <string name="settings_name_label">Nama kamu</string>
     <string name="settings_name_unset">Belum diatur</string>
     <string name="settings_name_placeholder">Masukkan nama kamu</string>
@@ -58,6 +60,7 @@
     <string name="settings_language_label">Bahasa</string>
     <string name="settings_language_subtitle">Pilih bahasa yang kamu inginkan</string>
     <string name="settings_language_system">Bawaan sistem</string>
+    <string name="settings_language_system_picker">Bawaan sistem (%1$s)</string>
     <string name="settings_language_restart_hint">Mengubah bahasa mungkin membuat aplikasi memulai ulang sebentar agar semuanya diperbarui dengan rapi.</string>
     <string name="settings_section_about">TENTANG</string>
     <string name="settings_version">v1.0</string>
@@ -72,7 +75,7 @@
     <string name="onboarding_welcome_to">Selamat datang di</string>
     <string name="onboarding_welcome_title">Ritual fokus yang lebih tenang</string>
     <string name="onboarding_welcome_subtitle">Pilih niat, mulai timer, dan biarkan Purrodoro menjaga ritmenya.</string>
-    <string name="onboarding_welcome_cat_cd">Purrodoro si kucing hangat, beristirahat di padang rumput yang cerah</string>
+    <string name="onboarding_welcome_cat_cd">Purrodoro si kucing hangat di samping timer pomodoro di ruangan yang cerah</string>
     <string name="onboarding_name_title">Purrodoro harus memanggilmu apa?</string>
     <string name="onboarding_name_subtitle">Kami pakai ini untuk menyapamu di layar utama.</string>
     <string name="onboarding_name_placeholder">Nama kamu</string>
@@ -96,9 +99,23 @@
     <string name="onboarding_notif_body">Istirahat sebentar — sesi berikutnya sudah menunggu.</string>
     <string name="onboarding_notif_meta">Purrodoro  ·  sekarang</string>
     <string name="onboarding_cta_get_started">Mulai</string>
+    <string name="onboarding_cta_sign_in">Masuk</string>
+    <string name="onboarding_cta_continue_as_guest">Lanjut sebagai tamu</string>
     <string name="onboarding_cta_turn_on_notifications">Aktifkan notifikasi</string>
     <string name="onboarding_cta_next">Lanjut</string>
     <string name="onboarding_cta_not_now">Nanti saja</string>
+
+    <!-- Account / Login -->
+    <string name="account_sign_in_title">Masuk ke Purrodoro</string>
+    <string name="account_sign_in_subtitle">Simpan kebiasaan dan perjalanan di semua perangkat</string>
+    <string name="account_default_name">Teman Purrodoro</string>
+    <string name="account_signed_in_with_google">Masuk dengan Google</string>
+    <string name="account_sign_out">Keluar</string>
+    <string name="login_sheet_title">Masuk</string>
+    <string name="login_sheet_subtitle">Cara yang lebih tenang untuk menjaga ritual fokusmu.</string>
+    <string name="login_sheet_cat_cd">Purrodoro si kucing melambai</string>
+    <string name="login_continue_with_google">Lanjutkan dengan Google</string>
+    <string name="login_continue_as_guest">Lanjut sebagai tamu</string>
 
     <!-- Timer modes -->
     <string name="timer_mode_focus">Fokus</string>

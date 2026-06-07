@@ -31,7 +31,9 @@
     <!-- Settings / Profile -->
     <string name="settings_title">Settings</string>
     <string name="settings_subtitle">Customize your focus experience.</string>
+    <string name="settings_section_account">ACCOUNT</string>
     <string name="settings_section_profile">PROFILE</string>
+    <string name="settings_name_from_account">From your account</string>
     <string name="settings_name_label">Your name</string>
     <string name="settings_name_unset">Not set</string>
     <string name="settings_name_placeholder">Enter your name</string>
@@ -59,6 +61,7 @@
     <string name="settings_language_label">Language</string>
     <string name="settings_language_subtitle">Choose your preferred language</string>
     <string name="settings_language_system">System default</string>
+    <string name="settings_language_system_picker">System default (%1$s)</string>
     <string name="settings_language_restart_hint">Changing language may briefly restart the app so everything updates cleanly.</string>
     <string name="settings_section_about">ABOUT</string>
     <string name="settings_version">v1.0</string>
@@ -73,7 +76,7 @@
     <string name="onboarding_welcome_to">Welcome to</string>
     <string name="onboarding_welcome_title">A calmer focus ritual</string>
     <string name="onboarding_welcome_subtitle">Pick an intent, start the timer, and let Purrodoro keep the rhythm.</string>
-    <string name="onboarding_welcome_cat_cd">Purrodoro the cozy cat, resting in a sunny meadow</string>
+    <string name="onboarding_welcome_cat_cd">Purrodoro the cozy cat beside a pomodoro timer in a sunlit room</string>
     <string name="onboarding_name_title">What should Purrodoro call you?</string>
     <string name="onboarding_name_subtitle">We\'ll use this to greet you on your home screen.</string>
     <string name="onboarding_name_placeholder">Your name</string>
@@ -97,9 +100,23 @@
     <string name="onboarding_notif_body">Take a short break — your next session is queued.</string>
     <string name="onboarding_notif_meta">Purrodoro  ·  now</string>
     <string name="onboarding_cta_get_started">Get started</string>
+    <string name="onboarding_cta_sign_in">Sign in</string>
+    <string name="onboarding_cta_continue_as_guest">Continue as guest</string>
     <string name="onboarding_cta_turn_on_notifications">Turn on notifications</string>
     <string name="onboarding_cta_next">Next</string>
     <string name="onboarding_cta_not_now">Not now</string>
+
+    <!-- Account / Login -->
+    <string name="account_sign_in_title">Sign in to Purrodoro</string>
+    <string name="account_sign_in_subtitle">Save habits and journey across devices</string>
+    <string name="account_default_name">Purrodoro friend</string>
+    <string name="account_signed_in_with_google">Signed in with Google</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="login_sheet_title">Sign in</string>
+    <string name="login_sheet_subtitle">A calmer way to keep your focus ritual.</string>
+    <string name="login_sheet_cat_cd">Purrodoro the cat waving hello</string>
+    <string name="login_continue_with_google">Continue with Google</string>
+    <string name="login_continue_as_guest">Continue as guest</string>
 
     <!-- Timer modes -->
     <string name="timer_mode_focus">Focus</string>

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.animation.animateColorAsState
@@ -30,6 +31,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.draw.scale
 import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.Bell
+import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Coffee
@@ -83,6 +85,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.AppLanguage
+import com.endiar.purrodoro.model.AuthState
+import com.endiar.purrodoro.model.isNameFromAccount
+import com.endiar.purrodoro.ui.auth.AccountSection
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.ui.components.KuroCard
@@ -111,6 +116,9 @@ fun ProfileScreen(
     userName: String = "",
     onUpdateUserName: (String) -> Unit = {},
     onRequestEnableNotifications: () -> Unit = {},
+    authState: AuthState = AuthState.Guest,
+    onRequestLogin: () -> Unit = {},
+    onSignOut: () -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
@@ -177,13 +185,22 @@ fun ProfileScreen(
             )
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
+            KuroSectionHeader(title = stringResource(R.string.settings_section_account))
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            AccountSection(
+                authState = authState,
+                onRequestLogin = onRequestLogin,
+                onSignOut = onSignOut,
+            )
+
+            Spacer(modifier = Modifier.height(KuroSpacing.xl))
+
             KuroSectionHeader(title = stringResource(R.string.settings_section_profile))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
-                TappableRow(
-                    icon = Lucide.User,
-                    label = stringResource(R.string.settings_name_label),
-                    value = userName.ifBlank { stringResource(R.string.settings_name_unset) },
+                ProfileNameRow(
+                    userName = userName,
+                    showFromAccountHint = isNameFromAccount(authState, userName),
                     onClick = { editingField = "name" },
                 )
             }
@@ -376,6 +393,79 @@ private fun appearanceModeLabel(mode: AppearanceMode): String = when (mode) {
 
 private fun languageLabel(language: AppLanguage, systemLabel: String): String =
     if (language == AppLanguage.System) systemLabel else language.label
+
+@Composable
+private fun ProfileNameRow(
+    userName: String,
+    showFromAccountHint: Boolean,
+    onClick: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val stackedLayout = showFromAccountHint && userName.isNotBlank()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(tokens.accentSoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Lucide.User,
+                contentDescription = null,
+                tint = tokens.accent,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(KuroSpacing.md))
+        if (stackedLayout) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.settings_name_label),
+                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+                    color = tokens.textPrimary,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = userName,
+                    style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+                    color = tokens.accent,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.settings_name_from_account),
+                    style = KuroType.labelMeta,
+                    color = tokens.textMuted,
+                )
+            }
+        } else {
+            Text(
+                text = stringResource(R.string.settings_name_label),
+                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+                color = tokens.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = userName.ifBlank { stringResource(R.string.settings_name_unset) },
+                style = KuroType.bodySecondary,
+                color = tokens.textSecondary,
+            )
+        }
+        Spacer(modifier = Modifier.width(KuroSpacing.xs))
+        Icon(
+            imageVector = Lucide.ChevronRight,
+            contentDescription = null,
+            tint = tokens.accent,
+            modifier = Modifier.size(KuroSpacing.lg),
+        )
+    }
+}
 
 @Composable
 private fun TappableRow(icon: ImageVector, label: String, value: String, onClick: () -> Unit) {
