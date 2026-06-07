@@ -48,8 +48,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.AppState
+import com.endiar.purrodoro.model.AuthState
+import com.endiar.purrodoro.model.resolvedDisplayName
 import com.endiar.purrodoro.model.AppClock
 import com.endiar.purrodoro.model.AppTab
 import com.endiar.purrodoro.model.AppearanceMode
@@ -83,6 +86,7 @@ import com.endiar.purrodoro.ui.HomeSuggestion
 import com.endiar.purrodoro.ui.homeSuggestion
 import com.endiar.purrodoro.ui.interruptedRemainingMinutes
 import com.endiar.purrodoro.ui.remainingFocusSessionsAfterCurrent
+import com.endiar.purrodoro.ui.auth.LoginSheet
 import com.endiar.purrodoro.ui.onboarding.OnboardingScreen
 import com.endiar.purrodoro.ui.todayFocusMetrics
 import com.endiar.purrodoro.model.InterruptedFocus
@@ -106,12 +110,15 @@ import kotlinx.coroutines.launch
 @Composable
 fun PurrodoroApp(
     repo: AppRepository,
+    authRepository: AuthRepository,
     timerConnection: TimerConnection,
     requestNotificationPermission: () -> Unit,
     onEnableNotifications: () -> Unit = {},
     autoOpenStartFocus: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
     openTab: kotlinx.coroutines.flow.SharedFlow<AppTab>? = null,
 ) {
+    val authState by authRepository.authState.collectAsStateWithLifecycle(initialValue = AuthState.Guest)
+
     val appState by repo.appState.collectAsStateWithLifecycle(
         initialValue = AppState(
             glassReadabilityMode = GlassReadabilityMode.Adaptive,
@@ -185,6 +192,7 @@ fun PurrodoroApp(
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
     var showProfile by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    var showLoginSheet by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val tutorialController = rememberTutorialController()
@@ -224,6 +232,12 @@ fun PurrodoroApp(
     // notifications" additionally fires the Android system permission ask.
     if (!hasSeenOnboarding) {
         OnboardingScreen(
+            authRepository = authRepository,
+            language = language,
+            onUpdateLanguage = { v ->
+                language = v
+                scope.launch { repo.setLanguage(v) }
+            },
             onSkip = { name ->
                 scope.launch {
                     if (name.isNotBlank()) repo.setUserName(name)
@@ -236,6 +250,11 @@ fun PurrodoroApp(
                     repo.setHasSeenOnboarding(true)
                 }
                 requestNotificationPermission()
+            },
+            onPersistUserName = { name ->
+                val trimmed = name.trim()
+                userName = trimmed
+                scope.launch { repo.setUserName(trimmed) }
             },
         )
         return
@@ -384,6 +403,7 @@ fun PurrodoroApp(
 
     val backdropTime = AppClock.now()
     val homeGreeting = com.endiar.purrodoro.ui.rememberHomeGreeting(backdropTime)
+    val homeDisplayName = resolvedDisplayName(authState, userName)
     val homeMetrics = todayFocusMetrics(
         sessionRecords = sessionRecords,
         today = LocalDate.now()
@@ -449,7 +469,7 @@ fun PurrodoroApp(
                         suggestion = homeSuggestion,
                         suggestionFocusMinutes = settings.focusMinutes,
                         greeting = homeGreeting,
-                        userName = userName,
+                        userName = homeDisplayName,
                         todayMetrics = homeMetrics,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
@@ -803,6 +823,22 @@ fun PurrodoroApp(
                     userName = userName,
                     onUpdateUserName = { persistUserName(it) },
                     onRequestEnableNotifications = onEnableNotifications,
+                    authState = authState,
+                    onRequestLogin = { showLoginSheet = true },
+                    onSignOut = { scope.launch { authRepository.signOut() } },
+                )
+            }
+
+            if (showLoginSheet) {
+                LoginSheet(
+                    authRepository = authRepository,
+                    onDismiss = { showLoginSheet = false },
+                    onSignedIn = { user ->
+                        showLoginSheet = false
+                        user.displayName?.trim()?.takeIf { it.isNotBlank() }?.let { persistUserName(it) }
+                    },
+                    onContinueAsGuest = { showLoginSheet = false },
+                    fallbackDisplayName = userName,
                 )
             }
 
