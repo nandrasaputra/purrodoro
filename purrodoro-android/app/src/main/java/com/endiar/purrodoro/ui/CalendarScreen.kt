@@ -3,7 +3,6 @@ package com.endiar.purrodoro.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +50,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Calendar
-import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Flame
 import com.composables.icons.lucide.History
@@ -62,7 +60,6 @@ import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.GlassTreatment
 import com.endiar.purrodoro.model.SessionRecord
 import com.endiar.purrodoro.ui.designsystem.KuroElevatedCard
-import com.endiar.purrodoro.ui.designsystem.KuroPill
 import com.endiar.purrodoro.ui.designsystem.KuroPillKind
 import com.endiar.purrodoro.ui.designsystem.KuroScreenScaffold
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -488,90 +485,7 @@ private fun TodayTimelineCard(rows: List<JourneyTimelineRow>) {
                 )
             }
         } else {
-            rows.forEachIndexed { index, row ->
-                TimelineRow(row, first = index == 0, last = index == rows.lastIndex)
-            }
+            JourneyTimelineListCollapsible(rows = rows)
         }
-    }
-}
-
-@Composable
-internal fun TimelineRow(
-    row: JourneyTimelineRow,
-    first: Boolean,
-    last: Boolean,
-    onClick: (() -> Unit)? = null,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    val base = Modifier
-        .fillMaxWidth()
-        .clip(RoundedCornerShape(KuroSpacing.radiusSm))
-    val rowModifier = if (onClick != null) base.clickable(onClick = onClick) else base
-    Row(
-        modifier = rowModifier.padding(vertical = KuroSpacing.xs),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TimelineRail(first, last)
-        Text(
-            row.timeLabel,
-            color = tokens.textSecondary,
-            style = KuroType.labelStrong,
-            modifier = Modifier.width(KuroSpacing.journeyTimelineTimeWidth),
-        )
-        val taskName = row.taskName?.takeIf { it.isNotBlank() }
-        if (taskName == null) {
-            Spacer(Modifier.weight(1f))
-        } else {
-            Text(taskName, color = tokens.textPrimary, style = KuroType.bodyPrimary, modifier = Modifier.weight(1f))
-        }
-        Text(row.durationLabel, color = tokens.textPrimary, style = KuroType.bodySecondary)
-        Spacer(Modifier.width(KuroSpacing.sm))
-        KuroPill(
-            label = stringResource(
-                if (row.completed) R.string.journey_status_completed else R.string.journey_status_partial,
-            ),
-            kind = journeyStatusKind(row.completed),
-        )
-        if (onClick != null) {
-            Spacer(Modifier.width(KuroSpacing.xs))
-            Icon(Lucide.ChevronRight, contentDescription = null, tint = tokens.textFaint, modifier = Modifier.size(KuroSpacing.md))
-        }
-    }
-}
-
-@Composable
-internal fun TimelineRail(first: Boolean, last: Boolean) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(
-        modifier = Modifier
-            .width(KuroSpacing.journeyTimelineRailWidth)
-            .height(KuroSpacing.journeyTimelineRailHeight),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (!first) {
-            Box(
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .width(1.dp)
-                    .height(KuroSpacing.journeyTimelineConnector)
-                    .background(tokens.textFaint),
-            )
-        }
-        if (!last) {
-            Box(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .width(1.dp)
-                    .height(KuroSpacing.journeyTimelineConnector)
-                    .background(tokens.textFaint),
-            )
-        }
-        Box(
-            Modifier
-                .size(KuroSpacing.journeyTimelineDot)
-                .clip(CircleShape)
-                .background(tokens.cardFill)
-                .border(KuroSpacing.xs / 2, tokens.textFaint, CircleShape),
-        )
     }
 }

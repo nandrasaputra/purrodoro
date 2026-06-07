@@ -315,14 +315,10 @@ private fun HistoryDayDetailCard(detail: HistoryDayDetail, onRowClick: (JourneyT
                 )
             }
         } else {
-            detail.rows.forEachIndexed { index, row ->
-                TimelineRow(
-                    row = row,
-                    first = index == 0,
-                    last = index == detail.rows.lastIndex,
-                    onClick = { onRowClick(row) },
-                )
-            }
+            JourneyTimelineList(
+                rows = detail.rows,
+                onRowClick = onRowClick,
+            )
         }
     }
 }

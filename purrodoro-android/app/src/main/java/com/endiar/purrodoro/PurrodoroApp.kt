@@ -1018,7 +1018,7 @@ fun PurrodoroApp(
                     horizontalPadding = 0.dp,
                     containerColor = sheetTokens.cardFill,
                     contentKey = premiumSheetMessage,
-                    showCloseButton = true,
+                    showCloseButton = false,
                 ) {
                     premiumSheetMessage?.let { message ->
                         PremiumMessage(
@@ -1069,6 +1069,10 @@ fun PurrodoroApp(
                         onMuteAll = {
                             playingAmbienceId = null
                             playingMusicId = null
+                        },
+                        onDone = {
+                            showSoundsSheet = false
+                            premiumSheetMessage = null
                         },
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,

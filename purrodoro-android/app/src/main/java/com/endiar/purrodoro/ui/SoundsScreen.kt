@@ -47,12 +47,8 @@ import com.composables.icons.lucide.AudioLines
 import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.CloudRain
-import com.composables.icons.lucide.Coffee
-import com.composables.icons.lucide.Flame
-import com.composables.icons.lucide.Keyboard
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Music
-import com.composables.icons.lucide.TreePine
 import com.composables.icons.lucide.Volume2
 import com.composables.icons.lucide.VolumeX
 import com.endiar.purrodoro.R
@@ -483,6 +479,9 @@ fun SoundsScreen(
     onMusicVolumeChange: (Float) -> Unit,
     onMuteAll: () -> Unit,
     modifier: Modifier = Modifier,
+    onDone: () -> Unit = {},
+    onSeeAllAmbience: () -> Unit = {},
+    onSeeAllMusic: () -> Unit = {},
     @Suppress("UNUSED_PARAMETER") glassTreatment: GlassTreatment = GlassTreatment.Clear,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     @Suppress("UNUSED_PARAMETER") overBackdrop: Boolean = true,
@@ -499,23 +498,36 @@ fun SoundsScreen(
             .padding(top = KuroSpacing.xs, bottom = KuroSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
-            Text(
-                text = stringResource(R.string.sounds_title),
-                color = Cocoa,
-                fontSize = 30.sp,
-                lineHeight = 34.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = NunitoFamily,
-            )
-            Text(
-                text = stringResource(R.string.sounds_subtitle),
-                color = tokens.textSecondary,
-                style = KuroType.bodySecondary,
-            )
+        // Header: title + subtitle on the left, a coral "Done" pill on the right.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+            ) {
+                Text(
+                    text = stringResource(R.string.sounds_title),
+                    color = Cocoa,
+                    fontSize = 30.sp,
+                    lineHeight = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = NunitoFamily,
+                )
+                Text(
+                    text = stringResource(R.string.sounds_subtitle),
+                    color = tokens.textSecondary,
+                    style = KuroType.bodySecondary,
+                )
+            }
+            SoundscapeDoneButton(onClick = onDone)
         }
 
-        SoundscapeSectionLabel(stringResource(R.string.soundscape_section_ambience))
+        SoundscapeSectionHeader(
+            title = stringResource(R.string.soundscape_section_ambience),
+            onSeeAll = onSeeAllAmbience,
+        )
         SoundscapeHorizontalRow {
             ambienceOptions.forEach { sound ->
                 val isPlaying = sound.id == playingAmbienceId
@@ -530,7 +542,10 @@ fun SoundsScreen(
             }
         }
 
-        SoundscapeSectionLabel(stringResource(R.string.soundscape_section_lofi))
+        SoundscapeSectionHeader(
+            title = stringResource(R.string.soundscape_section_lofi),
+            onSeeAll = onSeeAllMusic,
+        )
         SoundscapeHorizontalRow(itemSpacing = KuroSpacing.md) {
             musicOptions.forEach { track ->
                 val isPlaying = track.id == playingMusicId
@@ -546,21 +561,116 @@ fun SoundsScreen(
 
         Spacer(Modifier.height(KuroSpacing.xs))
 
-        SoundscapeVolumeRow(
-            icon = Lucide.CloudRain,
-            label = stringResource(R.string.soundscape_volume_ambience),
-            value = ambienceVolume,
-            onValueChange = onAmbienceVolumeChange,
-        )
-        SoundscapeVolumeRow(
-            icon = Lucide.Music,
-            label = stringResource(R.string.soundscape_volume_music),
-            value = musicVolume,
-            onValueChange = onMusicVolumeChange,
-        )
+        // Reference places the two volume controls side-by-side.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
+        ) {
+            SoundscapeVolumeRow(
+                label = stringResource(R.string.soundscape_volume_ambience),
+                value = ambienceVolume,
+                onValueChange = onAmbienceVolumeChange,
+                modifier = Modifier.weight(1f),
+            )
+            SoundscapeVolumeRow(
+                label = stringResource(R.string.soundscape_volume_music),
+                value = musicVolume,
+                onValueChange = onMusicVolumeChange,
+                modifier = Modifier.weight(1f),
+            )
+        }
 
         MuteAllButton(onClick = onMuteAll)
     }
+}
+
+/** Coral "Done" pill in the Soundscape header (matches the reference design). */
+@Composable
+private fun SoundscapeDoneButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(Coral)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.sm),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.common_done),
+            color = Color.White,
+            style = KuroType.labelStrong,
+        )
+    }
+}
+
+/**
+ * Section header: a placeholder leading glyph + title on the left, a "See all ›"
+ * affordance on the right. The leading icon is a temporary placeholder until
+ * final per-section art is supplied.
+ */
+@Composable
+private fun SoundscapeSectionHeader(
+    title: String,
+    onSeeAll: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = KuroSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        SoundscapePlaceholderIcon(
+            tint = tokens.textSecondary,
+            modifier = Modifier.size(KuroSpacing.lg),
+        )
+        Text(
+            text = title,
+            color = tokens.textPrimary,
+            style = KuroType.headingCard,
+        )
+        Spacer(Modifier.weight(1f))
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = stringResource(R.string.soundscape_see_all_cd, title),
+                    onClick = onSeeAll,
+                )
+                .padding(horizontal = KuroSpacing.xs, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
+        ) {
+            Text(
+                text = stringResource(R.string.soundscape_see_all),
+                color = tokens.textSecondary,
+                style = KuroType.labelStrong,
+            )
+            SoundscapePlaceholderIcon(
+                tint = tokens.textFaint,
+                modifier = Modifier.size(KuroSpacing.md),
+            )
+        }
+    }
+}
+
+/**
+ * Generic placeholder icon used across the Soundscape detail screen in place
+ * of finalized iconography. Renders [R.drawable.soundscape_placeholder].
+ */
+@Composable
+private fun SoundscapePlaceholderIcon(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Icon(
+        painter = painterResource(R.drawable.soundscape_placeholder),
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -610,17 +720,6 @@ private fun ambienceShortName(soundId: Int): String = when (soundId) {
 }
 
 @Composable
-private fun SoundscapeSectionLabel(text: String) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Text(
-        text = text.uppercase(),
-        color = tokens.textMuted,
-        style = KuroType.labelCaption,
-        modifier = Modifier.padding(top = KuroSpacing.xs),
-    )
-}
-
-@Composable
 private fun AmbienceTile(
     sound: SoundOption,
     isPlaying: Boolean,
@@ -661,9 +760,7 @@ private fun AmbienceTile(
                     .background(ambienceTileFill(sound.id)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = ambienceIconFor(sound.id),
-                    contentDescription = null,
+                SoundscapePlaceholderIcon(
                     tint = tokens.textPrimary,
                     modifier = Modifier.size(KuroSpacing.lg),
                 )
@@ -773,22 +870,23 @@ private fun LofiVinylTile(
 
 @Composable
 private fun SoundscapeVolumeRow(
-    icon: ImageVector,
     label: String,
     value: Float,
     onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val percent = (value * 100f).toInt().coerceIn(0, 100)
 
-    Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
+            SoundscapePlaceholderIcon(
                 tint = tokens.textSecondary,
                 modifier = Modifier.size(KuroSpacing.lg),
             )
@@ -830,9 +928,7 @@ private fun MuteAllButton(onClick: () -> Unit) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = Lucide.VolumeX,
-            contentDescription = null,
+        SoundscapePlaceholderIcon(
             tint = Coral,
             modifier = Modifier.size(KuroSpacing.lg),
         )
@@ -932,15 +1028,6 @@ private fun lofiIconRes(musicId: Int): Int = when (musicId) {
     3 -> R.drawable.soundscape_lofi_piano
     4 -> R.drawable.soundscape_lofi_palm
     else -> R.drawable.soundscape_lofi_cat
-}
-
-private fun ambienceIconFor(soundId: Int): ImageVector = when (soundId) {
-    1 -> Lucide.CloudRain
-    2 -> Lucide.Coffee
-    3 -> Lucide.TreePine
-    4 -> Lucide.Flame
-    5 -> Lucide.Keyboard
-    else -> Lucide.Music
 }
 
 @Composable
