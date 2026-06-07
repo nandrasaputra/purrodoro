@@ -245,6 +245,8 @@
     <string name="sounds_subtitle">Mix ambience + lo-fi for your focus</string>
     <string name="soundscape_section_ambience">Ambience</string>
     <string name="soundscape_section_lofi">Lo-fi music</string>
+    <string name="soundscape_see_all">See all</string>
+    <string name="soundscape_see_all_cd">See all %1$s</string>
     <string name="soundscape_volume_ambience">Ambience</string>
     <string name="soundscape_volume_music">Music</string>
     <string name="soundscape_mute_all">Mute all</string>
@@ -297,6 +299,13 @@
     <string name="journey_no_records_today">No focus records yet today.</string>
     <string name="journey_status_completed">Completed</string>
     <string name="journey_status_partial">Partial</string>
+    <string name="journey_latest">Latest</string>
+    <string name="journey_timeline_meta">%1$s · %2$s</string>
+    <string name="journey_timeline_show_less">Show less</string>
+    <plurals name="journey_timeline_more">
+        <item quantity="one">%d more</item>
+        <item quantity="other">%d more</item>
+    </plurals>
     <string name="journey_detail">Journey detail</string>
     <string name="journey_time_range">%1$s - %2$s</string>
     <string name="journey_stat_focused">Focused</string>

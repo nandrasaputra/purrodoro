@@ -64,10 +64,10 @@ class JourneyModelsTest {
         assertEquals("2h 5m", summary.selectedDay.focusTimeLabel)
         assertEquals(3, summary.selectedDay.focusSessions)
         assertEquals(2, summary.todayRows.size)
-        assertEquals("9:00 AM", summary.todayRows.first().timeLabel)
-        assertEquals("25 min", summary.todayRows.first().durationLabel)
+        assertEquals("9:00 PM", summary.todayRows.first().timeLabel)
+        assertEquals("45 min", summary.todayRows.first().durationLabel)
         assertEquals("Completed", summary.todayRows.first().statusLabel)
-        assertEquals("Inbox cleanup", summary.todayRows.first().taskName)
+        assertEquals("Inbox cleanup", summary.todayRows.last().taskName)
         assertFalse(summary.todayRows.any { row ->
             row.title.contains("Pomodoro", ignoreCase = true) ||
                 row.title.contains("Deep Work", ignoreCase = true) ||
