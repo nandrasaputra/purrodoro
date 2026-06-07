@@ -1,0 +1,187 @@
+package com.endiar.purrodoro.ui.auth
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import com.composables.icons.lucide.Chrome
+import com.composables.icons.lucide.Lucide
+import com.endiar.purrodoro.R
+import com.endiar.purrodoro.auth.AuthRepository
+import com.endiar.purrodoro.model.AuthUser
+import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
+import com.endiar.purrodoro.ui.designsystem.KuroSpacing
+import com.endiar.purrodoro.ui.designsystem.KuroType
+import com.endiar.purrodoro.ui.theme.NunitoFamily
+import com.endiar.purrodoro.ui.theme.kuroTokens
+import kotlinx.coroutines.launch
+
+@Composable
+fun LoginSheet(
+    authRepository: AuthRepository,
+    onDismiss: () -> Unit,
+    onSignedIn: (AuthUser) -> Unit,
+    onContinueAsGuest: () -> Unit,
+    fallbackDisplayName: String = "",
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val scope = rememberCoroutineScope()
+    var isSigningIn by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    KuroAdaptiveBottomSheet(
+        onDismiss = {
+            if (!isSigningIn) onDismiss()
+        },
+        horizontalPadding = KuroSpacing.xl,
+        containerColor = tokens.cardFill,
+        showCloseButton = true,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = KuroSpacing.sm, bottom = KuroSpacing.lg),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.login_sheet_title),
+                style = KuroType.headingScreen.copy(
+                    fontFamily = NunitoFamily,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = tokens.textPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.height(KuroSpacing.xs))
+            Text(
+                text = stringResource(R.string.login_sheet_subtitle),
+                style = KuroType.bodyPrimary,
+                color = tokens.textSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 280.dp),
+            )
+            Spacer(modifier = Modifier.height(KuroSpacing.xxl))
+            Image(
+                painter = painterResource(id = R.drawable.cat_login_wave),
+                contentDescription = stringResource(R.string.login_sheet_cat_cd),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth(0.68f)
+                    .height(92.dp),
+            )
+            Spacer(modifier = Modifier.height(KuroSpacing.md))
+            GoogleSignInButton(
+                enabled = !isSigningIn,
+                onClick = {
+                    isSigningIn = true
+                    errorMessage = null
+                    scope.launch {
+                        val result = authRepository.signInWithGoogle(fallbackDisplayName)
+                        isSigningIn = false
+                        result.fold(
+                            onSuccess = onSignedIn,
+                            onFailure = { errorMessage = it.message },
+                        )
+                    }
+                },
+            )
+            if (isSigningIn) {
+                Spacer(modifier = Modifier.height(KuroSpacing.sm))
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = tokens.accent,
+                    strokeWidth = 2.dp,
+                )
+            }
+            errorMessage?.let { message ->
+                Spacer(modifier = Modifier.height(KuroSpacing.sm))
+                Text(
+                    text = message,
+                    style = KuroType.labelMeta,
+                    color = tokens.destructive,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            Text(
+                text = stringResource(R.string.login_continue_as_guest),
+                style = KuroType.labelStrong.copy(textDecoration = TextDecoration.Underline),
+                color = tokens.accent,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .clickable(
+                        enabled = !isSigningIn,
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = { if (!isSigningIn) onContinueAsGuest() },
+                    )
+                    .padding(vertical = KuroSpacing.xs),
+            )
+        }
+    }
+}
+
+@Composable
+private fun GoogleSignInButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation = 2.dp, shape = RoundedCornerShape(KuroSpacing.radiusPill), clip = false)
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(tokens.cardFill)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = Lucide.Chrome,
+            contentDescription = null,
+            tint = tokens.textPrimary,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.size(KuroSpacing.sm))
+        Text(
+            text = stringResource(R.string.login_continue_with_google),
+            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+            color = tokens.textPrimary,
+        )
+    }
+}

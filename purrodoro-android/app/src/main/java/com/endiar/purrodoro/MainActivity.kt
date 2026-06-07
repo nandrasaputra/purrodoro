@@ -17,6 +17,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppTab
@@ -86,6 +87,7 @@ class MainActivity : ComponentActivity() {
         )
 
         val repo = AppRepository.get(this)
+        val authRepository = AuthRepository.get(this)
         val initialAppState = runCatching {
             kotlinx.coroutines.runBlocking { repo.appState.first() }
         }.getOrNull()
@@ -106,6 +108,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val repo = AppRepository.get(this)
+            val authRepository = AuthRepository.get(this)
             val appearanceMode by repo.appState
                 .map { it.appearanceMode }
                 .collectAsStateWithLifecycle(initialValue = AppearanceMode.Auto)
@@ -133,6 +136,7 @@ class MainActivity : ComponentActivity() {
                 PurrodoroTheme(appearanceMode = appearanceMode) {
                     PurrodoroApp(
                         repo = repo,
+                        authRepository = authRepository,
                         timerConnection = timerConnection,
                         requestNotificationPermission = ::requestNotificationPermissionIfNeeded,
                         onEnableNotifications = ::promptEnableNotifications,
