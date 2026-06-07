@@ -60,6 +60,7 @@ import com.endiar.purrodoro.model.GlassReadabilityMode
 import com.endiar.purrodoro.model.GlassTreatment
 import com.endiar.purrodoro.model.PremiumOverride
 import com.endiar.purrodoro.model.SessionItemType
+import com.endiar.purrodoro.model.MusicOption
 import com.endiar.purrodoro.model.SoundOption
 import com.endiar.purrodoro.model.TimerMode
 import com.endiar.purrodoro.model.TimerSessionItem
@@ -172,7 +173,11 @@ fun PurrodoroApp(
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
-    var playingSoundId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var playingAmbienceId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var playingMusicId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var selectedMusicId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var ambienceVolume by rememberSaveable { mutableStateOf(0.7f) }
+    var musicVolume by rememberSaveable { mutableStateOf(0.45f) }
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
     var showStartFocusSheet by rememberSaveable { mutableStateOf(false) }
@@ -330,13 +335,25 @@ fun PurrodoroApp(
         }
         persistTasks(tasks.filterNot(toDelete))
     }
-    val sounds = listOf(
+    val ambienceOptions = listOf(
         SoundOption(1, stringResource(R.string.sound_rain_name), stringResource(R.string.sound_rain_desc), false, "Rain"),
         SoundOption(2, stringResource(R.string.sound_cafe_name), stringResource(R.string.sound_cafe_desc), false, "Cafe"),
         SoundOption(3, stringResource(R.string.sound_forest_name), stringResource(R.string.sound_forest_desc), true, "Forest"),
         SoundOption(4, stringResource(R.string.sound_fire_name), stringResource(R.string.sound_fire_desc), true, "Fire"),
         SoundOption(5, stringResource(R.string.sound_keys_name), stringResource(R.string.sound_keys_desc), false, "Keys"),
     )
+    val musicOptions = listOf(
+        MusicOption(1, stringResource(R.string.music_study_beats)),
+        MusicOption(2, stringResource(R.string.music_midnight_jazz), locked = true),
+        MusicOption(3, stringResource(R.string.music_soft_piano)),
+        MusicOption(4, stringResource(R.string.music_chill_hop)),
+    )
+    val playingAmbienceName = playingAmbienceId?.let { id ->
+        ambienceOptions.firstOrNull { it.id == id }?.name
+    }
+    val playingMusicName = playingMusicId?.let { id ->
+        musicOptions.firstOrNull { it.id == id }?.name
+    }
 
     // --- Derive timer state from the service ---
     val isRunning = runtimeState?.session?.timerState == TimerState.Playing
@@ -582,6 +599,15 @@ fun PurrodoroApp(
                             activeTask = null
                         },
                         onOpenProfile = { showProfile = true },
+                        onOpenSoundscape = { showSoundsSheet = true },
+                        onMuteSoundscape = {
+                            playingAmbienceId = null
+                            playingMusicId = null
+                        },
+                        playingAmbienceName = playingAmbienceName,
+                        playingMusicName = playingMusicName,
+                        ambienceVolume = ambienceVolume,
+                        musicVolume = musicVolume,
                         contentPadding = screenContentPadding,
                         activeFocusType = runtimeState?.focusType ?: FocusType.Empty,
                     )
@@ -733,6 +759,13 @@ fun PurrodoroApp(
                         else timerConnection.controller.resume()
                     },
                     onSkip = { timerConnection.controller.skip() },
+                    playingAmbienceName = playingAmbienceName,
+                    playingMusicName = playingMusicName,
+                    onOpenSoundscape = { showSoundsSheet = true },
+                    onMuteSoundscape = {
+                        playingAmbienceId = null
+                        playingMusicId = null
+                    },
                     contentPadding = PaddingValues(),
                     modifier = Modifier.statusBarsPadding(),
                 )
@@ -949,6 +982,7 @@ fun PurrodoroApp(
                     horizontalPadding = 0.dp,
                     containerColor = sheetTokens.cardFill,
                     contentKey = premiumSheetMessage,
+                    showCloseButton = true,
                 ) {
                     premiumSheetMessage?.let { message ->
                         PremiumMessage(
@@ -957,27 +991,48 @@ fun PurrodoroApp(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
-                    // NOTE: Ambient focus sounds are not active. The screen and its
-                    // selection/play state are wired for UI only — no real audio is
-                    // played (no MediaPlayer/SoundPool/ExoPlayer). The handlers below
-                    // just track which sound is "selected"/"playing"; actual looping
-                    // audio + background playback still needs to be implemented.
+                    // NOTE: Soundscape audio is not active yet — selection, volume,
+                    // and mute state are UI-only until sound files are wired in.
                     SoundsScreen(
-                        sounds = sounds,
-                        selectedSoundId = selectedSoundId,
-                        playingSoundId = playingSoundId,
-                        onSoundSelected = { sound ->
+                        ambienceOptions = ambienceOptions,
+                        musicOptions = musicOptions,
+                        selectedAmbienceId = selectedSoundId,
+                        playingAmbienceId = playingAmbienceId,
+                        selectedMusicId = selectedMusicId,
+                        playingMusicId = playingMusicId,
+                        ambienceVolume = ambienceVolume,
+                        musicVolume = musicVolume,
+                        onAmbienceSelected = { sound ->
                             if (sound.locked && !isPremium) {
                                 premiumSheetMessage =
                                     "${sound.name} is part of the simulated premium sound pack."
                             } else {
                                 persistSelectedSoundId(sound.id)
-                                playingSoundId = sound.id
+                                playingAmbienceId = sound.id
                                 premiumSheetMessage = null
                             }
                         },
-                        onToggleSound = { sound ->
-                            playingSoundId = if (playingSoundId == sound.id) null else sound.id
+                        onAmbienceToggle = { sound ->
+                            playingAmbienceId = if (playingAmbienceId == sound.id) null else sound.id
+                        },
+                        onMusicSelected = { track ->
+                            if (track.locked && !isPremium) {
+                                premiumSheetMessage =
+                                    "${track.name} is part of the simulated premium sound pack."
+                            } else {
+                                selectedMusicId = track.id
+                                playingMusicId = track.id
+                                premiumSheetMessage = null
+                            }
+                        },
+                        onMusicToggle = { track ->
+                            playingMusicId = if (playingMusicId == track.id) null else track.id
+                        },
+                        onAmbienceVolumeChange = { ambienceVolume = it },
+                        onMusicVolumeChange = { musicVolume = it },
+                        onMuteAll = {
+                            playingAmbienceId = null
+                            playingMusicId = null
                         },
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,

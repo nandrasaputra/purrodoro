@@ -223,9 +223,34 @@
     <string name="focus_complete_task_body">You\'ve already finished this task. Want to focus on it anyway? It stays checked off and only your focus time is logged.</string>
     <string name="focus_complete_confirm">Focus anyway</string>
 
-    <!-- Sounds -->
-    <string name="sounds_title">Sounds</string>
-    <string name="sounds_subtitle">Ambient sounds for your focus sessions</string>
+    <!-- Soundscape -->
+    <string name="sounds_title">Soundscape</string>
+    <string name="sounds_subtitle">Mix ambience + lo-fi for your focus</string>
+    <string name="soundscape_section_ambience">Ambience</string>
+    <string name="soundscape_section_lofi">Lo-fi music</string>
+    <string name="soundscape_volume_ambience">Ambience</string>
+    <string name="soundscape_volume_music">Music</string>
+    <string name="soundscape_mute_all">Mute all</string>
+    <string name="sound_rain_short">Rain</string>
+    <string name="sound_cafe_short">Cafe Purr</string>
+    <string name="sound_forest_short">Forest Nap</string>
+    <string name="sound_fire_short">Fireplace</string>
+    <string name="sound_keys_short">Night Keys</string>
+    <string name="soundscape_compact_idle">Set up Soundscape</string>
+    <string name="soundscape_compact_playing">%1$s</string>
+    <string name="soundscape_compact_separator"> · </string>
+    <string name="soundscape_home_idle">Nothing playing</string>
+    <string name="soundscape_home_hint">Tap to mix ambience + lo-fi</string>
+    <string name="soundscape_home_playing">Now playing</string>
+    <string name="soundscape_home_open">Open Soundscape</string>
+    <string name="soundscape_home_mute_cd">Mute all sounds</string>
+    <string name="soundscape_mini_open_cd">Open Soundscape</string>
+    <string name="soundscape_mini_expand_cd">Expand Soundscape controls</string>
+    <string name="soundscape_volume_percent">%1$d%%</string>
+    <string name="music_study_beats">Study Beats</string>
+    <string name="music_midnight_jazz">Midnight Jazz</string>
+    <string name="music_soft_piano">Soft Piano</string>
+    <string name="music_chill_hop">Chill Hop</string>
     <string name="sound_pill_playing">Playing</string>
     <string name="sound_pill_selected">Selected</string>
     <string name="sound_pill_premium">Premium</string>
