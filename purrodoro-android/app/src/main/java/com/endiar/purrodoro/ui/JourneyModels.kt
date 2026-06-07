@@ -91,9 +91,7 @@ fun journeySummary(
         weeklyGoalPercent = weeklyGoalPercent.coerceIn(0, 999),
         weekBars = weekBars,
         selectedDay = daySummary(selectedDate, recordsByDate[selectedDate].orEmpty()),
-        todayRows = recordsByDate[today].orEmpty()
-            .sortedBy { it.startedAt }
-            .map { it.toTimelineRow(zone) }
+        todayRows = recordsByDate[today].orEmpty().toTimelineRows(zone)
     )
 }
 
@@ -234,7 +232,7 @@ fun historyDayDetail(
         focusSessions = dayRecords.sumOf { it.completedFocusCount.coerceAtLeast(0) },
         restMinutes = restMinutes,
         restLabel = journeyMinutesLabel(restMinutes),
-        rows = dayRecords.sortedBy { it.startedAt }.map { it.toTimelineRow(zone) },
+        rows = dayRecords.toTimelineRows(zone),
     )
 }
 
@@ -266,6 +264,9 @@ private fun List<SessionRecord>.focusMinutes(): Int =
 
 private fun SessionRecord.startedDate(zone: ZoneId): LocalDate =
     Instant.ofEpochMilli(startedAt).atZone(zone).toLocalDate()
+
+private fun List<SessionRecord>.toTimelineRows(zone: ZoneId): List<JourneyTimelineRow> =
+    sortedByDescending { it.startedAt }.map { it.toTimelineRow(zone) }
 
 private fun SessionRecord.toTimelineRow(zone: ZoneId): JourneyTimelineRow {
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")

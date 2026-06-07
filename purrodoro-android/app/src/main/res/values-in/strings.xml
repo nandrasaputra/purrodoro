@@ -242,6 +242,8 @@
     <string name="sounds_subtitle">Campur ambien + lo-fi untuk fokusmu</string>
     <string name="soundscape_section_ambience">Ambien</string>
     <string name="soundscape_section_lofi">Musik lo-fi</string>
+    <string name="soundscape_see_all">Lihat semua</string>
+    <string name="soundscape_see_all_cd">Lihat semua %1$s</string>
     <string name="soundscape_volume_ambience">Ambien</string>
     <string name="soundscape_volume_music">Musik</string>
     <string name="soundscape_mute_all">Bisukan semua</string>
@@ -294,6 +296,12 @@
     <string name="journey_no_records_today">Belum ada catatan fokus hari ini.</string>
     <string name="journey_status_completed">Selesai</string>
     <string name="journey_status_partial">Sebagian</string>
+    <string name="journey_latest">Terbaru</string>
+    <string name="journey_timeline_meta">%1$s · %2$s</string>
+    <string name="journey_timeline_show_less">Tampilkan lebih sedikit</string>
+    <plurals name="journey_timeline_more">
+        <item quantity="other">%d lagi</item>
+    </plurals>
     <string name="journey_detail">Detail perjalanan</string>
     <string name="journey_time_range">%1$s - %2$s</string>
     <string name="journey_stat_focused">Fokus</string>
