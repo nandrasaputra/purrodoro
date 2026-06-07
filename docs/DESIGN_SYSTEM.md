@@ -36,5 +36,5 @@ These rules apply to all screen files (`ui/**Screen.kt`) and any new UI code.
 
 ## Screen Patterns
 
-See `docs/superpowers/specs/2026-05-24-design-system-design.md` for the four named patterns:
+There are four named screen patterns:
 **List Screen**, **Settings Screen**, **Detail Bottom Sheet**, **Dashboard Screen**.
