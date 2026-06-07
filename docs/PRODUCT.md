@@ -220,6 +220,31 @@ data class SessionRecord(
 
 ---
 
+## Monetization (in progress)
+
+Purrodoro is moving to a **freemium** model. This work is **in progress** — the
+design and implementation plan are written; gating is being built behind the
+existing debug `PremiumOverride` toggle, and in-app-purchase billing is not yet
+wired.
+
+- **Model:** one-time unlock ("Purrodoro Premium"). No subscriptions.
+- **Philosophy:** generous free — the core loop (timer, cycles, unlimited tasks,
+  basic stats, notifications, light/dark) is never blocked. Premium sells polish
+  and depth.
+- **Free vs premium (planned):** premium sounds (free: Rain + Cafe), extra
+  themes/mascot scenes, the full widget set, advanced Journey insights, and
+  removal of the soft caps on task categories (free: 3) and habits (free: 5).
+- **Gating:** a centralized `PremiumFeature` registry + pure `PremiumGate` helper
+  consume the existing `isPremium` source
+  (`PremiumOverride.overrideValue() ?: appState.isPremium`); a reusable paywall
+  sheet surfaces locks. Billing integration is a separate, later spec.
+
+Reference documents:
+- Spec: [`docs/superpowers/specs/2026-06-07-freemium-model-design.md`](superpowers/specs/2026-06-07-freemium-model-design.md)
+- Plan: [`docs/superpowers/plans/2026-06-07-freemium-model.md`](superpowers/plans/2026-06-07-freemium-model.md)
+
+---
+
 ## Glossary
 
 - **Cycle** — one full Pomodoro plan from first Focus through the trailing LongBreak. = one `SessionRecord`.
