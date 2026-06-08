@@ -88,7 +88,11 @@ object KuroSpacing {
     val soundscapeLofiVinyl = 88.dp
     val soundscapeLofiLabel = 56.dp
     val soundscapeScrollPeek = 28.dp
-    val soundscapeMiniPlayerHeight = 56.dp
-    /** Extra scroll clearance so content clears the floating mini player + dock. */
-    val soundscapeMiniPlayerClearance = 72.dp
+    /** Compact Soundscape transport row fused into the Focus-tab dock. */
+    val soundscapeTransportBarHeight = 56.dp
+    /** Content inset; background on the transport bar stays full-bleed. */
+    val soundscapeTransportInsetH = lg
+    val soundscapeTransportInsetV = sm
+    /** Tab row height inside the unified dock (matches legacy floating dock). */
+    val dockTabRowHeight = 82.dp
 }
