@@ -28,9 +28,17 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -46,9 +54,12 @@ import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.AudioLines
 import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.ChevronRight
+import com.composables.icons.lucide.ChevronUp
 import com.composables.icons.lucide.CloudRain
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Music
+import com.composables.icons.lucide.Pause
+import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.Volume2
 import com.composables.icons.lucide.VolumeX
 import com.endiar.purrodoro.R
@@ -163,7 +174,355 @@ fun SoundscapeCompactBar(
     }
 }
 
+@Composable
+internal fun soundscapeDockStatusLine(
+    playingAmbienceName: String?,
+    playingMusicName: String?,
+): String = soundscapeStatusLine(playingAmbienceName, playingMusicName)
+
+@Composable
+internal fun soundscapeSavedMixLabel(
+    ambienceName: String?,
+    musicName: String?,
+): String {
+    val sep = stringResource(R.string.soundscape_compact_separator)
+    return when {
+        ambienceName != null && musicName != null -> "$ambienceName$sep$musicName"
+        ambienceName != null -> ambienceName
+        musicName != null -> musicName
+        else -> ""
+    }
+}
+
+/** Compact transport row fused into the Focus-tab bottom dock. */
+@Composable
+fun SoundscapeTransportBar(
+    isPlaying: Boolean,
+    displayName: String,
+    showFirstRunHint: Boolean,
+    onPlayPause: () -> Unit,
+    onExpand: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val spinTransition = rememberInfiniteTransition(label = "transportVinylSpin")
+    val spinAngle by spinTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "transportVinylAngle",
+    )
+    val rowFill = when {
+        isPlaying -> Peach.copy(alpha = 0.32f)
+        else -> tokens.cardFill.copy(alpha = 0.45f)
+    }
+    val nameColor = when {
+        isPlaying -> Cocoa
+        showFirstRunHint -> tokens.textSecondary
+        else -> tokens.textMuted
+    }
+    val expandLabel = stringResource(R.string.soundscape_mini_open_cd)
+
+    // Outer Box: full-bleed background + touch consumer. Inner Row: content insets.
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(KuroSpacing.soundscapeTransportBarHeight)
+            .background(rowFill)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = expandLabel,
+                onClick = onExpand,
+            ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    horizontal = KuroSpacing.soundscapeTransportInsetH,
+                    vertical = KuroSpacing.soundscapeTransportInsetV,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+        ) {
+            TransportVinylDisc(
+                isSpinning = isPlaying,
+                spinAngle = spinAngle,
+                modifier = Modifier.size(KuroSpacing.journeyMetricIconCircle),
+            )
+            Text(
+                text = displayName,
+                color = nameColor,
+                style = KuroType.labelStrong.copy(
+                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.SemiBold,
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            SoundscapeTransportControlButton(
+                isPlaying = isPlaying,
+                onClick = onPlayPause,
+            )
+            Box(
+                modifier = Modifier
+                    .size(KuroSpacing.journeyMetricIconCircle)
+                    .clip(CircleShape)
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = expandLabel,
+                        onClick = onExpand,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Lucide.ChevronUp,
+                    contentDescription = expandLabel,
+                    tint = if (isPlaying) Coral.copy(alpha = 0.85f) else tokens.textFaint,
+                    modifier = Modifier.size(KuroSpacing.lg),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransportVinylDisc(
+    isSpinning: Boolean,
+    spinAngle: Float,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(
+        modifier = modifier
+            .rotate(if (isSpinning) spinAngle else 0f)
+            .clip(CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = this.center
+            val radius = size.minDimension / 2f
+            drawCircle(color = VinylBlack, radius = radius, center = center)
+            val grooveStroke = Stroke(width = 0.9f)
+            listOf(0.45f, 0.58f, 0.71f, 0.84f).forEach { scale ->
+                drawCircle(
+                    color = VinylGroove,
+                    radius = radius * scale,
+                    center = center,
+                    style = grooveStroke,
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.lg + KuroSpacing.xs)
+                .clip(CircleShape)
+                .background(Peach.copy(alpha = 0.55f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Lucide.Music,
+                contentDescription = null,
+                tint = if (isSpinning) Coral else tokens.textSecondary,
+                modifier = Modifier.size(KuroSpacing.md + KuroSpacing.xs),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(CardWhite)
+                .border(0.5.dp, VinylGroove, CircleShape),
+        )
+    }
+}
+
+@Composable
+private fun SoundscapeTransportControlButton(
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+) {
+    val controlLabel = stringResource(
+        if (isPlaying) R.string.soundscape_transport_pause_cd else R.string.soundscape_transport_play_cd,
+    )
+    Box(
+        modifier = Modifier
+            .size(KuroSpacing.journeyMetricIconCircle)
+            .clip(CircleShape)
+            .background(Coral)
+            .clickable(role = Role.Button, onClickLabel = controlLabel, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (isPlaying) Lucide.Pause else Lucide.Play,
+            contentDescription = controlLabel,
+            tint = Color.White,
+            modifier = Modifier.size(KuroSpacing.journeyMetricIconGlyph),
+        )
+    }
+}
+
+@Deprecated("Replaced by SoundscapeTransportBar")
+@Composable
+fun SoundscapeDockRow(
+    playingAmbienceName: String?,
+    playingMusicName: String?,
+    onOpenSoundscape: () -> Unit,
+    onMuteAll: () -> Unit,
+    onCollapse: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val isActive = playingAmbienceName != null || playingMusicName != null
+    val statusText = if (isActive) {
+        soundscapeStatusLine(playingAmbienceName, playingMusicName)
+    } else {
+        stringResource(R.string.soundscape_home_hint)
+    }
+    val openLabel = stringResource(R.string.soundscape_mini_open_cd)
+    val rowFill = when {
+        isActive -> Peach.copy(alpha = 0.35f)
+        else -> tokens.cardFill.copy(alpha = 0.55f)
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(KuroSpacing.soundscapeTransportBarHeight)
+            .background(rowFill)
+            .clickable(role = Role.Button, onClickLabel = openLabel, onClick = onOpenSoundscape)
+            .padding(horizontal = KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.journeyMetricIconCircle)
+                .clip(CircleShape)
+                .background(
+                    if (isActive) Peach.copy(alpha = 0.55f) else tokens.segmentedTrack.copy(alpha = 0.65f),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (isActive) Lucide.AudioLines else Lucide.Music,
+                contentDescription = null,
+                tint = if (isActive) Coral else tokens.textSecondary,
+                modifier = Modifier.size(KuroSpacing.lg),
+            )
+        }
+        Text(
+            text = statusText,
+            color = if (isActive) Cocoa else tokens.textSecondary,
+            style = KuroType.labelStrong.copy(
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .size(KuroSpacing.journeyMetricIconCircle)
+                    .clip(CircleShape)
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = stringResource(R.string.soundscape_home_mute_cd),
+                        onClick = onMuteAll,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Lucide.VolumeX,
+                    contentDescription = stringResource(R.string.soundscape_home_mute_cd),
+                    tint = Coral,
+                    modifier = Modifier.size(KuroSpacing.lg),
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(KuroSpacing.journeyMetricIconCircle)
+                .clip(CircleShape)
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = stringResource(R.string.soundscape_dock_collapse_cd),
+                    onClick = onCollapse,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Lucide.ChevronDown,
+                contentDescription = stringResource(R.string.soundscape_dock_collapse_cd),
+                tint = if (isActive) Coral.copy(alpha = 0.8f) else tokens.textFaint,
+                modifier = Modifier.size(KuroSpacing.lg),
+            )
+        }
+    }
+}
+
+@Deprecated("Replaced by SoundscapeTransportBar")
+@Composable
+fun SoundscapeDockPeekStrip(
+    playingAmbienceName: String?,
+    playingMusicName: String?,
+    onExpand: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val isActive = playingAmbienceName != null || playingMusicName != null
+    val statusText = if (isActive) {
+        soundscapeStatusLine(playingAmbienceName, playingMusicName)
+    } else {
+        stringResource(R.string.soundscape_home_hint)
+    }
+    val expandLabel = stringResource(R.string.soundscape_dock_expand_cd)
+    val rowFill = when {
+        isActive -> Peach.copy(alpha = 0.28f)
+        else -> tokens.cardFill.copy(alpha = 0.45f)
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(KuroSpacing.soundscapeTransportBarHeight)
+            .background(rowFill)
+            .clickable(role = Role.Button, onClickLabel = expandLabel, onClick = onExpand)
+            .padding(horizontal = KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        Icon(
+            imageVector = if (isActive) Lucide.AudioLines else Lucide.Music,
+            contentDescription = null,
+            tint = if (isActive) Coral else tokens.textSecondary,
+            modifier = Modifier.size(KuroSpacing.md + KuroSpacing.xs),
+        )
+        Text(
+            text = statusText,
+            color = if (isActive) Cocoa else tokens.textSecondary,
+            style = KuroType.labelMeta.copy(
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Lucide.ChevronUp,
+            contentDescription = expandLabel,
+            tint = if (isActive) Coral.copy(alpha = 0.85f) else tokens.textFaint,
+            modifier = Modifier.size(KuroSpacing.lg),
+        )
+    }
+}
+
 /** Floating mini player above the bottom dock (Option C home integration). */
+@Deprecated("Replaced by SoundscapeDockRow inside DashboardDock")
 @Composable
 fun SoundscapeMiniPlayer(
     playingAmbienceName: String?,
@@ -187,7 +546,7 @@ fun SoundscapeMiniPlayer(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(KuroSpacing.soundscapeMiniPlayerHeight)
+            .height(KuroSpacing.soundscapeTransportBarHeight)
             .shadow(shadowElevation, shape, spotColor = shadowColor, ambientColor = shadowColor)
             .clip(shape)
             .background(if (isActive) CardWhite else tokens.cardFill)

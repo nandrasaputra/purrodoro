@@ -85,6 +85,7 @@ import com.endiar.purrodoro.ui.theme.kuroTokens
 import com.endiar.purrodoro.ui.theme.Lavender
 import com.endiar.purrodoro.ui.theme.Mint
 import com.endiar.purrodoro.ui.theme.Peach
+import com.endiar.purrodoro.ui.SoundscapeTransportBar
 import com.endiar.purrodoro.ui.tutorial.TutorialTarget
 import com.endiar.purrodoro.ui.tutorial.tutorialAnchor
 
@@ -336,6 +337,14 @@ fun DashboardModeChip(mode: TimerMode, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+/** Whether the Focus-tab dock shows the Soundscape transport row. */
+enum class SoundscapeDockMode {
+    /** Other tabs and focus mode — tabs only. */
+    Hidden,
+    /** Focus tab — compact transport bar above tabs. */
+    Transport,
+}
+
 @Composable
 fun DashboardDock(
     isRunning: Boolean,
@@ -344,41 +353,85 @@ fun DashboardDock(
     selectedTab: AppTab? = null,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
     overBackdrop: Boolean = true,
+    soundscapeMode: SoundscapeDockMode = SoundscapeDockMode.Hidden,
+    isSoundscapePlaying: Boolean = false,
+    soundscapeDisplayName: String = "",
+    showSoundscapeFirstRunHint: Boolean = false,
+    onOpenSoundscape: () -> Unit = {},
+    onSoundscapePlayPause: () -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
     val dockShape = RoundedCornerShape(34.dp)
-    // Theme-driven, and intentionally a distinct surface from cards so the dock
-    // reads as its own elevated plane: warm cream over white cards in light,
-    // a lifted (lighter) violet-grey over dark cards in dark.
     val dockFill = tokens.dockFill
     val dockBorder = tokens.dockBorder
-    Row(
+    val showSoundscapeChrome = soundscapeMode != SoundscapeDockMode.Hidden
+
+    Column(
         modifier = modifier
             .padding(horizontal = 18.dp)
             .padding(bottom = 12.dp)
             .fillMaxWidth()
-            .height(82.dp)
             .shadow(
                 elevation = 18.dp,
                 shape = dockShape,
-                // Warm, soft drop in light; a deeper neutral shadow in dark so
-                // the floating dock keeps its lift without a beige tint.
                 ambientColor = if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0xFFD8BFAF).copy(alpha = 0.22f),
-                spotColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFFBFA494).copy(alpha = 0.18f)
+                spotColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFFBFA494).copy(alpha = 0.18f),
             )
             .border(1.dp, dockBorder, dockShape)
             .clip(dockShape)
-            .background(dockFill)
-            .padding(horizontal = 8.dp, vertical = 7.dp),
+            .background(dockFill),
+    ) {
+        when (soundscapeMode) {
+            SoundscapeDockMode.Transport -> {
+                SoundscapeTransportBar(
+                    isPlaying = isSoundscapePlaying,
+                    displayName = soundscapeDisplayName,
+                    showFirstRunHint = showSoundscapeFirstRunHint,
+                    onPlayPause = onSoundscapePlayPause,
+                    onExpand = onOpenSoundscape,
+                )
+            }
+            SoundscapeDockMode.Hidden -> Unit
+        }
+        if (showSoundscapeChrome) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = KuroSpacing.md)
+                    .height(1.dp)
+                    .background(dockBorder.copy(alpha = 0.55f)),
+            )
+        }
+        DockTabRow(
+            isRunning = isRunning,
+            onNavigate = onNavigate,
+            selectedTab = selectedTab,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(KuroSpacing.dockTabRowHeight)
+                .padding(horizontal = 8.dp, vertical = 7.dp),
+        )
+    }
+}
+
+@Composable
+private fun DockTabRow(
+    isRunning: Boolean,
+    onNavigate: (AppTab) -> Unit,
+    selectedTab: AppTab?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         DockTabItem(
             icon = if (isRunning) Lucide.Play else Lucide.House,
             label = stringResource(R.string.nav_home),
             active = selectedTab == AppTab.Timer,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         ) { onNavigate(AppTab.Timer) }
         DockTabItem(
             icon = Lucide.List,
@@ -386,7 +439,7 @@ fun DashboardDock(
             active = selectedTab == AppTab.Todo,
             modifier = Modifier
                 .weight(1f)
-                .tutorialAnchor(TutorialTarget.TasksTab)
+                .tutorialAnchor(TutorialTarget.TasksTab),
         ) { onNavigate(AppTab.Todo) }
         DockTabItem(
             icon = Lucide.CircleCheck,
@@ -394,7 +447,7 @@ fun DashboardDock(
             active = selectedTab == AppTab.Habits,
             modifier = Modifier
                 .weight(1f)
-                .tutorialAnchor(TutorialTarget.HabitsTab)
+                .tutorialAnchor(TutorialTarget.HabitsTab),
         ) { onNavigate(AppTab.Habits) }
         DockTabItem(
             icon = Lucide.Calendar,
@@ -402,7 +455,7 @@ fun DashboardDock(
             active = selectedTab == AppTab.Calendar,
             modifier = Modifier
                 .weight(1f)
-                .tutorialAnchor(TutorialTarget.JourneyTab)
+                .tutorialAnchor(TutorialTarget.JourneyTab),
         ) { onNavigate(AppTab.Calendar) }
     }
 }
