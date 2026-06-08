@@ -80,6 +80,7 @@ import com.endiar.purrodoro.ui.HistoryScreen
 import com.endiar.purrodoro.ui.HomeTimerScreen
 import com.endiar.purrodoro.ui.ProfileScreen
 import com.endiar.purrodoro.ui.SoundsScreen
+import com.endiar.purrodoro.ui.soundscapeSavedMixLabel
 import com.endiar.purrodoro.ui.StartFocusPrefill
 import com.endiar.purrodoro.ui.StartFocusSheet
 import com.endiar.purrodoro.ui.TodoScreen
@@ -96,6 +97,7 @@ import com.endiar.purrodoro.model.progressOn
 import com.endiar.purrodoro.ui.components.CycleCompleteDialog
 import com.endiar.purrodoro.ui.components.KuroFlatSurface
 import com.endiar.purrodoro.ui.components.DashboardDock
+import com.endiar.purrodoro.ui.components.SoundscapeDockMode
 import com.endiar.purrodoro.ui.components.FocusModeMotion
 import com.endiar.purrodoro.ui.components.FocusModeOverlay
 import com.endiar.purrodoro.ui.components.SpotlightTutorialOverlay
@@ -187,6 +189,13 @@ fun PurrodoroApp(
     var musicVolume by rememberSaveable { mutableStateOf(0.45f) }
     var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
+    var hasEverUsedSoundscape by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(playingAmbienceId, playingMusicId, selectedMusicId) {
+        if (playingAmbienceId != null || playingMusicId != null || selectedMusicId != null) {
+            hasEverUsedSoundscape = true
+        }
+    }
     var showStartFocusSheet by rememberSaveable { mutableStateOf(false) }
     var startFocusPrefill by remember { mutableStateOf<StartFocusPrefill?>(null) }
     var activeTask by rememberSaveable(stateSaver = FocusTaskSaver) {
@@ -373,6 +382,32 @@ fun PurrodoroApp(
     val playingMusicName = playingMusicId?.let { id ->
         musicOptions.firstOrNull { it.id == id }?.name
     }
+    val savedAmbienceName = ambienceOptions.firstOrNull { it.id == selectedSoundId }?.name
+    val savedMusicName = selectedMusicId?.let { id ->
+        musicOptions.firstOrNull { it.id == id }?.name
+    }
+    val isSoundscapePlaying = playingAmbienceId != null || playingMusicId != null
+    val soundscapeTransportLabel = when {
+        !hasEverUsedSoundscape -> stringResource(R.string.soundscape_home_hint)
+        isSoundscapePlaying -> soundscapeSavedMixLabel(playingAmbienceName, playingMusicName)
+        else -> soundscapeSavedMixLabel(savedAmbienceName, savedMusicName)
+            .ifBlank { stringResource(R.string.soundscape_home_hint) }
+    }
+
+    fun markSoundscapeUsed() {
+        hasEverUsedSoundscape = true
+    }
+
+    fun resumeSoundscape() {
+        markSoundscapeUsed()
+        playingAmbienceId = selectedSoundId
+        playingMusicId = selectedMusicId
+    }
+
+    fun pauseSoundscape() {
+        playingAmbienceId = null
+        playingMusicId = null
+    }
 
     // --- Derive timer state from the service ---
     val isRunning = runtimeState?.session?.timerState == TimerState.Playing
@@ -387,6 +422,11 @@ fun PurrodoroApp(
     // restart into focus mode snaps cleanly to the final state.
     val focusActive = isFocusMode && (isStarted || runtimeState == null)
     val focusTransition = updateTransition(targetState = focusActive, label = "focusMode")
+
+    val soundscapeDockMode = when {
+        selectedTab != AppTab.Timer || focusActive -> SoundscapeDockMode.Hidden
+        else -> SoundscapeDockMode.Transport
+    }
 
     // Drive recomposition every 250ms while playing so the displayed countdown ticks.
     var tickNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -620,10 +660,7 @@ fun PurrodoroApp(
                         },
                         onOpenProfile = { showProfile = true },
                         onOpenSoundscape = { showSoundsSheet = true },
-                        onMuteSoundscape = {
-                            playingAmbienceId = null
-                            playingMusicId = null
-                        },
+                        onMuteSoundscape = { pauseSoundscape() },
                         playingAmbienceName = playingAmbienceName,
                         playingMusicName = playingMusicName,
                         ambienceVolume = ambienceVolume,
@@ -782,10 +819,7 @@ fun PurrodoroApp(
                     playingAmbienceName = playingAmbienceName,
                     playingMusicName = playingMusicName,
                     onOpenSoundscape = { showSoundsSheet = true },
-                    onMuteSoundscape = {
-                        playingAmbienceId = null
-                        playingMusicId = null
-                    },
+                    onMuteSoundscape = { pauseSoundscape() },
                     contentPadding = PaddingValues(),
                     modifier = Modifier.statusBarsPadding(),
                 )
@@ -925,6 +959,14 @@ fun PurrodoroApp(
                     selectedTab = selectedTab,
                     glassTreatment = glassTreatment,
                     overBackdrop = true,
+                    soundscapeMode = soundscapeDockMode,
+                    isSoundscapePlaying = isSoundscapePlaying,
+                    soundscapeDisplayName = soundscapeTransportLabel,
+                    showSoundscapeFirstRunHint = !hasEverUsedSoundscape,
+                    onOpenSoundscape = { showSoundsSheet = true },
+                    onSoundscapePlayPause = {
+                        if (isSoundscapePlaying) pauseSoundscape() else resumeSoundscape()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
@@ -1045,6 +1087,7 @@ fun PurrodoroApp(
                             } else {
                                 persistSelectedSoundId(sound.id)
                                 playingAmbienceId = sound.id
+                                markSoundscapeUsed()
                                 premiumSheetMessage = null
                             }
                         },
@@ -1058,6 +1101,7 @@ fun PurrodoroApp(
                             } else {
                                 selectedMusicId = track.id
                                 playingMusicId = track.id
+                                markSoundscapeUsed()
                                 premiumSheetMessage = null
                             }
                         },
@@ -1066,10 +1110,7 @@ fun PurrodoroApp(
                         },
                         onAmbienceVolumeChange = { ambienceVolume = it },
                         onMusicVolumeChange = { musicVolume = it },
-                        onMuteAll = {
-                            playingAmbienceId = null
-                            playingMusicId = null
-                        },
+                        onMuteAll = { pauseSoundscape() },
                         onDone = {
                             showSoundsSheet = false
                             premiumSheetMessage = null
