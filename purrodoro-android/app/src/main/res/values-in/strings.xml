@@ -262,6 +262,10 @@
     <string name="soundscape_home_mute_cd">Bisukan semua suara</string>
     <string name="soundscape_mini_open_cd">Buka Soundscape</string>
     <string name="soundscape_mini_expand_cd">Buka kontrol Soundscape</string>
+    <string name="soundscape_dock_collapse_cd">Sembunyikan bar Soundscape</string>
+    <string name="soundscape_dock_expand_cd">Tampilkan bar Soundscape</string>
+    <string name="soundscape_transport_play_cd">Putar Soundscape</string>
+    <string name="soundscape_transport_pause_cd">Jeda Soundscape</string>
     <string name="soundscape_volume_percent">%1$d%%</string>
     <string name="music_study_beats">Study Beats</string>
     <string name="music_midnight_jazz">Midnight Jazz</string>

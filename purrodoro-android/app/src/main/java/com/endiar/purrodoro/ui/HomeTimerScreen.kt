@@ -145,9 +145,10 @@ fun HomeTimerScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    val dockBottom = contentPadding.calculateBottomPadding()
-    val miniPlayerBottomInset = dockBottom + KuroSpacing.sm
-    val scrollBottomPadding = KuroSpacing.dockClearance + KuroSpacing.soundscapeMiniPlayerClearance
+    // contentPadding carries the full measured dock height (tabs + transport bar +
+    // nav bar inset). This extra value is pure breathing room so the last card
+    // never sits flush against the dock edge when scrolled fully down.
+    val scrollBottomPadding = KuroSpacing.xl + KuroSpacing.xxxl
     // Raw status-bar inset. The parent applies statusBarsPadding to the whole
     // tab surface, so the sticky bar would otherwise start below the status
     // bar and leave a mismatched strip above it. We let the sticky bar extend
@@ -259,16 +260,6 @@ fun HomeTimerScreen(
             HomeStickyBar(onOpenProfile = onOpenProfile, topInset = statusBarTop)
         }
 
-        SoundscapeMiniPlayer(
-            playingAmbienceName = playingAmbienceName,
-            playingMusicName = playingMusicName,
-            onOpenSoundscape = onOpenSoundscape,
-            onMuteAll = onMuteSoundscape,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = KuroSpacing.lg)
-                .padding(bottom = miniPlayerBottomInset),
-        )
     }
 }
 
