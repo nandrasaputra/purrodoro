@@ -1,7 +1,7 @@
 package com.endiar.purrodoro.ui
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
@@ -51,8 +52,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.shadow
@@ -77,7 +78,7 @@ import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.GlassTreatment
 import com.endiar.purrodoro.model.MusicOption
 import com.endiar.purrodoro.model.SoundOption
-import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadge
+import com.endiar.purrodoro.ui.designsystem.KuroBadge
 import com.endiar.purrodoro.ui.designsystem.KuroPill
 import com.endiar.purrodoro.ui.designsystem.KuroPillKind
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -85,31 +86,39 @@ import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.CardWhite
 import com.endiar.purrodoro.ui.theme.Cocoa
 import com.endiar.purrodoro.ui.theme.Coral
-import com.endiar.purrodoro.ui.theme.LofiChillDark
-import com.endiar.purrodoro.ui.theme.LofiChillLight
-import com.endiar.purrodoro.ui.theme.LofiJazzDark
-import com.endiar.purrodoro.ui.theme.LofiJazzLight
-import com.endiar.purrodoro.ui.theme.LofiPianoDark
-import com.endiar.purrodoro.ui.theme.LofiPianoLight
-import com.endiar.purrodoro.ui.theme.LofiStudyDark
-import com.endiar.purrodoro.ui.theme.LofiStudyLight
 import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.Peach
-import com.endiar.purrodoro.ui.theme.TileCafeDark
-import com.endiar.purrodoro.ui.theme.TileCafeLight
-import com.endiar.purrodoro.ui.theme.TileFireDark
-import com.endiar.purrodoro.ui.theme.TileFireLight
-import com.endiar.purrodoro.ui.theme.TileForestDark
-import com.endiar.purrodoro.ui.theme.TileForestLight
-import com.endiar.purrodoro.ui.theme.TileKeysDark
-import com.endiar.purrodoro.ui.theme.TileKeysLight
-import com.endiar.purrodoro.ui.theme.TileRainDark
-import com.endiar.purrodoro.ui.theme.TileRainLight
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import com.endiar.purrodoro.ui.theme.luminance
 import kotlin.math.roundToInt
 
 private const val VOLUME_SNAP_STEPS = 4
+private const val SOUNDSCAPE_VINYL_SPIN_MS = 4_000
+private const val SOUNDSCAPE_EQ_CYCLE_MS = 520
+/** Per-bar height at rest (fraction of [maxBarHeight]). */
+private val SOUNDSCAPE_EQ_BAR_IDLE = listOf(0.42f, 0.62f, 0.38f, 0.52f)
+/** Per-bar animated floor / peak — peak 1f means the bar touches full capsule height. */
+private val SOUNDSCAPE_EQ_BAR_FLOOR = listOf(0.18f, 0.22f, 0.14f, 0.20f)
+private val SOUNDSCAPE_EQ_BAR_PEAK = listOf(0.58f, 1f, 0.48f, 0.76f)
+private val SOUNDSCAPE_EQ_BAR_PHASE_MS = listOf(0, 90, 180, 130)
+
+private fun soundscapeEqBarFraction(floor: Float, peak: Float, anim: Float): Float =
+    floor + (peak - floor) * anim.coerceIn(0f, 1f)
+
+@Composable
+private fun rememberSoundscapeVinylSpinAngle(label: String, isSpinning: Boolean): Float {
+    val spinTransition = rememberInfiniteTransition(label = label)
+    val spinAngle by spinTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = SOUNDSCAPE_VINYL_SPIN_MS, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "${label}Angle",
+    )
+    return if (isSpinning) spinAngle else 0f
+}
 
 private fun snapVolume(raw: Float): Float {
     val stepped = (raw * VOLUME_SNAP_STEPS).roundToInt().coerceIn(0, VOLUME_SNAP_STEPS)
@@ -118,9 +127,6 @@ private fun snapVolume(raw: Float): Float {
 
 // NOTE: Soundscape audio is not active yet. Selection, volume, and mute state
 // update UI only — real looping playback still needs wiring.
-
-private val VinylBlack = Color(0xFF141414)
-private val VinylGroove = Color(0xFF3A3A3A)
 
 /** One-line Soundscape control for the active timer card and focus mode. */
 @Composable
@@ -222,22 +228,10 @@ fun SoundscapeTransportBar(
     onPlayPause: () -> Unit,
     onExpand: () -> Unit,
     modifier: Modifier = Modifier,
-    elevated: Boolean = false,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val spinTransition = rememberInfiniteTransition(label = "transportVinylSpin")
-    val spinAngle by spinTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4_000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "transportVinylAngle",
-    )
     val rowFill = when {
-        isPlaying -> Peach.copy(alpha = if (elevated) 0.42f else 0.32f)
-        elevated -> tokens.segmentedTrack
+        isPlaying -> Peach.copy(alpha = 0.32f)
         else -> tokens.cardFill.copy(alpha = 0.45f)
     }
     val nameColor = when {
@@ -269,10 +263,9 @@ fun SoundscapeTransportBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
-            TransportVinylDisc(
-                isSpinning = isPlaying,
-                spinAngle = spinAngle,
-                modifier = Modifier.size(KuroSpacing.journeyMetricIconCircle),
+            SoundscapeEqualizerCapsule(
+                isPlaying = isPlaying,
+                modifier = Modifier.size(KuroSpacing.journeyMetricIconCircle + KuroSpacing.xs),
             )
             Text(
                 text = displayName,
@@ -310,54 +303,123 @@ fun SoundscapeTransportBar(
     }
 }
 
+/** Option 3 — coral capsule with animated EQ bars (transport bar leading glyph). */
 @Composable
-private fun TransportVinylDisc(
-    isSpinning: Boolean,
-    spinAngle: Float,
+private fun SoundscapeEqualizerCapsule(
+    isPlaying: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Box(
-        modifier = modifier
-            .rotate(if (isSpinning) spinAngle else 0f)
-            .clip(CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val center = this.center
-            val radius = size.minDimension / 2f
-            drawCircle(color = VinylBlack, radius = radius, center = center)
-            val grooveStroke = Stroke(width = 0.9f)
-            listOf(0.45f, 0.58f, 0.71f, 0.84f).forEach { scale ->
-                drawCircle(
-                    color = VinylGroove,
-                    radius = radius * scale,
-                    center = center,
-                    style = grooveStroke,
-                )
-            }
-        }
+    val shape = RoundedCornerShape(10.dp)
+    val barWidth = 3.dp
+    val barGap = 3.dp
+    val barAreaHeight = 18.dp
+    val maxBarHeight = 14.dp
+
+    if (!isPlaying) {
         Box(
-            modifier = Modifier
-                .size(KuroSpacing.lg + KuroSpacing.xs)
-                .clip(CircleShape)
-                .background(Peach.copy(alpha = 0.55f)),
+            modifier = modifier
+                .clip(shape)
+                .background(Peach.copy(alpha = 0.4f))
+                .border(1.dp, Coral.copy(alpha = 0.16f), shape),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Lucide.Music,
-                contentDescription = null,
-                tint = if (isSpinning) Coral else tokens.textSecondary,
-                modifier = Modifier.size(KuroSpacing.md + KuroSpacing.xs),
+            SoundscapeEqualizerBars(
+                fractions = SOUNDSCAPE_EQ_BAR_IDLE,
+                barColor = Coral.copy(alpha = 0.5f),
+                barWidth = barWidth,
+                barGap = barGap,
+                barAreaHeight = barAreaHeight,
+                maxBarHeight = maxBarHeight,
             )
         }
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(CardWhite)
-                .border(0.5.dp, VinylGroove, CircleShape),
+        return
+    }
+
+    val transition = rememberInfiniteTransition(label = "soundscapeEqCapsule")
+    val bar0 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SOUNDSCAPE_EQ_CYCLE_MS, delayMillis = SOUNDSCAPE_EQ_BAR_PHASE_MS[0], easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eqBar0",
+    )
+    val bar1 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SOUNDSCAPE_EQ_CYCLE_MS, delayMillis = SOUNDSCAPE_EQ_BAR_PHASE_MS[1], easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eqBar1",
+    )
+    val bar2 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SOUNDSCAPE_EQ_CYCLE_MS, delayMillis = SOUNDSCAPE_EQ_BAR_PHASE_MS[2], easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eqBar2",
+    )
+    val bar3 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SOUNDSCAPE_EQ_CYCLE_MS, delayMillis = SOUNDSCAPE_EQ_BAR_PHASE_MS[3], easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eqBar3",
+    )
+    val animatedFractions = listOf(
+        soundscapeEqBarFraction(SOUNDSCAPE_EQ_BAR_FLOOR[0], SOUNDSCAPE_EQ_BAR_PEAK[0], bar0),
+        soundscapeEqBarFraction(SOUNDSCAPE_EQ_BAR_FLOOR[1], SOUNDSCAPE_EQ_BAR_PEAK[1], bar1),
+        soundscapeEqBarFraction(SOUNDSCAPE_EQ_BAR_FLOOR[2], SOUNDSCAPE_EQ_BAR_PEAK[2], bar2),
+        soundscapeEqBarFraction(SOUNDSCAPE_EQ_BAR_FLOOR[3], SOUNDSCAPE_EQ_BAR_PEAK[3], bar3),
+    )
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Peach.copy(alpha = 0.52f))
+            .border(1.dp, Coral.copy(alpha = 0.22f), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        SoundscapeEqualizerBars(
+            fractions = animatedFractions,
+            barColor = Coral.copy(alpha = 0.82f),
+            barWidth = barWidth,
+            barGap = barGap,
+            barAreaHeight = barAreaHeight,
+            maxBarHeight = maxBarHeight,
         )
+    }
+}
+
+@Composable
+private fun SoundscapeEqualizerBars(
+    fractions: List<Float>,
+    barColor: Color,
+    barWidth: androidx.compose.ui.unit.Dp,
+    barGap: androidx.compose.ui.unit.Dp,
+    barAreaHeight: androidx.compose.ui.unit.Dp,
+    maxBarHeight: androidx.compose.ui.unit.Dp,
+) {
+    Row(
+        modifier = Modifier.height(barAreaHeight),
+        horizontalArrangement = Arrangement.spacedBy(barGap),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        fractions.forEach { fraction ->
+            Box(
+                modifier = Modifier
+                    .width(barWidth)
+                    .height(maxBarHeight * fraction.coerceIn(0f, 1f))
+                    .clip(RoundedCornerShape(1.5.dp))
+                    .background(barColor),
+            )
+        }
     }
 }
 
@@ -892,6 +954,7 @@ fun SoundsScreen(
 
         SoundscapeSectionHeader(
             title = stringResource(R.string.soundscape_section_ambience),
+            sectionIconRes = R.drawable.soundscape_section_ambience,
             expanded = ambienceExpanded,
             onToggleExpand = { ambienceExpanded = !ambienceExpanded },
             modifier = Modifier.padding(horizontal = KuroSpacing.lg),
@@ -922,6 +985,7 @@ fun SoundsScreen(
 
         SoundscapeSectionHeader(
             title = stringResource(R.string.soundscape_section_lofi),
+            sectionIconRes = R.drawable.soundscape_section_lofi,
             expanded = musicExpanded,
             onToggleExpand = { musicExpanded = !musicExpanded },
             modifier = Modifier.padding(horizontal = KuroSpacing.lg),
@@ -1020,26 +1084,32 @@ fun SoundscapeSheetStickyFooter(
                 .height(1.dp)
                 .background(tokens.cardBorder.copy(alpha = 0.45f + (0.35f * overlay))),
         )
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = KuroSpacing.lg)
-                .padding(top = KuroSpacing.md, bottom = KuroSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+                .padding(top = KuroSpacing.sm, bottom = KuroSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
             SoundscapeVolumeStepRow(
                 label = stringResource(R.string.soundscape_volume_ambience),
                 value = ambienceVolume,
                 onValueChange = onAmbienceVolumeChange,
+                compact = true,
+                modifier = Modifier.weight(1f),
             )
             SoundscapeVolumeStepRow(
                 label = stringResource(R.string.soundscape_volume_music),
                 value = musicVolume,
                 onValueChange = onMusicVolumeChange,
+                compact = true,
+                modifier = Modifier.weight(1f),
             )
             SoundscapeSheetPlayPauseButton(
                 isPlaying = isPlaying,
                 onClick = onPlayPause,
+                compact = true,
             )
         }
         }
@@ -1051,6 +1121,7 @@ private fun SoundscapeSheetPlayPauseButton(
     isPlaying: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val label = if (isPlaying) {
@@ -1063,6 +1134,35 @@ private fun SoundscapeSheetPlayPauseButton(
     } else {
         stringResource(R.string.soundscape_transport_play_cd)
     }
+
+    if (compact) {
+        Box(
+            modifier = modifier
+                .size(KuroSpacing.journeyMetricIconCircle + KuroSpacing.sm)
+                .clip(CircleShape)
+                .background(if (isPlaying) tokens.cardFill else Coral)
+                .border(
+                    width = if (isPlaying) 1.5.dp else 0.dp,
+                    color = Coral.copy(alpha = 0.65f),
+                    shape = CircleShape,
+                )
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = contentDescription,
+                    onClick = onClick,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (isPlaying) Lucide.Pause else Lucide.Play,
+                contentDescription = contentDescription,
+                tint = if (isPlaying) Coral else Color.White,
+                modifier = Modifier.size(KuroSpacing.journeyMetricIconGlyph),
+            )
+        }
+        return
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -1156,14 +1256,11 @@ private fun SoundscapeExpandedLofiGrid(
     }
 }
 
-/**
- * Section header: a placeholder leading glyph + title on the left, a "See all ›"
- * affordance on the right. The leading icon is a temporary placeholder until
- * final per-section art is supplied.
- */
+/** Section header: leading glyph + title, "See all ›" affordance on the right. */
 @Composable
 private fun SoundscapeSectionHeader(
     title: String,
+    @DrawableRes sectionIconRes: Int,
     expanded: Boolean,
     onToggleExpand: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1181,9 +1278,11 @@ private fun SoundscapeSectionHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
-        SoundscapePlaceholderIcon(
-            tint = tokens.textSecondary,
+        Image(
+            painter = painterResource(sectionIconRes),
+            contentDescription = null,
             modifier = Modifier.size(KuroSpacing.lg),
+            contentScale = ContentScale.Fit,
         )
         Text(
             text = title,
@@ -1208,29 +1307,14 @@ private fun SoundscapeSectionHeader(
                 color = tokens.textSecondary,
                 style = KuroType.labelStrong,
             )
-            SoundscapePlaceholderIcon(
+            Icon(
+                imageVector = if (expanded) Lucide.ChevronUp else Lucide.ChevronRight,
+                contentDescription = null,
                 tint = tokens.textFaint,
                 modifier = Modifier.size(KuroSpacing.md),
             )
         }
     }
-}
-
-/**
- * Generic placeholder icon used across the Soundscape detail screen in place
- * of finalized iconography. Renders [R.drawable.soundscape_placeholder].
- */
-@Composable
-private fun SoundscapePlaceholderIcon(
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    Icon(
-        painter = painterResource(R.drawable.soundscape_placeholder),
-        contentDescription = null,
-        tint = tint,
-        modifier = modifier,
-    )
 }
 
 @Composable
@@ -1317,20 +1401,19 @@ private fun AmbienceTile(
                 .border(borderWidth, borderColor, RoundedCornerShape(KuroSpacing.radiusMd)),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
+            Image(
+                painter = painterResource(ambienceIconRes(sound.id)),
+                contentDescription = null,
                 modifier = Modifier
                     .size(KuroSpacing.soundscapeAmbienceIcon)
-                    .clip(CircleShape)
-                    .background(ambienceTileFill(sound.id)),
-                contentAlignment = Alignment.Center,
-            ) {
-                SoundscapePlaceholderIcon(
-                    tint = tokens.textPrimary,
-                    modifier = Modifier.size(KuroSpacing.lg),
-                )
-            }
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
             if (sound.locked) {
-                KuroPremiumBadge(
+                KuroBadge(
+                    label = stringResource(R.string.sound_pill_premium),
+                    fill = tokens.lockedFill,
+                    textColor = tokens.lockedText,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(KuroSpacing.xs),
@@ -1403,10 +1486,14 @@ private fun LofiVinylTile(
             }
             LofiVinylDisc(
                 trackId = track.id,
+                isSpinning = isPlaying,
                 modifier = Modifier.size(vinylSize),
             )
             if (track.locked) {
-                KuroPremiumBadge(
+                KuroBadge(
+                    label = stringResource(R.string.sound_pill_premium),
+                    fill = tokens.lockedFill,
+                    textColor = tokens.lockedText,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(KuroSpacing.xs),
@@ -1433,20 +1520,21 @@ private fun SoundscapeVolumeStepRow(
     value: Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val snapped = snapVolume(value)
     val level = (snapped * VOLUME_SNAP_STEPS).roundToInt().coerceIn(0, VOLUME_SNAP_STEPS)
     val fraction = level / VOLUME_SNAP_STEPS.toFloat()
     val percent = (snapped * 100f).toInt().coerceIn(0, 100)
-    val thumbWidth = 14.dp
-    val thumbHeight = 22.dp
+    val thumbWidth = if (compact) 10.dp else 14.dp
+    val thumbHeight = if (compact) 18.dp else 22.dp
     val trackHeight = 3.dp
     val tickHeight = 8.dp
 
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+        modifier = if (compact) modifier else modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else KuroSpacing.xs),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1455,7 +1543,9 @@ private fun SoundscapeVolumeStepRow(
             Text(
                 text = label,
                 color = tokens.textPrimary,
-                style = KuroType.labelStrong,
+                style = if (compact) KuroType.labelMeta else KuroType.labelStrong,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             Text(
@@ -1468,7 +1558,7 @@ private fun SoundscapeVolumeStepRow(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(thumbHeight + KuroSpacing.xs)
+                .height(thumbHeight + if (compact) 2.dp else KuroSpacing.xs)
                 .pointerInput(onValueChange) {
                     fun setFromX(x: Float) {
                         val clamped = (x / size.width.toFloat()).coerceIn(0f, 1f)
@@ -1508,95 +1598,65 @@ private fun SoundscapeVolumeStepRow(
                     .align(Alignment.CenterStart)
                     .offset(x = thumbOffset)
                     .size(width = thumbWidth, height = thumbHeight)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(if (compact) 5.dp else 6.dp))
                     .background(Coral)
                     .border(
                         width = 1.dp,
                         color = Color.White.copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(if (compact) 5.dp else 6.dp),
                     ),
             )
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = thumbWidth / 2),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            repeat(VOLUME_SNAP_STEPS + 1) { index ->
-                val tickActive = index <= level
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(tickHeight)
-                        .clip(RoundedCornerShape(1.dp))
-                        .background(
-                            if (tickActive) {
-                                Coral.copy(alpha = if (index == level) 1f else 0.55f)
-                            } else {
-                                tokens.cardBorder.copy(alpha = 0.55f)
+        if (!compact) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = thumbWidth / 2),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                repeat(VOLUME_SNAP_STEPS + 1) { index ->
+                    val tickActive = index <= level
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .height(tickHeight)
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(
+                                if (tickActive) {
+                                    Coral.copy(alpha = if (index == level) 1f else 0.55f)
+                                } else {
+                                    tokens.cardBorder.copy(alpha = 0.55f)
+                                },
+                            )
+                            .clickable(role = Role.Button) {
+                                onValueChange(index / VOLUME_SNAP_STEPS.toFloat())
                             },
-                        )
-                        .clickable(role = Role.Button) {
-                            onValueChange(index / VOLUME_SNAP_STEPS.toFloat())
-                        },
-                )
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun ambienceTileFill(soundId: Int): Color {
-    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
-    return when (soundId) {
-        1 -> if (isLight) TileRainLight else TileRainDark
-        2 -> if (isLight) TileCafeLight else TileCafeDark
-        3 -> if (isLight) TileForestLight else TileForestDark
-        4 -> if (isLight) TileFireLight else TileFireDark
-        5 -> if (isLight) TileKeysLight else TileKeysDark
-        else -> MaterialTheme.colorScheme.kuroTokens.cardFill
     }
 }
 
 @Composable
 private fun LofiVinylDisc(
     trackId: Int,
+    isSpinning: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.clip(CircleShape), contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val center = this.center
-            val radius = size.minDimension / 2f
-            drawCircle(color = VinylBlack, radius = radius, center = center)
-            val grooveStroke = Stroke(width = 1.1f)
-            listOf(0.40f, 0.50f, 0.60f, 0.70f, 0.80f, 0.90f).forEach { scale ->
-                drawCircle(
-                    color = VinylGroove,
-                    radius = radius * scale,
-                    center = center,
-                    style = grooveStroke,
-                )
-            }
-        }
-        Box(
-            modifier = Modifier
-                .size(KuroSpacing.soundscapeLofiLabel)
-                .clip(CircleShape)
-                .background(lofiVinylFill(trackId)),
-            contentAlignment = Alignment.Center,
-        ) {
-            LofiVinylCenterIcon(trackId = trackId)
-        }
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .clip(CircleShape)
-                .background(CardWhite)
-                .border(0.75.dp, VinylGroove, CircleShape),
-        )
-    }
+    val spinAngle = rememberSoundscapeVinylSpinAngle(
+        label = "lofiVinylSpin_$trackId",
+        isSpinning = isSpinning,
+    )
+    Image(
+        painter = painterResource(lofiVinylDiscRes(trackId)),
+        contentDescription = null,
+        modifier = modifier
+            .rotate(spinAngle)
+            .clip(CircleShape),
+        contentScale = ContentScale.Crop,
+    )
 }
 
 @Composable
@@ -1617,33 +1677,21 @@ private fun SoundscapePlayingChip() {
     }
 }
 
-@Composable
-private fun LofiVinylCenterIcon(trackId: Int) {
-    Icon(
-        painter = painterResource(lofiIconRes(trackId)),
-        contentDescription = null,
-        tint = Color.Unspecified,
-        modifier = Modifier.size(KuroSpacing.lg + KuroSpacing.xs),
-    )
+@DrawableRes
+private fun ambienceIconRes(soundId: Int): Int = when (soundId) {
+    1 -> R.drawable.soundscape_ambience_rain
+    2 -> R.drawable.soundscape_ambience_cafe
+    3 -> R.drawable.soundscape_ambience_forest
+    4 -> R.drawable.soundscape_ambience_fire
+    5 -> R.drawable.soundscape_ambience_keys
+    else -> R.drawable.soundscape_ambience_rain
 }
 
 @DrawableRes
-private fun lofiIconRes(musicId: Int): Int = when (musicId) {
-    1 -> R.drawable.soundscape_lofi_cat
-    2 -> R.drawable.soundscape_lofi_jazz_cat
-    3 -> R.drawable.soundscape_lofi_piano
-    4 -> R.drawable.soundscape_lofi_palm
-    else -> R.drawable.soundscape_lofi_cat
-}
-
-@Composable
-private fun lofiVinylFill(musicId: Int): Color {
-    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
-    return when (musicId) {
-        1 -> if (isLight) LofiStudyLight else LofiStudyDark
-        2 -> if (isLight) LofiJazzLight else LofiJazzDark
-        3 -> if (isLight) LofiPianoLight else LofiPianoDark
-        4 -> if (isLight) LofiChillLight else LofiChillDark
-        else -> MaterialTheme.colorScheme.kuroTokens.cardFill
-    }
+private fun lofiVinylDiscRes(trackId: Int): Int = when (trackId) {
+    1 -> R.drawable.soundscape_vinyl_study_beats
+    2 -> R.drawable.soundscape_vinyl_midnight_jazz
+    3 -> R.drawable.soundscape_vinyl_soft_piano
+    4 -> R.drawable.soundscape_vinyl_chill_hop
+    else -> R.drawable.soundscape_vinyl_base
 }

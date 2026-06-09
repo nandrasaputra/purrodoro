@@ -96,9 +96,11 @@ object KuroSpacing {
     val soundscapeStickyFooterScrim = 24.dp
     /** Compact Soundscape transport row fused into the Focus-tab dock. */
     val soundscapeTransportBarHeight = 56.dp
+    /** Leading dual-deck icon in the transport bar (larger than tab glyphs). */
+    val soundscapeTransportIcon = 44.dp
     /** Content inset; background on the transport bar stays full-bleed. */
     val soundscapeTransportInsetH = lg
-    val soundscapeTransportInsetV = sm
+    val soundscapeTransportInsetV = xs
     /** Tab row height inside the unified dock (matches legacy floating dock). */
     val dockTabRowHeight = 82.dp
 }

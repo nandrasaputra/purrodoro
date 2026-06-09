@@ -345,7 +345,6 @@ fun FocusModeOverlay(
                     showFirstRunHint = showSoundscapeFirstRunHint,
                     onPlayPause = onSoundscapePlayPause,
                     onExpand = onOpenSoundscape,
-                    elevated = true,
                 )
             }
 
