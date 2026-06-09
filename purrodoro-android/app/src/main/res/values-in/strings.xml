@@ -243,10 +243,13 @@
     <string name="soundscape_section_ambience">Ambien</string>
     <string name="soundscape_section_lofi">Musik lo-fi</string>
     <string name="soundscape_see_all">Lihat semua</string>
+    <string name="soundscape_show_less">Tampilkan lebih sedikit</string>
     <string name="soundscape_see_all_cd">Lihat semua %1$s</string>
     <string name="soundscape_volume_ambience">Ambien</string>
     <string name="soundscape_volume_music">Musik</string>
     <string name="soundscape_mute_all">Bisukan semua</string>
+    <string name="soundscape_sheet_play">Putar</string>
+    <string name="soundscape_sheet_pause">Jeda</string>
     <string name="sound_rain_short">Hujan</string>
     <string name="sound_cafe_short">Kafe</string>
     <string name="sound_forest_short">Hutan</string>
