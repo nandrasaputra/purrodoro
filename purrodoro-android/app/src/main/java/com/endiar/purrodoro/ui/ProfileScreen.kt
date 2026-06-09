@@ -42,20 +42,16 @@ import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
 import com.composables.icons.lucide.User
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -91,8 +87,10 @@ import com.endiar.purrodoro.ui.auth.AccountSection
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.ui.components.KuroCard
-import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
+import com.endiar.purrodoro.ui.components.KuroPrimaryButton
+import com.endiar.purrodoro.ui.designsystem.KuroBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroDivider
+import com.endiar.purrodoro.ui.designsystem.KuroInputField
 import com.endiar.purrodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroStepper
@@ -323,7 +321,7 @@ fun ProfileScreen(
     }
 
     when (editingField) {
-        "name" -> TextEditDialog(
+        "name" -> TextEditSheet(
             title = stringResource(R.string.settings_name_label),
             value = userName,
             placeholder = stringResource(R.string.settings_name_placeholder),
@@ -331,28 +329,28 @@ fun ProfileScreen(
             onConfirm = { onUpdateUserName(it); editingField = null },
             onDismiss = { editingField = null }
         )
-        "focus" -> NumericEditDialog(
+        "focus" -> NumericEditSheet(
             title = stringResource(R.string.settings_focus_time),
             value = settings.focusMinutes,
             min = 1, max = 120, unit = stringResource(R.string.unit_min),
             onConfirm = { onUpdateSettings(settings.copy(focusMinutes = it)); editingField = null },
             onDismiss = { editingField = null }
         )
-        "short" -> NumericEditDialog(
+        "short" -> NumericEditSheet(
             title = stringResource(R.string.settings_short_break),
             value = settings.shortBreakMinutes,
             min = 1, max = 120, unit = stringResource(R.string.unit_min),
             onConfirm = { onUpdateSettings(settings.copy(shortBreakMinutes = it)); editingField = null },
             onDismiss = { editingField = null }
         )
-        "long" -> NumericEditDialog(
+        "long" -> NumericEditSheet(
             title = stringResource(R.string.settings_long_break),
             value = settings.longBreakMinutes,
             min = 1, max = 120, unit = stringResource(R.string.unit_min),
             onConfirm = { onUpdateSettings(settings.copy(longBreakMinutes = it)); editingField = null },
             onDismiss = { editingField = null }
         )
-        "cycle" -> NumericEditDialog(
+        "cycle" -> NumericEditSheet(
             title = stringResource(R.string.settings_long_break_after),
             value = settings.focusSessionsPerCycle,
             min = 1, max = TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE, unit = stringResource(R.string.unit_sessions),
@@ -629,25 +627,11 @@ private fun PickerBottomSheet(
     onDismiss: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    KuroAdaptiveBottomSheet(
-        onDismiss = onDismiss,
-        showCloseButton = true,
-        horizontalPadding = KuroSpacing.lg,
-    ) {
+    KuroBottomSheet(title = title, onDismiss = onDismiss) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = KuroSpacing.xs, bottom = KuroSpacing.xxl),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
-            Text(
-                text = title,
-                style = KuroType.headingCard,
-                color = tokens.textPrimary,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(KuroSpacing.xs))
             content()
         }
     }
@@ -724,7 +708,7 @@ private fun PickerOptionRow(
 }
 
 @Composable
-private fun TextEditDialog(
+private fun TextEditSheet(
     title: String,
     value: String,
     placeholder: String,
@@ -734,81 +718,55 @@ private fun TextEditDialog(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var current by remember(value) { mutableStateOf(value) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = tokens.pageBackground,
-        title = { Text(text = title, style = KuroType.headingCard, color = tokens.textPrimary) },
-        text = {
-            OutlinedTextField(
-                value = current,
-                onValueChange = { if (it.length <= maxLength) current = it },
-                placeholder = { Text(placeholder, color = tokens.textSecondary) },
-                singleLine = true,
-                supportingText = {
-                    Text(
-                        text = "${current.length}/$maxLength",
-                        color = tokens.textSecondary,
-                        style = KuroType.labelMeta,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = tokens.textPrimary,
-                    unfocusedTextColor = tokens.textPrimary,
-                    cursorColor = tokens.accent,
-                    focusedBorderColor = tokens.accent,
-                    unfocusedBorderColor = tokens.cardBorder,
-                ),
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(current.trim()) }) {
-                Text(stringResource(R.string.common_ok), color = tokens.accent, style = KuroType.labelStrong)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel), color = tokens.textSecondary)
-            }
-        }
-    )
+    KuroBottomSheet(title = title, onDismiss = onDismiss) {
+        KuroInputField(
+            value = current,
+            onValueChange = { if (it.length <= maxLength) current = it },
+            placeholder = placeholder,
+        )
+        Text(
+            text = "${current.length}/$maxLength",
+            color = tokens.textSecondary,
+            style = KuroType.labelMeta,
+            textAlign = TextAlign.End,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = KuroSpacing.xs),
+        )
+        Spacer(modifier = Modifier.height(KuroSpacing.lg))
+        KuroPrimaryButton(
+            text = stringResource(R.string.common_ok),
+            onClick = { onConfirm(current.trim()) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
-private fun NumericEditDialog(
+private fun NumericEditSheet(
     title: String, value: Int, min: Int, max: Int, unit: String,
     onConfirm: (Int) -> Unit, onDismiss: () -> Unit
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var current by remember(value) { mutableIntStateOf(value) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = tokens.pageBackground,
-        title = { Text(text = title, style = KuroType.headingCard, color = tokens.textPrimary) },
-        text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                KuroStepper(label = "−", enabled = current > min, large = true, onClick = { if (current > min) current-- })
-                Spacer(modifier = Modifier.width(KuroSpacing.md))
-                Text(text = "$current $unit", style = KuroType.headingCard, color = tokens.textPrimary)
-                Spacer(modifier = Modifier.width(KuroSpacing.md))
-                KuroStepper(label = "+", enabled = current < max, large = true, onClick = { if (current < max) current++ })
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(current) }) {
-                Text(stringResource(R.string.common_ok), color = tokens.accent, style = KuroType.labelStrong)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel), color = tokens.textSecondary)
-            }
+    KuroBottomSheet(title = title, onDismiss = onDismiss) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = KuroSpacing.lg),
+        ) {
+            KuroStepper(label = "−", enabled = current > min, large = true, onClick = { if (current > min) current-- })
+            Spacer(modifier = Modifier.width(KuroSpacing.md))
+            Text(text = "$current $unit", style = KuroType.headingCard, color = tokens.textPrimary)
+            Spacer(modifier = Modifier.width(KuroSpacing.md))
+            KuroStepper(label = "+", enabled = current < max, large = true, onClick = { if (current < max) current++ })
         }
-    )
+        KuroPrimaryButton(
+            text = stringResource(R.string.common_ok),
+            onClick = { onConfirm(current) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
