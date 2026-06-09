@@ -246,10 +246,13 @@
     <string name="soundscape_section_ambience">Ambience</string>
     <string name="soundscape_section_lofi">Lo-fi music</string>
     <string name="soundscape_see_all">See all</string>
+    <string name="soundscape_show_less">Show less</string>
     <string name="soundscape_see_all_cd">See all %1$s</string>
     <string name="soundscape_volume_ambience">Ambience</string>
     <string name="soundscape_volume_music">Music</string>
     <string name="soundscape_mute_all">Mute all</string>
+    <string name="soundscape_sheet_play">Play</string>
+    <string name="soundscape_sheet_pause">Pause</string>
     <string name="sound_rain_short">Rain</string>
     <string name="sound_cafe_short">Cafe Purr</string>
     <string name="sound_forest_short">Forest Nap</string>
