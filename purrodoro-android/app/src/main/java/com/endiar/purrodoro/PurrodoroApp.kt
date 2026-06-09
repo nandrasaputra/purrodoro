@@ -816,10 +816,13 @@ fun PurrodoroApp(
                         else timerConnection.controller.resume()
                     },
                     onSkip = { timerConnection.controller.skip() },
-                    playingAmbienceName = playingAmbienceName,
-                    playingMusicName = playingMusicName,
+                    isSoundscapePlaying = isSoundscapePlaying,
+                    soundscapeDisplayName = soundscapeTransportLabel,
+                    showSoundscapeFirstRunHint = !hasEverUsedSoundscape,
                     onOpenSoundscape = { showSoundsSheet = true },
-                    onMuteSoundscape = { pauseSoundscape() },
+                    onSoundscapePlayPause = {
+                        if (isSoundscapePlaying) pauseSoundscape() else resumeSoundscape()
+                    },
                     contentPadding = PaddingValues(),
                     modifier = Modifier.statusBarsPadding(),
                 )
