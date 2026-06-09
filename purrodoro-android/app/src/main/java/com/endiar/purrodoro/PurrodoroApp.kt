@@ -83,6 +83,8 @@ import com.endiar.purrodoro.ui.SoundsScreen
 import com.endiar.purrodoro.ui.SoundscapeSheetStickyFooter
 import com.endiar.purrodoro.ui.soundscapeSavedMixLabel
 import com.endiar.purrodoro.ui.StartFocusPrefill
+import com.endiar.purrodoro.ui.PremiumUpsellSheet
+import com.endiar.purrodoro.ui.PremiumUpsellTrigger
 import com.endiar.purrodoro.ui.StartFocusSheet
 import com.endiar.purrodoro.ui.TodoScreen
 import com.endiar.purrodoro.ui.HomeSuggestion
@@ -188,7 +190,8 @@ fun PurrodoroApp(
     var selectedMusicId by rememberSaveable { mutableStateOf<Int?>(null) }
     var ambienceVolume by rememberSaveable { mutableStateOf(0.7f) }
     var musicVolume by rememberSaveable { mutableStateOf(0.45f) }
-    var premiumSheetMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var showPremiumSheet by rememberSaveable { mutableStateOf(false) }
+    var premiumUpsellTrigger by remember { mutableStateOf(PremiumUpsellTrigger()) }
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
     var hasEverUsedSoundscape by rememberSaveable { mutableStateOf(false) }
 
@@ -912,19 +915,6 @@ fun PurrodoroApp(
                 )
             }
 
-            if (!showSoundsSheet) {
-                premiumSheetMessage?.let { message ->
-                    PremiumMessage(
-                        message = message,
-                        onDismiss = { premiumSheetMessage = null },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(horizontal = 18.dp)
-                            .offset(y = -(dockHeightDp + 8.dp))
-                    )
-                }
-            }
-
             // Child of focusTransition so it shares the single clock with scrim + timer
             // (frame-perfect parallel). Dock visibility is the inverse of focus mode:
             // appearing = exiting focus (Exit, 400ms, snappier); disappearing = entering focus (Enter, 700ms, deliberate).
@@ -1053,14 +1043,25 @@ fun PurrodoroApp(
                 )
             }
 
+            if (showPremiumSheet && !isPremium) {
+                PremiumUpsellSheet(
+                    trigger = premiumUpsellTrigger,
+                    onDismiss = { showPremiumSheet = false },
+                    onUpgrade = {
+                        scope.launch {
+                            repo.setIsPremium(true)
+                            showPremiumSheet = false
+                        }
+                    },
+                )
+            }
+
             if (showSoundsSheet) {
                 KuroAdaptiveBottomSheet(
                     onDismiss = {
                         showSoundsSheet = false
-                        premiumSheetMessage = null
                     },
                     horizontalPadding = 0.dp,
-                    contentKey = premiumSheetMessage,
                     showCloseButton = true,
                     footer = { scrollOverlay ->
                         SoundscapeSheetStickyFooter(
@@ -1076,13 +1077,6 @@ fun PurrodoroApp(
                         )
                     },
                 ) {
-                    premiumSheetMessage?.let { message ->
-                        PremiumMessage(
-                            message = message,
-                            onDismiss = { premiumSheetMessage = null },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                    }
                     // NOTE: Soundscape audio is not active yet — selection, volume,
                     // and play/pause state are UI-only until sound files are wired in.
                     SoundsScreen(
@@ -1094,13 +1088,12 @@ fun PurrodoroApp(
                         playingMusicId = playingMusicId,
                         onAmbienceSelected = { sound ->
                             if (sound.locked && !isPremium) {
-                                premiumSheetMessage =
-                                    "${sound.name} is part of the simulated premium sound pack."
+                                premiumUpsellTrigger = PremiumUpsellTrigger(lockedFeatureName = sound.name)
+                                showPremiumSheet = true
                             } else {
                                 persistSelectedSoundId(sound.id)
                                 playingAmbienceId = sound.id
                                 markSoundscapeUsed()
-                                premiumSheetMessage = null
                             }
                         },
                         onAmbienceToggle = { sound ->
@@ -1108,13 +1101,12 @@ fun PurrodoroApp(
                         },
                         onMusicSelected = { track ->
                             if (track.locked && !isPremium) {
-                                premiumSheetMessage =
-                                    "${track.name} is part of the simulated premium sound pack."
+                                premiumUpsellTrigger = PremiumUpsellTrigger(lockedFeatureName = track.name)
+                                showPremiumSheet = true
                             } else {
                                 selectedMusicId = track.id
                                 playingMusicId = track.id
                                 markSoundscapeUsed()
-                                premiumSheetMessage = null
                             }
                         },
                         onMusicToggle = { track ->
@@ -1131,26 +1123,6 @@ fun PurrodoroApp(
 
     CompositionLocalProvider(LocalTutorialController provides tutorialController) {
         KuroFlatSurface(content = surfaceContent)
-    }
-}
-
-@Composable
-private fun PremiumMessage(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.tertiaryContainer
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                Text("Dismiss", style = MaterialTheme.typography.labelLarge)
-            }
-        }
     }
 }
 

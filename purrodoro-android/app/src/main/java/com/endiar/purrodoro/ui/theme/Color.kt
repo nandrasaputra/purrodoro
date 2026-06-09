@@ -54,6 +54,13 @@ val LockedPurpleLight = Color(0xFF9B7FCC)
 val LockedPurpleText = Color(0xFFD8C8FF)
 val LockedPurpleTextDark = Color(0xFF6B43AA)
 
+/** Starry Pill premium badge — Design A (see docs/premium-badge.md). */
+val PremiumBadgeGradientTop = Color(0xFF9B7FCC)
+val PremiumBadgeGradientBottom = Color(0xFF6B43AA)
+val PremiumBadgeGradientTopDark = Color(0xFFA894D8)
+val PremiumBadgeGradientBottomDark = Color(0xFF7B4FBF)
+val PremiumBadgeText = Color(0xFFFFFFFF)
+
 // ── Sound icon tile palette (per-sound-id × scheme) ────────────────────────
 // Light mode fills (id 1=Rainy Window, 2=Cafe, 3=Forest, 4=Fire, 5=Keys)
 val TileRainLight = Blush

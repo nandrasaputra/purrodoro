@@ -77,7 +77,7 @@ import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.GlassTreatment
 import com.endiar.purrodoro.model.MusicOption
 import com.endiar.purrodoro.model.SoundOption
-import com.endiar.purrodoro.ui.designsystem.KuroBadge
+import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadge
 import com.endiar.purrodoro.ui.designsystem.KuroPill
 import com.endiar.purrodoro.ui.designsystem.KuroPillKind
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -1330,10 +1330,7 @@ private fun AmbienceTile(
                 )
             }
             if (sound.locked) {
-                KuroBadge(
-                    label = stringResource(R.string.sound_pill_premium),
-                    fill = tokens.lockedFill,
-                    textColor = tokens.lockedText,
+                KuroPremiumBadge(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(KuroSpacing.xs),
@@ -1409,10 +1406,7 @@ private fun LofiVinylTile(
                 modifier = Modifier.size(vinylSize),
             )
             if (track.locked) {
-                KuroBadge(
-                    label = stringResource(R.string.sound_pill_premium),
-                    fill = tokens.lockedFill,
-                    textColor = tokens.lockedText,
+                KuroPremiumBadge(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(KuroSpacing.xs),
