@@ -40,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -162,13 +163,22 @@ fun KuroAdaptiveBottomSheet(
     containerColor: Color? = null,
     scrimColor: Color = Color.Black.copy(alpha = 0.32f),
     showCloseButton: Boolean = false,
-    footer: (@Composable () -> Unit)? = null,
+    footer: (@Composable (scrollOverlay: Float) -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val sheetColor = containerColor ?: tokens.cardFill
     val scrollState = rememberScrollState()
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * MaxSheetHeightFraction
+    val footerScrollOverlay by remember {
+        derivedStateOf {
+            when {
+                scrollState.maxValue == 0 -> 0f
+                scrollState.value > 0 -> 1f
+                else -> 0.72f
+            }
+        }
+    }
 
     var visible by remember { mutableStateOf(false) }
     var dismissing by remember { mutableStateOf(false) }
@@ -305,7 +315,6 @@ fun KuroAdaptiveBottomSheet(
                         .fillMaxWidth()
                         .heightIn(max = maxSheetHeight)
                         .animateContentSizeBottomAnchored()
-                        .wrapContentHeight()
                         .clip(RoundedCornerShape(topStart = SheetCornerRadius, topEnd = SheetCornerRadius))
                         .background(sheetColor)
                         .clickable(
@@ -324,15 +333,14 @@ fun KuroAdaptiveBottomSheet(
                             .navigationBarsPadding()
                             .padding(horizontal = horizontalPadding),
                     ) {
-                        // The scrollable body uses weight(fill = false) so the sheet
-                        // wraps its content when short, but caps at the parent's
-                        // bounded max height (from heightIn) and scrolls when the
-                        // content overflows — all while the footer stays pinned.
+                        // weight(1f, fill = false): Column allocates the remaining height
+                        // (after the footer) to the scroll body, but lets it shrink when
+                        // content is shorter — no empty whitespace when sections are collapsed.
                         AnimatedContent(
                             targetState = contentKey,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(1f, fill = false),
+                                .then(if (footer != null) Modifier.weight(1f, fill = false) else Modifier),
                             transitionSpec = {
                                 fadeIn(
                                     tween(
@@ -353,7 +361,14 @@ fun KuroAdaptiveBottomSheet(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .verticalScroll(scrollState),
+                                    .verticalScroll(scrollState)
+                                    .then(
+                                        if (footer != null) {
+                                            Modifier.padding(bottom = KuroSpacing.sheetFooterScrollInset)
+                                        } else {
+                                            Modifier
+                                        },
+                                    ),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 content = content,
                             )
@@ -363,9 +378,9 @@ fun KuroAdaptiveBottomSheet(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = KuroSpacing.lg, bottom = KuroSpacing.xxl),
+                                    .padding(bottom = KuroSpacing.xxl),
                             ) {
-                                footer()
+                                footer(footerScrollOverlay)
                             }
                         } else {
                             Spacer(Modifier.height(KuroSpacing.xxl))
