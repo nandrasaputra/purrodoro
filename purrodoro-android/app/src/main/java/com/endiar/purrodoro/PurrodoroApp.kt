@@ -80,6 +80,7 @@ import com.endiar.purrodoro.ui.HistoryScreen
 import com.endiar.purrodoro.ui.HomeTimerScreen
 import com.endiar.purrodoro.ui.ProfileScreen
 import com.endiar.purrodoro.ui.SoundsScreen
+import com.endiar.purrodoro.ui.SoundscapeSheetStickyFooter
 import com.endiar.purrodoro.ui.soundscapeSavedMixLabel
 import com.endiar.purrodoro.ui.StartFocusPrefill
 import com.endiar.purrodoro.ui.StartFocusSheet
@@ -816,10 +817,13 @@ fun PurrodoroApp(
                         else timerConnection.controller.resume()
                     },
                     onSkip = { timerConnection.controller.skip() },
-                    playingAmbienceName = playingAmbienceName,
-                    playingMusicName = playingMusicName,
+                    isSoundscapePlaying = isSoundscapePlaying,
+                    soundscapeDisplayName = soundscapeTransportLabel,
+                    showSoundscapeFirstRunHint = !hasEverUsedSoundscape,
                     onOpenSoundscape = { showSoundsSheet = true },
-                    onMuteSoundscape = { pauseSoundscape() },
+                    onSoundscapePlayPause = {
+                        if (isSoundscapePlaying) pauseSoundscape() else resumeSoundscape()
+                    },
                     contentPadding = PaddingValues(),
                     modifier = Modifier.statusBarsPadding(),
                 )
@@ -1051,16 +1055,27 @@ fun PurrodoroApp(
             }
 
             if (showSoundsSheet) {
-                val sheetTokens = glassTokens(GlassTreatment.Clear, false)
                 KuroAdaptiveBottomSheet(
                     onDismiss = {
                         showSoundsSheet = false
                         premiumSheetMessage = null
                     },
                     horizontalPadding = 0.dp,
-                    containerColor = sheetTokens.cardFill,
                     contentKey = premiumSheetMessage,
-                    showCloseButton = false,
+                    showCloseButton = true,
+                    footer = { scrollOverlay ->
+                        SoundscapeSheetStickyFooter(
+                            ambienceVolume = ambienceVolume,
+                            musicVolume = musicVolume,
+                            onAmbienceVolumeChange = { ambienceVolume = it },
+                            onMusicVolumeChange = { musicVolume = it },
+                            isPlaying = isSoundscapePlaying,
+                            onPlayPause = {
+                                if (isSoundscapePlaying) pauseSoundscape() else resumeSoundscape()
+                            },
+                            scrollOverlay = scrollOverlay,
+                        )
+                    },
                 ) {
                     premiumSheetMessage?.let { message ->
                         PremiumMessage(
@@ -1070,7 +1085,7 @@ fun PurrodoroApp(
                         )
                     }
                     // NOTE: Soundscape audio is not active yet — selection, volume,
-                    // and mute state are UI-only until sound files are wired in.
+                    // and play/pause state are UI-only until sound files are wired in.
                     SoundsScreen(
                         ambienceOptions = ambienceOptions,
                         musicOptions = musicOptions,
@@ -1078,8 +1093,6 @@ fun PurrodoroApp(
                         playingAmbienceId = playingAmbienceId,
                         selectedMusicId = selectedMusicId,
                         playingMusicId = playingMusicId,
-                        ambienceVolume = ambienceVolume,
-                        musicVolume = musicVolume,
                         onAmbienceSelected = { sound ->
                             if (sound.locked && !isPremium) {
                                 premiumSheetMessage =
@@ -1107,13 +1120,6 @@ fun PurrodoroApp(
                         },
                         onMusicToggle = { track ->
                             playingMusicId = if (playingMusicId == track.id) null else track.id
-                        },
-                        onAmbienceVolumeChange = { ambienceVolume = it },
-                        onMusicVolumeChange = { musicVolume = it },
-                        onMuteAll = { pauseSoundscape() },
-                        onDone = {
-                            showSoundsSheet = false
-                            premiumSheetMessage = null
                         },
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,

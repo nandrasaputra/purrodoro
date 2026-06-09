@@ -88,6 +88,12 @@ object KuroSpacing {
     val soundscapeLofiVinyl = 88.dp
     val soundscapeLofiLabel = 56.dp
     val soundscapeScrollPeek = 28.dp
+    /** Single scroll-end inset for any footered bottom sheet (apply once in the sheet shell). */
+    val sheetFooterScrollInset = md
+    /** Lift above the sticky Soundscape controls when content scrolls underneath. */
+    val soundscapeStickyFooterElevation = 18.dp
+    /** Fade band above the footer edge when scroll content passes under it. */
+    val soundscapeStickyFooterScrim = 24.dp
     /** Compact Soundscape transport row fused into the Focus-tab dock. */
     val soundscapeTransportBarHeight = 56.dp
     /** Content inset; background on the transport bar stays full-bleed. */
