@@ -116,6 +116,7 @@ private fun SignedInAccountCard(
         ?: stringResource(R.string.account_default_name)
     val providerLabel = when (user.provider) {
         AuthProvider.Google -> stringResource(R.string.account_signed_in_with_google)
+        AuthProvider.Unknown -> stringResource(R.string.account_signed_in_generic)
     }
 
     KuroCard(modifier = modifier.fillMaxWidth()) {

@@ -110,6 +110,7 @@
     <string name="account_sign_in_subtitle">Simpan kebiasaan dan perjalanan di semua perangkat</string>
     <string name="account_default_name">Teman Purrodoro</string>
     <string name="account_signed_in_with_google">Masuk dengan Google</string>
+    <string name="account_signed_in_generic">Sudah masuk</string>
     <string name="account_sign_out">Keluar</string>
     <string name="login_sheet_title">Masuk</string>
     <string name="login_sheet_subtitle">Cara yang lebih tenang untuk menjaga ritual fokusmu.</string>

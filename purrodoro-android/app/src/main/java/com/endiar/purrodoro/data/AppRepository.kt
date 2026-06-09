@@ -34,6 +34,7 @@ import com.endiar.purrodoro.model.toggleBinaryOn
 import com.endiar.purrodoro.model.withLog
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -93,6 +94,11 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial")
         private val KEY_INTERRUPTED_FOCUS = stringPreferencesKey("interrupted_focus")
 
+        // Marks which account the on-device data belongs to. Null = unclaimed
+        // (guest data). Survives sign-out; drives the Claim/Keep/Drop rule on the
+        // next sign-in. See the auth-and-account-identity spec.
+        private val KEY_OWNER_ID = stringPreferencesKey("data_owner_id")
+
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
 
@@ -110,6 +116,54 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
 
     val pendingCycleCompletionAckFlow: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_PENDING_CYCLE_ACK] ?: false
+    }
+
+    /**
+     * Which account the on-device data belongs to, or `null` if unclaimed
+     * (guest data that has never been signed in). Independent of the current
+     * auth session — it persists across sign-out.
+     */
+    val ownerIdFlow: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[KEY_OWNER_ID]?.takeIf { it.isNotBlank() }
+    }
+
+    /** Reads the current owner marker once (convenience for the sign-in path). */
+    suspend fun currentOwnerId(): String? =
+        ownerIdFlow.first()
+
+    /** Sets (or clears, when [value] is null) the data owner marker. */
+    suspend fun setOwnerId(value: String?) = dataStore.edit { prefs ->
+        if (value.isNullOrBlank()) prefs.remove(KEY_OWNER_ID)
+        else prefs[KEY_OWNER_ID] = value
+    }
+
+    /**
+     * Removes all account-owned data so a different account starts clean. Keeps
+     * device-local, non-account preferences (appearance, language, onboarding /
+     * tutorial flags, selected sound, notification sound, glass mode, premium).
+     *
+     * Note: the [KEY_OWNER_ID] marker is intentionally NOT touched here — the
+     * caller must clear data first, then write the new owner id, so a crash
+     * mid-switch re-evaluates to Drop rather than leaking the old data to the
+     * new account. See [com.endiar.purrodoro.auth.AccountManager].
+     */
+    suspend fun clearAccountOwnedData() = dataStore.edit { prefs ->
+        listOf(
+            // tasks + categories
+            KEY_TASKS, KEY_NEXT_TASK_ID,
+            KEY_CATEGORIES, KEY_NEXT_CATEGORY_ID, KEY_SELECTED_CATEGORY_ID,
+            // habits
+            KEY_HABITS, KEY_NEXT_HABIT_ID,
+            // history / progress
+            KEY_SESSION_RECORDS, KEY_STAMPS, KEY_COMPLETED,
+            // in-flight focus + cycle
+            KEY_INTERRUPTED_FOCUS, KEY_RUNTIME_SNAPSHOT, KEY_PENDING_CYCLE_ACK,
+            // account-tied greeting name
+            KEY_USER_NAME,
+            // timer settings revert to defaults for the new account
+            KEY_FOCUS_MIN, KEY_SHORT_MIN, KEY_LONG_MIN,
+            KEY_AUTO_START_NEXT_SESSION, KEY_CYCLE_SIZE,
+        ).forEach { prefs.remove(it) }
     }
 
     /**
