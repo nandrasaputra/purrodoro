@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,24 +23,34 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -96,6 +107,14 @@ import com.endiar.purrodoro.ui.theme.TileRainDark
 import com.endiar.purrodoro.ui.theme.TileRainLight
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import com.endiar.purrodoro.ui.theme.luminance
+import kotlin.math.roundToInt
+
+private const val VOLUME_SNAP_STEPS = 4
+
+private fun snapVolume(raw: Float): Float {
+    val stepped = (raw * VOLUME_SNAP_STEPS).roundToInt().coerceIn(0, VOLUME_SNAP_STEPS)
+    return stepped / VOLUME_SNAP_STEPS.toFloat()
+}
 
 // NOTE: Soundscape audio is not active yet. Selection, volume, and mute state
 // update UI only — real looping playback still needs wiring.
@@ -828,24 +847,18 @@ fun SoundsScreen(
     playingAmbienceId: Int?,
     selectedMusicId: Int?,
     playingMusicId: Int?,
-    ambienceVolume: Float,
-    musicVolume: Float,
     onAmbienceSelected: (SoundOption) -> Unit,
     onAmbienceToggle: (SoundOption) -> Unit,
     onMusicSelected: (MusicOption) -> Unit,
     onMusicToggle: (MusicOption) -> Unit,
-    onAmbienceVolumeChange: (Float) -> Unit,
-    onMusicVolumeChange: (Float) -> Unit,
-    onMuteAll: () -> Unit,
     modifier: Modifier = Modifier,
-    onDone: () -> Unit = {},
-    onSeeAllAmbience: () -> Unit = {},
-    onSeeAllMusic: () -> Unit = {},
     @Suppress("UNUSED_PARAMETER") glassTreatment: GlassTreatment = GlassTreatment.Clear,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     @Suppress("UNUSED_PARAMETER") overBackdrop: Boolean = true,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    var ambienceExpanded by remember { mutableStateOf(false) }
+    var musicExpanded by remember { mutableStateOf(false) }
 
     // Scroll is owned by KuroAdaptiveBottomSheet — do not nest verticalScroll here
     // or Compose throws infinite-height constraint crash when the sheet opens.
@@ -853,112 +866,291 @@ fun SoundsScreen(
         modifier = modifier
             .fillMaxWidth()
             .padding(contentPadding)
-            .padding(horizontal = KuroSpacing.lg)
-            .padding(top = KuroSpacing.xs, bottom = KuroSpacing.lg),
+            .padding(top = KuroSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
     ) {
-        // Header: title + subtitle on the left, a coral "Done" pill on the right.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(horizontal = KuroSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
-            ) {
-                Text(
-                    text = stringResource(R.string.sounds_title),
-                    color = Cocoa,
-                    fontSize = 30.sp,
-                    lineHeight = 34.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = NunitoFamily,
-                )
-                Text(
-                    text = stringResource(R.string.sounds_subtitle),
-                    color = tokens.textSecondary,
-                    style = KuroType.bodySecondary,
-                )
-            }
-            SoundscapeDoneButton(onClick = onDone)
+            Text(
+                text = stringResource(R.string.sounds_title),
+                color = Cocoa,
+                fontSize = 30.sp,
+                lineHeight = 34.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = NunitoFamily,
+            )
+            Text(
+                text = stringResource(R.string.sounds_subtitle),
+                color = tokens.textSecondary,
+                style = KuroType.bodySecondary,
+            )
         }
 
         SoundscapeSectionHeader(
             title = stringResource(R.string.soundscape_section_ambience),
-            onSeeAll = onSeeAllAmbience,
+            expanded = ambienceExpanded,
+            onToggleExpand = { ambienceExpanded = !ambienceExpanded },
+            modifier = Modifier.padding(horizontal = KuroSpacing.lg),
         )
-        SoundscapeHorizontalRow {
-            ambienceOptions.forEach { sound ->
-                val isPlaying = sound.id == playingAmbienceId
-                AmbienceTile(
-                    sound = sound,
-                    isPlaying = isPlaying,
-                    tileLabel = ambienceShortName(sound.id),
-                    onClick = {
-                        if (isPlaying) onAmbienceToggle(sound) else onAmbienceSelected(sound)
-                    },
-                )
+        if (ambienceExpanded) {
+            SoundscapeExpandedAmbienceGrid(
+                options = ambienceOptions,
+                playingAmbienceId = playingAmbienceId,
+                onAmbienceSelected = onAmbienceSelected,
+                onAmbienceToggle = onAmbienceToggle,
+                modifier = Modifier.padding(horizontal = KuroSpacing.lg),
+            )
+        } else {
+            SoundscapeHorizontalRow {
+                ambienceOptions.forEach { sound ->
+                    val isPlaying = sound.id == playingAmbienceId
+                    AmbienceTile(
+                        sound = sound,
+                        isPlaying = isPlaying,
+                        tileLabel = ambienceShortName(sound.id),
+                        onClick = {
+                            if (isPlaying) onAmbienceToggle(sound) else onAmbienceSelected(sound)
+                        },
+                    )
+                }
             }
         }
 
         SoundscapeSectionHeader(
             title = stringResource(R.string.soundscape_section_lofi),
-            onSeeAll = onSeeAllMusic,
+            expanded = musicExpanded,
+            onToggleExpand = { musicExpanded = !musicExpanded },
+            modifier = Modifier.padding(horizontal = KuroSpacing.lg),
         )
-        SoundscapeHorizontalRow(itemSpacing = KuroSpacing.md) {
-            musicOptions.forEach { track ->
-                val isPlaying = track.id == playingMusicId
-                LofiVinylTile(
-                    track = track,
-                    isPlaying = isPlaying,
-                    onClick = {
-                        if (isPlaying) onMusicToggle(track) else onMusicSelected(track)
-                    },
-                )
+        if (musicExpanded) {
+            SoundscapeExpandedLofiGrid(
+                options = musicOptions,
+                playingMusicId = playingMusicId,
+                onMusicSelected = onMusicSelected,
+                onMusicToggle = onMusicToggle,
+                modifier = Modifier.padding(horizontal = KuroSpacing.lg),
+            )
+        } else {
+            SoundscapeHorizontalRow(itemSpacing = KuroSpacing.md) {
+                musicOptions.forEach { track ->
+                    val isPlaying = track.id == playingMusicId
+                    LofiVinylTile(
+                        track = track,
+                        isPlaying = isPlaying,
+                        onClick = {
+                            if (isPlaying) onMusicToggle(track) else onMusicSelected(track)
+                        },
+                    )
+                }
             }
         }
-
-        Spacer(Modifier.height(KuroSpacing.xs))
-
-        // Reference places the two volume controls side-by-side.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
-        ) {
-            SoundscapeVolumeRow(
-                label = stringResource(R.string.soundscape_volume_ambience),
-                value = ambienceVolume,
-                onValueChange = onAmbienceVolumeChange,
-                modifier = Modifier.weight(1f),
-            )
-            SoundscapeVolumeRow(
-                label = stringResource(R.string.soundscape_volume_music),
-                value = musicVolume,
-                onValueChange = onMusicVolumeChange,
-                modifier = Modifier.weight(1f),
-            )
-        }
-
-        MuteAllButton(onClick = onMuteAll)
     }
 }
 
-/** Coral "Done" pill in the Soundscape header (matches the reference design). */
+/** Sticky Soundscape footer: divider, volume steps, play/pause. */
 @Composable
-private fun SoundscapeDoneButton(onClick: () -> Unit) {
+fun SoundscapeSheetStickyFooter(
+    ambienceVolume: Float,
+    musicVolume: Float,
+    onAmbienceVolumeChange: (Float) -> Unit,
+    onMusicVolumeChange: (Float) -> Unit,
+    isPlaying: Boolean,
+    onPlayPause: () -> Unit,
+    modifier: Modifier = Modifier,
+    scrollOverlay: Float = 0f,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
+    val overlay = scrollOverlay.coerceIn(0f, 1f)
+    val footerElevation by animateDpAsState(
+        targetValue = KuroSpacing.soundscapeStickyFooterElevation * overlay,
+        animationSpec = tween(durationMillis = 180),
+        label = "soundscapeFooterElevation",
+    )
+    val shadowAmbient = if (isDark) {
+        Color.Black.copy(alpha = 0.52f * overlay)
+    } else {
+        Color(0xFF9A7B6A).copy(alpha = 0.38f * overlay)
+    }
+    val shadowSpot = if (isDark) {
+        Color.Black.copy(alpha = 0.62f * overlay)
+    } else {
+        Color(0xFF7A5C4C).copy(alpha = 0.32f * overlay)
+    }
+    val scrimColor = if (isDark) Color.Black else Cocoa
+
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
-            .background(Coral)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.sm),
-        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = footerElevation,
+                shape = RectangleShape,
+                clip = false,
+                ambientColor = shadowAmbient,
+                spotColor = shadowSpot,
+            )
+            .background(tokens.cardFill),
     ) {
+        if (overlay > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(KuroSpacing.soundscapeStickyFooterScrim)
+                    .align(Alignment.TopCenter)
+                    .offset(y = -KuroSpacing.soundscapeStickyFooterScrim)
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Transparent,
+                                0.55f to scrimColor.copy(alpha = 0.04f * overlay),
+                                1f to scrimColor.copy(alpha = 0.14f * overlay),
+                            ),
+                        ),
+                    ),
+            )
+        }
+        Column(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(tokens.cardBorder.copy(alpha = 0.45f + (0.35f * overlay))),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = KuroSpacing.lg)
+                .padding(top = KuroSpacing.md, bottom = KuroSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+        ) {
+            SoundscapeVolumeStepRow(
+                label = stringResource(R.string.soundscape_volume_ambience),
+                value = ambienceVolume,
+                onValueChange = onAmbienceVolumeChange,
+            )
+            SoundscapeVolumeStepRow(
+                label = stringResource(R.string.soundscape_volume_music),
+                value = musicVolume,
+                onValueChange = onMusicVolumeChange,
+            )
+            SoundscapeSheetPlayPauseButton(
+                isPlaying = isPlaying,
+                onClick = onPlayPause,
+            )
+        }
+        }
+    }
+}
+
+@Composable
+private fun SoundscapeSheetPlayPauseButton(
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val label = if (isPlaying) {
+        stringResource(R.string.soundscape_sheet_pause)
+    } else {
+        stringResource(R.string.soundscape_sheet_play)
+    }
+    val contentDescription = if (isPlaying) {
+        stringResource(R.string.soundscape_transport_pause_cd)
+    } else {
+        stringResource(R.string.soundscape_transport_play_cd)
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(if (isPlaying) tokens.cardFill else Coral)
+            .border(
+                width = if (isPlaying) 1.5.dp else 0.dp,
+                color = Coral.copy(alpha = 0.65f),
+                shape = RoundedCornerShape(KuroSpacing.radiusPill),
+            )
+            .clickable(
+                role = Role.Button,
+                onClickLabel = contentDescription,
+                onClick = onClick,
+            )
+            .padding(vertical = KuroSpacing.md),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = if (isPlaying) Lucide.Pause else Lucide.Play,
+            contentDescription = null,
+            tint = if (isPlaying) Coral else Color.White,
+            modifier = Modifier.size(KuroSpacing.lg),
+        )
+        Spacer(Modifier.width(KuroSpacing.sm))
         Text(
-            text = stringResource(R.string.common_done),
-            color = Color.White,
+            text = label,
+            color = if (isPlaying) Coral else Color.White,
             style = KuroType.labelStrong,
         )
+    }
+}
+
+@Composable
+private fun SoundscapeExpandedAmbienceGrid(
+    options: List<SoundOption>,
+    playingAmbienceId: Int?,
+    onAmbienceSelected: (SoundOption) -> Unit,
+    onAmbienceToggle: (SoundOption) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        options.chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                row.forEach { sound ->
+                    val isPlaying = sound.id == playingAmbienceId
+                    AmbienceTile(
+                        sound = sound,
+                        isPlaying = isPlaying,
+                        tileLabel = ambienceShortName(sound.id),
+                        onClick = {
+                            if (isPlaying) onAmbienceToggle(sound) else onAmbienceSelected(sound)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SoundscapeExpandedLofiGrid(
+    options: List<MusicOption>,
+    playingMusicId: Int?,
+    onMusicSelected: (MusicOption) -> Unit,
+    onMusicToggle: (MusicOption) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+    ) {
+        options.chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
+                row.forEach { track ->
+                    val isPlaying = track.id == playingMusicId
+                    LofiVinylTile(
+                        track = track,
+                        isPlaying = isPlaying,
+                        onClick = {
+                            if (isPlaying) onMusicToggle(track) else onMusicSelected(track)
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -970,11 +1162,18 @@ private fun SoundscapeDoneButton(onClick: () -> Unit) {
 @Composable
 private fun SoundscapeSectionHeader(
     title: String,
-    onSeeAll: () -> Unit,
+    expanded: Boolean,
+    onToggleExpand: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val toggleLabel = if (expanded) {
+        stringResource(R.string.soundscape_show_less)
+    } else {
+        stringResource(R.string.soundscape_see_all)
+    }
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(top = KuroSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -996,14 +1195,14 @@ private fun SoundscapeSectionHeader(
                 .clickable(
                     role = Role.Button,
                     onClickLabel = stringResource(R.string.soundscape_see_all_cd, title),
-                    onClick = onSeeAll,
+                    onClick = onToggleExpand,
                 )
                 .padding(horizontal = KuroSpacing.xs, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
         ) {
             Text(
-                text = stringResource(R.string.soundscape_see_all),
+                text = toggleLabel,
                 color = tokens.textSecondary,
                 style = KuroType.labelStrong,
             )
@@ -1035,16 +1234,20 @@ private fun SoundscapePlaceholderIcon(
 @Composable
 private fun SoundscapeHorizontalRow(
     itemSpacing: androidx.compose.ui.unit.Dp = KuroSpacing.sm,
-    content: @Composable () -> Unit,
+    content: @Composable RowScope.() -> Unit,
 ) {
+    // Full-width scroll row with symmetric edge insets so tiles and playing halos
+    // are not clipped at the sheet edges.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer { clip = false }
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(itemSpacing),
     ) {
+        Spacer(Modifier.width(KuroSpacing.lg))
         content()
-        Spacer(Modifier.width(KuroSpacing.soundscapeScrollPeek))
+        Spacer(Modifier.width(KuroSpacing.lg + KuroSpacing.soundscapeScrollPeek))
     }
 }
 
@@ -1176,8 +1379,9 @@ private fun LofiVinylTile(
                 onClick = onClick,
             ),
     ) {
+        // Reserve the playing halo footprint so focus rings never clip at row edges.
         Box(
-            modifier = Modifier.size(if (isPlaying) haloSize else vinylSize),
+            modifier = Modifier.size(haloSize),
             contentAlignment = Alignment.Center,
         ) {
             if (isPlaying) {
@@ -1222,33 +1426,36 @@ private fun LofiVinylTile(
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.width(KuroSpacing.soundscapeLofiVinyl + KuroSpacing.sm),
+            modifier = Modifier.width(haloSize),
         )
     }
 }
 
 @Composable
-private fun SoundscapeVolumeRow(
+private fun SoundscapeVolumeStepRow(
     label: String,
     value: Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val percent = (value * 100f).toInt().coerceIn(0, 100)
+    val snapped = snapVolume(value)
+    val level = (snapped * VOLUME_SNAP_STEPS).roundToInt().coerceIn(0, VOLUME_SNAP_STEPS)
+    val fraction = level / VOLUME_SNAP_STEPS.toFloat()
+    val percent = (snapped * 100f).toInt().coerceIn(0, 100)
+    val thumbWidth = 14.dp
+    val thumbHeight = 22.dp
+    val trackHeight = 3.dp
+    val tickHeight = 8.dp
 
     Column(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
-            SoundscapePlaceholderIcon(
-                tint = tokens.textSecondary,
-                modifier = Modifier.size(KuroSpacing.lg),
-            )
             Text(
                 text = label,
                 color = tokens.textPrimary,
@@ -1261,42 +1468,86 @@ private fun SoundscapeVolumeRow(
                 style = KuroType.labelMeta,
             )
         }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            colors = SliderDefaults.colors(
-                thumbColor = Coral,
-                activeTrackColor = Coral,
-                inactiveTrackColor = Peach.copy(alpha = 0.5f),
-            ),
-        )
-    }
-}
 
-@Composable
-private fun MuteAllButton(onClick: () -> Unit) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
-            .border(1.5.dp, Coral.copy(alpha = 0.65f), RoundedCornerShape(KuroSpacing.radiusPill))
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = KuroSpacing.md),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SoundscapePlaceholderIcon(
-            tint = Coral,
-            modifier = Modifier.size(KuroSpacing.lg),
-        )
-        Spacer(Modifier.width(KuroSpacing.sm))
-        Text(
-            text = stringResource(R.string.soundscape_mute_all),
-            color = Coral,
-            style = KuroType.labelStrong,
-        )
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(thumbHeight + KuroSpacing.xs)
+                .pointerInput(onValueChange) {
+                    fun setFromX(x: Float) {
+                        val clamped = (x / size.width.toFloat()).coerceIn(0f, 1f)
+                        onValueChange(snapVolume(clamped))
+                    }
+                    detectTapGestures { offset -> setFromX(offset.x) }
+                    detectHorizontalDragGestures { change, _ ->
+                        change.consume()
+                        setFromX(change.position.x)
+                    }
+                },
+        ) {
+            val maxTravel = (maxWidth - thumbWidth).coerceAtLeast(0.dp)
+            val thumbOffset = maxTravel * fraction
+            val activeTrackWidth = thumbOffset + thumbWidth / 2
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+                    .height(trackHeight)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Peach.copy(alpha = 0.48f)),
+            )
+            if (level > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .width(activeTrackWidth.coerceAtMost(maxWidth))
+                        .height(trackHeight)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(Coral),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset(x = thumbOffset)
+                    .size(width = thumbWidth, height = thumbHeight)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Coral)
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(6.dp),
+                    ),
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = thumbWidth / 2),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            repeat(VOLUME_SNAP_STEPS + 1) { index ->
+                val tickActive = index <= level
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(tickHeight)
+                        .clip(RoundedCornerShape(1.dp))
+                        .background(
+                            if (tickActive) {
+                                Coral.copy(alpha = if (index == level) 1f else 0.55f)
+                            } else {
+                                tokens.cardBorder.copy(alpha = 0.55f)
+                            },
+                        )
+                        .clickable(role = Role.Button) {
+                            onValueChange(index / VOLUME_SNAP_STEPS.toFloat())
+                        },
+                )
+            }
+        }
     }
 }
 

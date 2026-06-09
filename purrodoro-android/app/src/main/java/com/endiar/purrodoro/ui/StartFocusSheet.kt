@@ -298,7 +298,7 @@ fun StartFocusSheet(
         contentKey = sheetContentKey,
         showCloseButton = true,
         footer = if (page == StartFocusSheetPage.Confirm) {
-            {
+            { _ ->
                 StartFocusConfirmButton(enabled = canStart(), onClick = {
                     val request = buildStartFocusRequest(
                         intent = intent,
