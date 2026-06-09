@@ -176,7 +176,7 @@ fun KuroSheetHeader(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = KuroSpacing.lg),
+            .padding(top = KuroSpacing.md, bottom = KuroSpacing.lg),
         contentAlignment = Alignment.Center,
     ) {
         if (title != null) {

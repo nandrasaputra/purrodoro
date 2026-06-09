@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -39,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -233,11 +236,13 @@ fun FocusModeOverlay(
                     scaleX = contentScale
                     scaleY = contentScale
                 }
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(contentPadding)
                 .padding(horizontal = KuroSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(64.dp))
+            Spacer(Modifier.height(24.dp))
 
             Text(
                 text = modeLabel,
@@ -320,10 +325,17 @@ fun FocusModeOverlay(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = KuroSpacing.sm)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(KuroSpacing.radiusPill),
+                        ambientColor = tokens.textPrimary.copy(alpha = 0.08f),
+                        spotColor = tokens.textPrimary.copy(alpha = 0.12f),
+                    )
                     .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                    .background(tokens.cardFill)
                     .border(
                         1.dp,
-                        tokens.cardBorder.copy(alpha = 0.55f),
+                        tokens.cardBorder,
                         RoundedCornerShape(KuroSpacing.radiusPill),
                     ),
             ) {
@@ -333,6 +345,7 @@ fun FocusModeOverlay(
                     showFirstRunHint = showSoundscapeFirstRunHint,
                     onPlayPause = onSoundscapePlayPause,
                     onExpand = onOpenSoundscape,
+                    elevated = true,
                 )
             }
 

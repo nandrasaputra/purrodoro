@@ -825,7 +825,6 @@ fun PurrodoroApp(
                         if (isSoundscapePlaying) pauseSoundscape() else resumeSoundscape()
                     },
                     contentPadding = PaddingValues(),
-                    modifier = Modifier.statusBarsPadding(),
                 )
             }
 

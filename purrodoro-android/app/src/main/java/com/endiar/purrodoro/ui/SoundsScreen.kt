@@ -222,6 +222,7 @@ fun SoundscapeTransportBar(
     onPlayPause: () -> Unit,
     onExpand: () -> Unit,
     modifier: Modifier = Modifier,
+    elevated: Boolean = false,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val spinTransition = rememberInfiniteTransition(label = "transportVinylSpin")
@@ -235,7 +236,8 @@ fun SoundscapeTransportBar(
         label = "transportVinylAngle",
     )
     val rowFill = when {
-        isPlaying -> Peach.copy(alpha = 0.32f)
+        isPlaying -> Peach.copy(alpha = if (elevated) 0.42f else 0.32f)
+        elevated -> tokens.segmentedTrack
         else -> tokens.cardFill.copy(alpha = 0.45f)
     }
     val nameColor = when {
