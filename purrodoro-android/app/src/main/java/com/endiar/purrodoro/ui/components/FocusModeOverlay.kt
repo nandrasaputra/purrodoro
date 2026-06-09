@@ -68,7 +68,7 @@ import com.endiar.purrodoro.model.TimerMode
 import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TimerState
 import com.endiar.purrodoro.model.formatSeconds
-import com.endiar.purrodoro.ui.SoundscapeCompactBar
+import com.endiar.purrodoro.ui.SoundscapeTransportBar
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.designsystem.pressScale
@@ -110,10 +110,11 @@ fun FocusModeOverlay(
     onExit: () -> Unit,
     onStartPause: () -> Unit,
     onSkip: () -> Unit,
-    playingAmbienceName: String? = null,
-    playingMusicName: String? = null,
+    isSoundscapePlaying: Boolean = false,
+    soundscapeDisplayName: String = "",
+    showSoundscapeFirstRunHint: Boolean = false,
     onOpenSoundscape: () -> Unit = {},
-    onMuteSoundscape: () -> Unit = {},
+    onSoundscapePlayPause: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier,
 ) {
@@ -315,15 +316,25 @@ fun FocusModeOverlay(
 
             Spacer(modifier = Modifier.weight(0.85f))
 
-            SoundscapeCompactBar(
-                playingAmbienceName = playingAmbienceName,
-                playingMusicName = playingMusicName,
-                onOpenSoundscape = onOpenSoundscape,
-                onMuteAll = onMuteSoundscape,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = KuroSpacing.sm),
-            )
+                    .padding(bottom = KuroSpacing.sm)
+                    .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                    .border(
+                        1.dp,
+                        tokens.cardBorder.copy(alpha = 0.55f),
+                        RoundedCornerShape(KuroSpacing.radiusPill),
+                    ),
+            ) {
+                SoundscapeTransportBar(
+                    isPlaying = isSoundscapePlaying,
+                    displayName = soundscapeDisplayName,
+                    showFirstRunHint = showSoundscapeFirstRunHint,
+                    onPlayPause = onSoundscapePlayPause,
+                    onExpand = onOpenSoundscape,
+                )
+            }
 
             BottomActions(
                 breakReady = breakReady,
