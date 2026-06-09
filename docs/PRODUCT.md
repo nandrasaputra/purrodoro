@@ -251,8 +251,33 @@ Purrodoro uses **Supabase Auth** as the backend. Login is optional — guests ca
 use the app locally without an account. Profile and app data sync across
 devices only after sign-in.
 
-> Current Android build still uses a local auth stub (`AuthRepository`). Wire to
-> Supabase `signInWithIdToken` / email flows when the project is connected.
+> **Implementation status (2026-06-09).** Design + ownership model are locked in
+> [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](superpowers/specs/2026-06-09-auth-and-account-identity.md).
+> Scope for the first pass narrowed to **Google + local Guest on Android** (Apple
+> + Email deferred; iOS needs Apple before it can ship per 4.8).
+>
+> **Done (Android, merged):** the pure ownership layer + tests —
+> `resolveLoginAction` (Claim/Keep/Drop) and `AuthProvider.Unknown` in
+> `model/AuthState.kt`; `ownerId` marker + `clearAccountOwnedData()` in
+> `AppRepository`; `auth/AccountManager` orchestration (clear-before-stamp so a
+> mid-switch crash can't leak data). Guest is **local-only** (no anonymous auth);
+> account switch **drops** the previous account's local data after a confirm.
+>
+> **Leftover / next steps (device-dependent, not yet wired):**
+> 1. Add `supabase-kt` + ComposeAuth + Credential Manager deps; a `SupabaseClient`
+>    configured with the project URL + publishable key.
+> 2. Real Google sign-in (`rememberSignInWithGoogle` → `signInWithIdToken`),
+>    replacing the random-UUID stub; derive `authState` from `sessionStatus`.
+> 3. `EncryptedSessionManager` (Keystore-backed) for the Supabase session.
+> 4. Wire `AccountManager.onSignedIn` into the login success path + the Drop
+>    confirm dialog and guest "not backed up" notice.
+> 5. **Manual (Google Cloud + Supabase dashboard):** create Google OAuth Web +
+>    Android client IDs (needs the app SHA-1) and enable the Google provider.
+>
+> `AccountManager` is intentionally **not** wired to the live login path yet — the
+> stub mints a random `user_id` per sign-in, which would make every login look
+> like a different account (a destructive Drop). Wire it only once step 2 returns
+> a stable `user_id`. Data **sync** itself is a separate, later spec.
 
 ### Sign-in options by platform
 

@@ -176,4 +176,36 @@ class AppRepositoryTest {
         assertEquals(TaskPriority.Normal, task.priority)
         assertEquals(null, task.dueDate)
     }
+
+    // --- ownerId (data ownership marker) ---
+
+    @Test
+    fun `ownerId defaults to null`() = runTest {
+        val repo = makeRepo()
+        assertEquals(null, repo.currentOwnerId())
+    }
+
+    @Test
+    fun `setOwnerId persists and reads back`() = runTest {
+        val repo = makeRepo()
+        repo.setOwnerId("user-A")
+        assertEquals("user-A", repo.currentOwnerId())
+    }
+
+    @Test
+    fun `setOwnerId null clears the marker`() = runTest {
+        val repo = makeRepo()
+        repo.setOwnerId("user-A")
+        repo.setOwnerId(null)
+        assertEquals(null, repo.currentOwnerId())
+    }
+
+    @Test
+    fun `ownerId survives a fresh repo on the same datastore`() = runTest {
+        val file = tmpFolder.newFile("owner_shared.preferences_pb")
+        val ds = PreferenceDataStoreFactory.create { file }
+        AppRepository(ds).setOwnerId("user-A")
+        // A new repository over the same DataStore file sees the persisted owner.
+        assertEquals("user-A", AppRepository(ds).currentOwnerId())
+    }
 }

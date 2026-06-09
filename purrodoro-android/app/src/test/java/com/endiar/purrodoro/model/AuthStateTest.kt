@@ -50,4 +50,41 @@ class AuthStateTest {
     fun `isNameFromAccount false for guest`() {
         assertFalse(isNameFromAccount(AuthState.Guest, localName = "Nandra"))
     }
+
+    // --- AuthProvider.fromStorageTag ---
+
+    @Test
+    fun `fromStorageTag round-trips google`() {
+        assertEquals(AuthProvider.Google, AuthProvider.fromStorageTag("google"))
+    }
+
+    @Test
+    fun `fromStorageTag maps unknown tags to Unknown not Google`() {
+        assertEquals(AuthProvider.Unknown, AuthProvider.fromStorageTag("apple"))
+        assertEquals(AuthProvider.Unknown, AuthProvider.fromStorageTag("email"))
+        assertEquals(AuthProvider.Unknown, AuthProvider.fromStorageTag(""))
+        assertEquals(AuthProvider.Unknown, AuthProvider.fromStorageTag(null))
+    }
+
+    // --- resolveLoginAction (ownership rule) ---
+
+    @Test
+    fun `resolveLoginAction null owner claims`() {
+        assertEquals(LoginDataAction.Claim, resolveLoginAction(ownerId = null, incomingUserId = "A"))
+    }
+
+    @Test
+    fun `resolveLoginAction null owner with blank id still claims`() {
+        assertEquals(LoginDataAction.Claim, resolveLoginAction(ownerId = null, incomingUserId = ""))
+    }
+
+    @Test
+    fun `resolveLoginAction same owner keeps`() {
+        assertEquals(LoginDataAction.Keep, resolveLoginAction(ownerId = "A", incomingUserId = "A"))
+    }
+
+    @Test
+    fun `resolveLoginAction different owner drops`() {
+        assertEquals(LoginDataAction.Drop, resolveLoginAction(ownerId = "A", incomingUserId = "B"))
+    }
 }
