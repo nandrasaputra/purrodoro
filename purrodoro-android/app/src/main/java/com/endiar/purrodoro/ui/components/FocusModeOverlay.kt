@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -91,9 +92,10 @@ import com.endiar.purrodoro.ui.theme.kuroTokens
  *  - Coral progress dots with current emphasized + `n / m` text.
  *  - Mascot anchored in the lower-middle.
  *  - State-aware bottom CTA:
- *      * running focus  → "tap anywhere to exit" hint
  *      * break ready    → coral "Start break" pill + "Skip break" text
  *      * break running  → "Skip break" text + small coral pause circle
+ *      * focus paused   → coral "Resume focus" pill
+ *      * all states     → "tap anywhere to exit" hint (pinned below actions)
  *
  * Tap-anywhere-to-exit applies on all states; explicit controls consume the
  * tap so they don't accidentally collapse the overlay.
@@ -177,7 +179,6 @@ fun FocusModeOverlay(
     val isPaused = currentTimerState == TimerState.Paused
     val breakReady = isBreak && !isRunning
     val breakRunning = isBreak && isRunning
-    val focusRunning = !isBreak && isRunning
     val focusPaused = !isBreak && isPaused
 
     val modeLabel = when (timerMode) {
@@ -302,24 +303,25 @@ fun FocusModeOverlay(
                 )
             }
 
-            // Keep Purrodoro as the emotional anchor in the middle-lower area.
-            // The previous 1f/0.4f split pushed the mascot too close to the
-            // bottom, making it feel like footer decoration. This balance puts
-            // the mascot around ~60% of the screen while leaving the controls
-            // and hint anchored near the navigation bar.
-            Spacer(modifier = Modifier.weight(0.55f))
-
-            Image(
-                painter = painterResource(id = mascotRes),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
+            // Mascot lives in the flexible band; soundscape + actions + hint stay
+            // in the fixed bottom cluster so the exit hint never clips off-screen
+            // on short displays or when the intent pill / subtext are visible.
+            Box(
                 modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .fillMaxWidth()
-                    .aspectRatio(1.4f),
-            )
-
-            Spacer(modifier = Modifier.weight(0.85f))
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(id = mascotRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .sizeIn(maxWidth = 280.dp, maxHeight = 200.dp)
+                        .fillMaxWidth()
+                        .aspectRatio(1.4f),
+                )
+            }
 
             Box(
                 modifier = Modifier
@@ -351,7 +353,6 @@ fun FocusModeOverlay(
             BottomActions(
                 breakReady = breakReady,
                 breakRunning = breakRunning,
-                focusRunning = focusRunning,
                 focusPaused = focusPaused,
                 onStartPause = onStartPause,
                 onSkip = onSkip,
@@ -472,72 +473,57 @@ private fun focusCounts(
 private fun BottomActions(
     breakReady: Boolean,
     breakRunning: Boolean,
-    focusRunning: Boolean,
     focusPaused: Boolean,
     onStartPause: () -> Unit,
     onSkip: () -> Unit,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    when {
-        breakReady -> Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            CoralPillButton(
-                text = stringResource(R.string.focus_start_break),
-                onClick = onStartPause,
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        when {
+            breakReady -> {
+                CoralPillButton(
+                    text = stringResource(R.string.focus_start_break),
+                    onClick = onStartPause,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                QuietTextAction(text = stringResource(R.string.home_skip_break), onClick = onSkip)
+            }
+
+            breakRunning -> Row(
                 modifier = Modifier.fillMaxWidth(),
-            )
-            QuietTextAction(text = stringResource(R.string.home_skip_break), onClick = onSkip)
-        }
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(Modifier.width(16.dp))
+                QuietTextAction(text = stringResource(R.string.home_skip_break), onClick = onSkip)
+                CoralPauseCircle(onClick = onStartPause)
+            }
 
-        breakRunning -> Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Spacer(Modifier.width(16.dp))
-            QuietTextAction(text = stringResource(R.string.home_skip_break), onClick = onSkip)
-            CoralPauseCircle(onClick = onStartPause)
-        }
-
-        focusPaused -> Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            CoralPillButton(
+            focusPaused -> CoralPillButton(
                 text = stringResource(R.string.focus_resume_focus),
                 onClick = onStartPause,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text(
-                text = stringResource(R.string.focus_tap_to_exit),
-                color = tokens.textSecondary.copy(alpha = 0.45f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.4.sp,
-                textAlign = TextAlign.Center,
-            )
         }
-
-        focusRunning -> Text(
-            text = stringResource(R.string.focus_tap_to_exit),
-            color = tokens.textSecondary.copy(alpha = 0.55f),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.4.sp,
-            textAlign = TextAlign.Center,
-        )
-
-        else -> Text(
-            text = stringResource(R.string.focus_tap_to_exit),
-            color = tokens.textSecondary.copy(alpha = 0.45f),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.4.sp,
-            textAlign = TextAlign.Center,
-        )
+        TapToExitHint()
     }
+}
+
+@Composable
+private fun TapToExitHint() {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Text(
+        text = stringResource(R.string.focus_tap_to_exit),
+        color = tokens.textSecondary.copy(alpha = 0.5f),
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.4.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
