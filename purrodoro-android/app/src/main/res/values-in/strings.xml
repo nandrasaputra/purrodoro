@@ -278,6 +278,25 @@
     <string name="sound_pill_playing">Diputar</string>
     <string name="sound_pill_selected">Dipilih</string>
     <string name="sound_pill_premium">Premium</string>
+    <string name="premium_badge_cd">Lencana %1$s</string>
+    <string name="premium_star_cd">Bintang Premium</string>
+
+    <!-- Premium upsell sheet -->
+    <string name="premium_sheet_cat_cd">Purrodoro dengan mata berbintang</string>
+    <string name="premium_sheet_header_cd">Ilustrasi fitur Premium</string>
+    <string name="premium_sheet_title">Buat fokus terasa ajaib</string>
+    <string name="premium_sheet_title_locked">%1$s adalah Premium</string>
+    <string name="premium_sheet_subtitle">Premium mengubah setiap Pomodoro jadi momen istirahat kecil. Kucingmu memilih ini untukmu.</string>
+    <string name="premium_chip_ambient">Suara Ambien</string>
+    <string name="premium_chip_lofi">Lo-fi Vinyl</string>
+    <string name="premium_chip_widgets">Widget Ekstra</string>
+    <string name="premium_chip_themes">Tema Kustom</string>
+    <string name="premium_perk_sounds">Semua ambience &amp; trek lo-fi</string>
+    <string name="premium_perk_widgets">6 widget layar utama premium</string>
+    <string name="premium_perk_mascot">Pose kucing fokus ekstra</string>
+    <string name="premium_sheet_price_hint">Mulai $2,99/bulan · uji coba gratis 7 hari</string>
+    <string name="premium_sheet_cta">Mulai Premium</string>
+    <string name="premium_sheet_dismiss">Nanti saja</string>
     <string name="sound_pill_tap_to_play">Ketuk untuk memutar</string>
     <string name="sound_unlock_cd">Buka %1$s</string>
     <string name="sound_stop_cd">Hentikan %1$s</string>

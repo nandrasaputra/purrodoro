@@ -22,6 +22,7 @@ private val Context.debugDataStore by preferencesDataStore(name = "kuro_debug_pr
 
 private val KEY_CLOCK_OVERRIDE = stringPreferencesKey("clock_override")
 private val KEY_IS_PREMIUM_OVERRIDE = booleanPreferencesKey("is_premium_override")
+private val KEY_PREMIUM_OVERRIDE_VALUE = booleanPreferencesKey("premium_override_value")
 private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
 
 class DebugRepository(private val context: Context? = null) : ClockDebugSource, PremiumDebugSource {
@@ -29,7 +30,8 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource, 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override val clockOverride = MutableStateFlow<LocalTime?>(null)
-    override val isPremiumOverride = MutableStateFlow(false)
+    override val isPremiumOverrideEnabled = MutableStateFlow(false)
+    override val premiumOverrideValue = MutableStateFlow(true)
 
     init {
         if (context != null) {
@@ -37,7 +39,8 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource, 
             clockOverride.value = prefs[KEY_CLOCK_OVERRIDE]
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { runCatching { LocalTime.parse(it, TIME_FORMAT) }.getOrNull() }
-            isPremiumOverride.value = prefs[KEY_IS_PREMIUM_OVERRIDE] ?: false
+            isPremiumOverrideEnabled.value = prefs[KEY_IS_PREMIUM_OVERRIDE] ?: false
+            premiumOverrideValue.value = prefs[KEY_PREMIUM_OVERRIDE_VALUE] ?: true
         }
     }
 
@@ -52,12 +55,22 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource, 
         }
     }
 
-    fun setIsPremiumOverride(value: Boolean) {
-        isPremiumOverride.value = value
+    fun setPremiumOverrideEnabled(enabled: Boolean) {
+        isPremiumOverrideEnabled.value = enabled
+        persistPremiumOverride()
+    }
+
+    fun setPremiumOverrideValue(value: Boolean) {
+        premiumOverrideValue.value = value
+        persistPremiumOverride()
+    }
+
+    private fun persistPremiumOverride() {
         context?.let { ctx ->
             scope.launch {
                 ctx.debugDataStore.edit { prefs ->
-                    prefs[KEY_IS_PREMIUM_OVERRIDE] = value
+                    prefs[KEY_IS_PREMIUM_OVERRIDE] = isPremiumOverrideEnabled.value
+                    prefs[KEY_PREMIUM_OVERRIDE_VALUE] = premiumOverrideValue.value
                 }
             }
         }

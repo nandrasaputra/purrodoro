@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.model.PremiumOverride
 import com.endiar.purrodoro.model.SessionRecord
 import com.endiar.purrodoro.model.SessionStatus
 // addFocusStamp removed — use inline stamp increment instead
@@ -89,7 +90,8 @@ private fun DebugScreen(
     onRestartApp: () -> Unit
 ) {
     val clockOverride by debugRepo.clockOverride.collectAsStateWithLifecycle()
-    val isPremiumOverride by debugRepo.isPremiumOverride.collectAsStateWithLifecycle()
+    val isPremiumOverrideEnabled by debugRepo.isPremiumOverrideEnabled.collectAsStateWithLifecycle()
+    val premiumOverrideValue by debugRepo.premiumOverrideValue.collectAsStateWithLifecycle()
     var showCatalog by remember { mutableStateOf(false) }
 
     if (showCatalog) {
@@ -134,7 +136,8 @@ private fun DebugScreen(
             // Sticky status banner
             StatusBanner(
                 clockOverride = clockOverride,
-                isPremiumOverride = isPremiumOverride,
+                isPremiumOverrideEnabled = isPremiumOverrideEnabled,
+                premiumOverrideValue = premiumOverrideValue,
                 onRestart = onRestartApp
             )
 
@@ -207,44 +210,107 @@ private fun DebugScreen(
 
                 // --- Premium Override ---
                 SectionTitle("PREMIUM OVERRIDE")
+                val effectivePremium = PremiumOverride.overrideValue() ?: appState.isPremium
+                Text(
+                    text = "Effective: ${if (effectivePremium) "premium" else "free"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (effectivePremium) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                )
+                Text(
+                    text = "DataStore: ${if (appState.isPremium) "true" else "false"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
-                        Text(
-                            text = if (isPremiumOverride) "Premium: ON (override)" else "Premium: OFF (default)",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isPremiumOverride) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                        val datastoreLabel = if (appState.isPremium) "premium" else "free"
-                        val overrideLabel = if (isPremiumOverride) "ON" else "OFF"
-                        Text(
-                            text = "DataStore: $datastoreLabel · Override: $overrideLabel",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                        )
-                    }
-                    Switch(
-                        checked = isPremiumOverride,
-                        onCheckedChange = { newValue ->
-                            debugRepo.setIsPremiumOverride(newValue)
-                            scope.launch {
-                                val message = if (newValue) "Premium override ON" else "Premium override OFF"
-                                val actionLabel = if (newValue) "Restart" else null
-                                val result = snackbarHostState.showSnackbar(
-                                    message = message,
-                                    actionLabel = actionLabel,
-                                    duration = SnackbarDuration.Short
-                                )
-                                if (result == SnackbarResult.ActionPerformed) {
-                                    onRestartApp()
-                                }
-                            }
-                        }
+                    Text(
+                        text = "Use override",
+                        style = MaterialTheme.typography.bodyMedium,
                     )
+                    Switch(
+                        checked = isPremiumOverrideEnabled,
+                        onCheckedChange = debugRepo::setPremiumOverrideEnabled,
+                    )
+                }
+                if (isPremiumOverrideEnabled) {
+                    Text(
+                        text = "Forced value",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = { debugRepo.setPremiumOverrideValue(false) },
+                            modifier = Modifier.weight(1f),
+                            colors = if (!premiumOverrideValue) {
+                                ButtonDefaults.outlinedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                )
+                            } else {
+                                ButtonDefaults.outlinedButtonColors()
+                            },
+                        ) {
+                            Text("False (free)")
+                        }
+                        OutlinedButton(
+                            onClick = { debugRepo.setPremiumOverrideValue(true) },
+                            modifier = Modifier.weight(1f),
+                            colors = if (premiumOverrideValue) {
+                                ButtonDefaults.outlinedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                )
+                            } else {
+                                ButtonDefaults.outlinedButtonColors()
+                            },
+                        ) {
+                            Text("True (premium)")
+                        }
+                    }
+                }
+                Text(
+                    text = "DataStore value",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                appRepo.setIsPremium(false)
+                                snackbarHostState.showSnackbar(
+                                    message = "DataStore premium = false",
+                                    duration = SnackbarDuration.Short,
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Set false")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                appRepo.setIsPremium(true)
+                                snackbarHostState.showSnackbar(
+                                    message = "DataStore premium = true",
+                                    duration = SnackbarDuration.Short,
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Set true")
+                    }
                 }
 
                 // placeholder for Task 3
@@ -554,7 +620,8 @@ private fun DebugScreen(
 @Composable
 private fun StatusBanner(
     clockOverride: java.time.LocalTime?,
-    isPremiumOverride: Boolean,
+    isPremiumOverrideEnabled: Boolean,
+    premiumOverrideValue: Boolean,
     onRestart: () -> Unit
 ) {
     Surface(
@@ -571,7 +638,7 @@ private fun StatusBanner(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val hasOverride = clockOverride != null || isPremiumOverride
+            val hasOverride = clockOverride != null || isPremiumOverrideEnabled
             if (!hasOverride) {
                 Text(
                     "No overrides active",
@@ -587,9 +654,9 @@ private fun StatusBanner(
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
-                    if (isPremiumOverride) {
+                    if (isPremiumOverrideEnabled) {
                         Text(
-                            "★ Premium",
+                            if (premiumOverrideValue) "★ Premium (override)" else "☆ Free (override)",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )

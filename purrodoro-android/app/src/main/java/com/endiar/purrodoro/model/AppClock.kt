@@ -16,7 +16,9 @@ interface ClockDebugSource {
  * PremiumOverride.source is set to null in release builds.
  */
 interface PremiumDebugSource {
-    val isPremiumOverride: StateFlow<Boolean>
+    /** When true, [premiumOverrideValue] replaces the DataStore premium flag. */
+    val isPremiumOverrideEnabled: StateFlow<Boolean>
+    val premiumOverrideValue: StateFlow<Boolean>
 }
 
 /**
@@ -42,6 +44,10 @@ object PremiumOverride {
     var source: PremiumDebugSource? = null
         internal set
 
-    /** Returns true if the debug override is active; null if no override (use AppRepository value). */
-    fun overrideValue(): Boolean? = source?.isPremiumOverride?.value?.let { if (it) true else null }
+    /** Forced premium flag when override is enabled; null → use [AppRepository] value. */
+    fun overrideValue(): Boolean? {
+        val src = source ?: return null
+        if (!src.isPremiumOverrideEnabled.value) return null
+        return src.premiumOverrideValue.value
+    }
 }
