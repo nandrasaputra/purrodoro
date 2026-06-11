@@ -48,7 +48,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
+import com.endiar.purrodoro.ui.auth.rememberAccountSwitchGate
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.AppState
 import com.endiar.purrodoro.model.AuthState
@@ -214,6 +216,8 @@ fun PurrodoroApp(
 
     val scope = rememberCoroutineScope()
     val tutorialController = rememberTutorialController()
+    val accountManager = remember(repo) { AccountManager(repo) }
+    val accountSwitchGate = rememberAccountSwitchGate()
 
     // Bridge from the Quick Start widget: when the host activity receives a
     // launch intent with EXTRA_AUTO_OPEN_START_FOCUS we surface the existing
@@ -251,6 +255,8 @@ fun PurrodoroApp(
     if (!hasSeenOnboarding) {
         OnboardingScreen(
             authRepository = authRepository,
+            accountManager = accountManager,
+            confirmAccountSwitch = { accountSwitchGate.confirmDrop() },
             language = language,
             onUpdateLanguage = { v ->
                 language = v
@@ -907,8 +913,24 @@ fun PurrodoroApp(
                     authRepository = authRepository,
                     onDismiss = { showLoginSheet = false },
                     onSignedIn = { user ->
-                        showLoginSheet = false
-                        user.displayName?.trim()?.takeIf { it.isNotBlank() }?.let { persistUserName(it) }
+                        scope.launch {
+                            val result = accountManager.onSignedIn(
+                                incomingUserId = user.userId,
+                                confirmDrop = { accountSwitchGate.confirmDrop() },
+                                onBeforeClear = { timerConnection.controller.stop() },
+                            )
+                            when (result) {
+                                AccountManager.Result.DropCancelled ->
+                                    // User refused to clear the other account's data;
+                                    // undo the sign-in so a session never outlives a
+                                    // different account's on-device data.
+                                    authRepository.signOut()
+                                else ->
+                                    user.displayName?.trim()?.takeIf { it.isNotBlank() }
+                                        ?.let { persistUserName(it) }
+                            }
+                            showLoginSheet = false
+                        }
                     },
                     onContinueAsGuest = { showLoginSheet = false },
                     fallbackDisplayName = userName,

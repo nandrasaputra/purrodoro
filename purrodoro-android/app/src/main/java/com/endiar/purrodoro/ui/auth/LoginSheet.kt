@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,13 +39,15 @@ import com.composables.icons.lucide.Chrome
 import com.composables.icons.lucide.Lucide
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.auth.AuthRepository
+import com.endiar.purrodoro.auth.SupabaseConfig
 import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
-import kotlinx.coroutines.launch
+import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
+import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
 
 @Composable
 fun LoginSheet(
@@ -57,9 +58,23 @@ fun LoginSheet(
     fallbackDisplayName: String = "",
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val scope = rememberCoroutineScope()
     var isSigningIn by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val genericError = stringResource(R.string.login_error_generic)
+    val notConfiguredError = stringResource(R.string.login_error_not_configured)
+
+    val googleSignIn = authRepository.composeAuth.rememberSignInWithGoogle(
+        onResult = { result ->
+            isSigningIn = false
+            when (result) {
+                is NativeSignInResult.Success ->
+                    authRepository.currentAuthUser()?.let(onSignedIn)
+                is NativeSignInResult.ClosedByUser -> Unit
+                is NativeSignInResult.Error -> errorMessage = result.message ?: genericError
+                is NativeSignInResult.NetworkError -> errorMessage = result.message ?: genericError
+            }
+        },
+    )
 
     KuroAdaptiveBottomSheet(
         onDismiss = {
@@ -105,16 +120,13 @@ fun LoginSheet(
             GoogleSignInButton(
                 enabled = !isSigningIn,
                 onClick = {
-                    isSigningIn = true
                     errorMessage = null
-                    scope.launch {
-                        val result = authRepository.signInWithGoogle(fallbackDisplayName)
-                        isSigningIn = false
-                        result.fold(
-                            onSuccess = onSignedIn,
-                            onFailure = { errorMessage = it.message },
-                        )
+                    if (!SupabaseConfig.isGoogleConfigured) {
+                        errorMessage = notConfiguredError
+                        return@GoogleSignInButton
                     }
+                    isSigningIn = true
+                    googleSignIn.startFlow()
                 },
             )
             if (isSigningIn) {
@@ -148,6 +160,13 @@ fun LoginSheet(
                         onClick = { if (!isSigningIn) onContinueAsGuest() },
                     )
                     .padding(vertical = KuroSpacing.xs),
+            )
+            Text(
+                text = stringResource(R.string.login_guest_not_backed_up),
+                style = KuroType.labelMeta,
+                color = tokens.textMuted,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 280.dp),
             )
         }
     }

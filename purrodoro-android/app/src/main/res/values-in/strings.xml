@@ -117,6 +117,13 @@
     <string name="login_sheet_cat_cd">Purrodoro si kucing melambai</string>
     <string name="login_continue_with_google">Lanjutkan dengan Google</string>
     <string name="login_continue_as_guest">Lanjut sebagai tamu</string>
+    <string name="login_guest_not_backed_up">Tersimpan di perangkat ini saja. Masuk untuk mencadangkannya.</string>
+    <string name="login_error_generic">Tidak bisa masuk. Coba lagi.</string>
+    <string name="login_error_not_configured">Masuk dengan Google belum disiapkan.</string>
+    <string name="account_switch_title">Ganti akun?</string>
+    <string name="account_switch_message">Perangkat ini berisi data akun lain. Masuk akan menghapusnya. Lanjutkan?</string>
+    <string name="account_switch_confirm">Hapus dan lanjutkan</string>
+    <string name="account_switch_cancel">Batal</string>
 
     <!-- Timer modes -->
     <string name="timer_mode_focus">Fokus</string>

@@ -63,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.ui.auth.LoginSheet
@@ -96,6 +97,8 @@ private const val NAME_MAX_LENGTH = 24
 @Composable
 fun OnboardingScreen(
     authRepository: AuthRepository,
+    accountManager: AccountManager,
+    confirmAccountSwitch: suspend () -> Boolean,
     language: AppLanguage = AppLanguage.System,
     onUpdateLanguage: (AppLanguage) -> Unit = {},
     onSkip: (name: String) -> Unit,
@@ -197,12 +200,22 @@ fun OnboardingScreen(
             authRepository = authRepository,
             onDismiss = { showLoginSheet = false },
             onSignedIn = { user ->
-                showLoginSheet = false
-                user.displayName?.trim()?.takeIf { it.isNotBlank() }?.let { accountName ->
-                    name = accountName
-                    onPersistUserName(accountName)
+                scope.launch {
+                    val result = accountManager.onSignedIn(
+                        incomingUserId = user.userId,
+                        confirmDrop = confirmAccountSwitch,
+                    )
+                    showLoginSheet = false
+                    if (result == AccountManager.Result.DropCancelled) {
+                        authRepository.signOut()
+                    } else {
+                        user.displayName?.trim()?.takeIf { it.isNotBlank() }?.let { accountName ->
+                            name = accountName
+                            onPersistUserName(accountName)
+                        }
+                        pagerState.animateScrollToPage(1)
+                    }
                 }
-                scope.launch { pagerState.animateScrollToPage(1) }
             },
             onContinueAsGuest = { showLoginSheet = false },
             fallbackDisplayName = name.trim(),
