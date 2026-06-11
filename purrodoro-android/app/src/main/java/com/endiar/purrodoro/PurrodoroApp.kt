@@ -25,10 +25,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +50,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.endiar.purrodoro.R
+import com.endiar.purrodoro.audio.SoundscapeLoopPlayer
 import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.ui.auth.rememberAccountSwitchGate
@@ -189,7 +193,12 @@ fun PurrodoroApp(
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
     var playingAmbienceId by rememberSaveable { mutableStateOf<Int?>(null) }
     var playingMusicId by rememberSaveable { mutableStateOf<Int?>(null) }
-    var selectedMusicId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var soundscapeMixAmbienceId by remember(appState.soundscapeMixAmbienceId) {
+        mutableStateOf(appState.soundscapeMixAmbienceId)
+    }
+    var soundscapeMixMusicId by remember(appState.soundscapeMixMusicId) {
+        mutableStateOf(appState.soundscapeMixMusicId)
+    }
     var ambienceVolume by rememberSaveable { mutableStateOf(0.7f) }
     var musicVolume by rememberSaveable { mutableStateOf(0.45f) }
     var showPremiumSheet by rememberSaveable { mutableStateOf(false) }
@@ -197,8 +206,15 @@ fun PurrodoroApp(
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
     var hasEverUsedSoundscape by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(playingAmbienceId, playingMusicId, selectedMusicId) {
-        if (playingAmbienceId != null || playingMusicId != null || selectedMusicId != null) {
+    LaunchedEffect(
+        playingAmbienceId,
+        playingMusicId,
+        soundscapeMixAmbienceId,
+        soundscapeMixMusicId,
+    ) {
+        if (playingAmbienceId != null || playingMusicId != null ||
+            soundscapeMixAmbienceId != null || soundscapeMixMusicId != null
+        ) {
             hasEverUsedSoundscape = true
         }
     }
@@ -300,6 +316,12 @@ fun PurrodoroApp(
         selectedSoundId = v; scope.launch { repo.setSelectedSoundId(v) }
     }
 
+    fun persistSoundscapeMix() {
+        scope.launch {
+            repo.setSoundscapeMix(soundscapeMixAmbienceId, soundscapeMixMusicId)
+        }
+    }
+
     fun persistGlassReadabilityMode(v: GlassReadabilityMode) {
         glassReadabilityMode = v; scope.launch { repo.setGlassReadabilityMode(v) }
     }
@@ -374,26 +396,61 @@ fun PurrodoroApp(
         persistTasks(tasks.filterNot(toDelete))
     }
     val ambienceOptions = listOf(
-        SoundOption(1, stringResource(R.string.sound_rain_name), stringResource(R.string.sound_rain_desc), false, "Rain"),
-        SoundOption(2, stringResource(R.string.sound_cafe_name), stringResource(R.string.sound_cafe_desc), false, "Cafe"),
-        SoundOption(3, stringResource(R.string.sound_forest_name), stringResource(R.string.sound_forest_desc), true, "Forest"),
-        SoundOption(4, stringResource(R.string.sound_fire_name), stringResource(R.string.sound_fire_desc), true, "Fire"),
-        SoundOption(5, stringResource(R.string.sound_keys_name), stringResource(R.string.sound_keys_desc), false, "Keys"),
+        SoundOption(
+            id = 1,
+            name = stringResource(R.string.sound_rain_name),
+            description = stringResource(R.string.sound_rain_desc),
+            locked = false,
+            symbol = "Rain",
+            audioResId = R.raw.ambience_light_rain,
+        ),
+        SoundOption(
+            id = 2,
+            name = stringResource(R.string.sound_cafe_name),
+            description = stringResource(R.string.sound_cafe_desc),
+            locked = false,
+            symbol = "Cafe",
+            audioResId = R.raw.ambience_restaurant,
+        ),
     )
     val musicOptions = listOf(
-        MusicOption(1, stringResource(R.string.music_study_beats)),
-        MusicOption(2, stringResource(R.string.music_midnight_jazz), locked = true),
-        MusicOption(3, stringResource(R.string.music_soft_piano)),
-        MusicOption(4, stringResource(R.string.music_chill_hop)),
+        MusicOption(
+            id = 1,
+            name = stringResource(R.string.music_bloom),
+            artist = stringResource(R.string.music_bloom_artist),
+            audioResId = R.raw.lofi_bloom_yasumu,
+        ),
+        MusicOption(
+            id = 2,
+            name = stringResource(R.string.music_chill_fm),
+            artist = stringResource(R.string.music_chill_fm_artist),
+            audioResId = R.raw.lofi_chill_fm_dope_cat,
+        ),
+        MusicOption(
+            id = 3,
+            name = stringResource(R.string.music_midnight_whisper),
+            artist = stringResource(R.string.music_midnight_whisper_artist),
+            audioResId = R.raw.lofi_midnight_whisper_matrika,
+            locked = true,
+        ),
     )
+
+    fun isAmbienceInMix(id: Int): Boolean =
+        ambienceOptions.any { it.id == id && (!it.locked || isPremium) }
+
+    fun isMusicInMix(id: Int): Boolean =
+        musicOptions.any { it.id == id && (!it.locked || isPremium) }
+
     val playingAmbienceName = playingAmbienceId?.let { id ->
         ambienceOptions.firstOrNull { it.id == id }?.name
     }
     val playingMusicName = playingMusicId?.let { id ->
         musicOptions.firstOrNull { it.id == id }?.name
     }
-    val savedAmbienceName = ambienceOptions.firstOrNull { it.id == selectedSoundId }?.name
-    val savedMusicName = selectedMusicId?.let { id ->
+    val savedAmbienceName = soundscapeMixAmbienceId?.let { id ->
+        ambienceOptions.firstOrNull { it.id == id }?.name
+    }
+    val savedMusicName = soundscapeMixMusicId?.let { id ->
         musicOptions.firstOrNull { it.id == id }?.name
     }
     val isSoundscapePlaying = playingAmbienceId != null || playingMusicId != null
@@ -410,13 +467,81 @@ fun PurrodoroApp(
 
     fun resumeSoundscape() {
         markSoundscapeUsed()
-        playingAmbienceId = selectedSoundId
-        playingMusicId = selectedMusicId
+        playingAmbienceId = soundscapeMixAmbienceId?.takeIf(::isAmbienceInMix)
+        playingMusicId = soundscapeMixMusicId?.takeIf(::isMusicInMix)
     }
 
     fun pauseSoundscape() {
         playingAmbienceId = null
         playingMusicId = null
+    }
+
+    fun addAmbienceToMix(sound: SoundOption) {
+        persistSelectedSoundId(sound.id)
+        soundscapeMixAmbienceId = sound.id
+        persistSoundscapeMix()
+        playingAmbienceId = sound.id
+        markSoundscapeUsed()
+    }
+
+    fun removeAmbienceFromMix() {
+        soundscapeMixAmbienceId = null
+        persistSoundscapeMix()
+        playingAmbienceId = null
+    }
+
+    fun addMusicToMix(track: MusicOption) {
+        soundscapeMixMusicId = track.id
+        persistSoundscapeMix()
+        playingMusicId = track.id
+        markSoundscapeUsed()
+    }
+
+    fun removeMusicFromMix() {
+        soundscapeMixMusicId = null
+        persistSoundscapeMix()
+        playingMusicId = null
+    }
+
+    val ambiencePlayer = remember { SoundscapeLoopPlayer(context) }
+    val musicPlayer = remember { SoundscapeLoopPlayer(context) }
+    DisposableEffect(Unit) {
+        onDispose {
+            ambiencePlayer.release()
+            musicPlayer.release()
+        }
+    }
+    LaunchedEffect(playingAmbienceId, ambienceVolume, isPremium) {
+        val soundId = playingAmbienceId
+        if (soundId == null) {
+            ambiencePlayer.pause()
+            return@LaunchedEffect
+        }
+        val sound = ambienceOptions.firstOrNull { it.id == soundId } ?: run {
+            ambiencePlayer.pause()
+            return@LaunchedEffect
+        }
+        if (sound.locked && !isPremium) {
+            ambiencePlayer.pause()
+            return@LaunchedEffect
+        }
+        ambiencePlayer.play(sound.audioResId, ambienceVolume)
+    }
+    LaunchedEffect(playingMusicId, musicVolume, isPremium) {
+        val trackId = playingMusicId
+        if (trackId == null) {
+            musicPlayer.pause()
+            return@LaunchedEffect
+        }
+        val track = musicOptions.firstOrNull { it.id == trackId } ?: run {
+            musicPlayer.pause()
+            return@LaunchedEffect
+        }
+        if (track.locked && !isPremium) {
+            musicPlayer.pause()
+            return@LaunchedEffect
+        }
+        musicPlayer.play(track.audioResId, musicVolume)
     }
 
     // --- Derive timer state from the service ---
@@ -1091,6 +1216,8 @@ fun PurrodoroApp(
                             musicVolume = musicVolume,
                             onAmbienceVolumeChange = { ambienceVolume = it },
                             onMusicVolumeChange = { musicVolume = it },
+                            ambienceVolumeEnabled = soundscapeMixAmbienceId != null,
+                            musicVolumeEnabled = soundscapeMixMusicId != null,
                             isPlaying = isSoundscapePlaying,
                             onPlayPause = {
                                 if (isSoundscapePlaying) pauseSoundscape() else resumeSoundscape()
@@ -1099,40 +1226,35 @@ fun PurrodoroApp(
                         )
                     },
                 ) {
-                    // NOTE: Soundscape audio is not active yet — selection, volume,
-                    // and play/pause state are UI-only until sound files are wired in.
+                    // Lo-fi + ambience play from bundled res/raw (MP3 loops).
                     SoundsScreen(
                         ambienceOptions = ambienceOptions,
                         musicOptions = musicOptions,
-                        selectedAmbienceId = selectedSoundId,
+                        selectedAmbienceId = soundscapeMixAmbienceId ?: selectedSoundId,
                         playingAmbienceId = playingAmbienceId,
-                        selectedMusicId = selectedMusicId,
+                        selectedMusicId = soundscapeMixMusicId,
                         playingMusicId = playingMusicId,
                         onAmbienceSelected = { sound ->
                             if (sound.locked && !isPremium) {
                                 premiumUpsellTrigger = PremiumUpsellTrigger(lockedFeatureName = sound.name)
                                 showPremiumSheet = true
                             } else {
-                                persistSelectedSoundId(sound.id)
-                                playingAmbienceId = sound.id
-                                markSoundscapeUsed()
+                                addAmbienceToMix(sound)
                             }
                         },
-                        onAmbienceToggle = { sound ->
-                            playingAmbienceId = if (playingAmbienceId == sound.id) null else sound.id
+                        onAmbienceToggle = {
+                            removeAmbienceFromMix()
                         },
                         onMusicSelected = { track ->
                             if (track.locked && !isPremium) {
                                 premiumUpsellTrigger = PremiumUpsellTrigger(lockedFeatureName = track.name)
                                 showPremiumSheet = true
                             } else {
-                                selectedMusicId = track.id
-                                playingMusicId = track.id
-                                markSoundscapeUsed()
+                                addMusicToMix(track)
                             }
                         },
-                        onMusicToggle = { track ->
-                            playingMusicId = if (playingMusicId == track.id) null else track.id
+                        onMusicToggle = {
+                            removeMusicFromMix()
                         },
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,

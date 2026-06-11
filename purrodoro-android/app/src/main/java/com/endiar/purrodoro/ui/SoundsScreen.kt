@@ -23,8 +23,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +36,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -125,8 +128,7 @@ private fun snapVolume(raw: Float): Float {
     return stepped / VOLUME_SNAP_STEPS.toFloat()
 }
 
-// NOTE: Soundscape audio is not active yet. Selection, volume, and mute state
-// update UI only — real looping playback still needs wiring.
+// Ambience + lo-fi selection drives [SoundscapeLoopPlayer] (res/raw MP3 loops).
 
 /** One-line Soundscape control for the active timer card and focus mode. */
 @Composable
@@ -954,7 +956,6 @@ fun SoundsScreen(
 
         SoundscapeSectionHeader(
             title = stringResource(R.string.soundscape_section_ambience),
-            sectionIconRes = R.drawable.soundscape_section_ambience,
             expanded = ambienceExpanded,
             onToggleExpand = { ambienceExpanded = !ambienceExpanded },
             modifier = Modifier.padding(horizontal = KuroSpacing.lg),
@@ -985,7 +986,6 @@ fun SoundsScreen(
 
         SoundscapeSectionHeader(
             title = stringResource(R.string.soundscape_section_lofi),
-            sectionIconRes = R.drawable.soundscape_section_lofi,
             expanded = musicExpanded,
             onToggleExpand = { musicExpanded = !musicExpanded },
             modifier = Modifier.padding(horizontal = KuroSpacing.lg),
@@ -1022,6 +1022,8 @@ fun SoundscapeSheetStickyFooter(
     musicVolume: Float,
     onAmbienceVolumeChange: (Float) -> Unit,
     onMusicVolumeChange: (Float) -> Unit,
+    ambienceVolumeEnabled: Boolean,
+    musicVolumeEnabled: Boolean,
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1096,6 +1098,7 @@ fun SoundscapeSheetStickyFooter(
                 label = stringResource(R.string.soundscape_volume_ambience),
                 value = ambienceVolume,
                 onValueChange = onAmbienceVolumeChange,
+                enabled = ambienceVolumeEnabled,
                 compact = true,
                 modifier = Modifier.weight(1f),
             )
@@ -1103,6 +1106,7 @@ fun SoundscapeSheetStickyFooter(
                 label = stringResource(R.string.soundscape_volume_music),
                 value = musicVolume,
                 onValueChange = onMusicVolumeChange,
+                enabled = musicVolumeEnabled,
                 compact = true,
                 modifier = Modifier.weight(1f),
             )
@@ -1256,11 +1260,10 @@ private fun SoundscapeExpandedLofiGrid(
     }
 }
 
-/** Section header: leading glyph + title, "See all ›" affordance on the right. */
+/** Section header: title + "See all ›" affordance on the right. */
 @Composable
 private fun SoundscapeSectionHeader(
     title: String,
-    @DrawableRes sectionIconRes: Int,
     expanded: Boolean,
     onToggleExpand: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1278,12 +1281,6 @@ private fun SoundscapeSectionHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
-        Image(
-            painter = painterResource(sectionIconRes),
-            contentDescription = null,
-            modifier = Modifier.size(KuroSpacing.lg),
-            contentScale = ContentScale.Fit,
-        )
         Text(
             text = title,
             color = tokens.textPrimary,
@@ -1361,9 +1358,6 @@ private fun soundscapeStatusLine(
 private fun ambienceShortName(soundId: Int): String = when (soundId) {
     1 -> stringResource(R.string.sound_rain_short)
     2 -> stringResource(R.string.sound_cafe_short)
-    3 -> stringResource(R.string.sound_forest_short)
-    4 -> stringResource(R.string.sound_fire_short)
-    5 -> stringResource(R.string.sound_keys_short)
     else -> ""
 }
 
@@ -1397,16 +1391,13 @@ private fun AmbienceTile(
             modifier = Modifier
                 .size(KuroSpacing.soundscapeAmbienceTile)
                 .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-                .background(tokens.cardFill)
                 .border(borderWidth, borderColor, RoundedCornerShape(KuroSpacing.radiusMd)),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(ambienceIconRes(sound.id)),
                 contentDescription = null,
-                modifier = Modifier
-                    .size(KuroSpacing.soundscapeAmbienceIcon)
-                    .clip(CircleShape),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )
             if (sound.locked) {
@@ -1458,7 +1449,6 @@ private fun LofiVinylTile(
                 onClick = onClick,
             ),
     ) {
-        // Reserve the playing halo footprint so focus rings never clip at row edges.
         Box(
             modifier = Modifier.size(haloSize),
             contentAlignment = Alignment.Center,
@@ -1494,17 +1484,32 @@ private fun LofiVinylTile(
                 )
             }
         }
-        Text(
-            text = track.name,
-            color = tokens.textPrimary,
-            style = KuroType.labelMeta.copy(
-                fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.SemiBold,
-            ),
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+        Column(
             modifier = Modifier.width(haloSize),
-        )
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = track.name,
+                color = tokens.textPrimary,
+                style = KuroType.labelMeta.copy(
+                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.SemiBold,
+                ),
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = track.artist,
+                color = tokens.textMuted,
+                style = KuroType.labelMeta,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -1514,6 +1519,7 @@ private fun SoundscapeVolumeStepRow(
     value: Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     compact: Boolean = false,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -1524,7 +1530,21 @@ private fun SoundscapeVolumeStepRow(
     val thumbWidth = if (compact) 10.dp else 14.dp
     val thumbHeight = if (compact) 18.dp else 22.dp
     val trackHeight = 3.dp
-    val tickHeight = 8.dp
+    val snapTickHeight = if (compact) 9.dp else 10.dp
+    val labelColor = if (enabled) tokens.textPrimary else tokens.textFaint
+    val percentColor = if (enabled) tokens.textSecondary else tokens.textFaint
+    val trackFill = if (enabled) Peach.copy(alpha = 0.48f) else tokens.cardBorder.copy(alpha = 0.35f)
+    val activeFill = if (enabled) Coral else tokens.textFaint.copy(alpha = 0.45f)
+    val thumbFill = if (enabled) Coral else tokens.textFaint.copy(alpha = 0.55f)
+    val snapTickActive = if (enabled) Coral.copy(alpha = 0.85f) else tokens.textFaint.copy(alpha = 0.35f)
+    val snapTickIdle = if (enabled) tokens.cardBorder.copy(alpha = 0.65f) else tokens.cardBorder.copy(alpha = 0.35f)
+    val onValueChangeState by rememberUpdatedState(onValueChange)
+    // Local drag level keeps the thumb moving while the finger is down. Without
+    // this, restarting pointerInput on each value change can cancel the gesture
+    // until finger-up (fixed below with a stable pointerInput key).
+    var dragLevel by remember { mutableIntStateOf(-1) }
+    val displayLevel = if (dragLevel >= 0) dragLevel else level
+    val displayFraction = displayLevel / VOLUME_SNAP_STEPS.toFloat()
 
     Column(
         modifier = if (compact) modifier else modifier.fillMaxWidth(),
@@ -1536,7 +1556,7 @@ private fun SoundscapeVolumeStepRow(
         ) {
             Text(
                 text = label,
-                color = tokens.textPrimary,
+                color = labelColor,
                 style = if (compact) KuroType.labelMeta else KuroType.labelStrong,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -1544,7 +1564,7 @@ private fun SoundscapeVolumeStepRow(
             )
             Text(
                 text = stringResource(R.string.soundscape_volume_percent, percent),
-                color = tokens.textSecondary,
+                color = percentColor,
                 style = KuroType.labelMeta,
             )
         }
@@ -1553,20 +1573,48 @@ private fun SoundscapeVolumeStepRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(thumbHeight + if (compact) 2.dp else KuroSpacing.xs)
-                .pointerInput(onValueChange) {
-                    fun setFromX(x: Float) {
-                        val clamped = (x / size.width.toFloat()).coerceIn(0f, 1f)
-                        onValueChange(snapVolume(clamped))
-                    }
-                    detectTapGestures { offset -> setFromX(offset.x) }
-                    detectHorizontalDragGestures { change, _ ->
-                        change.consume()
-                        setFromX(change.position.x)
-                    }
-                },
+                .then(
+                    if (enabled) {
+                        // Stable key — do NOT use onValueChange/value as key or
+                        // the coroutine restarts on every snap and cancels the gesture.
+                        Modifier.pointerInput(Unit) {
+                            fun setFromX(x: Float) {
+                                val clamped = (x / size.width.toFloat()).coerceIn(0f, 1f)
+                                val snapped = snapVolume(clamped)
+                                dragLevel = (snapped * VOLUME_SNAP_STEPS)
+                                    .roundToInt()
+                                    .coerceIn(0, VOLUME_SNAP_STEPS)
+                                onValueChangeState(snapped)
+                            }
+                            // Single gesture loop: handles press, drag, and release
+                            // without the two-coroutine sequencing problem where
+                            // detectTapGestures loops forever and blocks the drag handler.
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                down.consume()
+                                setFromX(down.position.x)
+                                // Track subsequent events until the pointer lifts.
+                                var isDragging = true
+                                while (isDragging) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id }
+                                    if (change == null || change.changedToUp()) {
+                                        isDragging = false
+                                    } else {
+                                        change.consume()
+                                        setFromX(change.position.x)
+                                    }
+                                }
+                                dragLevel = -1
+                            }
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
         ) {
             val maxTravel = (maxWidth - thumbWidth).coerceAtLeast(0.dp)
-            val thumbOffset = maxTravel * fraction
+            val thumbOffset = maxTravel * displayFraction
             val activeTrackWidth = thumbOffset + thumbWidth / 2
 
             Box(
@@ -1575,7 +1623,7 @@ private fun SoundscapeVolumeStepRow(
                     .fillMaxWidth()
                     .height(trackHeight)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Peach.copy(alpha = 0.48f)),
+                    .background(trackFill),
             )
             if (level > 0) {
                 Box(
@@ -1584,7 +1632,22 @@ private fun SoundscapeVolumeStepRow(
                         .width(activeTrackWidth.coerceAtMost(maxWidth))
                         .height(trackHeight)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(Coral),
+                        .background(activeFill),
+                )
+            }
+            // Snap marks — 0 / 25 / 50 / 75 / 100 % (matches [snapVolume] steps).
+            repeat(VOLUME_SNAP_STEPS + 1) { index ->
+                val snapFraction = index / VOLUME_SNAP_STEPS.toFloat()
+                val tickCenter = maxTravel * snapFraction + thumbWidth / 2
+                val tickActive = enabled && index <= displayLevel
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .offset(x = (tickCenter - 0.5.dp).coerceAtLeast(0.dp))
+                        .width(1.dp)
+                        .height(snapTickHeight)
+                        .clip(RoundedCornerShape(0.5.dp))
+                        .background(if (tickActive) snapTickActive else snapTickIdle),
                 )
             }
             Box(
@@ -1593,42 +1656,13 @@ private fun SoundscapeVolumeStepRow(
                     .offset(x = thumbOffset)
                     .size(width = thumbWidth, height = thumbHeight)
                     .clip(RoundedCornerShape(if (compact) 5.dp else 6.dp))
-                    .background(Coral)
+                    .background(thumbFill)
                     .border(
                         width = 1.dp,
-                        color = Color.White.copy(alpha = 0.35f),
+                        color = Color.White.copy(alpha = if (enabled) 0.35f else 0.12f),
                         shape = RoundedCornerShape(if (compact) 5.dp else 6.dp),
                     ),
             )
-        }
-
-        if (!compact) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = thumbWidth / 2),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                repeat(VOLUME_SNAP_STEPS + 1) { index ->
-                    val tickActive = index <= level
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .height(tickHeight)
-                            .clip(RoundedCornerShape(1.dp))
-                            .background(
-                                if (tickActive) {
-                                    Coral.copy(alpha = if (index == level) 1f else 0.55f)
-                                } else {
-                                    tokens.cardBorder.copy(alpha = 0.55f)
-                                },
-                            )
-                            .clickable(role = Role.Button) {
-                                onValueChange(index / VOLUME_SNAP_STEPS.toFloat())
-                            },
-                    )
-                }
-            }
         }
     }
 }
@@ -1675,17 +1709,13 @@ private fun SoundscapePlayingChip() {
 private fun ambienceIconRes(soundId: Int): Int = when (soundId) {
     1 -> R.drawable.soundscape_ambience_rain
     2 -> R.drawable.soundscape_ambience_cafe
-    3 -> R.drawable.soundscape_ambience_forest
-    4 -> R.drawable.soundscape_ambience_fire
-    5 -> R.drawable.soundscape_ambience_keys
     else -> R.drawable.soundscape_ambience_rain
 }
 
 @DrawableRes
 private fun lofiVinylDiscRes(trackId: Int): Int = when (trackId) {
-    1 -> R.drawable.soundscape_vinyl_study_beats
-    2 -> R.drawable.soundscape_vinyl_midnight_jazz
-    3 -> R.drawable.soundscape_vinyl_soft_piano
-    4 -> R.drawable.soundscape_vinyl_chill_hop
+    1 -> R.drawable.soundscape_vinyl_soft_piano
+    2 -> R.drawable.soundscape_vinyl_chill_hop
+    3 -> R.drawable.soundscape_vinyl_midnight_jazz
     else -> R.drawable.soundscape_vinyl_base
 }
