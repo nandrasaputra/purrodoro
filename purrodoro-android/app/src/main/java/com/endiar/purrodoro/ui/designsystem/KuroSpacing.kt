@@ -84,7 +84,6 @@ object KuroSpacing {
 
     // Soundscape sheet
     val soundscapeAmbienceTile = 84.dp
-    val soundscapeAmbienceIcon = 48.dp
     val soundscapeLofiVinyl = 88.dp
     val soundscapeLofiLabel = 56.dp
     val soundscapeScrollPeek = 28.dp

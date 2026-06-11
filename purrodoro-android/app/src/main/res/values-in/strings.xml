@@ -265,7 +265,7 @@
     <string name="sound_keys_short">Keyboard</string>
     <string name="soundscape_compact_idle">Atur Soundscape</string>
     <string name="soundscape_compact_playing">%1$s</string>
-    <string name="soundscape_compact_separator"> · </string>
+    <string name="soundscape_compact_separator">" · "</string>
     <string name="soundscape_home_idle">Tidak ada yang diputar</string>
     <string name="soundscape_home_hint">Ketuk untuk campur ambien + lo-fi</string>
     <string name="soundscape_home_playing">Sedang diputar</string>
@@ -278,10 +278,12 @@
     <string name="soundscape_transport_play_cd">Putar Soundscape</string>
     <string name="soundscape_transport_pause_cd">Jeda Soundscape</string>
     <string name="soundscape_volume_percent">%1$d%%</string>
-    <string name="music_study_beats">Study Beats</string>
-    <string name="music_midnight_jazz">Midnight Jazz</string>
-    <string name="music_soft_piano">Soft Piano</string>
-    <string name="music_chill_hop">Chill Hop</string>
+    <string name="music_bloom">Bloom</string>
+    <string name="music_bloom_artist">Yasumu</string>
+    <string name="music_chill_fm">Chill FM</string>
+    <string name="music_chill_fm_artist">Dope Cat</string>
+    <string name="music_midnight_whisper">Midnight Whisper</string>
+    <string name="music_midnight_whisper_artist">Matrika</string>
     <string name="sound_pill_playing">Diputar</string>
     <string name="sound_pill_selected">Dipilih</string>
     <string name="sound_pill_premium">Premium</string>

@@ -1,5 +1,6 @@
 package com.endiar.purrodoro.model
 
+import androidx.annotation.RawRes
 import com.endiar.purrodoro.R
 import java.time.LocalDate
 import java.time.LocalTime
@@ -89,12 +90,15 @@ data class SoundOption(
     val description: String,
     val locked: Boolean,
     val symbol: String,
+    @field:RawRes val audioResId: Int,
 )
 
 /** Lo-fi focus track shown in the Soundscape sheet vinyl row. */
 data class MusicOption(
     val id: Int,
     val name: String,
+    val artist: String,
+    @field:RawRes val audioResId: Int,
     val locked: Boolean = false,
 )
 

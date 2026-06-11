@@ -55,6 +55,20 @@ class AppRepositoryTest {
     }
 
     @Test
+    fun `setSoundscapeMix persists ambience and music layers independently`() = runTest {
+        val repo = makeRepo()
+        repo.setSoundscapeMix(ambienceId = 2, musicId = 1)
+        val state = repo.appState.first()
+        assertEquals(2, state.soundscapeMixAmbienceId)
+        assertEquals(1, state.soundscapeMixMusicId)
+
+        repo.setSoundscapeMix(ambienceId = null, musicId = 3)
+        val clearedAmbience = repo.appState.first()
+        assertEquals(null, clearedAmbience.soundscapeMixAmbienceId)
+        assertEquals(3, clearedAmbience.soundscapeMixMusicId)
+    }
+
+    @Test
     fun `setCompletedSessions persists value`() = runTest {
         val repo = makeRepo()
         repo.setCompletedSessions(5)

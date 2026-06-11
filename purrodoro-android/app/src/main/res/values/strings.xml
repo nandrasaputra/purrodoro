@@ -268,7 +268,7 @@
     <string name="sound_keys_short">Night Keys</string>
     <string name="soundscape_compact_idle">Set up Soundscape</string>
     <string name="soundscape_compact_playing">%1$s</string>
-    <string name="soundscape_compact_separator"> · </string>
+    <string name="soundscape_compact_separator">" · "</string>
     <string name="soundscape_home_idle">Nothing playing</string>
     <string name="soundscape_home_hint">Tap to mix ambience + lo-fi</string>
     <string name="soundscape_home_playing">Now playing</string>
@@ -281,10 +281,12 @@
     <string name="soundscape_transport_play_cd">Play Soundscape</string>
     <string name="soundscape_transport_pause_cd">Pause Soundscape</string>
     <string name="soundscape_volume_percent">%1$d%%</string>
-    <string name="music_study_beats">Study Beats</string>
-    <string name="music_midnight_jazz">Midnight Jazz</string>
-    <string name="music_soft_piano">Soft Piano</string>
-    <string name="music_chill_hop">Chill Hop</string>
+    <string name="music_bloom">Bloom</string>
+    <string name="music_bloom_artist">Yasumu</string>
+    <string name="music_chill_fm">Chill FM</string>
+    <string name="music_chill_fm_artist">Dope Cat</string>
+    <string name="music_midnight_whisper">Midnight Whisper</string>
+    <string name="music_midnight_whisper_artist">Matrika</string>
     <string name="sound_pill_playing">Playing</string>
     <string name="sound_pill_selected">Selected</string>
     <string name="sound_pill_premium">Premium</string>

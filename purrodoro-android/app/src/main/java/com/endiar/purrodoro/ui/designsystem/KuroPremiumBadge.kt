@@ -142,6 +142,7 @@ fun KuroPremiumBadge(
                 text = label,
                 style = KuroType.labelMeta.copy(fontWeight = FontWeight.SemiBold),
                 color = PremiumBadgeText,
+                maxLines = 1,
             )
         }
         if (!reduceMotion) {

@@ -46,6 +46,8 @@ data class AppState(
     val language: AppLanguage = AppLanguage.System,
     val userName: String = "",
     val selectedSoundId: Int,
+    val soundscapeMixAmbienceId: Int? = null,
+    val soundscapeMixMusicId: Int? = null,
     val completedSessions: Int,
     val settings: TimerSettings,
     val nextTaskId: Int,
@@ -68,6 +70,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     companion object {
         private val KEY_GLASS_MODE = stringPreferencesKey("glass_readability_mode")
         private val KEY_SOUND_ID = intPreferencesKey("selected_sound_id")
+        private val KEY_SOUNDSCAPE_MIX_AMBIENCE = stringPreferencesKey("soundscape_mix_ambience_id")
+        private val KEY_SOUNDSCAPE_MIX_MUSIC = stringPreferencesKey("soundscape_mix_music_id")
         private val KEY_COMPLETED = intPreferencesKey("completed_sessions")
         private val KEY_FOCUS_MIN = intPreferencesKey("focus_minutes")
         private val KEY_SHORT_MIN = intPreferencesKey("short_break_minutes")
@@ -211,6 +215,8 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
             language = AppLanguage.fromName(prefs[KEY_APP_LANGUAGE]),
             userName = (prefs[KEY_USER_NAME] ?: "").trim(),
             selectedSoundId = prefs[KEY_SOUND_ID] ?: 1,
+            soundscapeMixAmbienceId = decodeOptionalInt(prefs[KEY_SOUNDSCAPE_MIX_AMBIENCE]),
+            soundscapeMixMusicId = decodeOptionalInt(prefs[KEY_SOUNDSCAPE_MIX_MUSIC]),
             completedSessions = prefs[KEY_COMPLETED] ?: 0,
             settings = TimerSettings(
                 focusMinutes = prefs[KEY_FOCUS_MIN] ?: 25,
@@ -242,6 +248,11 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setLanguage(value: AppLanguage) = dataStore.edit { it[KEY_APP_LANGUAGE] = value.name }
     suspend fun setUserName(value: String) = dataStore.edit { it[KEY_USER_NAME] = value.trim() }
     suspend fun setSelectedSoundId(value: Int) = dataStore.edit { it[KEY_SOUND_ID] = value }
+
+    suspend fun setSoundscapeMix(ambienceId: Int?, musicId: Int?) = dataStore.edit { prefs ->
+        writeOptionalInt(prefs, KEY_SOUNDSCAPE_MIX_AMBIENCE, ambienceId)
+        writeOptionalInt(prefs, KEY_SOUNDSCAPE_MIX_MUSIC, musicId)
+    }
     suspend fun setCompletedSessions(value: Int) = dataStore.edit { it[KEY_COMPLETED] = value }
     suspend fun setSettings(value: TimerSettings) = dataStore.edit { prefs ->
         prefs[KEY_FOCUS_MIN] = value.focusMinutes
@@ -811,4 +822,16 @@ private fun decodeHabitV1(p: List<String>): Habit {
         createdAt = p[4].toLong(),
         logs = completions,
     )
+}
+
+private fun decodeOptionalInt(raw: String?): Int? =
+    raw?.takeIf { it.isNotBlank() }?.toIntOrNull()
+
+private fun writeOptionalInt(
+    prefs: androidx.datastore.preferences.core.MutablePreferences,
+    key: androidx.datastore.preferences.core.Preferences.Key<String>,
+    value: Int?,
+) {
+    if (value == null) prefs.remove(key)
+    else prefs[key] = value.toString()
 }
