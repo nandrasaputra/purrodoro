@@ -118,6 +118,13 @@
     <string name="login_sheet_cat_cd">Purrodoro the cat waving hello</string>
     <string name="login_continue_with_google">Continue with Google</string>
     <string name="login_continue_as_guest">Continue as guest</string>
+    <string name="login_guest_not_backed_up">Saved on this device only. Sign in to back it up.</string>
+    <string name="login_error_generic">Couldn\'t sign in. Please try again.</string>
+    <string name="login_error_not_configured">Google sign-in isn\'t set up yet.</string>
+    <string name="account_switch_title">Switch account?</string>
+    <string name="account_switch_message">This device has another account\'s data. Signing in will remove it. Continue?</string>
+    <string name="account_switch_confirm">Remove and continue</string>
+    <string name="account_switch_cancel">Cancel</string>
 
     <!-- Timer modes -->
     <string name="timer_mode_focus">Focus</string>
