@@ -120,4 +120,87 @@ class AccountManagerTest {
         assertTrue("data intact on cancel", repo.appState.first().tasks.isNotEmpty())
         assertEquals("owner unchanged on cancel", "user-A", repo.currentOwnerId())
     }
+
+    // --- sync hooks ---
+
+    /** Records hook invocations; optional callbacks let tests assert mid-hook state. */
+    private class FakeSyncHooks(
+        private val onClaimSync: suspend () -> Unit = {},
+        private val onFullPull: suspend () -> Unit = {},
+    ) : AccountManager.SyncHooks {
+        val calls = mutableListOf<String>()
+        override suspend fun markAllDirtyAndSync() {
+            calls += "claimSync"
+            onClaimSync()
+        }
+        override suspend fun resetCheckpointsAndPull() {
+            calls += "fullPull"
+            onFullPull()
+        }
+    }
+
+    @Test
+    fun `claim triggers markAllDirtyAndSync after the owner is tagged`() = runTest {
+        val repo = makeRepo()
+        repo.seedTask()
+        var ownerInsideHook: String? = null
+        val hooks = FakeSyncHooks(onClaimSync = { ownerInsideHook = repo.currentOwnerId() })
+        val manager = AccountManager(repo, hooks)
+
+        val result = manager.onSignedIn("user-A", confirmDrop = { true })
+
+        assertEquals(AccountManager.Result.Claimed, result)
+        assertEquals(listOf("claimSync"), hooks.calls)
+        assertEquals("owner already tagged when the hook ran", "user-A", ownerInsideHook)
+    }
+
+    @Test
+    fun `keep triggers markAllDirtyAndSync`() = runTest {
+        val repo = makeRepo()
+        repo.setOwnerId("user-A")
+        repo.seedTask()
+        val hooks = FakeSyncHooks()
+        val manager = AccountManager(repo, hooks)
+
+        val result = manager.onSignedIn("user-A", confirmDrop = { true })
+
+        assertEquals(AccountManager.Result.Kept, result)
+        assertEquals(listOf("claimSync"), hooks.calls)
+    }
+
+    @Test
+    fun `confirmed drop triggers resetCheckpointsAndPull after clear and re-tag`() = runTest {
+        val repo = makeRepo()
+        repo.setOwnerId("user-A")
+        repo.seedTask()
+        var ownerInsideHook: String? = null
+        var tasksInsideHook = -1
+        val hooks = FakeSyncHooks(onFullPull = {
+            ownerInsideHook = repo.currentOwnerId()
+            tasksInsideHook = repo.appState.first().tasks.size
+        })
+        val manager = AccountManager(repo, hooks)
+
+        val result = manager.onSignedIn("user-B", confirmDrop = { true })
+
+        assertEquals(AccountManager.Result.Dropped, result)
+        assertEquals(listOf("fullPull"), hooks.calls)
+        assertEquals("data already cleared when the hook ran", 0, tasksInsideHook)
+        assertEquals("owner already re-tagged when the hook ran", "user-B", ownerInsideHook)
+    }
+
+    @Test
+    fun `cancelled drop calls no hooks`() = runTest {
+        val repo = makeRepo()
+        repo.setOwnerId("user-A")
+        repo.seedTask()
+        val hooks = FakeSyncHooks()
+        val manager = AccountManager(repo, hooks)
+
+        val result = manager.onSignedIn("user-B", confirmDrop = { false })
+
+        assertEquals(AccountManager.Result.DropCancelled, result)
+        assertTrue("no hooks on cancel", hooks.calls.isEmpty())
+        assertEquals("owner unchanged on cancel", "user-A", repo.currentOwnerId())
+    }
 }
