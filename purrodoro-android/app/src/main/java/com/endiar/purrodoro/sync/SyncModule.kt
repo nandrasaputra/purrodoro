@@ -100,6 +100,26 @@ class SyncModule private constructor(
     suspend fun onSignedInSync() = syncForeground()
 
     /**
+     * Last flush before signing out: one sync pass, then [logoutDecision] over
+     * whether it succeeded and whether dirty rows remain. A `null`
+     * (not-eligible) pass counts as succeeded — there is nothing a sync could
+     * have uploaded for this user anyway.
+     */
+    suspend fun flushBeforeLogout(): LogoutDecision {
+        val result = syncIfEligible()
+        val flushSucceeded = result == null || result is SyncEngine.SyncResult.Success
+        return logoutDecision(flushSucceeded, dirtyRemaining = hasDirtyRows())
+    }
+
+    private suspend fun hasDirtyRows(): Boolean =
+        db.taskDao().hasDirty() ||
+            db.categoryDao().hasDirty() ||
+            db.habitDao().hasDirty() ||
+            db.habitLogDao().hasDirty() ||
+            db.sessionRecordDao().hasDirty() ||
+            db.dailyStampDao().hasDirty()
+
+    /**
      * [AccountManager.SyncHooks] implementation: Claim/Keep re-uploads
      * everything by marking every live row dirty before a pass; a confirmed
      * Drop re-pulls the new account's cloud from a blank checkpoint slate.

@@ -26,6 +26,10 @@ interface TaskDao {
     @Query("UPDATE tasks SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
     suspend fun markAllDirty(now: Long)
 
+    /** Sync helper: whether any row (tombstones included) still awaits a push. */
+    @Query("SELECT EXISTS(SELECT 1 FROM tasks WHERE dirty = 1)")
+    suspend fun hasDirty(): Boolean
+
     @Query("SELECT * FROM tasks WHERE dirty = 1")
     suspend fun getDirty(): List<TaskEntity>
 
@@ -65,6 +69,10 @@ interface CategoryDao {
     @Query("UPDATE categories SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
     suspend fun markAllDirty(now: Long)
 
+    /** Sync helper: whether any row (tombstones included) still awaits a push. */
+    @Query("SELECT EXISTS(SELECT 1 FROM categories WHERE dirty = 1)")
+    suspend fun hasDirty(): Boolean
+
     @Query("SELECT * FROM categories WHERE dirty = 1")
     suspend fun getDirty(): List<CategoryEntity>
 
@@ -100,6 +108,10 @@ interface HabitDao {
     @Query("UPDATE habits SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
     suspend fun markAllDirty(now: Long)
 
+    /** Sync helper: whether any row (tombstones included) still awaits a push. */
+    @Query("SELECT EXISTS(SELECT 1 FROM habits WHERE dirty = 1)")
+    suspend fun hasDirty(): Boolean
+
     @Query("SELECT * FROM habits WHERE dirty = 1")
     suspend fun getDirty(): List<HabitEntity>
 
@@ -134,6 +146,10 @@ interface HabitLogDao {
     /** Sync helper: marks every live row for re-push (account claim/keep upload). */
     @Query("UPDATE habit_logs SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
     suspend fun markAllDirty(now: Long)
+
+    /** Sync helper: whether any row (tombstones included) still awaits a push. */
+    @Query("SELECT EXISTS(SELECT 1 FROM habit_logs WHERE dirty = 1)")
+    suspend fun hasDirty(): Boolean
 
     @Query("SELECT * FROM habit_logs WHERE dirty = 1")
     suspend fun getDirty(): List<HabitLogEntity>
@@ -181,6 +197,10 @@ interface SessionRecordDao {
     @Query("UPDATE session_records SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
     suspend fun markAllDirty(now: Long)
 
+    /** Sync helper: whether any row (tombstones included) still awaits a push. */
+    @Query("SELECT EXISTS(SELECT 1 FROM session_records WHERE dirty = 1)")
+    suspend fun hasDirty(): Boolean
+
     @Query("SELECT * FROM session_records WHERE dirty = 1")
     suspend fun getDirty(): List<SessionRecordEntity>
 
@@ -222,6 +242,10 @@ interface DailyStampDao {
     /** Sync helper: marks every live row for re-push (account claim/keep upload). */
     @Query("UPDATE daily_stamps SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
     suspend fun markAllDirty(now: Long)
+
+    /** Sync helper: whether any row (tombstones included) still awaits a push. */
+    @Query("SELECT EXISTS(SELECT 1 FROM daily_stamps WHERE dirty = 1)")
+    suspend fun hasDirty(): Boolean
 
     @Query("SELECT * FROM daily_stamps WHERE dirty = 1")
     suspend fun getDirty(): List<DailyStampEntity>
