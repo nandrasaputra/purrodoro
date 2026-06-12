@@ -177,6 +177,27 @@ class AppRepository(
         removeSyncCheckpoints(prefs)
     }
 
+    // ── Legacy id allocation (sync pull path) ────────────────────────────────
+    // Atomically claims the next legacy id from the existing DataStore
+    // counters, so rows first seen via a sync pull get a unique legacy id that
+    // can never collide with locally created rows.
+
+    suspend fun allocateTaskLegacyId(): Int = allocateLegacyId(KEY_NEXT_TASK_ID)
+
+    suspend fun allocateCategoryLegacyId(): Int = allocateLegacyId(KEY_NEXT_CATEGORY_ID)
+
+    suspend fun allocateHabitLegacyId(): Int = allocateLegacyId(KEY_NEXT_HABIT_ID)
+
+    private suspend fun allocateLegacyId(key: Preferences.Key<Int>): Int {
+        var allocated = 0
+        dataStore.edit { prefs ->
+            val next = prefs[key] ?: 1
+            allocated = next
+            prefs[key] = next + 1
+        }
+        return allocated
+    }
+
     private fun removeSyncCheckpoints(prefs: androidx.datastore.preferences.core.MutablePreferences) {
         prefs.asMap().keys
             .filter { it.name.startsWith(SYNC_CHECKPOINT_PREFIX) }
