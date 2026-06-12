@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -91,17 +91,17 @@ class ProfileRepositoryTest {
     }
 
     @Test
-    fun `applySyncedProfile writes prefs and stores the row clean`() = runTest {
+    fun `applySyncedProfilePrefs writes prefs only without touching the row`() = runTest {
         val repo = makeRepo()
 
-        repo.applySyncedProfile(
+        repo.applySyncedProfilePrefs(
             displayName = "Cloud Name",
             timerSettingsJson = encodeTimerSettings(TimerSettings(focusMinutes = 30)),
         )
 
-        val row = db.profileDao().get()!!
-        assertFalse("pull apply must not re-dirty the row", row.dirty)
-        assertEquals("Cloud Name", row.displayName)
+        // The Room row is ProfileTableSync's responsibility (written inside
+        // its transaction); the prefs path must never create or dirty it.
+        assertNull("prefs apply must not create the row", db.profileDao().get())
         val state = repo.appState.first()
         assertEquals("Cloud Name", state.userName)
         assertEquals(30, state.settings.focusMinutes)

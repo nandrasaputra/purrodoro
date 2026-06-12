@@ -37,7 +37,13 @@ abstract class PurrodoroDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
 
     companion object {
-        /** v2 adds the singleton [ProfileEntity] row for profile sync. */
+        /**
+         * v2 adds the singleton [ProfileEntity] row for profile sync.
+         *
+         * Accepted limitation: [exportSchema] is off, so there is no
+         * exported-schema-based MigrationTestHelper coverage — migrations are
+         * verified by inspection against the entity definitions pre-prod.
+         */
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

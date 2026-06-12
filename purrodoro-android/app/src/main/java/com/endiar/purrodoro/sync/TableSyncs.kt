@@ -9,6 +9,7 @@ import com.endiar.purrodoro.data.local.HabitEntity
 import com.endiar.purrodoro.data.local.HabitLogDao
 import com.endiar.purrodoro.data.local.HabitLogEntity
 import com.endiar.purrodoro.data.local.ProfileDao
+import com.endiar.purrodoro.data.local.ProfileEntity
 import com.endiar.purrodoro.data.local.SessionRecordDao
 import com.endiar.purrodoro.data.local.SessionRecordEntity
 import com.endiar.purrodoro.data.local.TaskDao
@@ -171,10 +172,13 @@ internal class DailyStampTableSync(
  * Sync for the singleton `profiles` row (display name + timer settings).
  * Implemented directly on [TableSync] rather than [BaseTableSync] because the
  * table is keyed by `user_id` (no `id` column, conflict target included) and
- * because applying a pulled profile means writing the DataStore prefs the UI
- * reads — delegated to [applySyncedProfile]
- * ([com.endiar.purrodoro.data.AppRepository.applySyncedProfile]), which stores
- * the row clean without re-dirtying it.
+ * because applying a pulled profile also means writing the DataStore prefs
+ * the UI reads. The Room row is written inside a transaction (the dirty
+ * re-check and the write must be atomic against a concurrent user edit); the
+ * prefs write — [applySyncedPrefs], production
+ * [com.endiar.purrodoro.data.AppRepository.applySyncedProfilePrefs] — runs
+ * only AFTER the transaction committed with the row accepted, and never when
+ * a dirty local row won.
  *
  * Tombstones: the server `deleted` column exists on `profiles` but is unused —
  * a profile lives and dies with the auth user, so pulls ignore it.
@@ -182,7 +186,8 @@ internal class DailyStampTableSync(
 internal class ProfileTableSync(
     private val dao: ProfileDao,
     private val userId: suspend () -> String,
-    private val applySyncedProfile: suspend (displayName: String, timerSettingsJson: String) -> Unit,
+    private val inTransaction: TransactionRunner,
+    private val applySyncedPrefs: suspend (displayName: String, timerSettingsJson: String) -> Unit,
 ) : TableSync {
 
     override val table: String = "profiles"
@@ -212,11 +217,28 @@ internal class ProfileTableSync(
         // defensively in case an overlap window re-delivers older snapshots.
         val row = rows.maxByOrNull { it.jsonObject["updated_at"]?.jsonPrimitive?.contentOrNull ?: "" }
             ?: return
-        // The dirty local row wins ([resolvePull]); its next push becomes the
-        // newest server state.
-        if (resolvePull(dao.get()?.dirty, remoteDeleted = false) == PullAction.KeepLocal) return
         val dto = syncJson.decodeFromJsonElement(ProfileDto.serializer(), row)
-        applySyncedProfile(dto.displayName.orEmpty(), dto.timerSettings.toString())
+        val displayName = dto.displayName.orEmpty().trim()
+        val settingsJson = dto.timerSettings.toString()
+        var accepted = false
+        inTransaction {
+            // resolvePull is evaluated INSIDE the transaction: a user edit
+            // committing between an outside check and the write would
+            // otherwise be silently overwritten with a clean row.
+            val local = dao.get()
+            if (resolvePull(local?.dirty, remoteDeleted = false) == PullAction.Apply) {
+                dao.upsert(
+                    ProfileEntity(
+                        displayName = displayName,
+                        timerSettingsJson = settingsJson,
+                        dirty = false,
+                        locallyModifiedAt = local?.locallyModifiedAt ?: 0L,
+                    )
+                )
+                accepted = true
+            }
+        }
+        if (accepted) applySyncedPrefs(displayName, settingsJson)
     }
 
     override suspend fun maxRemoteUpdatedAt(rows: List<JsonElement>): String? = maxUpdatedAtOf(rows)
