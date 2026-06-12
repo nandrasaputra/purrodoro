@@ -125,13 +125,16 @@ class AccountManagerTest {
 
     /** Records hook invocations; optional callbacks let tests assert mid-hook state. */
     private class FakeSyncHooks(
-        private val onClaimSync: suspend () -> Unit = {},
+        private val onClaimMerge: suspend () -> Unit = {},
         private val onFullPull: suspend () -> Unit = {},
     ) : AccountManager.SyncHooks {
         val calls = mutableListOf<String>()
-        override suspend fun markAllDirtyAndSync() {
-            calls += "claimSync"
-            onClaimSync()
+        override suspend fun claimMergeSync() {
+            calls += "claimMerge"
+            onClaimMerge()
+        }
+        override suspend fun deltaSync() {
+            calls += "deltaSync"
         }
         override suspend fun resetCheckpointsAndPull() {
             calls += "fullPull"
@@ -140,22 +143,22 @@ class AccountManagerTest {
     }
 
     @Test
-    fun `claim triggers markAllDirtyAndSync after the owner is tagged`() = runTest {
+    fun `claim triggers claimMergeSync after the owner is tagged`() = runTest {
         val repo = makeRepo()
         repo.seedTask()
         var ownerInsideHook: String? = null
-        val hooks = FakeSyncHooks(onClaimSync = { ownerInsideHook = repo.currentOwnerId() })
+        val hooks = FakeSyncHooks(onClaimMerge = { ownerInsideHook = repo.currentOwnerId() })
         val manager = AccountManager(repo, hooks)
 
         val result = manager.onSignedIn("user-A", confirmDrop = { true })
 
         assertEquals(AccountManager.Result.Claimed, result)
-        assertEquals(listOf("claimSync"), hooks.calls)
+        assertEquals(listOf("claimMerge"), hooks.calls)
         assertEquals("owner already tagged when the hook ran", "user-A", ownerInsideHook)
     }
 
     @Test
-    fun `keep triggers markAllDirtyAndSync`() = runTest {
+    fun `keep triggers only a delta sync - no full re-upload`() = runTest {
         val repo = makeRepo()
         repo.setOwnerId("user-A")
         repo.seedTask()
@@ -165,7 +168,7 @@ class AccountManagerTest {
         val result = manager.onSignedIn("user-A", confirmDrop = { true })
 
         assertEquals(AccountManager.Result.Kept, result)
-        assertEquals(listOf("claimSync"), hooks.calls)
+        assertEquals(listOf("deltaSync"), hooks.calls)
     }
 
     @Test

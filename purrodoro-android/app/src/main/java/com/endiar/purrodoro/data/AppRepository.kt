@@ -276,12 +276,37 @@ class AppRepository(
 
     /**
      * Creates the singleton profile row from current prefs if missing, and
-     * marks it dirty so the next push uploads it. Part of the account
-     * claim/keep "mark everything dirty" re-upload.
+     * marks it dirty so the next push uploads it. The prefs fallback is read
+     * before the transaction (DataStore reads don't belong inside a Room
+     * transaction); the read-modify-write itself is atomic.
      */
     internal suspend fun ensureProfileRowDirty(now: Long) {
-        val current = roomDb.profileDao().get() ?: profileFromPrefs()
-        roomDb.profileDao().upsert(current.copy(dirty = true, locallyModifiedAt = now))
+        val fallback = profileFromPrefs()
+        roomDb.withTransaction {
+            val current = roomDb.profileDao().get() ?: fallback
+            roomDb.profileDao().upsert(current.copy(dirty = true, locallyModifiedAt = now))
+        }
+    }
+
+    /**
+     * Account-claim re-upload: marks every live row in all synced tables —
+     * including the singleton profile row, created from current prefs if
+     * missing — dirty in ONE transaction, so a crash mid-way can never leave
+     * a partially-marked upload set.
+     */
+    internal suspend fun markAllAccountDataDirty(now: Long) {
+        val profileFallback = profileFromPrefs()
+        val db = roomDb
+        db.withTransaction {
+            db.taskDao().markAllDirty(now)
+            db.categoryDao().markAllDirty(now)
+            db.habitDao().markAllDirty(now)
+            db.habitLogDao().markAllDirty(now)
+            db.sessionRecordDao().markAllDirty(now)
+            db.dailyStampDao().markAllDirty(now)
+            val current = db.profileDao().get() ?: profileFallback
+            db.profileDao().upsert(current.copy(dirty = true, locallyModifiedAt = now))
+        }
     }
 
     /**

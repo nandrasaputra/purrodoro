@@ -126,6 +126,19 @@ internal class SessionRecordTableSync(
     override suspend fun encodeForPush(entity: SessionRecordEntity) = entity.toDto(userId()).toPushJson()
     override suspend fun decodeRemote(row: JsonElement, existing: SessionRecordEntity?) =
         syncJson.decodeFromJsonElement(SessionRecordDto.serializer(), row).toEntity(existing)
+
+    // Natural key: the server enforces unique (user_id, local_id), and both a
+    // guest device and the account's existing cloud data mint local_ids from
+    // 1 — so the first merge after a Claim WILL collide. Adoption re-keys the
+    // local row onto the server identity instead of wedging on the index.
+    override suspend fun entityByNaturalKey(row: JsonElement): SessionRecordEntity? {
+        val localId = row.jsonObject["local_id"]?.jsonPrimitive?.contentOrNull?.toLongOrNull()
+            ?: return null
+        return dao.getByLegacyIdIncludingDeleted(localId)
+    }
+
+    override suspend fun deleteEntity(entity: SessionRecordEntity) = dao.deleteById(entity.id)
+    override fun withId(entity: SessionRecordEntity, newId: String) = entity.copy(id = newId)
 }
 
 internal class DailyStampTableSync(

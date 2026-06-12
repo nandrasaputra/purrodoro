@@ -25,15 +25,27 @@ class AccountManager(
      * [com.endiar.purrodoro.sync.SyncModule.syncHooks].
      */
     interface SyncHooks {
-        /** Claim/Keep: ensure everything local uploads, then reconcile. */
-        suspend fun markAllDirtyAndSync()
+        /**
+         * Claim: full merge — pull the account's cloud first (so local rows
+         * adopt server identities on natural-key collisions), then upload
+         * everything local.
+         */
+        suspend fun claimMergeSync()
+
+        /**
+         * Keep: the data already belongs to this account, so a plain delta
+         * pass suffices. A full re-upload here would clobber newer cloud
+         * edits with whatever this device last had (last-login-wins).
+         */
+        suspend fun deltaSync()
 
         /** Drop: data + checkpoints were cleared; pull the new account's cloud. */
         suspend fun resetCheckpointsAndPull()
 
         companion object {
             val NONE = object : SyncHooks {
-                override suspend fun markAllDirtyAndSync() {}
+                override suspend fun claimMergeSync() {}
+                override suspend fun deltaSync() {}
                 override suspend fun resetCheckpointsAndPull() {}
             }
         }
@@ -76,14 +88,12 @@ class AccountManager(
         return when (resolveLoginAction(repo.currentOwnerId(), incomingUserId)) {
             LoginDataAction.Claim -> {
                 repo.setOwnerId(incomingUserId)
-                // Owner is tagged first so the upload runs as an eligible sync.
-                syncHooks.markAllDirtyAndSync()
+                // Owner is tagged first so the merge runs as an eligible sync.
+                syncHooks.claimMergeSync()
                 Result.Claimed
             }
             LoginDataAction.Keep -> {
-                // Same hook as Claim: push-then-pull heals any divergence that
-                // built up while signed out — the data is cheap to re-upload.
-                syncHooks.markAllDirtyAndSync()
+                syncHooks.deltaSync()
                 Result.Kept
             }
             LoginDataAction.Drop -> {

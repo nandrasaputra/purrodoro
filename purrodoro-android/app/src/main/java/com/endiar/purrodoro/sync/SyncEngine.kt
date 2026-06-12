@@ -65,7 +65,16 @@ class SyncEngine(
     @Volatile
     private var lastOutcome: Result<SyncResult> = Result.success(SyncResult.Success)
 
-    suspend fun syncOnce(): SyncResult {
+    /**
+     * @param pullFirst reverses the per-table order to pull-then-push. Used
+     * for the first merge after an account Claim: pulling first lets dirty
+     * local rows adopt the server identities occupying their natural keys
+     * (session_records' `(user_id, local_id)`, daily_stamps'
+     * `(user_id, stamp_date)`), so the subsequent push UPDATEs those rows
+     * instead of colliding with the server's unique indexes — a push-first
+     * pass would 409 on every attempt, wedging the table permanently.
+     */
+    suspend fun syncOnce(pullFirst: Boolean = false): SyncResult {
         if (!mutex.tryLock()) {
             // A pass is already in flight; wait for it and share its outcome.
             mutex.withLock { }
@@ -75,7 +84,7 @@ class SyncEngine(
             val failed = mutableListOf<String>()
             for (tableSync in tables) {
                 try {
-                    syncTable(tableSync)
+                    syncTable(tableSync, pullFirst)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
@@ -94,12 +103,25 @@ class SyncEngine(
         }
     }
 
-    private suspend fun syncTable(tableSync: TableSync) {
+    private suspend fun syncTable(tableSync: TableSync, pullFirst: Boolean) {
+        if (pullFirst) {
+            pull(tableSync)
+            push(tableSync)
+        } else {
+            push(tableSync)
+            pull(tableSync)
+        }
+    }
+
+    private suspend fun push(tableSync: TableSync) {
         val dirty = tableSync.dirtyRows()
         if (dirty.isNotEmpty()) {
             api.upsert(tableSync.table, dirty, tableSync.conflictKey)
             tableSync.markPushed(dirty)
         }
+    }
+
+    private suspend fun pull(tableSync: TableSync) {
         val remote = api.pullSince(tableSync.table, checkpoints.get(tableSync.table))
         if (remote.isNotEmpty()) {
             tableSync.applyRemote(remote)

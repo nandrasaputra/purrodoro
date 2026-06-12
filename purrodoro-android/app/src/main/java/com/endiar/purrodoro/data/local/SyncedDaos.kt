@@ -227,6 +227,10 @@ interface SessionRecordDao {
     @Query("UPDATE session_records SET deleted = 1, dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
     suspend fun softDeleteAll(now: Long)
 
+    /** Sync helper: hard-removes one row when a pull re-keys it onto the server id. */
+    @Query("DELETE FROM session_records WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     @Query("DELETE FROM session_records")
     suspend fun clearAll()
 }
