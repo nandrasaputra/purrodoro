@@ -4,7 +4,17 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** Per-table delta-pull checkpoint persistence (max applied server `updated_at`). */
+/**
+ * Per-table delta-pull checkpoint persistence (max applied server `updated_at`).
+ *
+ * Checkpoints are a low-water mark, not an exact cursor: `moddatetime` stamps
+ * rows with their transaction-start time, so a slow server transaction can
+ * commit a row whose `updated_at` is older than an already-advanced
+ * checkpoint. [SupabaseSyncApi.pullSince] therefore queries with `gte` minus
+ * a small overlap window instead of strictly-greater; re-pulling an
+ * already-applied row is harmless because the apply path is idempotent
+ * ([resolvePull] + upsert by id).
+ */
 interface CheckpointStore {
     suspend fun get(table: String): String?
     suspend fun set(table: String, iso: String)
@@ -45,14 +55,21 @@ class SyncEngine(
 
     private val mutex = Mutex()
 
+    /**
+     * Outcome of the most recently finished pass, shared with callers that
+     * collapsed onto it: success carries the [SyncResult], failure carries the
+     * fatal throwable so waiters rethrow it instead of reading a stale
+     * success. (A cancelled pass records nothing — its waiters see the
+     * previous outcome, which is harmless since they trigger another pass.)
+     */
     @Volatile
-    private var lastResult: SyncResult = SyncResult.Success
+    private var lastOutcome: Result<SyncResult> = Result.success(SyncResult.Success)
 
     suspend fun syncOnce(): SyncResult {
         if (!mutex.tryLock()) {
             // A pass is already in flight; wait for it and share its outcome.
             mutex.withLock { }
-            return lastResult
+            return lastOutcome.getOrThrow()
         }
         try {
             val failed = mutableListOf<String>()
@@ -62,12 +79,16 @@ class SyncEngine(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
-                    if (isFatal(e)) throw e
+                    if (isFatal(e)) {
+                        lastOutcome = Result.failure(e)
+                        throw e
+                    }
                     failed += tableSync.table
                 }
             }
-            return (if (failed.isEmpty()) SyncResult.Success else SyncResult.PartialFailure(failed))
-                .also { lastResult = it }
+            val result = if (failed.isEmpty()) SyncResult.Success else SyncResult.PartialFailure(failed)
+            lastOutcome = Result.success(result)
+            return result
         } finally {
             mutex.unlock()
         }

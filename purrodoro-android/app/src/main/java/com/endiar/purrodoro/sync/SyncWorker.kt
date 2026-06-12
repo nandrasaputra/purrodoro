@@ -16,20 +16,20 @@ import java.time.Duration
 
 /**
  * Background sync entry point. Runs the same gated pass as every other
- * trigger ([SyncModule.syncIfEligible]) and always reports success: per-table
- * failures are isolated inside the engine, and an ineligible run is a no-op,
- * so there is nothing WorkManager-level retries could fix that the next
- * scheduled pass won't.
+ * trigger ([SyncModule.syncIfEligible]). A pass that left failed tables
+ * behind reports [Result.retry] so WorkManager's exponential backoff drives
+ * the re-run; an ineligible run or a fully clean pass reports success.
  */
 class SyncWorker(
     appContext: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
 
-    override suspend fun doWork(): Result {
-        SyncModule.get(applicationContext).syncIfEligible()
-        return Result.success()
-    }
+    override suspend fun doWork(): Result =
+        when (SyncModule.get(applicationContext).syncIfEligible()) {
+            is SyncEngine.SyncResult.PartialFailure -> Result.retry()
+            else -> Result.success()
+        }
 
     companion object {
         private const val UNIQUE_PERIODIC_WORK = "purrodoro_sync"
@@ -55,9 +55,12 @@ class SyncWorker(
         }
 
         /**
-         * One-shot retry used when a foreground sync pass left failed tables
-         * behind ([SyncEngine.SyncResult.PartialFailure]): expedited when
-         * quota allows, with exponential backoff while the failure persists.
+         * One-shot retry enqueued by the foreground (non-worker) path when a
+         * sync pass left failed tables behind
+         * ([SyncEngine.SyncResult.PartialFailure]): expedited when quota
+         * allows, and because [doWork] returns [Result.retry] while tables
+         * keep failing, the backoff criteria below genuinely re-run it.
+         * KEEP, so a retry chain already backing off isn't reset.
          */
         fun enqueueRetry(context: Context) {
             val request = OneTimeWorkRequestBuilder<SyncWorker>()

@@ -1,7 +1,9 @@
 package com.endiar.purrodoro.sync
 
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
+import com.endiar.purrodoro.data.local.HabitLogEntity
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import com.endiar.purrodoro.data.local.TaskEntity
 import kotlinx.coroutines.CompletableDeferred
@@ -50,13 +52,14 @@ class SyncEngineTest {
         var nextCategory = 100
         var nextHabit = 100
         val userId: suspend () -> String = { "user-1" }
+        val inTransaction: TransactionRunner = { block -> db.withTransaction { block() } }
         return listOf(
-            CategoryTableSync(db.categoryDao(), userId) { nextCategory++ },
-            TaskTableSync(db.taskDao(), userId) { nextTask++ },
-            HabitTableSync(db.habitDao(), userId) { nextHabit++ },
-            HabitLogTableSync(db.habitLogDao(), userId),
-            SessionRecordTableSync(db.sessionRecordDao(), userId),
-            DailyStampTableSync(db.dailyStampDao(), userId),
+            CategoryTableSync(db.categoryDao(), userId, inTransaction) { nextCategory++ },
+            TaskTableSync(db.taskDao(), userId, inTransaction) { nextTask++ },
+            HabitTableSync(db.habitDao(), userId, inTransaction) { nextHabit++ },
+            HabitLogTableSync(db.habitLogDao(), userId, inTransaction),
+            SessionRecordTableSync(db.sessionRecordDao(), userId, inTransaction),
+            DailyStampTableSync(db.dailyStampDao(), userId, inTransaction),
         )
     }
 
@@ -103,6 +106,36 @@ class SyncEngineTest {
         put("user_id", "user-1")
         put("name", name)
         put("color_argb", JsonNull)
+        put("updated_at", updatedAt)
+        put("deleted", deleted)
+    }
+
+    private fun localLog(
+        id: String,
+        dirty: Boolean,
+        habitId: String = "habit-uuid",
+        logDate: String = "2026-06-12",
+        state: String = "C",
+        modifiedAt: Long = 1L,
+    ) = HabitLogEntity(
+        id = id, habitId = habitId, logDateIso = logDate, stateTag = state,
+        progress = 0, dirty = dirty, locallyModifiedAt = modifiedAt, deleted = false,
+    )
+
+    private fun habitLogRow(
+        id: String,
+        updatedAt: String,
+        habitId: String = "habit-uuid",
+        logDate: String = "2026-06-12",
+        state: String = "C",
+        deleted: Boolean = false,
+    ): JsonElement = buildJsonObject {
+        put("id", id)
+        put("user_id", "user-1")
+        put("habit_id", habitId)
+        put("log_date", logDate)
+        put("state", state)
+        put("progress", 0)
         put("updated_at", updatedAt)
         put("deleted", deleted)
     }
@@ -195,6 +228,79 @@ class SyncEngineTest {
             listOf("categories", "tasks", "habits", "habit_logs", "session_records", "daily_stamps"),
             api.pullOrder,
         )
+    }
+
+    // --- natural-key adoption (two devices logging the same habit + day) ---
+
+    @Test
+    fun `clean local row adopts the remote row's UUID via the natural key`() = runTest {
+        db.habitLogDao().upsert(listOf(localLog("log-local", dirty = false, state = "S")))
+        api.remote["habit_logs"] = mutableListOf(
+            habitLogRow("log-server", "2026-06-12T10:00:00+00:00", state = "C"),
+        )
+
+        val result = buildEngine().syncOnce()
+
+        assertEquals(SyncEngine.SyncResult.Success, result)
+        // The local row was re-keyed onto the server identity and took the
+        // remote content (it was clean, so the remote wins).
+        assertNull(db.habitLogDao().getById("log-local"))
+        val adopted = db.habitLogDao().getById("log-server")
+        assertNotNull(adopted)
+        assertEquals("C", adopted!!.stateTag)
+        assertFalse(adopted.dirty)
+    }
+
+    @Test
+    fun `dirty local row is re-keyed and its next push targets the adopted server id`() = runTest {
+        db.habitLogDao().upsert(listOf(localLog("log-local", dirty = true, state = "S", modifiedAt = 1L)))
+        // A user edit lands while the push is in flight, so markPushed leaves
+        // the row dirty and the pull's natural-key match sees a dirty row.
+        api.onUpsert = { table ->
+            if (table == "habit_logs") {
+                db.habitLogDao().getById("log-local")?.let { current ->
+                    db.habitLogDao().upsert(listOf(current.copy(locallyModifiedAt = 2L, dirty = true)))
+                }
+            }
+        }
+        api.remote["habit_logs"] = mutableListOf(
+            habitLogRow("log-server", "2026-06-12T10:00:00+00:00", state = "C"),
+        )
+        val engine = buildEngine()
+
+        engine.syncOnce()
+
+        // The dirty local content survived, re-keyed onto the server id.
+        assertNull(db.habitLogDao().getById("log-local"))
+        val rekeyed = db.habitLogDao().getById("log-server")
+        assertNotNull(rekeyed)
+        assertEquals("S", rekeyed!!.stateTag)
+        assertTrue(rekeyed.dirty)
+
+        api.onUpsert = null
+        engine.syncOnce()
+
+        // The second pass pushes the surviving content under the adopted id.
+        val lastPush = api.upserts.getValue("habit_logs").last().jsonObject
+        assertEquals("log-server", lastPush.getValue("id").jsonPrimitive.content)
+        assertEquals("S", lastPush.getValue("state").jsonPrimitive.content)
+        assertFalse(db.habitLogDao().getById("log-server")!!.dirty)
+    }
+
+    @Test
+    fun `remote tombstone applied through the engine soft-deletes locally`() = runTest {
+        db.habitLogDao().upsert(listOf(localLog("log-1", dirty = false)))
+        api.remote["habit_logs"] = mutableListOf(
+            habitLogRow("log-1", "2026-06-12T10:00:00+00:00", deleted = true),
+        )
+
+        val result = buildEngine().syncOnce()
+
+        assertEquals(SyncEngine.SyncResult.Success, result)
+        val row = db.habitLogDao().getById("log-1")
+        assertNotNull(row)
+        assertTrue(row!!.deleted)
+        assertFalse(row.dirty)
     }
 
     @Test

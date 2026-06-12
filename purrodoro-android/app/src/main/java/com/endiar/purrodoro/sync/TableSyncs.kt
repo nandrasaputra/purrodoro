@@ -25,15 +25,17 @@ import kotlinx.serialization.json.jsonPrimitive
 internal class CategoryTableSync(
     private val dao: CategoryDao,
     private val userId: suspend () -> String,
+    inTransaction: TransactionRunner,
     private val allocateLegacyId: suspend () -> Int,
-) : BaseTableSync<CategoryEntity>("categories") {
+) : BaseTableSync<CategoryEntity>("categories", inTransaction) {
     override suspend fun dirtyEntities() = dao.getDirty()
     override suspend fun entityById(id: String) = dao.getById(id)
     override suspend fun upsertEntities(entities: List<CategoryEntity>) = dao.upsert(entities)
+    override suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long) =
+        dao.clearDirtyIfUnchanged(id, snapshotModifiedAt)
     override fun idOf(entity: CategoryEntity) = entity.id
     override fun modifiedAtOf(entity: CategoryEntity) = entity.locallyModifiedAt
     override fun isDirty(entity: CategoryEntity) = entity.dirty
-    override fun clearDirty(entity: CategoryEntity) = entity.copy(dirty = false)
     override suspend fun encodeForPush(entity: CategoryEntity) = entity.toDto(userId()).toPushJson()
     override suspend fun decodeRemote(row: JsonElement, existing: CategoryEntity?) =
         syncJson.decodeFromJsonElement(CategoryDto.serializer(), row).toEntity(existing, allocateLegacyId)
@@ -42,15 +44,17 @@ internal class CategoryTableSync(
 internal class TaskTableSync(
     private val dao: TaskDao,
     private val userId: suspend () -> String,
+    inTransaction: TransactionRunner,
     private val allocateLegacyId: suspend () -> Int,
-) : BaseTableSync<TaskEntity>("tasks") {
+) : BaseTableSync<TaskEntity>("tasks", inTransaction) {
     override suspend fun dirtyEntities() = dao.getDirty()
     override suspend fun entityById(id: String) = dao.getById(id)
     override suspend fun upsertEntities(entities: List<TaskEntity>) = dao.upsert(entities)
+    override suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long) =
+        dao.clearDirtyIfUnchanged(id, snapshotModifiedAt)
     override fun idOf(entity: TaskEntity) = entity.id
     override fun modifiedAtOf(entity: TaskEntity) = entity.locallyModifiedAt
     override fun isDirty(entity: TaskEntity) = entity.dirty
-    override fun clearDirty(entity: TaskEntity) = entity.copy(dirty = false)
     override suspend fun encodeForPush(entity: TaskEntity) = entity.toDto(userId()).toPushJson()
     override suspend fun decodeRemote(row: JsonElement, existing: TaskEntity?) =
         syncJson.decodeFromJsonElement(TaskDto.serializer(), row).toEntity(existing, allocateLegacyId)
@@ -59,15 +63,17 @@ internal class TaskTableSync(
 internal class HabitTableSync(
     private val dao: HabitDao,
     private val userId: suspend () -> String,
+    inTransaction: TransactionRunner,
     private val allocateLegacyId: suspend () -> Int,
-) : BaseTableSync<HabitEntity>("habits") {
+) : BaseTableSync<HabitEntity>("habits", inTransaction) {
     override suspend fun dirtyEntities() = dao.getDirty()
     override suspend fun entityById(id: String) = dao.getById(id)
     override suspend fun upsertEntities(entities: List<HabitEntity>) = dao.upsert(entities)
+    override suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long) =
+        dao.clearDirtyIfUnchanged(id, snapshotModifiedAt)
     override fun idOf(entity: HabitEntity) = entity.id
     override fun modifiedAtOf(entity: HabitEntity) = entity.locallyModifiedAt
     override fun isDirty(entity: HabitEntity) = entity.dirty
-    override fun clearDirty(entity: HabitEntity) = entity.copy(dirty = false)
     override suspend fun encodeForPush(entity: HabitEntity) = entity.toDto(userId()).toPushJson()
     override suspend fun decodeRemote(row: JsonElement, existing: HabitEntity?) =
         syncJson.decodeFromJsonElement(HabitDto.serializer(), row).toEntity(existing, allocateLegacyId)
@@ -76,14 +82,16 @@ internal class HabitTableSync(
 internal class HabitLogTableSync(
     private val dao: HabitLogDao,
     private val userId: suspend () -> String,
-) : BaseTableSync<HabitLogEntity>("habit_logs") {
+    inTransaction: TransactionRunner,
+) : BaseTableSync<HabitLogEntity>("habit_logs", inTransaction) {
     override suspend fun dirtyEntities() = dao.getDirty()
     override suspend fun entityById(id: String) = dao.getById(id)
     override suspend fun upsertEntities(entities: List<HabitLogEntity>) = dao.upsert(entities)
+    override suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long) =
+        dao.clearDirtyIfUnchanged(id, snapshotModifiedAt)
     override fun idOf(entity: HabitLogEntity) = entity.id
     override fun modifiedAtOf(entity: HabitLogEntity) = entity.locallyModifiedAt
     override fun isDirty(entity: HabitLogEntity) = entity.dirty
-    override fun clearDirty(entity: HabitLogEntity) = entity.copy(dirty = false)
     override suspend fun encodeForPush(entity: HabitLogEntity) = entity.toDto(userId()).toPushJson()
     override suspend fun decodeRemote(row: JsonElement, existing: HabitLogEntity?) =
         syncJson.decodeFromJsonElement(HabitLogDto.serializer(), row).toEntity(existing)
@@ -102,14 +110,16 @@ internal class HabitLogTableSync(
 internal class SessionRecordTableSync(
     private val dao: SessionRecordDao,
     private val userId: suspend () -> String,
-) : BaseTableSync<SessionRecordEntity>("session_records") {
+    inTransaction: TransactionRunner,
+) : BaseTableSync<SessionRecordEntity>("session_records", inTransaction) {
     override suspend fun dirtyEntities() = dao.getDirty()
     override suspend fun entityById(id: String) = dao.getById(id)
     override suspend fun upsertEntities(entities: List<SessionRecordEntity>) = dao.upsert(entities)
+    override suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long) =
+        dao.clearDirtyIfUnchanged(id, snapshotModifiedAt)
     override fun idOf(entity: SessionRecordEntity) = entity.id
     override fun modifiedAtOf(entity: SessionRecordEntity) = entity.locallyModifiedAt
     override fun isDirty(entity: SessionRecordEntity) = entity.dirty
-    override fun clearDirty(entity: SessionRecordEntity) = entity.copy(dirty = false)
     override suspend fun encodeForPush(entity: SessionRecordEntity) = entity.toDto(userId()).toPushJson()
     override suspend fun decodeRemote(row: JsonElement, existing: SessionRecordEntity?) =
         syncJson.decodeFromJsonElement(SessionRecordDto.serializer(), row).toEntity(existing)
@@ -118,14 +128,16 @@ internal class SessionRecordTableSync(
 internal class DailyStampTableSync(
     private val dao: DailyStampDao,
     private val userId: suspend () -> String,
-) : BaseTableSync<DailyStampEntity>("daily_stamps") {
+    inTransaction: TransactionRunner,
+) : BaseTableSync<DailyStampEntity>("daily_stamps", inTransaction) {
     override suspend fun dirtyEntities() = dao.getDirty()
     override suspend fun entityById(id: String) = dao.getById(id)
     override suspend fun upsertEntities(entities: List<DailyStampEntity>) = dao.upsert(entities)
+    override suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long) =
+        dao.clearDirtyIfUnchanged(id, snapshotModifiedAt)
     override fun idOf(entity: DailyStampEntity) = entity.id
     override fun modifiedAtOf(entity: DailyStampEntity) = entity.locallyModifiedAt
     override fun isDirty(entity: DailyStampEntity) = entity.dirty
-    override fun clearDirty(entity: DailyStampEntity) = entity.copy(dirty = false)
     override suspend fun encodeForPush(entity: DailyStampEntity) = entity.toDto(userId()).toPushJson()
     override suspend fun decodeRemote(row: JsonElement, existing: DailyStampEntity?) =
         syncJson.decodeFromJsonElement(DailyStampDto.serializer(), row).toEntity(existing)

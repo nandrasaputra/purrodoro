@@ -14,6 +14,11 @@ import kotlinx.coroutines.launch
  * [requestImmediate] skips the debounce (e.g. app-foreground). Both paths
  * funnel through one collector, so triggers can never run [sync] concurrently
  * from here (and the engine's mutex guards everything else).
+ *
+ * Accepted limitation (M6): a write stream that never goes quiet for
+ * [debounceMs] starves the debounced path indefinitely. The foreground and
+ * periodic triggers bound the resulting staleness, and real edit patterns
+ * always pause.
  */
 class SyncScheduler(
     scope: CoroutineScope,

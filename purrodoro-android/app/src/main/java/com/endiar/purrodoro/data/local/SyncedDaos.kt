@@ -25,6 +25,10 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE dirty = 1")
     suspend fun getDirty(): List<TaskEntity>
 
+    /** Sync helper: atomically clears dirty iff the row is unchanged since the push snapshot. */
+    @Query("UPDATE tasks SET dirty = 0 WHERE id = :id AND locallyModifiedAt = :snapshotModifiedAt AND dirty = 1")
+    suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long)
+
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getById(id: String): TaskEntity?
 
@@ -56,6 +60,10 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE dirty = 1")
     suspend fun getDirty(): List<CategoryEntity>
 
+    /** Sync helper: atomically clears dirty iff the row is unchanged since the push snapshot. */
+    @Query("UPDATE categories SET dirty = 0 WHERE id = :id AND locallyModifiedAt = :snapshotModifiedAt AND dirty = 1")
+    suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long)
+
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getById(id: String): CategoryEntity?
 
@@ -83,6 +91,10 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE dirty = 1")
     suspend fun getDirty(): List<HabitEntity>
 
+    /** Sync helper: atomically clears dirty iff the row is unchanged since the push snapshot. */
+    @Query("UPDATE habits SET dirty = 0 WHERE id = :id AND locallyModifiedAt = :snapshotModifiedAt AND dirty = 1")
+    suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long)
+
     @Query("SELECT * FROM habits WHERE id = :id")
     suspend fun getById(id: String): HabitEntity?
 
@@ -109,6 +121,10 @@ interface HabitLogDao {
 
     @Query("SELECT * FROM habit_logs WHERE dirty = 1")
     suspend fun getDirty(): List<HabitLogEntity>
+
+    /** Sync helper: atomically clears dirty iff the row is unchanged since the push snapshot. */
+    @Query("UPDATE habit_logs SET dirty = 0 WHERE id = :id AND locallyModifiedAt = :snapshotModifiedAt AND dirty = 1")
+    suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long)
 
     @Query("SELECT * FROM habit_logs WHERE id = :id")
     suspend fun getById(id: String): HabitLogEntity?
@@ -148,6 +164,10 @@ interface SessionRecordDao {
     @Query("SELECT * FROM session_records WHERE dirty = 1")
     suspend fun getDirty(): List<SessionRecordEntity>
 
+    /** Sync helper: atomically clears dirty iff the row is unchanged since the push snapshot. */
+    @Query("UPDATE session_records SET dirty = 0 WHERE id = :id AND locallyModifiedAt = :snapshotModifiedAt AND dirty = 1")
+    suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long)
+
     @Query("SELECT * FROM session_records WHERE id = :id")
     suspend fun getById(id: String): SessionRecordEntity?
 
@@ -181,6 +201,10 @@ interface DailyStampDao {
 
     @Query("SELECT * FROM daily_stamps WHERE dirty = 1")
     suspend fun getDirty(): List<DailyStampEntity>
+
+    /** Sync helper: atomically clears dirty iff the row is unchanged since the push snapshot. */
+    @Query("UPDATE daily_stamps SET dirty = 0 WHERE id = :id AND locallyModifiedAt = :snapshotModifiedAt AND dirty = 1")
+    suspend fun clearDirtyIfUnchanged(id: String, snapshotModifiedAt: Long)
 
     @Query("SELECT * FROM daily_stamps WHERE id = :id")
     suspend fun getById(id: String): DailyStampEntity?
