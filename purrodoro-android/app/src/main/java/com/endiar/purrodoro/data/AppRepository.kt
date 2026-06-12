@@ -42,9 +42,6 @@ import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TaskPriority
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
-import com.endiar.purrodoro.model.incrementProgress
-import com.endiar.purrodoro.model.toggleBinaryOn
-import com.endiar.purrodoro.model.withLog
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -343,6 +340,10 @@ class AppRepository(
                     dataStore.data,
                     db.taskDao().observeAll(),
                     db.categoryDao().observeAll(),
+                    db.habitDao().observeAll(),
+                    db.habitLogDao().observeAll(),
+                    db.sessionRecordDao().observeAll(),
+                    db.dailyStampDao().observeAll(),
                 ),
             ) { values ->
                 @Suppress("UNCHECKED_CAST")
@@ -350,6 +351,10 @@ class AppRepository(
                     prefs = values[0] as Preferences,
                     taskEntities = values[1] as List<TaskEntity>,
                     categoryEntities = values[2] as List<CategoryEntity>,
+                    habitEntities = values[3] as List<HabitEntity>,
+                    habitLogEntities = values[4] as List<HabitLogEntity>,
+                    recordEntities = values[5] as List<SessionRecordEntity>,
+                    stampEntities = values[6] as List<DailyStampEntity>,
                 )
             }
         )
@@ -359,9 +364,14 @@ class AppRepository(
         prefs: Preferences,
         taskEntities: List<TaskEntity>,
         categoryEntities: List<CategoryEntity>,
+        habitEntities: List<HabitEntity>,
+        habitLogEntities: List<HabitLogEntity>,
+        recordEntities: List<SessionRecordEntity>,
+        stampEntities: List<DailyStampEntity>,
     ): AppState {
         val sortedCategories = categoryEntities.sortedBy { it.legacyId }
         val legacyCategoryIdByUuid = sortedCategories.associate { it.id to it.legacyId }
+        val logsByHabitUuid = habitLogEntities.groupBy { it.habitId }
         return AppState(
             glassReadabilityMode = prefs[KEY_GLASS_MODE]
                 ?.let { runCatching { GlassReadabilityMode.valueOf(it) }.getOrNull() }
@@ -384,9 +394,13 @@ class AppRepository(
                     .coerceIn(1, TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE)
             ),
             nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 1,
-            stamps = decodeStamps(prefs[KEY_STAMPS] ?: ""),
+            stamps = stampEntities.mapNotNull { entity ->
+                val date = runCatching { LocalDate.parse(entity.stampDateIso) }.getOrNull()
+                    ?: return@mapNotNull null
+                date to entity.count
+            }.toMap(),
             isPremium = prefs[KEY_IS_PREMIUM] ?: false,
-            sessionRecords = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: ""),
+            sessionRecords = recordEntities.sortedBy { it.legacyId }.map { it.toDomain() },
             tasks = taskEntities.sortedBy { it.legacyId }.map { entity ->
                 entity.toDomain(entity.categoryId?.let { legacyCategoryIdByUuid[it] })
             },
@@ -396,7 +410,9 @@ class AppRepository(
                 ?.takeIf { it.isNotBlank() }
                 ?.toIntOrNull(),
             notificationSoundEnabled = prefs[KEY_NOTIFICATION_SOUND] ?: true,
-            habits = decodeHabits(prefs[KEY_HABITS] ?: ""),
+            habits = habitEntities.sortedBy { it.legacyId }.map { entity ->
+                entity.toDomain(logsByHabitUuid[entity.id].orEmpty())
+            },
             nextHabitId = prefs[KEY_NEXT_HABIT_ID] ?: 1,
             interruptedFocus = decodeInterruptedFocus(prefs[KEY_INTERRUPTED_FOCUS] ?: ""),
         )
@@ -421,7 +437,36 @@ class AppRepository(
         prefs[KEY_CYCLE_SIZE] = value.focusSessionsPerCycle
     }
     suspend fun setNextTaskId(value: Int) = dataStore.edit { it[KEY_NEXT_TASK_ID] = value }
-    suspend fun setStamps(value: Map<LocalDate, Int>) = dataStore.edit { it[KEY_STAMPS] = encodeStamps(value) }
+    suspend fun setStamps(value: Map<LocalDate, Int>) {
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val existing = db.dailyStampDao().getAllIncludingDeleted()
+            val existingByDate = existing.associateBy { it.stampDateIso }
+            val upserts = mutableListOf<DailyStampEntity>()
+            for ((date, count) in value) {
+                val iso = date.toString()
+                val current = existingByDate[iso]
+                val entity = DailyStampEntity(
+                    id = current?.id ?: newUuid(),
+                    stampDateIso = iso,
+                    count = count,
+                    dirty = true,
+                    locallyModifiedAt = now,
+                    deleted = false,
+                )
+                val unchanged = current != null && !current.deleted &&
+                    entity == current.copy(dirty = true, locallyModifiedAt = now)
+                if (!unchanged) upserts += entity
+            }
+            if (upserts.isNotEmpty()) db.dailyStampDao().upsert(upserts)
+            val keptDates = value.keys.map { it.toString() }.toSet()
+            existing
+                .filter { !it.deleted && it.stampDateIso !in keptDates }
+                .forEach { db.dailyStampDao().softDelete(it.id, now) }
+        }
+    }
     suspend fun setIsPremium(value: Boolean) = dataStore.edit { it[KEY_IS_PREMIUM] = value }
     suspend fun setPendingCycleCompletionAck(value: Boolean) =
         dataStore.edit { it[KEY_PENDING_CYCLE_ACK] = value }
@@ -437,20 +482,33 @@ class AppRepository(
         else prefs[KEY_INTERRUPTED_FOCUS] = encodeInterruptedFocus(value)
     }
 
-    suspend fun appendSessionRecord(record: SessionRecord) = dataStore.edit { prefs ->
-        val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
-        prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing + record)
+    suspend fun appendSessionRecord(record: SessionRecord) =
+        appendSessionRecords(listOf(record))
+
+    /** Appends several records in a single transaction (used by debug data seeding). */
+    suspend fun appendSessionRecords(records: List<SessionRecord>) {
+        if (records.isEmpty()) return
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val entities = records.map { record ->
+                val existing = db.sessionRecordDao().getByLegacyIdIncludingDeleted(record.id)
+                record.toEntity(
+                    uuid = existing?.id ?: newUuid(),
+                    dirty = true,
+                    modifiedAt = now,
+                )
+            }
+            db.sessionRecordDao().upsert(entities)
+        }
     }
 
-    /** Appends several records in a single edit (used by debug data seeding). */
-    suspend fun appendSessionRecords(records: List<SessionRecord>) = dataStore.edit { prefs ->
-        if (records.isEmpty()) return@edit
-        val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
-        prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing + records)
+    /** Soft-deletes all stored session records (used by debug reset). */
+    suspend fun clearSessionRecords() {
+        ensureMigrated()
+        roomDb.sessionRecordDao().softDeleteAll(System.currentTimeMillis())
     }
-
-    /** Removes all stored session records (used by debug reset). */
-    suspend fun clearSessionRecords() = dataStore.edit { it.remove(KEY_SESSION_RECORDS) }
 
     suspend fun setRuntimeSnapshot(snapshot: TimerRuntimeState?) = dataStore.edit { prefs ->
         if (snapshot == null) {
@@ -460,10 +518,27 @@ class AppRepository(
         }
     }
 
-    suspend fun incrementStampFor(date: LocalDate) = dataStore.edit { prefs ->
-        val existing = decodeStamps(prefs[KEY_STAMPS] ?: "")
-        val updated = existing + (date to (existing[date] ?: 0) + 1)
-        prefs[KEY_STAMPS] = encodeStamps(updated)
+    suspend fun incrementStampFor(date: LocalDate) {
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val iso = date.toString()
+            val existing = db.dailyStampDao().getByDateIncludingDeleted(iso)
+            val newCount = if (existing != null && !existing.deleted) existing.count + 1 else 1
+            db.dailyStampDao().upsert(
+                listOf(
+                    DailyStampEntity(
+                        id = existing?.id ?: newUuid(),
+                        stampDateIso = iso,
+                        count = newCount,
+                        dirty = true,
+                        locallyModifiedAt = now,
+                        deleted = false,
+                    )
+                )
+            )
+        }
     }
 
     suspend fun setTasks(value: List<FocusTask>) {
@@ -615,9 +690,11 @@ class AppRepository(
         )
     }
 
-    suspend fun deleteSessionRecord(id: Long) = dataStore.edit { prefs ->
-        val existing = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: "")
-        prefs[KEY_SESSION_RECORDS] = encodeSessionRecords(existing.filterNot { it.id == id })
+    suspend fun deleteSessionRecord(id: Long) {
+        ensureMigrated()
+        val dao = roomDb.sessionRecordDao()
+        val existing = dao.getByLegacyId(id) ?: return
+        dao.softDelete(existing.id, System.currentTimeMillis())
     }
 
     suspend fun resetSettingsToDefault() = dataStore.edit { prefs ->
@@ -636,25 +713,32 @@ class AppRepository(
         occurrence: HabitOccurrence = HabitOccurrence.Daily,
         timeBlock: TimeBlock = TimeBlock.Anytime,
     ): Int {
+        ensureMigrated()
         var newId = 0
         dataStore.edit { prefs ->
             val nextId = prefs[KEY_NEXT_HABIT_ID] ?: 1
             newId = nextId
-            val existing = decodeHabits(prefs[KEY_HABITS] ?: "")
-            val habit = Habit(
-                id = nextId, name = name, emoji = emoji, colorArgb = colorArgb,
-                createdAt = System.currentTimeMillis(),
-                occurrence = occurrence, timeBlock = timeBlock,
-            )
-            prefs[KEY_HABITS] = encodeHabits(existing + habit)
             prefs[KEY_NEXT_HABIT_ID] = nextId + 1
         }
+        val now = System.currentTimeMillis()
+        val habit = Habit(
+            id = newId, name = name, emoji = emoji, colorArgb = colorArgb,
+            createdAt = now,
+            occurrence = occurrence, timeBlock = timeBlock,
+        )
+        roomDb.habitDao().upsert(listOf(habit.toEntity(uuid = newUuid(), dirty = true, modifiedAt = now)))
         return newId
     }
 
-    suspend fun deleteHabit(id: Int) = dataStore.edit { prefs ->
-        val existing = decodeHabits(prefs[KEY_HABITS] ?: "")
-        prefs[KEY_HABITS] = encodeHabits(existing.filterNot { it.id == id })
+    suspend fun deleteHabit(id: Int) {
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val habit = db.habitDao().getByLegacyId(id) ?: return@withTransaction
+            db.habitDao().softDelete(habit.id, now)
+            db.habitLogDao().softDeleteForHabit(habit.id, now)
+        }
     }
 
     suspend fun updateHabitMeta(
@@ -664,32 +748,82 @@ class AppRepository(
         colorArgb: Long,
         occurrence: HabitOccurrence,
         timeBlock: TimeBlock,
-    ) = mutateHabit(id) {
-        it.copy(name = name, emoji = emoji, colorArgb = colorArgb,
-            occurrence = occurrence, timeBlock = timeBlock)
+    ) {
+        ensureMigrated()
+        val dao = roomDb.habitDao()
+        val current = dao.getByLegacyId(id) ?: return
+        val updated = Habit(
+            id = id, name = name, emoji = emoji, colorArgb = colorArgb,
+            createdAt = current.createdAtMillis,
+            occurrence = occurrence, timeBlock = timeBlock,
+        ).toEntity(uuid = current.id, dirty = true, modifiedAt = System.currentTimeMillis())
+        dao.upsert(listOf(updated))
     }
 
-    suspend fun toggleHabitBinaryCompletion(id: Int, date: LocalDate) =
-        mutateHabit(id) { it.toggleBinaryOn(date) }
+    suspend fun toggleHabitBinaryCompletion(id: Int, date: LocalDate) {
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val habit = db.habitDao().getByLegacyId(id) ?: return@withTransaction
+            val existing = db.habitLogDao().getByHabitAndDate(habit.id, date.toString())
+            val isCompleted = existing != null && !existing.deleted && existing.stateTag == "C"
+            if (isCompleted) {
+                db.habitLogDao().softDelete(existing!!.id, now)
+            } else {
+                db.habitLogDao().upsert(listOf(logEntity(existing, habit.id, date, "C", now)))
+            }
+        }
+    }
 
     suspend fun incrementHabitProgress(id: Int, date: LocalDate, delta: Int = 1) =
-        mutateHabit(id) { it.incrementProgress(date, delta) }
+        setHabitLogState(id, date, if (delta > 0) "C" else null)
 
     suspend fun setHabitSkipped(id: Int, date: LocalDate, skipped: Boolean) =
-        mutateHabit(id) {
-            if (skipped) it.withLog(date, HabitLogState.Skipped) else it.withLog(date, null)
-        }
+        setHabitLogState(id, date, if (skipped) "S" else null)
 
     suspend fun clearHabitLog(id: Int, date: LocalDate) =
-        mutateHabit(id) { it.withLog(date, null) }
+        setHabitLogState(id, date, null)
 
-    private suspend fun mutateHabit(id: Int, transform: (Habit) -> Habit) =
-        dataStore.edit { prefs ->
-            val existing = decodeHabits(prefs[KEY_HABITS] ?: "")
-            prefs[KEY_HABITS] = encodeHabits(
-                existing.map { if (it.id == id) transform(it) else it }
-            )
+    /**
+     * Writes (or clears, when [stateTag] is null) the single log row keyed by
+     * habit + date. A cleared log becomes a dirty tombstone; re-setting the
+     * same day resurrects the existing row so the unique [habitId, logDateIso]
+     * index never conflicts.
+     */
+    private suspend fun setHabitLogState(legacyHabitId: Int, date: LocalDate, stateTag: String?) {
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val habit = db.habitDao().getByLegacyId(legacyHabitId) ?: return@withTransaction
+            val existing = db.habitLogDao().getByHabitAndDate(habit.id, date.toString())
+            if (stateTag == null) {
+                if (existing != null && !existing.deleted) {
+                    db.habitLogDao().softDelete(existing.id, now)
+                }
+            } else {
+                db.habitLogDao().upsert(listOf(logEntity(existing, habit.id, date, stateTag, now)))
+            }
         }
+    }
+
+    private fun logEntity(
+        existing: HabitLogEntity?,
+        habitUuid: String,
+        date: LocalDate,
+        stateTag: String,
+        now: Long,
+    ): HabitLogEntity = HabitLogEntity(
+        id = existing?.id ?: newUuid(),
+        habitId = habitUuid,
+        logDateIso = date.toString(),
+        stateTag = stateTag,
+        progress = 0,
+        dirty = true,
+        locallyModifiedAt = now,
+        deleted = false,
+    )
 }
 
 // --- Encoding helpers ---
