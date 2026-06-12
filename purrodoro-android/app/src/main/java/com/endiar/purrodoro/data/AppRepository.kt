@@ -167,6 +167,23 @@ class AppRepository(
      * new account. See [com.endiar.purrodoro.auth.AccountManager].
      */
     suspend fun clearAccountOwnedData() {
+        // Hard-delete (not tombstone) the synced tables FIRST: an ownership
+        // switch must not leave rows the next account's sync could push as
+        // deletions. Clearing Room before resetting the DataStore counters
+        // means a crash in between leaves counters intact alongside an empty
+        // database — never restarted counters over surviving rows, which
+        // would collide with the legacyId unique indexes and leak the old
+        // account's data. (Same clear-before-commit principle as the owner
+        // marker handling in AccountManager.)
+        val db = roomDb
+        db.withTransaction {
+            db.taskDao().clearAll()
+            db.categoryDao().clearAll()
+            db.habitDao().clearAll()
+            db.habitLogDao().clearAll()
+            db.sessionRecordDao().clearAll()
+            db.dailyStampDao().clearAll()
+        }
         dataStore.edit { prefs ->
             listOf(
                 // task + category counters
@@ -184,17 +201,6 @@ class AppRepository(
                 KEY_FOCUS_MIN, KEY_SHORT_MIN, KEY_LONG_MIN,
                 KEY_AUTO_START_NEXT_SESSION, KEY_CYCLE_SIZE,
             ).forEach { prefs.remove(it) }
-        }
-        // Hard-delete (not tombstone) the synced tables: an ownership switch
-        // must not leave rows the next account's sync could push as deletions.
-        val db = roomDb
-        db.withTransaction {
-            db.taskDao().clearAll()
-            db.categoryDao().clearAll()
-            db.habitDao().clearAll()
-            db.habitLogDao().clearAll()
-            db.sessionRecordDao().clearAll()
-            db.dailyStampDao().clearAll()
         }
     }
 
@@ -507,18 +513,20 @@ class AppRepository(
     }
 
     suspend fun updateCategory(id: Int, name: String, colorArgb: Long?) {
-        val dao = roomDb.categoryDao()
-        val current = dao.getByLegacyId(id) ?: return
-        dao.upsert(
-            listOf(
-                current.copy(
-                    name = name,
-                    colorArgb = colorArgb,
-                    dirty = true,
-                    locallyModifiedAt = System.currentTimeMillis(),
+        val db = roomDb
+        db.withTransaction {
+            val current = db.categoryDao().getByLegacyId(id) ?: return@withTransaction
+            db.categoryDao().upsert(
+                listOf(
+                    current.copy(
+                        name = name,
+                        colorArgb = colorArgb,
+                        dirty = true,
+                        locallyModifiedAt = System.currentTimeMillis(),
+                    )
                 )
             )
-        )
+        }
     }
 
     suspend fun deleteCategory(id: Int) {
@@ -554,24 +562,28 @@ class AppRepository(
      * the task is gone — completion is binary and triggered by cycle success.
      */
     suspend fun setTaskCompleted(taskId: Int, completed: Boolean) {
-        val dao = roomDb.taskDao()
-        val current = dao.getByLegacyId(taskId) ?: return
-        if (current.completed == completed) return
-        dao.upsert(
-            listOf(
-                current.copy(
-                    completed = completed,
-                    dirty = true,
-                    locallyModifiedAt = System.currentTimeMillis(),
+        val db = roomDb
+        db.withTransaction {
+            val current = db.taskDao().getByLegacyId(taskId) ?: return@withTransaction
+            if (current.completed == completed) return@withTransaction
+            db.taskDao().upsert(
+                listOf(
+                    current.copy(
+                        completed = completed,
+                        dirty = true,
+                        locallyModifiedAt = System.currentTimeMillis(),
+                    )
                 )
             )
-        )
+        }
     }
 
     suspend fun deleteSessionRecord(id: Long) {
-        val dao = roomDb.sessionRecordDao()
-        val existing = dao.getByLegacyId(id) ?: return
-        dao.softDelete(existing.id, System.currentTimeMillis())
+        val db = roomDb
+        db.withTransaction {
+            val existing = db.sessionRecordDao().getByLegacyId(id) ?: return@withTransaction
+            db.sessionRecordDao().softDelete(existing.id, System.currentTimeMillis())
+        }
     }
 
     suspend fun resetSettingsToDefault() = dataStore.edit { prefs ->
@@ -624,14 +636,16 @@ class AppRepository(
         occurrence: HabitOccurrence,
         timeBlock: TimeBlock,
     ) {
-        val dao = roomDb.habitDao()
-        val current = dao.getByLegacyId(id) ?: return
-        val updated = Habit(
-            id = id, name = name, emoji = emoji, colorArgb = colorArgb,
-            createdAt = current.createdAtMillis,
-            occurrence = occurrence, timeBlock = timeBlock,
-        ).toEntity(uuid = current.id, dirty = true, modifiedAt = System.currentTimeMillis())
-        dao.upsert(listOf(updated))
+        val db = roomDb
+        db.withTransaction {
+            val current = db.habitDao().getByLegacyId(id) ?: return@withTransaction
+            val updated = Habit(
+                id = id, name = name, emoji = emoji, colorArgb = colorArgb,
+                createdAt = current.createdAtMillis,
+                occurrence = occurrence, timeBlock = timeBlock,
+            ).toEntity(uuid = current.id, dirty = true, modifiedAt = System.currentTimeMillis())
+            db.habitDao().upsert(listOf(updated))
+        }
     }
 
     suspend fun toggleHabitBinaryCompletion(id: Int, date: LocalDate) {
