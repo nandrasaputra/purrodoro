@@ -116,8 +116,12 @@ interface HabitLogDao {
     @Query("SELECT * FROM habit_logs WHERE habitId IN (:habitIds) AND deleted = 0")
     suspend fun forHabits(habitIds: List<String>): List<HabitLogEntity>
 
-    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND logDateIso = :logDateIso AND deleted = 0")
+    /** Write-path helper: includes tombstones so the unique [habitId, logDateIso] row can be resurrected. */
+    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND logDateIso = :logDateIso")
     suspend fun getByHabitAndDate(habitId: String, logDateIso: String): HabitLogEntity?
+
+    @Query("UPDATE habit_logs SET deleted = 1, dirty = 1, locallyModifiedAt = :now WHERE habitId = :habitId AND deleted = 0")
+    suspend fun softDeleteForHabit(habitId: String, now: Long)
 
     @Upsert
     suspend fun upsert(entities: List<HabitLogEntity>)
@@ -146,11 +150,18 @@ interface SessionRecordDao {
     @Query("SELECT * FROM session_records WHERE legacyId = :legacyId AND deleted = 0")
     suspend fun getByLegacyId(legacyId: Long): SessionRecordEntity?
 
+    /** Write-path helper: includes tombstones so the unique legacyId can be resurrected. */
+    @Query("SELECT * FROM session_records WHERE legacyId = :legacyId")
+    suspend fun getByLegacyIdIncludingDeleted(legacyId: Long): SessionRecordEntity?
+
     @Upsert
     suspend fun upsert(entities: List<SessionRecordEntity>)
 
     @Query("UPDATE session_records SET deleted = 1, dirty = 1, locallyModifiedAt = :now WHERE id = :id")
     suspend fun softDelete(id: String, now: Long)
+
+    @Query("UPDATE session_records SET deleted = 1, dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
+    suspend fun softDeleteAll(now: Long)
 
     @Query("DELETE FROM session_records")
     suspend fun clearAll()
@@ -172,6 +183,14 @@ interface DailyStampDao {
 
     @Query("SELECT * FROM daily_stamps WHERE stampDateIso = :stampDateIso AND deleted = 0")
     suspend fun getByDate(stampDateIso: String): DailyStampEntity?
+
+    /** Write-path helper: includes tombstones so the unique stampDateIso row can be resurrected. */
+    @Query("SELECT * FROM daily_stamps WHERE stampDateIso = :stampDateIso")
+    suspend fun getByDateIncludingDeleted(stampDateIso: String): DailyStampEntity?
+
+    /** Write-path helper: includes tombstones so unique stampDateIso rows can be resurrected. */
+    @Query("SELECT * FROM daily_stamps")
+    suspend fun getAllIncludingDeleted(): List<DailyStampEntity>
 
     @Upsert
     suspend fun upsert(entities: List<DailyStampEntity>)
