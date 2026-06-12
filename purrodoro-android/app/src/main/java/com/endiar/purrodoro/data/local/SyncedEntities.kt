@@ -123,3 +123,20 @@ data class DailyStampEntity(
     val locallyModifiedAt: Long,
     val deleted: Boolean,
 )
+
+/**
+ * Singleton sync-bookkeeping row mirroring the server `profiles` table
+ * (display name + timer settings). The user-visible values stay in DataStore
+ * — this row only exists so the sync engine has dirty/modifiedAt state to
+ * push and reconcile. No `deleted` column: profiles are never tombstoned
+ * (the server row lives and dies with the auth user).
+ */
+@Entity(tableName = "profile")
+data class ProfileEntity(
+    @PrimaryKey val rowId: Int = 0,
+    val displayName: String,
+    /** [com.endiar.purrodoro.data.TimerSettingsJson]-encoded timer settings. */
+    val timerSettingsJson: String,
+    val dirty: Boolean,
+    val locallyModifiedAt: Long,
+)

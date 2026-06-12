@@ -117,7 +117,9 @@ class SyncModule private constructor(
             db.habitDao().hasDirty() ||
             db.habitLogDao().hasDirty() ||
             db.sessionRecordDao().hasDirty() ||
-            db.dailyStampDao().hasDirty()
+            db.dailyStampDao().hasDirty() ||
+            db.profileDao().hasDirty() ||
+            db.profileDao().hasDirty()
 
     /**
      * [AccountManager.SyncHooks] implementation: Claim/Keep re-uploads
@@ -135,8 +137,9 @@ class SyncModule private constructor(
                 db.sessionRecordDao().markAllDirty(now)
                 db.dailyStampDao().markAllDirty(now)
             }
-            // The singleton profile row joins this re-upload once profile
-            // sync lands (ensure-exists + dirty), see ProfileTableSync.
+            // The singleton profile row may not exist yet (pre-profile data);
+            // create it from current prefs so the upload covers it too.
+            repo.ensureProfileRowDirty(now)
             syncIfEligible()
         }
 
@@ -192,7 +195,7 @@ class SyncModule private constructor(
             val allocator = RepositoryLegacyIdAllocator(repo)
             val inTransaction: TransactionRunner = { block -> db.withTransaction { block() } }
             // FK order: parents before children (categories before tasks,
-            // habits before habit_logs).
+            // habits before habit_logs). The independent profile row goes last.
             val tables = listOf(
                 CategoryTableSync(db.categoryDao(), userId, inTransaction, allocator::nextCategoryId),
                 TaskTableSync(db.taskDao(), userId, inTransaction, allocator::nextTaskId),
@@ -200,6 +203,7 @@ class SyncModule private constructor(
                 HabitLogTableSync(db.habitLogDao(), userId, inTransaction),
                 SessionRecordTableSync(db.sessionRecordDao(), userId, inTransaction),
                 DailyStampTableSync(db.dailyStampDao(), userId, inTransaction),
+                ProfileTableSync(db.profileDao(), userId, repo::applySyncedProfile),
             )
             val engine = SyncEngine(
                 api = api,

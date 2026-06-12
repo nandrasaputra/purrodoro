@@ -281,3 +281,26 @@ interface DailyStampDao {
     @Query("DELETE FROM daily_stamps")
     suspend fun clearAll()
 }
+
+@Dao
+interface ProfileDao {
+    @Query("SELECT * FROM profile WHERE rowId = 0")
+    suspend fun get(): ProfileEntity?
+
+    @Query("SELECT * FROM profile WHERE rowId = 0")
+    fun observe(): Flow<ProfileEntity?>
+
+    @Upsert
+    suspend fun upsert(entity: ProfileEntity)
+
+    /** Sync helper: whether the singleton row still awaits a push. */
+    @Query("SELECT EXISTS(SELECT 1 FROM profile WHERE dirty = 1)")
+    suspend fun hasDirty(): Boolean
+
+    /** Sync helper: atomically clears dirty iff the row is unchanged since the push snapshot. */
+    @Query("UPDATE profile SET dirty = 0 WHERE rowId = 0 AND locallyModifiedAt = :snapshotModifiedAt AND dirty = 1")
+    suspend fun clearDirtyIfUnchanged(snapshotModifiedAt: Long)
+
+    @Query("DELETE FROM profile")
+    suspend fun clearAll()
+}

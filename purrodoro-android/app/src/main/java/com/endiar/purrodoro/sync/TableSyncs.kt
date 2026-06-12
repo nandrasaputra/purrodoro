@@ -8,6 +8,7 @@ import com.endiar.purrodoro.data.local.HabitDao
 import com.endiar.purrodoro.data.local.HabitEntity
 import com.endiar.purrodoro.data.local.HabitLogDao
 import com.endiar.purrodoro.data.local.HabitLogEntity
+import com.endiar.purrodoro.data.local.ProfileDao
 import com.endiar.purrodoro.data.local.SessionRecordDao
 import com.endiar.purrodoro.data.local.SessionRecordEntity
 import com.endiar.purrodoro.data.local.TaskDao
@@ -17,10 +18,12 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-// The six TableSync implementations the SyncEngine iterates. Each one is a
-// thin binding of BaseTableSync onto a DAO plus the SyncDtos mappers; the
-// userId provider stamps pushes with the signed-in user (RLS requires it) and
-// the legacy-id allocators mint local ids for rows first seen via a pull.
+// The TableSync implementations the SyncEngine iterates. The six domain
+// tables are thin bindings of BaseTableSync onto a DAO plus the SyncDtos
+// mappers; the userId provider stamps pushes with the signed-in user (RLS
+// requires it) and the legacy-id allocators mint local ids for rows first
+// seen via a pull. ProfileTableSync (singleton row, user_id-keyed) implements
+// TableSync directly.
 
 internal class CategoryTableSync(
     private val dao: CategoryDao,
@@ -149,4 +152,59 @@ internal class DailyStampTableSync(
 
     override suspend fun deleteEntity(entity: DailyStampEntity) = dao.deleteById(entity.id)
     override fun withId(entity: DailyStampEntity, newId: String) = entity.copy(id = newId)
+}
+
+/**
+ * Sync for the singleton `profiles` row (display name + timer settings).
+ * Implemented directly on [TableSync] rather than [BaseTableSync] because the
+ * table is keyed by `user_id` (no `id` column, conflict target included) and
+ * because applying a pulled profile means writing the DataStore prefs the UI
+ * reads — delegated to [applySyncedProfile]
+ * ([com.endiar.purrodoro.data.AppRepository.applySyncedProfile]), which stores
+ * the row clean without re-dirtying it.
+ *
+ * Tombstones: the server `deleted` column exists on `profiles` but is unused —
+ * a profile lives and dies with the auth user, so pulls ignore it.
+ */
+internal class ProfileTableSync(
+    private val dao: ProfileDao,
+    private val userId: suspend () -> String,
+    private val applySyncedProfile: suspend (displayName: String, timerSettingsJson: String) -> Unit,
+) : TableSync {
+
+    override val table: String = "profiles"
+    override val conflictKey: String = "user_id"
+
+    /** `locallyModifiedAt` captured by the latest [dirtyRows] call (same contract as BaseTableSync). */
+    private var pushSnapshotModifiedAt: Long? = null
+
+    override suspend fun dirtyRows(): List<JsonElement> {
+        val row = dao.get()?.takeIf { it.dirty }
+        pushSnapshotModifiedAt = row?.locallyModifiedAt
+        row ?: return emptyList()
+        val dto = ProfileDto(
+            userId = userId(),
+            displayName = row.displayName,
+            timerSettings = syncJson.parseToJsonElement(row.timerSettingsJson),
+        )
+        return listOf(dto.toPushJson())
+    }
+
+    override suspend fun markPushed(rows: List<JsonElement>) {
+        pushSnapshotModifiedAt?.let { dao.clearDirtyIfUnchanged(it) }
+    }
+
+    override suspend fun applyRemote(rows: List<JsonElement>) {
+        // At most one row exists per user (PK user_id + RLS); take the newest
+        // defensively in case an overlap window re-delivers older snapshots.
+        val row = rows.maxByOrNull { it.jsonObject["updated_at"]?.jsonPrimitive?.contentOrNull ?: "" }
+            ?: return
+        // The dirty local row wins ([resolvePull]); its next push becomes the
+        // newest server state.
+        if (resolvePull(dao.get()?.dirty, remoteDeleted = false) == PullAction.KeepLocal) return
+        val dto = syncJson.decodeFromJsonElement(ProfileDto.serializer(), row)
+        applySyncedProfile(dto.displayName.orEmpty(), dto.timerSettings.toString())
+    }
+
+    override suspend fun maxRemoteUpdatedAt(rows: List<JsonElement>): String? = maxUpdatedAtOf(rows)
 }
