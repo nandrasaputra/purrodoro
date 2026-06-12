@@ -9,6 +9,7 @@ import com.endiar.purrodoro.data.local.TaskEntity
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -30,7 +31,7 @@ internal val syncJson = Json {
  * the moddatetime trigger (or the insert default) stamps it server-side.
  */
 internal inline fun <reified T> T.toPushJson(): JsonElement {
-    val obj = syncJson.encodeToJsonElement(kotlinx.serialization.serializer<T>(), this).jsonObject
+    val obj = syncJson.encodeToJsonElement(serializer<T>(), this).jsonObject
     return JsonObject(obj.filterKeys { it != "updated_at" })
 }
 

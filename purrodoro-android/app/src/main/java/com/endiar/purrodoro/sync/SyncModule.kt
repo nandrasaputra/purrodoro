@@ -6,6 +6,7 @@ import android.os.Looper
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.room.withTransaction
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.auth.SupabaseModule
 import com.endiar.purrodoro.data.AppRepository
@@ -32,6 +33,10 @@ fun canSync(userId: String?, ownerId: String?): Boolean =
  * local data and the owner marker stay, so a later re-login resolves to Keep
  * and resumes syncing. Transient failures (network, server errors) must NOT
  * sign the user out.
+ *
+ * Accepted limitation (M3): no explicit token-refresh attempt is made before
+ * signing out — the auth client refreshes sessions on its own schedule, so a
+ * 401 reaching this layer is treated as a genuinely dead session.
  */
 fun shouldSignOut(t: Throwable): Boolean = t is UnauthorizedRestException
 
@@ -53,32 +58,44 @@ class SyncModule private constructor(
     private val scheduler = SyncScheduler(
         scope = scope,
         debounceMs = WRITE_DEBOUNCE_MS,
-        sync = { syncIfEligible() },
+        sync = { syncForeground() },
     )
 
     /**
      * Runs one sync pass if the signed-in user owns the local data; otherwise
-     * does nothing. All failures are absorbed here: per-table errors are
-     * already isolated by the engine (a [SyncEngine.SyncResult.PartialFailure]
-     * schedules a backed-off [SyncWorker] retry), and a dead session signs the
-     * user out.
+     * does nothing and returns null. All failures are absorbed here: per-table
+     * errors are already isolated by the engine (and surface as
+     * [SyncEngine.SyncResult.PartialFailure] for the caller to react to), and
+     * a dead session signs the user out.
      */
-    suspend fun syncIfEligible() {
+    suspend fun syncIfEligible(): SyncEngine.SyncResult? {
         val userId = authRepository.currentAuthUser()?.userId
-        if (!canSync(userId, repo.currentOwnerId())) return
-        try {
-            if (engine.syncOnce() is SyncEngine.SyncResult.PartialFailure) {
-                SyncWorker.enqueueRetry(appContext)
-            }
+        if (!canSync(userId, repo.currentOwnerId())) return null
+        return try {
+            engine.syncOnce()
         } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {
             if (shouldSignOut(t)) authRepository.signOut()
+            null
+        }
+    }
+
+    /**
+     * Foreground-trigger pass (debounced writes, app start, post-sign-in):
+     * a partial failure hands the leftovers to a backed-off [SyncWorker]
+     * retry. The worker itself does NOT use this path — it reports
+     * [SyncEngine.SyncResult.PartialFailure] as `Result.retry()` and lets
+     * WorkManager's backoff drive the re-run.
+     */
+    private suspend fun syncForeground() {
+        if (syncIfEligible() is SyncEngine.SyncResult.PartialFailure) {
+            SyncWorker.enqueueRetry(appContext)
         }
     }
 
     /** Post-sign-in sync, called by the account flow once ownership is settled (Part 4). */
-    suspend fun onSignedInSync() = syncIfEligible()
+    suspend fun onSignedInSync() = syncForeground()
 
     private fun init() {
         // Local writes -> debounced sync.
@@ -122,15 +139,16 @@ class SyncModule private constructor(
                 }
             }
             val allocator = RepositoryLegacyIdAllocator(repo)
+            val inTransaction: TransactionRunner = { block -> db.withTransaction { block() } }
             // FK order: parents before children (categories before tasks,
             // habits before habit_logs).
             val tables = listOf(
-                CategoryTableSync(db.categoryDao(), userId, allocator::nextCategoryId),
-                TaskTableSync(db.taskDao(), userId, allocator::nextTaskId),
-                HabitTableSync(db.habitDao(), userId, allocator::nextHabitId),
-                HabitLogTableSync(db.habitLogDao(), userId),
-                SessionRecordTableSync(db.sessionRecordDao(), userId),
-                DailyStampTableSync(db.dailyStampDao(), userId),
+                CategoryTableSync(db.categoryDao(), userId, inTransaction, allocator::nextCategoryId),
+                TaskTableSync(db.taskDao(), userId, inTransaction, allocator::nextTaskId),
+                HabitTableSync(db.habitDao(), userId, inTransaction, allocator::nextHabitId),
+                HabitLogTableSync(db.habitLogDao(), userId, inTransaction),
+                SessionRecordTableSync(db.sessionRecordDao(), userId, inTransaction),
+                DailyStampTableSync(db.dailyStampDao(), userId, inTransaction),
             )
             val engine = SyncEngine(
                 api = api,

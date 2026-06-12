@@ -2,6 +2,7 @@ package com.endiar.purrodoro.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -117,6 +118,21 @@ class AppRepository(
         // account-owned data on an ownership switch.
         private const val SYNC_CHECKPOINT_PREFIX = "sync_checkpoint_"
 
+        // Disjoint-range contract for pull-minted legacy ids: the UI keeps its
+        // own optimistic copies of the KEY_NEXT_* counters and writes them
+        // back as absolute values (PurrodoroApp.persistNextTaskId(nextTaskId + 1)),
+        // so the sync pull path may NOT allocate from those counters — a pull
+        // racing a UI create would hand the same id to both rows. Pull-minted
+        // ids therefore come from these separate counters starting at
+        // 1_000_000, a range the per-create UI counters can never plausibly
+        // reach. They must stay positive: the UI treats id > 0 as "real row"
+        // (e.g. the liveTaskId filter), and negative ids are reserved for
+        // synthetic habit tasks.
+        private const val SYNC_LEGACY_ID_FLOOR = 1_000_000
+        private val KEY_SYNC_LEGACY_TASK_ID = intPreferencesKey("sync_legacy_task_id")
+        private val KEY_SYNC_LEGACY_CATEGORY_ID = intPreferencesKey("sync_legacy_category_id")
+        private val KEY_SYNC_LEGACY_HABIT_ID = intPreferencesKey("sync_legacy_habit_id")
+
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
 
@@ -197,27 +213,28 @@ class AppRepository(
     }
 
     // ── Legacy id allocation (sync pull path) ────────────────────────────────
-    // Atomically claims the next legacy id from the existing DataStore
-    // counters, so rows first seen via a sync pull get a unique legacy id that
-    // can never collide with locally created rows.
+    // Atomically claims the next legacy id for a row first seen via a sync
+    // pull. Allocates from the dedicated KEY_SYNC_LEGACY_* counters, NOT the
+    // UI-facing KEY_NEXT_* ones — see the disjoint-range contract on
+    // SYNC_LEGACY_ID_FLOOR.
 
-    suspend fun allocateTaskLegacyId(): Int = allocateLegacyId(KEY_NEXT_TASK_ID)
+    suspend fun allocateTaskLegacyId(): Int = allocateLegacyId(KEY_SYNC_LEGACY_TASK_ID)
 
-    suspend fun allocateCategoryLegacyId(): Int = allocateLegacyId(KEY_NEXT_CATEGORY_ID)
+    suspend fun allocateCategoryLegacyId(): Int = allocateLegacyId(KEY_SYNC_LEGACY_CATEGORY_ID)
 
-    suspend fun allocateHabitLegacyId(): Int = allocateLegacyId(KEY_NEXT_HABIT_ID)
+    suspend fun allocateHabitLegacyId(): Int = allocateLegacyId(KEY_SYNC_LEGACY_HABIT_ID)
 
     private suspend fun allocateLegacyId(key: Preferences.Key<Int>): Int {
         var allocated = 0
         dataStore.edit { prefs ->
-            val next = prefs[key] ?: 1
+            val next = prefs[key] ?: SYNC_LEGACY_ID_FLOOR
             allocated = next
             prefs[key] = next + 1
         }
         return allocated
     }
 
-    private fun removeSyncCheckpoints(prefs: androidx.datastore.preferences.core.MutablePreferences) {
+    private fun removeSyncCheckpoints(prefs: MutablePreferences) {
         prefs.asMap().keys
             .filter { it.name.startsWith(SYNC_CHECKPOINT_PREFIX) }
             .forEach { prefs.remove(it) }
@@ -258,6 +275,9 @@ class AppRepository(
                 KEY_NEXT_CATEGORY_ID, KEY_SELECTED_CATEGORY_ID,
                 // habit counter
                 KEY_NEXT_HABIT_ID,
+                // pull-minted legacy id counters (Room is wiped, so the next
+                // account restarts cleanly from the floor)
+                KEY_SYNC_LEGACY_TASK_ID, KEY_SYNC_LEGACY_CATEGORY_ID, KEY_SYNC_LEGACY_HABIT_ID,
                 // progress counter
                 KEY_COMPLETED,
                 // in-flight focus + cycle
@@ -938,8 +958,8 @@ private fun decodeOptionalInt(raw: String?): Int? =
     raw?.takeIf { it.isNotBlank() }?.toIntOrNull()
 
 private fun writeOptionalInt(
-    prefs: androidx.datastore.preferences.core.MutablePreferences,
-    key: androidx.datastore.preferences.core.Preferences.Key<String>,
+    prefs: MutablePreferences,
+    key: Preferences.Key<String>,
     value: Int?,
 ) {
     if (value == null) prefs.remove(key)
