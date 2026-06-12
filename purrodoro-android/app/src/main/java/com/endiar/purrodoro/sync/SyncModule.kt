@@ -70,11 +70,11 @@ class SyncModule private constructor(
      * [SyncEngine.SyncResult.PartialFailure] for the caller to react to), and
      * a dead session signs the user out.
      */
-    suspend fun syncIfEligible(): SyncEngine.SyncResult? {
+    suspend fun syncIfEligible(pullFirst: Boolean = false): SyncEngine.SyncResult? {
         val userId = authRepository.currentAuthUser()?.userId
         if (!canSync(userId, repo.currentOwnerId())) return null
         return try {
-            engine.syncOnce()
+            engine.syncOnce(pullFirst)
         } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {
@@ -122,24 +122,23 @@ class SyncModule private constructor(
             db.profileDao().hasDirty()
 
     /**
-     * [AccountManager.SyncHooks] implementation: Claim/Keep re-uploads
-     * everything by marking every live row dirty before a pass; a confirmed
-     * Drop re-pulls the new account's cloud from a blank checkpoint slate.
+     * [AccountManager.SyncHooks] implementation: a Claim merges this device's
+     * data into the account — everything marked dirty, checkpoints reset, and
+     * a PULL-FIRST pass so local rows adopt server identities before pushing
+     * (a push-first pass would wedge forever on the server's natural-key
+     * unique indexes, see [SyncEngine.syncOnce]). Keep is a plain delta pass.
+     * A confirmed Drop re-pulls the new account's cloud from a blank slate.
      */
     val syncHooks: AccountManager.SyncHooks = object : AccountManager.SyncHooks {
-        override suspend fun markAllDirtyAndSync() {
-            val now = System.currentTimeMillis()
-            db.withTransaction {
-                db.taskDao().markAllDirty(now)
-                db.categoryDao().markAllDirty(now)
-                db.habitDao().markAllDirty(now)
-                db.habitLogDao().markAllDirty(now)
-                db.sessionRecordDao().markAllDirty(now)
-                db.dailyStampDao().markAllDirty(now)
-            }
-            // The singleton profile row may not exist yet (pre-profile data);
-            // create it from current prefs so the upload covers it too.
-            repo.ensureProfileRowDirty(now)
+        override suspend fun claimMergeSync() {
+            repo.markAllAccountDataDirty(System.currentTimeMillis())
+            // Pull everything the account already has, not just the delta —
+            // adoption needs to see the server rows occupying local keys.
+            repo.resetSyncCheckpoints()
+            syncIfEligible(pullFirst = true)
+        }
+
+        override suspend fun deltaSync() {
             syncIfEligible()
         }
 

@@ -5,6 +5,7 @@ import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.endiar.purrodoro.data.local.HabitLogEntity
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
+import com.endiar.purrodoro.data.local.SessionRecordEntity
 import com.endiar.purrodoro.data.local.TaskEntity
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -287,6 +288,72 @@ class SyncEngineTest {
         assertFalse(db.habitLogDao().getById("log-server")!!.dirty)
     }
 
+    private fun localRecord(
+        id: String,
+        legacyId: Long,
+        taskName: String? = "Guest work",
+        dirty: Boolean = true,
+        modifiedAt: Long = 1L,
+    ) = SessionRecordEntity(
+        id = id, legacyId = legacyId, startedAt = 1_000L, endedAt = 2_000L,
+        focusMinutes = 25, shortBreakMinutes = 5, longBreakMinutes = 15,
+        completedFocusCount = 1, totalFocusCount = 1,
+        completedShortBreakCount = 0, completedLongBreakCount = 0,
+        statusName = "COMPLETED", taskName = taskName,
+        dirty = dirty, locallyModifiedAt = modifiedAt, deleted = false,
+    )
+
+    private fun sessionRecordRow(
+        id: String,
+        localId: Long,
+        updatedAt: String,
+        taskName: String = "Cloud work",
+    ): JsonElement = buildJsonObject {
+        put("id", id)
+        put("user_id", "user-1")
+        put("local_id", localId)
+        put("started_at", 5_000L)
+        put("ended_at", 6_000L)
+        put("focus_minutes", 25)
+        put("short_break_minutes", 5)
+        put("long_break_minutes", 15)
+        put("completed_focus_count", 1)
+        put("total_focus_count", 1)
+        put("completed_short_break_count", 0)
+        put("completed_long_break_count", 0)
+        put("status", "COMPLETED")
+        put("task_name", taskName)
+        put("updated_at", updatedAt)
+        put("deleted", false)
+    }
+
+    @Test
+    fun `first claim merge with colliding local_id adopts the server row instead of wedging`() = runTest {
+        // Guest data claimed into an account that already has cloud data:
+        // both sides independently minted local_id = 1. The fake api enforces
+        // the server unique (user_id, local_id) index, so a blind push-first
+        // pass would 409 forever. The pull-first merge re-keys the dirty
+        // local row onto the server UUID, and the push becomes an UPDATE.
+        db.sessionRecordDao().upsert(listOf(localRecord("rec-local", legacyId = 1)))
+        api.remote["session_records"] = mutableListOf(
+            sessionRecordRow("rec-server", localId = 1, updatedAt = "2026-06-12T10:00:00+00:00"),
+        )
+
+        val result = buildEngine().syncOnce(pullFirst = true)
+
+        assertEquals(SyncEngine.SyncResult.Success, result)
+        // The dirty local content survived, adopted onto the server identity.
+        assertNull(db.sessionRecordDao().getById("rec-local"))
+        val adopted = db.sessionRecordDao().getById("rec-server")
+        assertNotNull(adopted)
+        assertEquals("Guest work", adopted!!.taskName)
+        assertFalse("pushed within the same pass", adopted.dirty)
+        // The push targeted the adopted id — no colliding insert.
+        val pushed = api.upserts.getValue("session_records").single().jsonObject
+        assertEquals("rec-server", pushed.getValue("id").jsonPrimitive.content)
+        assertEquals("Guest work", pushed.getValue("task_name").jsonPrimitive.content)
+    }
+
     @Test
     fun `remote tombstone applied through the engine soft-deletes locally`() = runTest {
         db.habitLogDao().upsert(listOf(localLog("log-1", dirty = false)))
@@ -333,8 +400,26 @@ private class FakeSyncApi : SyncApi {
     private var firstPullSeen = false
 
     override suspend fun upsert(table: String, rows: List<JsonElement>, conflictKey: String) {
+        if (table == "session_records") enforceLocalIdUnique(rows)
         upserts.getOrPut(table) { mutableListOf() }.addAll(rows)
         onUpsert?.invoke(table)
+    }
+
+    /**
+     * Mirrors the server's `unique (user_id, local_id)` index on
+     * session_records: an upsert keyed on id that would insert a second row
+     * with an already-taken (user_id, local_id) fails like PostgREST's 409.
+     */
+    private fun enforceLocalIdUnique(rows: List<JsonElement>) {
+        fun key(row: JsonElement) = row.jsonObject.getValue("user_id").jsonPrimitive.content to
+            row.jsonObject.getValue("local_id").jsonPrimitive.content
+        fun id(row: JsonElement) = row.jsonObject.getValue("id").jsonPrimitive.content
+        for (row in rows) {
+            val clash = remote["session_records"].orEmpty().any {
+                id(it) != id(row) && key(it) == key(row)
+            }
+            if (clash) throw IOException("409: duplicate key value violates unique (user_id, local_id)")
+        }
     }
 
     override suspend fun pullSince(table: String, afterIso: String?): List<JsonElement> {
