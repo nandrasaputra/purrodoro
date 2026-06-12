@@ -6,12 +6,14 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.compose.auth.ComposeAuth
 import io.github.jan.supabase.compose.auth.googleNativeLogin
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
 
 /**
  * Process-wide [SupabaseClient] singleton, configured with:
- *  - the Auth module using a Keystore-backed [EncryptedSessionManager], and
+ *  - the Auth module using a Keystore-backed [EncryptedSessionManager],
  *  - the ComposeAuth module wired for native Google sign-in via Credential
- *    Manager (the server client id is the OAuth Web client id).
+ *    Manager (the server client id is the OAuth Web client id), and
+ *  - the Postgrest module used by the sync engine's [com.endiar.purrodoro.sync.SupabaseSyncApi].
  *
  * The Ktor OkHttp engine on the classpath is auto-detected by supabase-kt.
  */
@@ -36,5 +38,6 @@ object SupabaseModule {
             install(ComposeAuth) {
                 googleNativeLogin(serverClientId = SupabaseConfig.GOOGLE_WEB_CLIENT_ID)
             }
+            install(Postgrest)
         }
 }
