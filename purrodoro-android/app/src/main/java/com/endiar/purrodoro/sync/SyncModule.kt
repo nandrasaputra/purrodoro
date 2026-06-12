@@ -1,12 +1,21 @@
 package com.endiar.purrodoro.sync
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.auth.SupabaseModule
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import io.github.jan.supabase.exceptions.UnauthorizedRestException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Sync is eligible only when someone is signed in AND the on-device data is
@@ -29,24 +38,38 @@ fun shouldSignOut(t: Throwable): Boolean = t is UnauthorizedRestException
 /**
  * Composition root of the sync feature: builds the [SyncEngine] over the
  * shared Supabase client, Room DAOs, and AppRepository-backed checkpoint
- * store, and gates every run behind [canSync].
+ * store, gates every run behind [canSync], and owns the automatic triggers —
+ * debounced local writes, app foreground, and the periodic [SyncWorker].
  */
 class SyncModule private constructor(
+    private val appContext: Context,
     private val repo: AppRepository,
     private val authRepository: AuthRepository,
     private val engine: SyncEngine,
 ) {
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private val scheduler = SyncScheduler(
+        scope = scope,
+        debounceMs = WRITE_DEBOUNCE_MS,
+        sync = { syncIfEligible() },
+    )
+
     /**
      * Runs one sync pass if the signed-in user owns the local data; otherwise
      * does nothing. All failures are absorbed here: per-table errors are
-     * already isolated by the engine, and a dead session signs the user out.
+     * already isolated by the engine (a [SyncEngine.SyncResult.PartialFailure]
+     * schedules a backed-off [SyncWorker] retry), and a dead session signs the
+     * user out.
      */
     suspend fun syncIfEligible() {
         val userId = authRepository.currentAuthUser()?.userId
         if (!canSync(userId, repo.currentOwnerId())) return
         try {
-            engine.syncOnce()
+            if (engine.syncOnce() is SyncEngine.SyncResult.PartialFailure) {
+                SyncWorker.enqueueRetry(appContext)
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {
@@ -54,12 +77,38 @@ class SyncModule private constructor(
         }
     }
 
+    /** Post-sign-in sync, called by the account flow once ownership is settled (Part 4). */
+    suspend fun onSignedInSync() = syncIfEligible()
+
+    private fun init() {
+        // Local writes -> debounced sync.
+        scope.launch {
+            repo.localWrites.collect { scheduler.onLocalWrite() }
+        }
+        // App foreground -> immediate sync. Observers must be registered on
+        // the main thread, and get() may run on a worker thread (SyncWorker).
+        Handler(Looper.getMainLooper()).post {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    scheduler.requestImmediate()
+                }
+            })
+        }
+        // Safety net while the app is closed.
+        SyncWorker.schedule(appContext)
+    }
+
     companion object {
+        private const val WRITE_DEBOUNCE_MS = 5_000L
         @Volatile private var INSTANCE: SyncModule? = null
 
         fun get(context: Context): SyncModule =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: build(context.applicationContext).also { INSTANCE = it }
+                INSTANCE ?: build(context.applicationContext)
+                    .also {
+                        INSTANCE = it
+                        it.init()
+                    }
             }
 
         private fun build(appContext: Context): SyncModule {
@@ -89,7 +138,7 @@ class SyncModule private constructor(
                 checkpoints = RepositoryCheckpointStore(repo),
                 isFatal = ::shouldSignOut,
             )
-            return SyncModule(repo, authRepository, engine)
+            return SyncModule(appContext, repo, authRepository, engine)
         }
     }
 }
