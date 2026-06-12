@@ -177,9 +177,6 @@ interface HabitLogDao {
     @Query("SELECT * FROM habit_logs WHERE id = :id")
     suspend fun getById(id: String): HabitLogEntity?
 
-    @Query("SELECT * FROM habit_logs WHERE habitId IN (:habitIds) AND deleted = 0")
-    suspend fun forHabits(habitIds: List<String>): List<HabitLogEntity>
-
     /** Write-path helper: includes tombstones so the unique [habitId, logDateIso] row can be resurrected. */
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND logDateIso = :logDateIso")
     suspend fun getByHabitAndDate(habitId: String, logDateIso: String): HabitLogEntity?
@@ -285,9 +282,6 @@ interface DailyStampDao {
     @Query("SELECT * FROM daily_stamps WHERE id = :id")
     suspend fun getById(id: String): DailyStampEntity?
 
-    @Query("SELECT * FROM daily_stamps WHERE stampDateIso = :stampDateIso AND deleted = 0")
-    suspend fun getByDate(stampDateIso: String): DailyStampEntity?
-
     /** Write-path helper: includes tombstones so the unique stampDateIso row can be resurrected. */
     @Query("SELECT * FROM daily_stamps WHERE stampDateIso = :stampDateIso")
     suspend fun getByDateIncludingDeleted(stampDateIso: String): DailyStampEntity?
@@ -314,9 +308,6 @@ interface DailyStampDao {
 interface ProfileDao {
     @Query("SELECT * FROM profile WHERE rowId = 0")
     suspend fun get(): ProfileEntity?
-
-    @Query("SELECT * FROM profile WHERE rowId = 0")
-    fun observe(): Flow<ProfileEntity?>
 
     @Upsert
     suspend fun upsert(entity: ProfileEntity)

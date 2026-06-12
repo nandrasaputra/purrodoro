@@ -18,6 +18,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.time.OffsetDateTime
 
 // The TableSync implementations the SyncEngine iterates. The six domain
 // tables are thin bindings of BaseTableSync onto a DAO plus the SyncDtos
@@ -215,8 +216,14 @@ internal class ProfileTableSync(
     override suspend fun applyRemote(rows: List<JsonElement>) {
         // At most one row exists per user (PK user_id + RLS); take the newest
         // defensively in case an overlap window re-delivers older snapshots.
-        val row = rows.maxByOrNull { it.jsonObject["updated_at"]?.jsonPrimitive?.contentOrNull ?: "" }
-            ?: return
+        // Parsed comparison, not lexicographic — server timestamps may carry
+        // differing offsets (same rule as maxUpdatedAtOf).
+        val row = rows.maxWithOrNull(
+            compareBy {
+                it.jsonObject["updated_at"]?.jsonPrimitive?.contentOrNull
+                    ?.let(OffsetDateTime::parse) ?: OffsetDateTime.MIN
+            }
+        ) ?: return
         val dto = syncJson.decodeFromJsonElement(ProfileDto.serializer(), row)
         val displayName = dto.displayName.orEmpty().trim()
         val settingsJson = dto.timerSettings.toString()
