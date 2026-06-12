@@ -94,6 +94,7 @@ class AppRepositoryClearTest {
         repo.setPendingCycleCompletionAck(true)
         repo.setUserName("Nandra")
         repo.setSettings(TimerSettings(focusMinutes = 50, shortBreakMinutes = 10, longBreakMinutes = 20))
+        repo.setSyncCheckpoint("tasks", "2026-06-12T10:00:00+00:00")
 
         // device-local (must survive)
         repo.setAppearanceMode(AppearanceMode.Dark)
@@ -130,6 +131,7 @@ class AppRepositoryClearTest {
         assertEquals("settings reset to defaults", TimerSettings(), state.settings)
         assertNull("runtime snapshot cleared", repo.runtimeSnapshot.first())
         assertEquals("pending ack cleared", false, repo.pendingCycleCompletionAckFlow.first())
+        assertNull("sync checkpoints cleared", repo.syncCheckpoint("tasks"))
     }
 
     @Test

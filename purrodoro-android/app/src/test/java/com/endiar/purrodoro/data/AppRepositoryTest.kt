@@ -220,4 +220,31 @@ class AppRepositoryTest {
         // A new repository over the same DataStore file sees the persisted owner.
         assertEquals("user-A", AppRepository(ds).currentOwnerId())
     }
+
+    // --- sync checkpoints ---
+
+    @Test
+    fun `sync checkpoint defaults to null`() = runTest {
+        val repo = makeRepo()
+        assertEquals(null, repo.syncCheckpoint("tasks"))
+    }
+
+    @Test
+    fun `sync checkpoint round-trips per table`() = runTest {
+        val repo = makeRepo()
+        repo.setSyncCheckpoint("tasks", "2026-06-12T10:00:00+00:00")
+        repo.setSyncCheckpoint("habits", "2026-06-12T11:00:00+00:00")
+        assertEquals("2026-06-12T10:00:00+00:00", repo.syncCheckpoint("tasks"))
+        assertEquals("2026-06-12T11:00:00+00:00", repo.syncCheckpoint("habits"))
+    }
+
+    @Test
+    fun `resetSyncCheckpoints clears all tables`() = runTest {
+        val repo = makeRepo()
+        repo.setSyncCheckpoint("tasks", "2026-06-12T10:00:00+00:00")
+        repo.setSyncCheckpoint("daily_stamps", "2026-06-12T11:00:00+00:00")
+        repo.resetSyncCheckpoints()
+        assertEquals(null, repo.syncCheckpoint("tasks"))
+        assertEquals(null, repo.syncCheckpoint("daily_stamps"))
+    }
 }
