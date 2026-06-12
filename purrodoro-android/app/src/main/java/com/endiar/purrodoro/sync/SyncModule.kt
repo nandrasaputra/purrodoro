@@ -70,11 +70,11 @@ class SyncModule private constructor(
      * [SyncEngine.SyncResult.PartialFailure] for the caller to react to), and
      * a dead session signs the user out.
      */
-    suspend fun syncIfEligible(pullFirst: Boolean = false): SyncEngine.SyncResult? {
+    suspend fun syncIfEligible(): SyncEngine.SyncResult? {
         val userId = authRepository.currentAuthUser()?.userId
         if (!canSync(userId, repo.currentOwnerId())) return null
         return try {
-            engine.syncOnce(pullFirst)
+            engine.syncOnce()
         } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {
@@ -155,9 +155,9 @@ class SyncModule private constructor(
     /**
      * [AccountManager.SyncHooks] implementation: a Claim merges this device's
      * data into the account — everything marked dirty, checkpoints reset, and
-     * a PULL-FIRST pass so local rows adopt server identities before pushing
-     * (a push-first pass would wedge forever on the server's natural-key
-     * unique indexes, see [SyncEngine.syncOnce]). Keep is a plain delta pass.
+     * one pass. Every pass pulls before pushing (see [SyncEngine]), so local
+     * rows adopt server identities before the upload, and an interrupted
+     * merge heals on whichever pass runs next. Keep is a plain delta pass.
      * A confirmed Drop re-pulls the new account's cloud from a blank slate.
      */
     val syncHooks: AccountManager.SyncHooks = object : AccountManager.SyncHooks {
@@ -166,7 +166,11 @@ class SyncModule private constructor(
             // Pull everything the account already has, not just the delta —
             // adoption needs to see the server rows occupying local keys.
             repo.resetSyncCheckpoints()
-            syncIfEligible(pullFirst = true)
+            // A partial failure (offline sign-in, transient 5xx) must not
+            // wait for the 6h periodic worker: hand it to a backed-off retry.
+            if (syncIfEligible() is SyncEngine.SyncResult.PartialFailure) {
+                SyncWorker.enqueueRetry(appContext)
+            }
         }
 
         override suspend fun deltaSync() {

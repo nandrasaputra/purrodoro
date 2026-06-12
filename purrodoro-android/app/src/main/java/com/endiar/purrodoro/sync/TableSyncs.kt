@@ -238,7 +238,11 @@ internal class ProfileTableSync(
                 accepted = true
             }
         }
-        if (accepted) applySyncedPrefs(displayName, settingsJson)
+        // Re-check right before the prefs write: a user edit landing in the
+        // commit-to-here gap re-dirtied the row, and its setter already wrote
+        // the prefs it wants — overwriting them with the pulled values would
+        // flash stale cloud state in the UI until the next pass.
+        if (accepted && dao.get()?.dirty == false) applySyncedPrefs(displayName, settingsJson)
     }
 
     override suspend fun maxRemoteUpdatedAt(rows: List<JsonElement>): String? = maxUpdatedAtOf(rows)

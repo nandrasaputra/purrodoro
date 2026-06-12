@@ -21,15 +21,30 @@ interface CheckpointStore {
 }
 
 /**
- * Delta push/pull sync engine. One [syncOnce] pass walks the [tables] in the
- * given order (callers must pass them FK-first: categories before tasks,
- * habits before habit_logs) and, per table:
+ * Delta sync engine. One [syncOnce] pass walks the [tables] in the given
+ * order (callers must pass them FK-first: categories before tasks, habits
+ * before habit_logs) and, per table, ALWAYS pulls before pushing:
  *
- *  1. pushes dirty local rows (upsert on id),
- *  2. clears their dirty flags ([TableSync.markPushed], concurrency-safe),
- *  3. pulls rows changed after the table's checkpoint,
- *  4. applies them under the [resolvePull] LWW rule, and
- *  5. advances the checkpoint to the max pulled `updated_at`.
+ *  1. pulls rows changed after the table's checkpoint,
+ *  2. applies them under the [resolvePull] LWW rule (dirty local rows
+ *     survive; natural-key collisions adopt the server identity),
+ *  3. advances the checkpoint to the max pulled `updated_at`,
+ *  4. pushes dirty local rows (upsert on the table's conflict key), and
+ *  5. clears their dirty flags ([TableSync.markPushed], concurrency-safe).
+ *
+ * Pull-before-push is load-bearing, not an optimization: when two sides
+ * independently mint "the same" row (a claim merge where both counted
+ * session_records' local_id from 1, or two of one account's devices logging
+ * the same habit+day), a push-first pass violates the server's unique
+ * indexes — a 409 on EVERY retry, wedging the table permanently. Pulling
+ * first lets adoption re-key the local row onto the server identity, so the
+ * push that follows is an UPDATE. Because every pass orders this way, any
+ * later pass (worker retry, periodic, foreground) heals a previously
+ * interrupted merge too.
+ *
+ * The checkpoint advances before the push runs; if the push then fails, the
+ * rows simply stay dirty and re-push on the next pass — nothing is lost to
+ * the already-advanced checkpoint.
  *
  * Failures are isolated per table: a failing table is recorded in
  * [SyncResult.PartialFailure] and its checkpoint stays put (so the next pass
@@ -65,18 +80,12 @@ class SyncEngine(
     @Volatile
     private var lastOutcome: Result<SyncResult> = Result.success(SyncResult.Success)
 
-    /**
-     * @param pullFirst reverses the per-table order to pull-then-push. Used
-     * for the first merge after an account Claim: pulling first lets dirty
-     * local rows adopt the server identities occupying their natural keys
-     * (session_records' `(user_id, local_id)`, daily_stamps'
-     * `(user_id, stamp_date)`), so the subsequent push UPDATEs those rows
-     * instead of colliding with the server's unique indexes — a push-first
-     * pass would 409 on every attempt, wedging the table permanently.
-     */
-    suspend fun syncOnce(pullFirst: Boolean = false): SyncResult {
+    suspend fun syncOnce(): SyncResult {
         if (!mutex.tryLock()) {
             // A pass is already in flight; wait for it and share its outcome.
+            // Safe because every pass is identical (same tables, same
+            // pull-then-push order) — there is no special mode whose caller
+            // could be handed the wrong kind of result.
             mutex.withLock { }
             return lastOutcome.getOrThrow()
         }
@@ -84,7 +93,7 @@ class SyncEngine(
             val failed = mutableListOf<String>()
             for (tableSync in tables) {
                 try {
-                    syncTable(tableSync, pullFirst)
+                    syncTable(tableSync)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
@@ -103,14 +112,9 @@ class SyncEngine(
         }
     }
 
-    private suspend fun syncTable(tableSync: TableSync, pullFirst: Boolean) {
-        if (pullFirst) {
-            pull(tableSync)
-            push(tableSync)
-        } else {
-            push(tableSync)
-            pull(tableSync)
-        }
+    private suspend fun syncTable(tableSync: TableSync) {
+        pull(tableSync)
+        push(tableSync)
     }
 
     private suspend fun push(tableSync: TableSync) {
