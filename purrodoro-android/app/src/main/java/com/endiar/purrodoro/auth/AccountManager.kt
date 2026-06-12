@@ -16,7 +16,28 @@ import com.endiar.purrodoro.model.resolveLoginAction
  */
 class AccountManager(
     private val repo: AppRepository,
+    private val syncHooks: SyncHooks = SyncHooks.NONE,
 ) {
+
+    /**
+     * Sync side-effects of an ownership decision, injected so this class stays
+     * free of the sync engine (and trivially testable). Production wiring is
+     * [com.endiar.purrodoro.sync.SyncModule.syncHooks].
+     */
+    interface SyncHooks {
+        /** Claim/Keep: ensure everything local uploads, then reconcile. */
+        suspend fun markAllDirtyAndSync()
+
+        /** Drop: data + checkpoints were cleared; pull the new account's cloud. */
+        suspend fun resetCheckpointsAndPull()
+
+        companion object {
+            val NONE = object : SyncHooks {
+                override suspend fun markAllDirtyAndSync() {}
+                override suspend fun resetCheckpointsAndPull() {}
+            }
+        }
+    }
 
     /** Outcome of an [onSignedIn] call, for the caller to react to (UI/logging). */
     enum class Result {
@@ -55,14 +76,24 @@ class AccountManager(
         return when (resolveLoginAction(repo.currentOwnerId(), incomingUserId)) {
             LoginDataAction.Claim -> {
                 repo.setOwnerId(incomingUserId)
+                // Owner is tagged first so the upload runs as an eligible sync.
+                syncHooks.markAllDirtyAndSync()
                 Result.Claimed
             }
-            LoginDataAction.Keep -> Result.Kept
+            LoginDataAction.Keep -> {
+                // Same hook as Claim: push-then-pull heals any divergence that
+                // built up while signed out — the data is cheap to re-upload.
+                syncHooks.markAllDirtyAndSync()
+                Result.Kept
+            }
             LoginDataAction.Drop -> {
                 if (confirmDrop()) {
                     onBeforeClear()
                     repo.clearAccountOwnedData()
                     repo.setOwnerId(incomingUserId) // only after the clear commits
+                    // Data + checkpoints are gone and the new owner is tagged,
+                    // so this pull restores the new account's cloud from scratch.
+                    syncHooks.resetCheckpointsAndPull()
                     Result.Dropped
                 } else {
                     Result.DropCancelled
