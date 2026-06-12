@@ -76,6 +76,7 @@ import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
 import com.endiar.purrodoro.model.glassTreatmentFor
+import com.endiar.purrodoro.sync.SyncModule
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
 import com.endiar.purrodoro.ui.CalendarScreen
@@ -232,7 +233,7 @@ fun PurrodoroApp(
 
     val scope = rememberCoroutineScope()
     val tutorialController = rememberTutorialController()
-    val accountManager = remember(repo) { AccountManager(repo) }
+    val accountManager = remember(repo) { AccountManager(repo, SyncModule.get(context).syncHooks) }
     val accountSwitchGate = rememberAccountSwitchGate()
 
     // Bridge from the Quick Start widget: when the host activity receives a
