@@ -7,6 +7,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.room.withTransaction
+import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.auth.SupabaseModule
 import com.endiar.purrodoro.data.AppRepository
@@ -50,6 +51,7 @@ class SyncModule private constructor(
     private val appContext: Context,
     private val repo: AppRepository,
     private val authRepository: AuthRepository,
+    private val db: PurrodoroDatabase,
     private val engine: SyncEngine,
 ) {
 
@@ -96,6 +98,35 @@ class SyncModule private constructor(
 
     /** Post-sign-in sync, called by the account flow once ownership is settled (Part 4). */
     suspend fun onSignedInSync() = syncForeground()
+
+    /**
+     * [AccountManager.SyncHooks] implementation: Claim/Keep re-uploads
+     * everything by marking every live row dirty before a pass; a confirmed
+     * Drop re-pulls the new account's cloud from a blank checkpoint slate.
+     */
+    val syncHooks: AccountManager.SyncHooks = object : AccountManager.SyncHooks {
+        override suspend fun markAllDirtyAndSync() {
+            val now = System.currentTimeMillis()
+            db.withTransaction {
+                db.taskDao().markAllDirty(now)
+                db.categoryDao().markAllDirty(now)
+                db.habitDao().markAllDirty(now)
+                db.habitLogDao().markAllDirty(now)
+                db.sessionRecordDao().markAllDirty(now)
+                db.dailyStampDao().markAllDirty(now)
+            }
+            // The singleton profile row joins this re-upload once profile
+            // sync lands (ensure-exists + dirty), see ProfileTableSync.
+            syncIfEligible()
+        }
+
+        override suspend fun resetCheckpointsAndPull() {
+            // Defensive: clearAccountOwnedData already dropped the checkpoints,
+            // but the pull-from-scratch contract is this hook's to guarantee.
+            repo.resetSyncCheckpoints()
+            syncIfEligible()
+        }
+    }
 
     private fun init() {
         // Local writes -> debounced sync.
@@ -156,7 +187,7 @@ class SyncModule private constructor(
                 checkpoints = RepositoryCheckpointStore(repo),
                 isFatal = ::shouldSignOut,
             )
-            return SyncModule(appContext, repo, authRepository, engine)
+            return SyncModule(appContext, repo, authRepository, db, engine)
         }
     }
 }

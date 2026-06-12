@@ -22,6 +22,10 @@ interface TaskDao {
     @Query("SELECT * FROM tasks")
     suspend fun getAllIncludingDeleted(): List<TaskEntity>
 
+    /** Sync helper: marks every live row for re-push (account claim/keep upload). */
+    @Query("UPDATE tasks SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
+    suspend fun markAllDirty(now: Long)
+
     @Query("SELECT * FROM tasks WHERE dirty = 1")
     suspend fun getDirty(): List<TaskEntity>
 
@@ -57,6 +61,10 @@ interface CategoryDao {
     @Query("SELECT * FROM categories")
     suspend fun getAllIncludingDeleted(): List<CategoryEntity>
 
+    /** Sync helper: marks every live row for re-push (account claim/keep upload). */
+    @Query("UPDATE categories SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
+    suspend fun markAllDirty(now: Long)
+
     @Query("SELECT * FROM categories WHERE dirty = 1")
     suspend fun getDirty(): List<CategoryEntity>
 
@@ -88,6 +96,10 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE deleted = 0")
     suspend fun getAll(): List<HabitEntity>
 
+    /** Sync helper: marks every live row for re-push (account claim/keep upload). */
+    @Query("UPDATE habits SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
+    suspend fun markAllDirty(now: Long)
+
     @Query("SELECT * FROM habits WHERE dirty = 1")
     suspend fun getDirty(): List<HabitEntity>
 
@@ -118,6 +130,10 @@ interface HabitLogDao {
 
     @Query("SELECT * FROM habit_logs WHERE deleted = 0")
     suspend fun getAll(): List<HabitLogEntity>
+
+    /** Sync helper: marks every live row for re-push (account claim/keep upload). */
+    @Query("UPDATE habit_logs SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
+    suspend fun markAllDirty(now: Long)
 
     @Query("SELECT * FROM habit_logs WHERE dirty = 1")
     suspend fun getDirty(): List<HabitLogEntity>
@@ -161,6 +177,10 @@ interface SessionRecordDao {
     @Query("SELECT * FROM session_records WHERE deleted = 0")
     suspend fun getAll(): List<SessionRecordEntity>
 
+    /** Sync helper: marks every live row for re-push (account claim/keep upload). */
+    @Query("UPDATE session_records SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
+    suspend fun markAllDirty(now: Long)
+
     @Query("SELECT * FROM session_records WHERE dirty = 1")
     suspend fun getDirty(): List<SessionRecordEntity>
 
@@ -198,6 +218,10 @@ interface DailyStampDao {
 
     @Query("SELECT * FROM daily_stamps WHERE deleted = 0")
     suspend fun getAll(): List<DailyStampEntity>
+
+    /** Sync helper: marks every live row for re-push (account claim/keep upload). */
+    @Query("UPDATE daily_stamps SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
+    suspend fun markAllDirty(now: Long)
 
     @Query("SELECT * FROM daily_stamps WHERE dirty = 1")
     suspend fun getDirty(): List<DailyStampEntity>
