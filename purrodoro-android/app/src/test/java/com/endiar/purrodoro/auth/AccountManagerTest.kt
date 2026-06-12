@@ -1,29 +1,46 @@
 package com.endiar.purrodoro.auth
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
 import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import com.endiar.purrodoro.model.FocusTask
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class AccountManagerTest {
 
     @get:Rule
     val tmpFolder = TemporaryFolder()
 
+    private val db = Room.inMemoryDatabaseBuilder(
+        ApplicationProvider.getApplicationContext(),
+        PurrodoroDatabase::class.java,
+    ).allowMainThreadQueries().build()
+
+    @After
+    fun tearDown() {
+        db.close()
+    }
+
     private fun makeRepo(): AppRepository {
         val ds = PreferenceDataStoreFactory.create {
             tmpFolder.newFile("am_${System.nanoTime()}.preferences_pb")
         }
-        return AppRepository(ds)
+        return AppRepository(ds, db)
     }
 
     private suspend fun AppRepository.seedTask() =

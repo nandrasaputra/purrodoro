@@ -19,6 +19,8 @@ import com.endiar.purrodoro.data.local.MigrationSink
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import com.endiar.purrodoro.data.local.SessionRecordEntity
 import com.endiar.purrodoro.data.local.TaskEntity
+import com.endiar.purrodoro.data.local.toDomain
+import com.endiar.purrodoro.data.local.toEntity
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.Category
@@ -45,13 +47,17 @@ import com.endiar.purrodoro.model.toggleBinaryOn
 import com.endiar.purrodoro.model.withLog
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.time.LocalDate
+import java.util.UUID
 
 data class AppState(
     val glassReadabilityMode: GlassReadabilityMode,
@@ -133,6 +139,13 @@ class AppRepository(
                 ).also { INSTANCE = it }
             }
     }
+
+    private val roomDb: PurrodoroDatabase
+        get() = checkNotNull(db) {
+            "This AppRepository was constructed without a Room database; domain data is unavailable."
+        }
+
+    private fun newUuid(): String = UUID.randomUUID().toString()
 
     private val migrationMutex = Mutex()
     @Volatile private var migrationDone = false
@@ -246,23 +259,37 @@ class AppRepository(
      * mid-switch re-evaluates to Drop rather than leaking the old data to the
      * new account. See [com.endiar.purrodoro.auth.AccountManager].
      */
-    suspend fun clearAccountOwnedData() = dataStore.edit { prefs ->
-        listOf(
-            // tasks + categories
-            KEY_TASKS, KEY_NEXT_TASK_ID,
-            KEY_CATEGORIES, KEY_NEXT_CATEGORY_ID, KEY_SELECTED_CATEGORY_ID,
-            // habits
-            KEY_HABITS, KEY_NEXT_HABIT_ID,
-            // history / progress
-            KEY_SESSION_RECORDS, KEY_STAMPS, KEY_COMPLETED,
-            // in-flight focus + cycle
-            KEY_INTERRUPTED_FOCUS, KEY_RUNTIME_SNAPSHOT, KEY_PENDING_CYCLE_ACK,
-            // account-tied greeting name
-            KEY_USER_NAME,
-            // timer settings revert to defaults for the new account
-            KEY_FOCUS_MIN, KEY_SHORT_MIN, KEY_LONG_MIN,
-            KEY_AUTO_START_NEXT_SESSION, KEY_CYCLE_SIZE,
-        ).forEach { prefs.remove(it) }
+    suspend fun clearAccountOwnedData() {
+        ensureMigrated()
+        dataStore.edit { prefs ->
+            listOf(
+                // tasks + categories (legacy blobs pre-migration; counters always)
+                KEY_TASKS, KEY_NEXT_TASK_ID,
+                KEY_CATEGORIES, KEY_NEXT_CATEGORY_ID, KEY_SELECTED_CATEGORY_ID,
+                // habits
+                KEY_HABITS, KEY_NEXT_HABIT_ID,
+                // history / progress
+                KEY_SESSION_RECORDS, KEY_STAMPS, KEY_COMPLETED,
+                // in-flight focus + cycle
+                KEY_INTERRUPTED_FOCUS, KEY_RUNTIME_SNAPSHOT, KEY_PENDING_CYCLE_ACK,
+                // account-tied greeting name
+                KEY_USER_NAME,
+                // timer settings revert to defaults for the new account
+                KEY_FOCUS_MIN, KEY_SHORT_MIN, KEY_LONG_MIN,
+                KEY_AUTO_START_NEXT_SESSION, KEY_CYCLE_SIZE,
+            ).forEach { prefs.remove(it) }
+        }
+        // Hard-delete (not tombstone) the synced tables: an ownership switch
+        // must not leave rows the next account's sync could push as deletions.
+        val db = roomDb
+        db.withTransaction {
+            db.taskDao().clearAll()
+            db.categoryDao().clearAll()
+            db.habitDao().clearAll()
+            db.habitLogDao().clearAll()
+            db.sessionRecordDao().clearAll()
+            db.dailyStampDao().clearAll()
+        }
     }
 
     /**
@@ -299,8 +326,43 @@ class AppRepository(
         return nonEmpty(records) || nonEmpty(tasks) || nonEmpty(habits)
     }
 
-    val appState: Flow<AppState> = dataStore.data.map { prefs ->
-        AppState(
+    /**
+     * Single source of truth for the UI. Settings and device-local preferences
+     * come from DataStore; account-owned domain data (tasks, categories,
+     * habits + logs, session records, daily stamps) is served from Room. The
+     * flow gates on [ensureMigrated] so any entry point (activity, widget,
+     * timer service) triggers the one-time DataStore → Room migration before
+     * the first emission.
+     */
+    val appState: Flow<AppState> = flow {
+        ensureMigrated()
+        val db = roomDb
+        emitAll(
+            combine(
+                listOf(
+                    dataStore.data,
+                    db.taskDao().observeAll(),
+                    db.categoryDao().observeAll(),
+                ),
+            ) { values ->
+                @Suppress("UNCHECKED_CAST")
+                buildAppState(
+                    prefs = values[0] as Preferences,
+                    taskEntities = values[1] as List<TaskEntity>,
+                    categoryEntities = values[2] as List<CategoryEntity>,
+                )
+            }
+        )
+    }
+
+    private fun buildAppState(
+        prefs: Preferences,
+        taskEntities: List<TaskEntity>,
+        categoryEntities: List<CategoryEntity>,
+    ): AppState {
+        val sortedCategories = categoryEntities.sortedBy { it.legacyId }
+        val legacyCategoryIdByUuid = sortedCategories.associate { it.id to it.legacyId }
+        return AppState(
             glassReadabilityMode = prefs[KEY_GLASS_MODE]
                 ?.let { runCatching { GlassReadabilityMode.valueOf(it) }.getOrNull() }
                 ?: GlassReadabilityMode.Adaptive,
@@ -325,8 +387,10 @@ class AppRepository(
             stamps = decodeStamps(prefs[KEY_STAMPS] ?: ""),
             isPremium = prefs[KEY_IS_PREMIUM] ?: false,
             sessionRecords = decodeSessionRecords(prefs[KEY_SESSION_RECORDS] ?: ""),
-            tasks = decodeTasks(prefs[KEY_TASKS] ?: ""),
-            categories = decodeCategories(prefs[KEY_CATEGORIES] ?: ""),
+            tasks = taskEntities.sortedBy { it.legacyId }.map { entity ->
+                entity.toDomain(entity.categoryId?.let { legacyCategoryIdByUuid[it] })
+            },
+            categories = sortedCategories.map { it.toDomain() },
             nextCategoryId = prefs[KEY_NEXT_CATEGORY_ID] ?: 1,
             selectedCategoryId = prefs[KEY_SELECTED_CATEGORY_ID]
                 ?.takeIf { it.isNotBlank() }
@@ -402,11 +466,61 @@ class AppRepository(
         prefs[KEY_STAMPS] = encodeStamps(updated)
     }
 
-    suspend fun setTasks(value: List<FocusTask>) =
-        dataStore.edit { it[KEY_TASKS] = encodeTasks(value) }
+    suspend fun setTasks(value: List<FocusTask>) {
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val existing = db.taskDao().getAllIncludingDeleted()
+            val existingByLegacyId = existing.associateBy { it.legacyId }
+            val categoryUuidByLegacyId = db.categoryDao().getAll().associate { it.legacyId to it.id }
+            val upserts = mutableListOf<TaskEntity>()
+            for (task in value) {
+                val current = existingByLegacyId[task.id]
+                val entity = task.toEntity(
+                    uuid = current?.id ?: newUuid(),
+                    categoryUuid = task.categoryId?.let { categoryUuidByLegacyId[it] },
+                    dirty = true,
+                    modifiedAt = now,
+                )
+                val unchanged = current != null && !current.deleted &&
+                    entity == current.copy(dirty = true, locallyModifiedAt = now)
+                if (!unchanged) upserts += entity
+            }
+            if (upserts.isNotEmpty()) db.taskDao().upsert(upserts)
+            val keptLegacyIds = value.map { it.id }.toSet()
+            existing
+                .filter { !it.deleted && it.legacyId !in keptLegacyIds }
+                .forEach { db.taskDao().softDelete(it.id, now) }
+        }
+    }
 
-    suspend fun setCategories(value: List<Category>) =
-        dataStore.edit { it[KEY_CATEGORIES] = encodeCategories(value) }
+    suspend fun setCategories(value: List<Category>) {
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val existing = db.categoryDao().getAllIncludingDeleted()
+            val existingByLegacyId = existing.associateBy { it.legacyId }
+            val upserts = mutableListOf<CategoryEntity>()
+            for (category in value) {
+                val current = existingByLegacyId[category.id]
+                val entity = category.toEntity(
+                    uuid = current?.id ?: newUuid(),
+                    dirty = true,
+                    modifiedAt = now,
+                )
+                val unchanged = current != null && !current.deleted &&
+                    entity == current.copy(dirty = true, locallyModifiedAt = now)
+                if (!unchanged) upserts += entity
+            }
+            if (upserts.isNotEmpty()) db.categoryDao().upsert(upserts)
+            val keptLegacyIds = value.map { it.id }.toSet()
+            existing
+                .filter { !it.deleted && it.legacyId !in keptLegacyIds }
+                .forEach { db.categoryDao().softDelete(it.id, now) }
+        }
+    }
 
     suspend fun setNextCategoryId(value: Int) =
         dataStore.edit { it[KEY_NEXT_CATEGORY_ID] = value }
@@ -420,29 +534,58 @@ class AppRepository(
     suspend fun setNotificationSoundEnabled(value: Boolean) =
         dataStore.edit { it[KEY_NOTIFICATION_SOUND] = value }
 
-    suspend fun addCategory(name: String, colorArgb: Long? = null) = dataStore.edit { prefs ->
-        val nextId = prefs[KEY_NEXT_CATEGORY_ID] ?: 1
-        val existing = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
-        prefs[KEY_CATEGORIES] = encodeCategories(existing + Category(nextId, name, colorArgb))
-        prefs[KEY_NEXT_CATEGORY_ID] = nextId + 1
-    }
-
-    suspend fun updateCategory(id: Int, name: String, colorArgb: Long?) = dataStore.edit { prefs ->
-        val existing = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
-        prefs[KEY_CATEGORIES] = encodeCategories(
-            existing.map { if (it.id == id) it.copy(name = name, colorArgb = colorArgb) else it }
+    suspend fun addCategory(name: String, colorArgb: Long? = null) {
+        ensureMigrated()
+        var newId = 0
+        dataStore.edit { prefs ->
+            val nextId = prefs[KEY_NEXT_CATEGORY_ID] ?: 1
+            newId = nextId
+            prefs[KEY_NEXT_CATEGORY_ID] = nextId + 1
+        }
+        roomDb.categoryDao().upsert(
+            listOf(
+                Category(newId, name, colorArgb)
+                    .toEntity(uuid = newUuid(), dirty = true, modifiedAt = System.currentTimeMillis())
+            )
         )
     }
 
-    suspend fun deleteCategory(id: Int) = dataStore.edit { prefs ->
-        val existingCategories = decodeCategories(prefs[KEY_CATEGORIES] ?: "")
-        val existingTasks = decodeTasks(prefs[KEY_TASKS] ?: "")
-        prefs[KEY_CATEGORIES] = encodeCategories(existingCategories.filterNot { it.id == id })
-        prefs[KEY_TASKS] = encodeTasks(
-            existingTasks.map { if (it.categoryId == id) it.copy(categoryId = null) else it }
+    suspend fun updateCategory(id: Int, name: String, colorArgb: Long?) {
+        ensureMigrated()
+        val dao = roomDb.categoryDao()
+        val current = dao.getByLegacyId(id) ?: return
+        dao.upsert(
+            listOf(
+                current.copy(
+                    name = name,
+                    colorArgb = colorArgb,
+                    dirty = true,
+                    locallyModifiedAt = System.currentTimeMillis(),
+                )
+            )
         )
-        val selected = prefs[KEY_SELECTED_CATEGORY_ID]?.toIntOrNull()
-        if (selected == id) prefs.remove(KEY_SELECTED_CATEGORY_ID)
+    }
+
+    suspend fun deleteCategory(id: Int) {
+        ensureMigrated()
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            val category = db.categoryDao().getByLegacyId(id) ?: return@withTransaction
+            db.categoryDao().softDelete(category.id, now)
+            val affectedTasks = db.taskDao().getAll().filter { it.categoryId == category.id }
+            if (affectedTasks.isNotEmpty()) {
+                db.taskDao().upsert(
+                    affectedTasks.map {
+                        it.copy(categoryId = null, dirty = true, locallyModifiedAt = now)
+                    }
+                )
+            }
+        }
+        dataStore.edit { prefs ->
+            val selected = prefs[KEY_SELECTED_CATEGORY_ID]?.toIntOrNull()
+            if (selected == id) prefs.remove(KEY_SELECTED_CATEGORY_ID)
+        }
     }
 
     /**
@@ -456,10 +599,19 @@ class AppRepository(
      * carry a per-task pomodoro target, so per-segment session counting against
      * the task is gone — completion is binary and triggered by cycle success.
      */
-    suspend fun setTaskCompleted(taskId: Int, completed: Boolean) = dataStore.edit { prefs ->
-        val existing = decodeTasks(prefs[KEY_TASKS] ?: "")
-        prefs[KEY_TASKS] = encodeTasks(
-            existing.map { if (it.id == taskId) it.copy(completed = completed) else it }
+    suspend fun setTaskCompleted(taskId: Int, completed: Boolean) {
+        ensureMigrated()
+        val dao = roomDb.taskDao()
+        val current = dao.getByLegacyId(taskId) ?: return
+        if (current.completed == completed) return
+        dao.upsert(
+            listOf(
+                current.copy(
+                    completed = completed,
+                    dirty = true,
+                    locallyModifiedAt = System.currentTimeMillis(),
+                )
+            )
         )
     }
 

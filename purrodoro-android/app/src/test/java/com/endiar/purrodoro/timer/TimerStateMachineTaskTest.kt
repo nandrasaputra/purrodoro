@@ -1,7 +1,10 @@
 package com.endiar.purrodoro.timer
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
 import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.SessionItemType
 import com.endiar.purrodoro.model.SessionRecord
@@ -14,6 +17,7 @@ import com.endiar.purrodoro.model.TimerState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -21,6 +25,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.ZoneId
 
 /**
@@ -33,16 +39,27 @@ import java.time.ZoneId
  * still credited per-segment via incrementHabitProgress.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class TimerStateMachineTaskTest {
 
     @get:Rule
     val tmpFolder = TemporaryFolder()
 
+    private val db = Room.inMemoryDatabaseBuilder(
+        ApplicationProvider.getApplicationContext(),
+        PurrodoroDatabase::class.java,
+    ).allowMainThreadQueries().build()
+
+    @After
+    fun tearDown() {
+        db.close()
+    }
+
     private fun makeRepo(): AppRepository {
         val ds = PreferenceDataStoreFactory.create {
             tmpFolder.newFile("sm_task_${System.nanoTime()}.preferences_pb")
         }
-        return AppRepository(ds)
+        return AppRepository(ds, db)
     }
 
     private val utc = ZoneId.of("UTC")

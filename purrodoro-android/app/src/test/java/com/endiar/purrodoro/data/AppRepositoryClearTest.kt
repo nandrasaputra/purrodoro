@@ -1,6 +1,9 @@
 package com.endiar.purrodoro.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.FocusTask
@@ -18,12 +21,15 @@ import com.endiar.purrodoro.model.TimerState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.LocalDate
 
 /**
@@ -33,16 +39,27 @@ import java.time.LocalDate
  * (cleared too much).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class AppRepositoryClearTest {
 
     @get:Rule
     val tmpFolder = TemporaryFolder()
 
+    private val db = Room.inMemoryDatabaseBuilder(
+        ApplicationProvider.getApplicationContext(),
+        PurrodoroDatabase::class.java,
+    ).allowMainThreadQueries().build()
+
+    @After
+    fun tearDown() {
+        db.close()
+    }
+
     private fun makeRepo(): AppRepository {
         val ds = PreferenceDataStoreFactory.create {
             tmpFolder.newFile("clear_${System.nanoTime()}.preferences_pb")
         }
-        return AppRepository(ds)
+        return AppRepository(ds, db)
     }
 
     private suspend fun seedEverything(repo: AppRepository) {
