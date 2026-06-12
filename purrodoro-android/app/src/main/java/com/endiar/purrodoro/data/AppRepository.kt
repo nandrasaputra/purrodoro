@@ -268,10 +268,16 @@ class AppRepository(
     }
 
     private suspend fun upsertProfileDirty(transform: (ProfileEntity) -> ProfileEntity) {
-        val current = roomDb.profileDao().get() ?: profileFromPrefs()
-        roomDb.profileDao().upsert(
-            transform(current).copy(dirty = true, locallyModifiedAt = System.currentTimeMillis())
-        )
+        // Prefs fallback read first (DataStore reads don't belong inside a
+        // Room transaction); the read-modify-write itself is atomic so a
+        // concurrent sync apply can't interleave between get and upsert.
+        val fallback = profileFromPrefs()
+        roomDb.withTransaction {
+            val current = roomDb.profileDao().get() ?: fallback
+            roomDb.profileDao().upsert(
+                transform(current).copy(dirty = true, locallyModifiedAt = System.currentTimeMillis())
+            )
+        }
     }
 
     /**
@@ -310,31 +316,24 @@ class AppRepository(
     }
 
     /**
-     * Sync-pull apply path: writes the pulled profile into the DataStore keys
-     * the UI reads and stores the row clean. Must NOT re-mark the row dirty
-     * (that would bounce the pulled state straight back to the server) — the
-     * user-facing setters [setUserName]/[setSettings] are the dirtying path.
+     * Sync-pull apply path: writes the pulled name/settings into the
+     * DataStore keys the UI reads — prefs ONLY. The Room profile row is
+     * written by [com.endiar.purrodoro.sync.ProfileTableSync] inside its
+     * transaction (where the dirty re-check lives); this runs only after that
+     * transaction committed with the pulled row accepted, so it can never
+     * clobber a concurrent user edit's prefs with stale cloud state while the
+     * edit's row survives as dirty.
      */
-    internal suspend fun applySyncedProfile(displayName: String, timerSettingsJson: String) {
-        val trimmed = displayName.trim()
+    internal suspend fun applySyncedProfilePrefs(displayName: String, timerSettingsJson: String) {
         val settings = decodeTimerSettings(timerSettingsJson)
         dataStore.edit { prefs ->
-            prefs[KEY_USER_NAME] = trimmed
+            prefs[KEY_USER_NAME] = displayName.trim()
             prefs[KEY_FOCUS_MIN] = settings.focusMinutes
             prefs[KEY_SHORT_MIN] = settings.shortBreakMinutes
             prefs[KEY_LONG_MIN] = settings.longBreakMinutes
             prefs[KEY_AUTO_START_NEXT_SESSION] = settings.autoStartNextSession
             prefs[KEY_CYCLE_SIZE] = settings.focusSessionsPerCycle
         }
-        val existing = roomDb.profileDao().get()
-        roomDb.profileDao().upsert(
-            ProfileEntity(
-                displayName = trimmed,
-                timerSettingsJson = timerSettingsJson,
-                dirty = false,
-                locallyModifiedAt = existing?.locallyModifiedAt ?: 0L,
-            )
-        )
     }
 
     /**

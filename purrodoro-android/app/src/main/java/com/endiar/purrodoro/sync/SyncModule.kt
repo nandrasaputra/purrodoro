@@ -101,13 +101,17 @@ class SyncModule private constructor(
 
     /**
      * Last flush before signing out: one sync pass, then [logoutDecision] over
-     * whether it succeeded and whether dirty rows remain. A `null`
-     * (not-eligible) pass counts as succeeded — there is nothing a sync could
+     * whether it succeeded and whether dirty rows remain. Eligibility is
+     * captured BEFORE the pass: a 401 inside the flush signs the user out,
+     * and a post-hoc null result would then look like a harmless guest no-op
+     * instead of the failed flush it was. A genuinely not-eligible flush
+     * (guest / unclaimed) counts as succeeded — there is nothing a sync could
      * have uploaded for this user anyway.
      */
     suspend fun flushBeforeLogout(): LogoutDecision {
+        val wasEligible = canSync(authRepository.currentAuthUser()?.userId, repo.currentOwnerId())
         val result = syncIfEligible()
-        val flushSucceeded = result == null || result is SyncEngine.SyncResult.Success
+        val flushSucceeded = !wasEligible || result is SyncEngine.SyncResult.Success
         return logoutDecision(flushSucceeded, dirtyRemaining = hasDirtyRows())
     }
 
@@ -118,8 +122,35 @@ class SyncModule private constructor(
             db.habitLogDao().hasDirty() ||
             db.sessionRecordDao().hasDirty() ||
             db.dailyStampDao().hasDirty() ||
-            db.profileDao().hasDirty() ||
             db.profileDao().hasDirty()
+
+    /** Whether any account-ownable row exists at all, tombstones included. */
+    private suspend fun hasAnyLocalData(): Boolean =
+        db.taskDao().hasAny() ||
+            db.categoryDao().hasAny() ||
+            db.habitDao().hasAny() ||
+            db.habitLogDao().hasAny() ||
+            db.sessionRecordDao().hasAny() ||
+            db.dailyStampDao().hasAny() ||
+            db.profileDao().hasAny()
+
+    /**
+     * Startup repair of crash remnants in the sign-in flow's ownership
+     * windows (decision: [resolveStartupOwnership]). Most relevant: a crash
+     * between a Drop's data clear and its owner re-tag would otherwise leave
+     * a signed-in user whose sync is silently ineligible forever.
+     */
+    internal suspend fun reconcileOwnershipOnStartup() {
+        reconcileStartupOwnership(
+            userId = authRepository.currentAuthUser()?.userId,
+            ownerId = repo.currentOwnerId(),
+            hasLocalData = hasAnyLocalData(),
+            setOwnerId = { repo.setOwnerId(it) },
+            claimMerge = { syncHooks.claimMergeSync() },
+            restoreFromCloud = { syncHooks.resetCheckpointsAndPull() },
+            signOut = { authRepository.signOut() },
+        )
+    }
 
     /**
      * [AccountManager.SyncHooks] implementation: a Claim merges this device's
@@ -151,6 +182,10 @@ class SyncModule private constructor(
     }
 
     private fun init() {
+        // Repair any crash remnant of a Claim/Drop before the triggers below
+        // start firing passes (they are gated by canSync, so a pass racing
+        // ahead of the repair just no-ops).
+        scope.launch { reconcileOwnershipOnStartup() }
         // Local writes -> debounced sync.
         scope.launch {
             repo.localWrites.collect { scheduler.onLocalWrite() }
@@ -202,7 +237,7 @@ class SyncModule private constructor(
                 HabitLogTableSync(db.habitLogDao(), userId, inTransaction),
                 SessionRecordTableSync(db.sessionRecordDao(), userId, inTransaction),
                 DailyStampTableSync(db.dailyStampDao(), userId, inTransaction),
-                ProfileTableSync(db.profileDao(), userId, repo::applySyncedProfile),
+                ProfileTableSync(db.profileDao(), userId, inTransaction, repo::applySyncedProfilePrefs),
             )
             val engine = SyncEngine(
                 api = api,

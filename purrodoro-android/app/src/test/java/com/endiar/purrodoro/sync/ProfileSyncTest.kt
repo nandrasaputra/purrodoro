@@ -2,6 +2,7 @@ package com.endiar.purrodoro.sync
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
@@ -61,7 +62,12 @@ class ProfileSyncTest {
     private fun buildEngine(repo: AppRepository): SyncEngine = SyncEngine(
         api = api,
         tables = listOf(
-            ProfileTableSync(db.profileDao(), { "user-1" }, repo::applySyncedProfile),
+            ProfileTableSync(
+                db.profileDao(),
+                { "user-1" },
+                { block -> db.withTransaction { block() } },
+                repo::applySyncedProfilePrefs,
+            ),
         ),
         checkpoints = object : CheckpointStore {
             override suspend fun get(table: String): String? = checkpoints[table]

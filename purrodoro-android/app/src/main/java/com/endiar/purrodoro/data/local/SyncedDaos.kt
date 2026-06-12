@@ -30,6 +30,10 @@ interface TaskDao {
     @Query("SELECT EXISTS(SELECT 1 FROM tasks WHERE dirty = 1)")
     suspend fun hasDirty(): Boolean
 
+    /** Startup-reconciliation helper: whether ANY row exists, tombstones included. */
+    @Query("SELECT EXISTS(SELECT 1 FROM tasks)")
+    suspend fun hasAny(): Boolean
+
     @Query("SELECT * FROM tasks WHERE dirty = 1")
     suspend fun getDirty(): List<TaskEntity>
 
@@ -73,6 +77,10 @@ interface CategoryDao {
     @Query("SELECT EXISTS(SELECT 1 FROM categories WHERE dirty = 1)")
     suspend fun hasDirty(): Boolean
 
+    /** Startup-reconciliation helper: whether ANY row exists, tombstones included. */
+    @Query("SELECT EXISTS(SELECT 1 FROM categories)")
+    suspend fun hasAny(): Boolean
+
     @Query("SELECT * FROM categories WHERE dirty = 1")
     suspend fun getDirty(): List<CategoryEntity>
 
@@ -112,6 +120,10 @@ interface HabitDao {
     @Query("SELECT EXISTS(SELECT 1 FROM habits WHERE dirty = 1)")
     suspend fun hasDirty(): Boolean
 
+    /** Startup-reconciliation helper: whether ANY row exists, tombstones included. */
+    @Query("SELECT EXISTS(SELECT 1 FROM habits)")
+    suspend fun hasAny(): Boolean
+
     @Query("SELECT * FROM habits WHERE dirty = 1")
     suspend fun getDirty(): List<HabitEntity>
 
@@ -150,6 +162,10 @@ interface HabitLogDao {
     /** Sync helper: whether any row (tombstones included) still awaits a push. */
     @Query("SELECT EXISTS(SELECT 1 FROM habit_logs WHERE dirty = 1)")
     suspend fun hasDirty(): Boolean
+
+    /** Startup-reconciliation helper: whether ANY row exists, tombstones included. */
+    @Query("SELECT EXISTS(SELECT 1 FROM habit_logs)")
+    suspend fun hasAny(): Boolean
 
     @Query("SELECT * FROM habit_logs WHERE dirty = 1")
     suspend fun getDirty(): List<HabitLogEntity>
@@ -201,6 +217,10 @@ interface SessionRecordDao {
     @Query("SELECT EXISTS(SELECT 1 FROM session_records WHERE dirty = 1)")
     suspend fun hasDirty(): Boolean
 
+    /** Startup-reconciliation helper: whether ANY row exists, tombstones included. */
+    @Query("SELECT EXISTS(SELECT 1 FROM session_records)")
+    suspend fun hasAny(): Boolean
+
     @Query("SELECT * FROM session_records WHERE dirty = 1")
     suspend fun getDirty(): List<SessionRecordEntity>
 
@@ -251,6 +271,10 @@ interface DailyStampDao {
     @Query("SELECT EXISTS(SELECT 1 FROM daily_stamps WHERE dirty = 1)")
     suspend fun hasDirty(): Boolean
 
+    /** Startup-reconciliation helper: whether ANY row exists, tombstones included. */
+    @Query("SELECT EXISTS(SELECT 1 FROM daily_stamps)")
+    suspend fun hasAny(): Boolean
+
     @Query("SELECT * FROM daily_stamps WHERE dirty = 1")
     suspend fun getDirty(): List<DailyStampEntity>
 
@@ -300,6 +324,10 @@ interface ProfileDao {
     /** Sync helper: whether the singleton row still awaits a push. */
     @Query("SELECT EXISTS(SELECT 1 FROM profile WHERE dirty = 1)")
     suspend fun hasDirty(): Boolean
+
+    /** Startup-reconciliation helper: whether ANY row exists, tombstones included. */
+    @Query("SELECT EXISTS(SELECT 1 FROM profile)")
+    suspend fun hasAny(): Boolean
 
     /** Sync helper: atomically clears dirty iff the row is unchanged since the push snapshot. */
     @Query("UPDATE profile SET dirty = 0 WHERE rowId = 0 AND locallyModifiedAt = :snapshotModifiedAt AND dirty = 1")
