@@ -108,6 +108,11 @@ class AppRepository(
         // next sign-in. See the auth-and-account-identity spec.
         private val KEY_OWNER_ID = stringPreferencesKey("data_owner_id")
 
+        // Per-table delta-sync checkpoints (max server updated_at applied so
+        // far), keyed by "sync_checkpoint_<table>". Cleared together with the
+        // account-owned data on an ownership switch.
+        private const val SYNC_CHECKPOINT_PREFIX = "sync_checkpoint_"
+
         // Singleton instance for production use
         private val Context.dataStore by preferencesDataStore(name = "kuro_app_prefs")
 
@@ -156,6 +161,28 @@ class AppRepository(
         else prefs[KEY_OWNER_ID] = value
     }
 
+    // ── Sync checkpoints ─────────────────────────────────────────────────────
+
+    /** The last server `updated_at` applied for [table], or null before the first pull. */
+    suspend fun syncCheckpoint(table: String): String? =
+        dataStore.data.first()[stringPreferencesKey(SYNC_CHECKPOINT_PREFIX + table)]
+            ?.takeIf { it.isNotBlank() }
+
+    suspend fun setSyncCheckpoint(table: String, iso: String) = dataStore.edit { prefs ->
+        prefs[stringPreferencesKey(SYNC_CHECKPOINT_PREFIX + table)] = iso
+    }
+
+    /** Drops every per-table checkpoint so the next sync re-pulls from scratch. */
+    suspend fun resetSyncCheckpoints() = dataStore.edit { prefs ->
+        removeSyncCheckpoints(prefs)
+    }
+
+    private fun removeSyncCheckpoints(prefs: androidx.datastore.preferences.core.MutablePreferences) {
+        prefs.asMap().keys
+            .filter { it.name.startsWith(SYNC_CHECKPOINT_PREFIX) }
+            .forEach { prefs.remove(it) }
+    }
+
     /**
      * Removes all account-owned data so a different account starts clean. Keeps
      * device-local, non-account preferences (appearance, language, onboarding /
@@ -201,6 +228,9 @@ class AppRepository(
                 KEY_FOCUS_MIN, KEY_SHORT_MIN, KEY_LONG_MIN,
                 KEY_AUTO_START_NEXT_SESSION, KEY_CYCLE_SIZE,
             ).forEach { prefs.remove(it) }
+            // Checkpoints belong to the old account's server state; the next
+            // account must pull from scratch.
+            removeSyncCheckpoints(prefs)
         }
     }
 
