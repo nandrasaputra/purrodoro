@@ -121,9 +121,12 @@
     <string name="login_error_generic">Tidak bisa masuk. Coba lagi.</string>
     <string name="login_error_not_configured">Masuk dengan Google belum disiapkan.</string>
     <string name="account_switch_title">Ganti akun?</string>
-    <string name="account_switch_message">Perangkat ini berisi data akun lain. Masuk akan menghapusnya. Lanjutkan?</string>
+    <string name="account_switch_message">Perangkat ini berisi data akun lain. Masuk akan menggantinya dengan data tersinkronmu. Lanjutkan?</string>
     <string name="account_switch_confirm">Hapus dan lanjutkan</string>
     <string name="account_switch_cancel">Batal</string>
+    <string name="logout_unsynced_title">Keluar tanpa sinkronisasi?</string>
+    <string name="logout_unsynced_body">Beberapa perubahan terbaru belum tersinkron ke cloud. Perubahan itu tetap ada di perangkat ini, tetapi bisa hilang jika akun lain masuk di sini.</string>
+    <string name="logout_unsynced_confirm">Tetap keluar</string>
 
     <!-- Timer modes -->
     <string name="timer_mode_focus">Fokus</string>

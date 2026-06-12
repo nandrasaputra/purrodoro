@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -76,6 +77,7 @@ import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
 import com.endiar.purrodoro.model.glassTreatmentFor
+import com.endiar.purrodoro.sync.LogoutDecision
 import com.endiar.purrodoro.sync.SyncModule
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
@@ -230,6 +232,7 @@ fun PurrodoroApp(
     var showProfile by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
     var showLoginSheet by remember { mutableStateOf(false) }
+    var showLogoutWarning by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val tutorialController = rememberTutorialController()
@@ -1030,7 +1033,37 @@ fun PurrodoroApp(
                     onRequestEnableNotifications = onEnableNotifications,
                     authState = authState,
                     onRequestLogin = { showLoginSheet = true },
-                    onSignOut = { scope.launch { authRepository.signOut() } },
+                    onSignOut = {
+                        scope.launch {
+                            // Flush local changes first; only warn when the
+                            // flush failed AND unsynced rows remain.
+                            when (SyncModule.get(context).flushBeforeLogout()) {
+                                LogoutDecision.SignOut -> authRepository.signOut()
+                                LogoutDecision.WarnUnsynced -> showLogoutWarning = true
+                            }
+                        }
+                    },
+                )
+            }
+
+            if (showLogoutWarning) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutWarning = false },
+                    title = { Text(stringResource(R.string.logout_unsynced_title)) },
+                    text = { Text(stringResource(R.string.logout_unsynced_body)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showLogoutWarning = false
+                            scope.launch { authRepository.signOut() }
+                        }) {
+                            Text(stringResource(R.string.logout_unsynced_confirm))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLogoutWarning = false }) {
+                            Text(stringResource(R.string.common_cancel))
+                        }
+                    },
                 )
             }
 

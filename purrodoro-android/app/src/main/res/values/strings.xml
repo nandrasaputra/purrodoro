@@ -122,9 +122,12 @@
     <string name="login_error_generic">Couldn\'t sign in. Please try again.</string>
     <string name="login_error_not_configured">Google sign-in isn\'t set up yet.</string>
     <string name="account_switch_title">Switch account?</string>
-    <string name="account_switch_message">This device has another account\'s data. Signing in will remove it. Continue?</string>
+    <string name="account_switch_message">This device has another account\'s data. Signing in will replace it with your synced data. Continue?</string>
     <string name="account_switch_confirm">Remove and continue</string>
     <string name="account_switch_cancel">Cancel</string>
+    <string name="logout_unsynced_title">Sign out without syncing?</string>
+    <string name="logout_unsynced_body">Some recent changes couldn\'t be synced to the cloud. They\'ll stay on this device, but may be lost if another account signs in here.</string>
+    <string name="logout_unsynced_confirm">Sign out anyway</string>
 
     <!-- Timer modes -->
     <string name="timer_mode_focus">Focus</string>
