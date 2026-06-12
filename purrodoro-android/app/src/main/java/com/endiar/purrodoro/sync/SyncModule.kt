@@ -96,9 +96,6 @@ class SyncModule private constructor(
         }
     }
 
-    /** Post-sign-in sync, called by the account flow once ownership is settled (Part 4). */
-    suspend fun onSignedInSync() = syncForeground()
-
     /**
      * Last flush before signing out: one sync pass, then [logoutDecision] over
      * whether it succeeded and whether dirty rows remain. Eligibility is

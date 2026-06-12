@@ -73,7 +73,7 @@ class ProfileRepositoryTest {
     }
 
     @Test
-    fun `ensureProfileRowDirty creates the missing row from current prefs`() = runTest {
+    fun `markAllAccountDataDirty creates the missing profile row from current prefs`() = runTest {
         val repo = makeRepo()
         repo.setUserName("Nandra")
         repo.setSettings(TimerSettings(focusMinutes = 50))
@@ -81,7 +81,7 @@ class ProfileRepositoryTest {
         // exist but the row does not.
         db.profileDao().clearAll()
 
-        repo.ensureProfileRowDirty(now = 7L)
+        repo.markAllAccountDataDirty(now = 7L)
 
         val row = db.profileDao().get()!!
         assertTrue(row.dirty)
