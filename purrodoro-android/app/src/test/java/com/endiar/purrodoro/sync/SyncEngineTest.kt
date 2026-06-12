@@ -3,6 +3,7 @@ package com.endiar.purrodoro.sync
 import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
+import com.endiar.purrodoro.data.local.DailyStampEntity
 import com.endiar.purrodoro.data.local.HabitLogEntity
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import com.endiar.purrodoro.data.local.SessionRecordEntity
@@ -255,11 +256,11 @@ class SyncEngineTest {
     @Test
     fun `dirty local row is re-keyed and its next push targets the adopted server id`() = runTest {
         db.habitLogDao().upsert(listOf(localLog("log-local", dirty = true, state = "S", modifiedAt = 1L)))
-        // A user edit lands while the push is in flight, so markPushed leaves
-        // the row dirty and the pull's natural-key match sees a dirty row.
+        // A user edit lands while the (post-adoption) push is in flight, so
+        // markPushed must leave the row dirty for the next pass.
         api.onUpsert = { table ->
             if (table == "habit_logs") {
-                db.habitLogDao().getById("log-local")?.let { current ->
+                db.habitLogDao().getById("log-server")?.let { current ->
                     db.habitLogDao().upsert(listOf(current.copy(locallyModifiedAt = 2L, dirty = true)))
                 }
             }
@@ -271,7 +272,8 @@ class SyncEngineTest {
 
         engine.syncOnce()
 
-        // The dirty local content survived, re-keyed onto the server id.
+        // The dirty local content survived, re-keyed onto the server id, and
+        // the concurrent edit kept it dirty through the same pass's push.
         assertNull(db.habitLogDao().getById("log-local"))
         val rekeyed = db.habitLogDao().getById("log-server")
         assertNotNull(rekeyed)
@@ -331,15 +333,15 @@ class SyncEngineTest {
     fun `first claim merge with colliding local_id adopts the server row instead of wedging`() = runTest {
         // Guest data claimed into an account that already has cloud data:
         // both sides independently minted local_id = 1. The fake api enforces
-        // the server unique (user_id, local_id) index, so a blind push-first
-        // pass would 409 forever. The pull-first merge re-keys the dirty
-        // local row onto the server UUID, and the push becomes an UPDATE.
+        // the server unique (user_id, local_id) index, so a push-first pass
+        // would 409 forever. Every pass pulls first, so the merge re-keys the
+        // dirty local row onto the server UUID and the push is an UPDATE.
         db.sessionRecordDao().upsert(listOf(localRecord("rec-local", legacyId = 1)))
         api.remote["session_records"] = mutableListOf(
             sessionRecordRow("rec-server", localId = 1, updatedAt = "2026-06-12T10:00:00+00:00"),
         )
 
-        val result = buildEngine().syncOnce(pullFirst = true)
+        val result = buildEngine().syncOnce()
 
         assertEquals(SyncEngine.SyncResult.Success, result)
         // The dirty local content survived, adopted onto the server identity.
@@ -352,6 +354,56 @@ class SyncEngineTest {
         val pushed = api.upserts.getValue("session_records").single().jsonObject
         assertEquals("rec-server", pushed.getValue("id").jsonPrimitive.content)
         assertEquals("Guest work", pushed.getValue("task_name").jsonPrimitive.content)
+    }
+
+    private fun localStamp(
+        id: String,
+        date: String,
+        count: Int,
+        dirty: Boolean = true,
+        modifiedAt: Long = 1L,
+    ) = DailyStampEntity(
+        id = id, stampDateIso = date, count = count,
+        dirty = dirty, locallyModifiedAt = modifiedAt, deleted = false,
+    )
+
+    private fun dailyStampRow(
+        id: String,
+        date: String,
+        count: Int,
+        updatedAt: String,
+    ): JsonElement = buildJsonObject {
+        put("id", id)
+        put("user_id", "user-1")
+        put("stamp_date", date)
+        put("count", count)
+        put("updated_at", updatedAt)
+        put("deleted", false)
+    }
+
+    @Test
+    fun `same-account devices minting the same day's stamp converge on a plain delta pass`() = runTest {
+        // Another of this account's devices already pushed today's stamp;
+        // this device independently created its own row for the same date.
+        // The fake api enforces the server unique (user_id, stamp_date), so
+        // a push-first pass would 409 forever — an ORDINARY delta pass must
+        // heal it: pull first, adopt the server identity, push an update.
+        db.dailyStampDao().upsert(listOf(localStamp("stamp-local", "2026-06-12", count = 3)))
+        api.remote["daily_stamps"] = mutableListOf(
+            dailyStampRow("stamp-server", "2026-06-12", count = 1, updatedAt = "2026-06-12T10:00:00+00:00"),
+        )
+
+        val result = buildEngine().syncOnce()
+
+        assertEquals(SyncEngine.SyncResult.Success, result)
+        assertNull(db.dailyStampDao().getById("stamp-local"))
+        val adopted = db.dailyStampDao().getById("stamp-server")
+        assertNotNull(adopted)
+        assertEquals("dirty local count wins and uploads", 3, adopted!!.count)
+        assertFalse("pushed within the same pass", adopted.dirty)
+        val pushed = api.upserts.getValue("daily_stamps").single().jsonObject
+        assertEquals("stamp-server", pushed.getValue("id").jsonPrimitive.content)
+        assertEquals(3, pushed.getValue("count").jsonPrimitive.content.toInt())
     }
 
     @Test
@@ -400,25 +452,30 @@ private class FakeSyncApi : SyncApi {
     private var firstPullSeen = false
 
     override suspend fun upsert(table: String, rows: List<JsonElement>, conflictKey: String) {
-        if (table == "session_records") enforceLocalIdUnique(rows)
+        uniqueIndexes[table]?.let { enforceUniqueIndex(table, it, rows) }
         upserts.getOrPut(table) { mutableListOf() }.addAll(rows)
         onUpsert?.invoke(table)
     }
 
     /**
-     * Mirrors the server's `unique (user_id, local_id)` index on
-     * session_records: an upsert keyed on id that would insert a second row
-     * with an already-taken (user_id, local_id) fails like PostgREST's 409.
+     * Mirrors the server's natural-key unique indexes: an upsert keyed on id
+     * that would insert a second row with an already-taken natural key fails
+     * like PostgREST's 409.
      */
-    private fun enforceLocalIdUnique(rows: List<JsonElement>) {
-        fun key(row: JsonElement) = row.jsonObject.getValue("user_id").jsonPrimitive.content to
-            row.jsonObject.getValue("local_id").jsonPrimitive.content
+    private val uniqueIndexes = mapOf(
+        "session_records" to listOf("user_id", "local_id"),
+        "habit_logs" to listOf("user_id", "habit_id", "log_date"),
+        "daily_stamps" to listOf("user_id", "stamp_date"),
+    )
+
+    private fun enforceUniqueIndex(table: String, columns: List<String>, rows: List<JsonElement>) {
+        fun key(row: JsonElement) = columns.map { row.jsonObject.getValue(it).jsonPrimitive.content }
         fun id(row: JsonElement) = row.jsonObject.getValue("id").jsonPrimitive.content
         for (row in rows) {
-            val clash = remote["session_records"].orEmpty().any {
-                id(it) != id(row) && key(it) == key(row)
+            val clash = remote[table].orEmpty().any { id(it) != id(row) && key(it) == key(row) }
+            if (clash) {
+                throw IOException("409: duplicate key violates unique ${columns.joinToString()} on $table")
             }
-            if (clash) throw IOException("409: duplicate key value violates unique (user_id, local_id)")
         }
     }
 

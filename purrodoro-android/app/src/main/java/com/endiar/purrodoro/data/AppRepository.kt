@@ -365,6 +365,10 @@ class AppRepository(
             db.dailyStampDao().clearAll()
             db.profileDao().clearAll()
         }
+        // Accepted edge: a crash between the Room wipe above and this prefs
+        // edit can briefly leave the OLD account's name/settings prefs behind
+        // for the new one — self-healing, since the first profile pull
+        // overwrites them.
         dataStore.edit { prefs ->
             listOf(
                 // task + category counters
