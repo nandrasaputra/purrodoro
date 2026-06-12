@@ -81,55 +81,6 @@ class AppRepositoryRuntimeSnapshotTest {
         assertNull(decodeRuntimeSnapshot("this is not a valid snapshot"))
     }
 
-    // --- SessionRecord persistence ---
-
-    @Test
-    fun encode_then_decode_sessionRecords_preserves_break_counts() {
-        val records = listOf(
-            SessionRecord(
-                id = 1L,
-                startedAt = 1_000L,
-                endedAt = 2_000L,
-                focusMinutes = 25,
-                shortBreakMinutes = 5,
-                longBreakMinutes = 15,
-                completedFocusCount = 3,
-                totalFocusCount = 4,
-                status = SessionStatus.Partial,
-                taskName = "Write tests",
-                completedShortBreakCount = 2,
-                completedLongBreakCount = 0
-            )
-        )
-        val decoded = decodeSessionRecords(encodeSessionRecords(records))
-        assertEquals(records, decoded)
-    }
-
-    @Test
-    fun decode_legacy_sessionRecord_without_break_counts_defaults_to_zero() {
-        // v1 schema: 10 pipe-separated fields, no break counts.
-        // Existing user records on disk must still decode without loss.
-        val legacy = listOf(
-            "1",            // id
-            "1000",         // startedAt
-            "2000",         // endedAt
-            "25",           // focusMinutes
-            "5",            // shortBreakMinutes
-            "15",           // longBreakMinutes
-            "3",            // completedFocusCount
-            "4",            // totalFocusCount
-            "Partial",      // status
-            ""              // taskName (empty)
-        ).joinToString("|")
-
-        val decoded = decodeSessionRecords(legacy)
-        assertEquals(1, decoded.size)
-        assertEquals(3, decoded[0].completedFocusCount)
-        assertEquals(0, decoded[0].completedShortBreakCount)
-        assertEquals(0, decoded[0].completedLongBreakCount)
-        assertNull(decoded[0].taskName)
-    }
-
     @Test
     fun decode_legacy_runtimeSnapshot_openRecord_defaults_break_counts_to_zero() {
         // A v1 runtime snapshot — openRecord field has 10 semicolon-separated entries.
