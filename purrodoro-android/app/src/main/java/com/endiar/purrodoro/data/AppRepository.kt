@@ -36,7 +36,11 @@ import com.endiar.purrodoro.model.TimerSession
 import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
@@ -133,6 +137,21 @@ class AppRepository(
         }
 
     private fun newUuid(): String = UUID.randomUUID().toString()
+
+    /**
+     * Fires after every domain-data mutation (tasks, categories, habits +
+     * logs, session records, stamps) — but not for prefs-only setters. The
+     * sync layer debounces this into push passes.
+     */
+    private val _localWrites = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val localWrites: SharedFlow<Unit> = _localWrites.asSharedFlow()
+
+    private fun notifyLocalWrite() {
+        _localWrites.tryEmit(Unit)
+    }
 
     val runtimeSnapshot: Flow<TimerRuntimeState?> = dataStore.data.map { prefs ->
         decodeRuntimeSnapshot(prefs[KEY_RUNTIME_SNAPSHOT] ?: "")
@@ -410,6 +429,7 @@ class AppRepository(
                 .filter { !it.deleted && it.stampDateIso !in keptDates }
                 .forEach { db.dailyStampDao().softDelete(it.id, now) }
         }
+        notifyLocalWrite()
     }
     suspend fun setIsPremium(value: Boolean) = dataStore.edit { it[KEY_IS_PREMIUM] = value }
     suspend fun setPendingCycleCompletionAck(value: Boolean) =
@@ -445,11 +465,13 @@ class AppRepository(
             }
             db.sessionRecordDao().upsert(entities)
         }
+        notifyLocalWrite()
     }
 
     /** Soft-deletes all stored session records (used by debug reset). */
     suspend fun clearSessionRecords() {
         roomDb.sessionRecordDao().softDeleteAll(System.currentTimeMillis())
+        notifyLocalWrite()
     }
 
     suspend fun setRuntimeSnapshot(snapshot: TimerRuntimeState?) = dataStore.edit { prefs ->
@@ -480,6 +502,7 @@ class AppRepository(
                 )
             )
         }
+        notifyLocalWrite()
     }
 
     suspend fun setTasks(value: List<FocusTask>) {
@@ -508,6 +531,7 @@ class AppRepository(
                 .filter { !it.deleted && it.legacyId !in keptLegacyIds }
                 .forEach { db.taskDao().softDelete(it.id, now) }
         }
+        notifyLocalWrite()
     }
 
     suspend fun setCategories(value: List<Category>) {
@@ -534,6 +558,7 @@ class AppRepository(
                 .filter { !it.deleted && it.legacyId !in keptLegacyIds }
                 .forEach { db.categoryDao().softDelete(it.id, now) }
         }
+        notifyLocalWrite()
     }
 
     suspend fun setNextCategoryId(value: Int) =
@@ -561,6 +586,7 @@ class AppRepository(
                     .toEntity(uuid = newUuid(), dirty = true, modifiedAt = System.currentTimeMillis())
             )
         )
+        notifyLocalWrite()
     }
 
     suspend fun updateCategory(id: Int, name: String, colorArgb: Long?) {
@@ -578,6 +604,7 @@ class AppRepository(
                 )
             )
         }
+        notifyLocalWrite()
     }
 
     suspend fun deleteCategory(id: Int) {
@@ -599,6 +626,7 @@ class AppRepository(
             val selected = prefs[KEY_SELECTED_CATEGORY_ID]?.toIntOrNull()
             if (selected == id) prefs.remove(KEY_SELECTED_CATEGORY_ID)
         }
+        notifyLocalWrite()
     }
 
     /**
@@ -627,6 +655,7 @@ class AppRepository(
                 )
             )
         }
+        notifyLocalWrite()
     }
 
     suspend fun deleteSessionRecord(id: Long) {
@@ -635,6 +664,7 @@ class AppRepository(
             val existing = db.sessionRecordDao().getByLegacyId(id) ?: return@withTransaction
             db.sessionRecordDao().softDelete(existing.id, System.currentTimeMillis())
         }
+        notifyLocalWrite()
     }
 
     suspend fun resetSettingsToDefault() = dataStore.edit { prefs ->
@@ -666,6 +696,7 @@ class AppRepository(
             occurrence = occurrence, timeBlock = timeBlock,
         )
         roomDb.habitDao().upsert(listOf(habit.toEntity(uuid = newUuid(), dirty = true, modifiedAt = now)))
+        notifyLocalWrite()
         return newId
     }
 
@@ -677,6 +708,7 @@ class AppRepository(
             db.habitDao().softDelete(habit.id, now)
             db.habitLogDao().softDeleteForHabit(habit.id, now)
         }
+        notifyLocalWrite()
     }
 
     suspend fun updateHabitMeta(
@@ -697,6 +729,7 @@ class AppRepository(
             ).toEntity(uuid = current.id, dirty = true, modifiedAt = System.currentTimeMillis())
             db.habitDao().upsert(listOf(updated))
         }
+        notifyLocalWrite()
     }
 
     suspend fun toggleHabitBinaryCompletion(id: Int, date: LocalDate) {
@@ -712,6 +745,7 @@ class AppRepository(
                 db.habitLogDao().upsert(listOf(logEntity(existing, habit.id, date, "C", now)))
             }
         }
+        notifyLocalWrite()
     }
 
     suspend fun incrementHabitProgress(id: Int, date: LocalDate, delta: Int = 1) =
@@ -743,6 +777,7 @@ class AppRepository(
                 db.habitLogDao().upsert(listOf(logEntity(existing, habit.id, date, stateTag, now)))
             }
         }
+        notifyLocalWrite()
     }
 
     private fun logEntity(

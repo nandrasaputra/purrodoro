@@ -22,6 +22,7 @@ import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppTab
 import com.endiar.purrodoro.model.AppearanceMode
+import com.endiar.purrodoro.sync.SyncModule
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
 import com.endiar.purrodoro.ui.KuroLocalizationProvider
@@ -88,6 +89,7 @@ class MainActivity : ComponentActivity() {
 
         val repo = AppRepository.get(this)
         val authRepository = AuthRepository.get(this)
+        SyncModule.get(this) // start the offline-first sync triggers
         val initialAppState = runCatching {
             kotlinx.coroutines.runBlocking { repo.appState.first() }
         }.getOrNull()
