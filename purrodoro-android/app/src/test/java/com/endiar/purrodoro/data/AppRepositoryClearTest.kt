@@ -132,6 +132,7 @@ class AppRepositoryClearTest {
         assertNull("runtime snapshot cleared", repo.runtimeSnapshot.first())
         assertEquals("pending ack cleared", false, repo.pendingCycleCompletionAckFlow.first())
         assertNull("sync checkpoints cleared", repo.syncCheckpoint("tasks"))
+        assertNull("profile row cleared", db.profileDao().get())
     }
 
     @Test

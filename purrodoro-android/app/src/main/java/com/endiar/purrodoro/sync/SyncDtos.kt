@@ -273,6 +273,24 @@ fun SessionRecordDto.toEntity(existing: SessionRecordEntity?): SessionRecordEnti
     deleted = deleted,
 )
 
+// ── Profile ──────────────────────────────────────────────────────────────────
+
+/**
+ * Wire row for the singleton `profiles` table. Unlike the other tables it is
+ * keyed by `user_id` (no separate `id`), and `timer_settings` is a jsonb
+ * object carried here as a raw [JsonElement] (locally it is stored as the
+ * encoded string, see TimerSettingsJson). The server `deleted` column exists
+ * but is never honored: a profile lives and dies with the auth user.
+ */
+@Serializable
+data class ProfileDto(
+    @SerialName("user_id") val userId: String,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("timer_settings") val timerSettings: JsonElement,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("deleted") val deleted: Boolean = false,
+)
+
 // ── Daily stamp ──────────────────────────────────────────────────────────────
 
 @Serializable

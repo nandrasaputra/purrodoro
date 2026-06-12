@@ -97,7 +97,7 @@ class SyncEngine(
     private suspend fun syncTable(tableSync: TableSync) {
         val dirty = tableSync.dirtyRows()
         if (dirty.isNotEmpty()) {
-            api.upsert(tableSync.table, dirty)
+            api.upsert(tableSync.table, dirty, tableSync.conflictKey)
             tableSync.markPushed(dirty)
         }
         val remote = api.pullSince(tableSync.table, checkpoints.get(tableSync.table))

@@ -14,6 +14,7 @@ import com.endiar.purrodoro.data.local.CategoryEntity
 import com.endiar.purrodoro.data.local.DailyStampEntity
 import com.endiar.purrodoro.data.local.HabitEntity
 import com.endiar.purrodoro.data.local.HabitLogEntity
+import com.endiar.purrodoro.data.local.ProfileEntity
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import com.endiar.purrodoro.data.local.SessionRecordEntity
 import com.endiar.purrodoro.data.local.TaskEntity
@@ -240,6 +241,77 @@ class AppRepository(
             .forEach { prefs.remove(it) }
     }
 
+    // ── Profile row (display name + timer settings sync) ────────────────────
+    // The user-visible values live in DataStore as before; the singleton
+    // ProfileEntity row only carries the sync bookkeeping (dirty/modifiedAt)
+    // mirroring them, so the engine can push/reconcile the server `profiles`
+    // row keyed by user_id.
+
+    private fun timerSettingsFrom(prefs: Preferences) = TimerSettings(
+        focusMinutes = prefs[KEY_FOCUS_MIN] ?: 25,
+        shortBreakMinutes = prefs[KEY_SHORT_MIN] ?: 5,
+        longBreakMinutes = prefs[KEY_LONG_MIN] ?: 15,
+        autoStartNextSession = prefs[KEY_AUTO_START_NEXT_SESSION] ?: false,
+        focusSessionsPerCycle = (prefs[KEY_CYCLE_SIZE] ?: 4)
+            .coerceIn(1, TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE),
+    )
+
+    /** Current profile content derived from prefs, for when the row is missing. */
+    private suspend fun profileFromPrefs(): ProfileEntity {
+        val prefs = dataStore.data.first()
+        return ProfileEntity(
+            displayName = (prefs[KEY_USER_NAME] ?: "").trim(),
+            timerSettingsJson = encodeTimerSettings(timerSettingsFrom(prefs)),
+            dirty = true,
+            locallyModifiedAt = 0L,
+        )
+    }
+
+    private suspend fun upsertProfileDirty(transform: (ProfileEntity) -> ProfileEntity) {
+        val current = roomDb.profileDao().get() ?: profileFromPrefs()
+        roomDb.profileDao().upsert(
+            transform(current).copy(dirty = true, locallyModifiedAt = System.currentTimeMillis())
+        )
+    }
+
+    /**
+     * Creates the singleton profile row from current prefs if missing, and
+     * marks it dirty so the next push uploads it. Part of the account
+     * claim/keep "mark everything dirty" re-upload.
+     */
+    internal suspend fun ensureProfileRowDirty(now: Long) {
+        val current = roomDb.profileDao().get() ?: profileFromPrefs()
+        roomDb.profileDao().upsert(current.copy(dirty = true, locallyModifiedAt = now))
+    }
+
+    /**
+     * Sync-pull apply path: writes the pulled profile into the DataStore keys
+     * the UI reads and stores the row clean. Must NOT re-mark the row dirty
+     * (that would bounce the pulled state straight back to the server) — the
+     * user-facing setters [setUserName]/[setSettings] are the dirtying path.
+     */
+    internal suspend fun applySyncedProfile(displayName: String, timerSettingsJson: String) {
+        val trimmed = displayName.trim()
+        val settings = decodeTimerSettings(timerSettingsJson)
+        dataStore.edit { prefs ->
+            prefs[KEY_USER_NAME] = trimmed
+            prefs[KEY_FOCUS_MIN] = settings.focusMinutes
+            prefs[KEY_SHORT_MIN] = settings.shortBreakMinutes
+            prefs[KEY_LONG_MIN] = settings.longBreakMinutes
+            prefs[KEY_AUTO_START_NEXT_SESSION] = settings.autoStartNextSession
+            prefs[KEY_CYCLE_SIZE] = settings.focusSessionsPerCycle
+        }
+        val existing = roomDb.profileDao().get()
+        roomDb.profileDao().upsert(
+            ProfileEntity(
+                displayName = trimmed,
+                timerSettingsJson = timerSettingsJson,
+                dirty = false,
+                locallyModifiedAt = existing?.locallyModifiedAt ?: 0L,
+            )
+        )
+    }
+
     /**
      * Removes all account-owned data so a different account starts clean. Keeps
      * device-local, non-account preferences (appearance, language, onboarding /
@@ -267,6 +339,7 @@ class AppRepository(
             db.habitLogDao().clearAll()
             db.sessionRecordDao().clearAll()
             db.dailyStampDao().clearAll()
+            db.profileDao().clearAll()
         }
         dataStore.edit { prefs ->
             listOf(
@@ -369,14 +442,7 @@ class AppRepository(
             soundscapeMixAmbienceId = decodeOptionalInt(prefs[KEY_SOUNDSCAPE_MIX_AMBIENCE]),
             soundscapeMixMusicId = decodeOptionalInt(prefs[KEY_SOUNDSCAPE_MIX_MUSIC]),
             completedSessions = prefs[KEY_COMPLETED] ?: 0,
-            settings = TimerSettings(
-                focusMinutes = prefs[KEY_FOCUS_MIN] ?: 25,
-                shortBreakMinutes = prefs[KEY_SHORT_MIN] ?: 5,
-                longBreakMinutes = prefs[KEY_LONG_MIN] ?: 15,
-                autoStartNextSession = prefs[KEY_AUTO_START_NEXT_SESSION] ?: false,
-                focusSessionsPerCycle = (prefs[KEY_CYCLE_SIZE] ?: 4)
-                    .coerceIn(1, TimerSettings.MAX_FOCUS_SESSIONS_PER_CYCLE)
-            ),
+            settings = timerSettingsFrom(prefs),
             nextTaskId = prefs[KEY_NEXT_TASK_ID] ?: 1,
             stamps = stampEntities.mapNotNull { entity ->
                 val date = runCatching { LocalDate.parse(entity.stampDateIso) }.getOrNull()
@@ -405,7 +471,12 @@ class AppRepository(
     suspend fun setGlassReadabilityMode(value: GlassReadabilityMode) = dataStore.edit { it[KEY_GLASS_MODE] = value.name }
     suspend fun setAppearanceMode(value: AppearanceMode) = dataStore.edit { it[KEY_APPEARANCE_MODE] = value.name }
     suspend fun setLanguage(value: AppLanguage) = dataStore.edit { it[KEY_APP_LANGUAGE] = value.name }
-    suspend fun setUserName(value: String) = dataStore.edit { it[KEY_USER_NAME] = value.trim() }
+    suspend fun setUserName(value: String) {
+        val trimmed = value.trim()
+        dataStore.edit { it[KEY_USER_NAME] = trimmed }
+        upsertProfileDirty { it.copy(displayName = trimmed) }
+        notifyLocalWrite()
+    }
     suspend fun setSelectedSoundId(value: Int) = dataStore.edit { it[KEY_SOUND_ID] = value }
 
     suspend fun setSoundscapeMix(ambienceId: Int?, musicId: Int?) = dataStore.edit { prefs ->
@@ -413,12 +484,16 @@ class AppRepository(
         writeOptionalInt(prefs, KEY_SOUNDSCAPE_MIX_MUSIC, musicId)
     }
     suspend fun setCompletedSessions(value: Int) = dataStore.edit { it[KEY_COMPLETED] = value }
-    suspend fun setSettings(value: TimerSettings) = dataStore.edit { prefs ->
-        prefs[KEY_FOCUS_MIN] = value.focusMinutes
-        prefs[KEY_SHORT_MIN] = value.shortBreakMinutes
-        prefs[KEY_LONG_MIN] = value.longBreakMinutes
-        prefs[KEY_AUTO_START_NEXT_SESSION] = value.autoStartNextSession
-        prefs[KEY_CYCLE_SIZE] = value.focusSessionsPerCycle
+    suspend fun setSettings(value: TimerSettings) {
+        dataStore.edit { prefs ->
+            prefs[KEY_FOCUS_MIN] = value.focusMinutes
+            prefs[KEY_SHORT_MIN] = value.shortBreakMinutes
+            prefs[KEY_LONG_MIN] = value.longBreakMinutes
+            prefs[KEY_AUTO_START_NEXT_SESSION] = value.autoStartNextSession
+            prefs[KEY_CYCLE_SIZE] = value.focusSessionsPerCycle
+        }
+        upsertProfileDirty { it.copy(timerSettingsJson = encodeTimerSettings(value)) }
+        notifyLocalWrite()
     }
     suspend fun setNextTaskId(value: Int) = dataStore.edit { it[KEY_NEXT_TASK_ID] = value }
     suspend fun setStamps(value: Map<LocalDate, Int>) {

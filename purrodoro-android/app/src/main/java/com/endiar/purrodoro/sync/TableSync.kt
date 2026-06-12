@@ -16,6 +16,9 @@ import java.time.OffsetDateTime
 interface TableSync {
     val table: String
 
+    /** Server upsert conflict target; `user_id` for the user-keyed profiles table. */
+    val conflictKey: String get() = "id"
+
     /** Local rows awaiting push, encoded as wire rows (tombstones included). */
     suspend fun dirtyRows(): List<JsonElement>
 
@@ -145,8 +148,7 @@ internal abstract class BaseTableSync<E : Any>(
     }
 
     final override suspend fun maxRemoteUpdatedAt(rows: List<JsonElement>): String? =
-        rows.mapNotNull { (it.jsonObject["updated_at"] as? JsonPrimitive)?.contentOrNull }
-            .maxWithOrNull(compareBy { OffsetDateTime.parse(it) })
+        maxUpdatedAtOf(rows)
 
     protected fun rowId(row: JsonElement): String =
         row.jsonObject.getValue("id").jsonPrimitive.content
@@ -154,3 +156,8 @@ internal abstract class BaseTableSync<E : Any>(
     private fun rowDeleted(row: JsonElement): Boolean =
         row.jsonObject["deleted"]?.jsonPrimitive?.booleanOrNull ?: false
 }
+
+/** Max server `updated_at` among [rows] — what a table's checkpoint advances to. */
+internal fun maxUpdatedAtOf(rows: List<JsonElement>): String? =
+    rows.mapNotNull { (it.jsonObject["updated_at"] as? JsonPrimitive)?.contentOrNull }
+        .maxWithOrNull(compareBy { OffsetDateTime.parse(it) })
