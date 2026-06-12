@@ -13,9 +13,6 @@ import com.endiar.purrodoro.data.local.CategoryEntity
 import com.endiar.purrodoro.data.local.DailyStampEntity
 import com.endiar.purrodoro.data.local.HabitEntity
 import com.endiar.purrodoro.data.local.HabitLogEntity
-import com.endiar.purrodoro.data.local.LegacyBlobs
-import com.endiar.purrodoro.data.local.LocalStoreMigration
-import com.endiar.purrodoro.data.local.MigrationSink
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import com.endiar.purrodoro.data.local.SessionRecordEntity
 import com.endiar.purrodoro.data.local.TaskEntity
@@ -28,8 +25,6 @@ import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.GlassReadabilityMode
 import com.endiar.purrodoro.model.Habit
-import com.endiar.purrodoro.model.HabitLog
-import com.endiar.purrodoro.model.HabitLogState
 import com.endiar.purrodoro.model.HabitOccurrence
 import com.endiar.purrodoro.model.InterruptedFocus
 import com.endiar.purrodoro.model.SessionItemType
@@ -39,18 +34,14 @@ import com.endiar.purrodoro.model.TimeBlock
 import com.endiar.purrodoro.model.TimerRuntimeState
 import com.endiar.purrodoro.model.TimerSession
 import com.endiar.purrodoro.model.TimerSessionItem
-import com.endiar.purrodoro.model.TaskPriority
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
-import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.time.LocalDate
@@ -98,25 +89,19 @@ class AppRepository(
         private val KEY_AUTO_START_NEXT_SESSION = booleanPreferencesKey("auto_start_next_session")
         private val KEY_CYCLE_SIZE = intPreferencesKey("focus_sessions_per_cycle")
         private val KEY_NEXT_TASK_ID = intPreferencesKey("next_task_id")
-        private val KEY_STAMPS = stringPreferencesKey("stamps_json")
         private val KEY_IS_PREMIUM = booleanPreferencesKey("is_premium")
-        private val KEY_SESSION_RECORDS = stringPreferencesKey("session_records_json")
         private val KEY_RUNTIME_SNAPSHOT = stringPreferencesKey("timer_runtime_snapshot")
         private val KEY_PENDING_CYCLE_ACK = booleanPreferencesKey("pending_cycle_completion_ack")
-        private val KEY_TASKS = stringPreferencesKey("tasks_json")
-        private val KEY_CATEGORIES = stringPreferencesKey("categories_json")
         private val KEY_NEXT_CATEGORY_ID = intPreferencesKey("next_category_id")
         private val KEY_SELECTED_CATEGORY_ID = stringPreferencesKey("selected_category_id")
         private val KEY_APPEARANCE_MODE = stringPreferencesKey("appearance_mode")
         private val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
         private val KEY_USER_NAME = stringPreferencesKey("user_name")
         private val KEY_NOTIFICATION_SOUND = booleanPreferencesKey("notification_sound_enabled")
-        private val KEY_HABITS = stringPreferencesKey("habits_json")
         private val KEY_NEXT_HABIT_ID = intPreferencesKey("next_habit_id")
         private val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
         private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial")
         private val KEY_INTERRUPTED_FOCUS = stringPreferencesKey("interrupted_focus")
-        private val KEY_MIGRATED_TO_ROOM = booleanPreferencesKey("has_migrated_to_room")
 
         // Marks which account the on-device data belongs to. Null = unclaimed
         // (guest data). Survives sign-out; drives the Claim/Keep/Drop rule on the
@@ -143,81 +128,6 @@ class AppRepository(
         }
 
     private fun newUuid(): String = UUID.randomUUID().toString()
-
-    private val migrationMutex = Mutex()
-    @Volatile private var migrationDone = false
-
-    /**
-     * One-time DataStore → Room migration gate. Safe to call from any entry
-     * point (activity, widget, timer service): the first caller performs the
-     * migration, everyone else waits on the mutex and then no-ops. Once the
-     * [KEY_MIGRATED_TO_ROOM] flag is set the gate is a cheap volatile read.
-     *
-     * Crash safety: the Room tables are cleared before writing, and the flag +
-     * legacy-key removal commit in a single DataStore edit after the Room
-     * transaction, so a crash mid-migration re-runs it from scratch.
-     */
-    suspend fun ensureMigrated() {
-        val db = db ?: return
-        if (migrationDone) return
-        migrationMutex.withLock {
-            if (migrationDone) return
-            val prefs = dataStore.data.first()
-            if (prefs[KEY_MIGRATED_TO_ROOM] == true) {
-                migrationDone = true
-                return
-            }
-            db.withTransaction {
-                db.taskDao().clearAll()
-                db.categoryDao().clearAll()
-                db.habitDao().clearAll()
-                db.habitLogDao().clearAll()
-                db.sessionRecordDao().clearAll()
-                db.dailyStampDao().clearAll()
-            }
-            val legacy = LegacyBlobs(
-                tasksRaw = prefs[KEY_TASKS] ?: "",
-                categoriesRaw = prefs[KEY_CATEGORIES] ?: "",
-                habitsRaw = prefs[KEY_HABITS] ?: "",
-                recordsRaw = prefs[KEY_SESSION_RECORDS] ?: "",
-                stampsRaw = prefs[KEY_STAMPS] ?: "",
-            )
-            LocalStoreMigration().migrate(legacy, RoomMigrationSink(db))
-            // The legacy keys hasPriorAppUsage reads are about to be deleted,
-            // so stamp its upgrade conclusion into the explicit flags now.
-            val hadDomainData = hasPriorAppUsage(prefs)
-            dataStore.edit { p ->
-                if (hadDomainData) {
-                    if (p[KEY_HAS_SEEN_ONBOARDING] == null) p[KEY_HAS_SEEN_ONBOARDING] = true
-                    if (p[KEY_HAS_SEEN_TUTORIAL] == null) p[KEY_HAS_SEEN_TUTORIAL] = true
-                }
-                listOf(KEY_TASKS, KEY_CATEGORIES, KEY_HABITS, KEY_SESSION_RECORDS, KEY_STAMPS)
-                    .forEach { p.remove(it) }
-                p[KEY_MIGRATED_TO_ROOM] = true
-            }
-            migrationDone = true
-        }
-    }
-
-    private class RoomMigrationSink(private val db: PurrodoroDatabase) : MigrationSink {
-        override suspend fun write(
-            tasks: List<TaskEntity>,
-            categories: List<CategoryEntity>,
-            habits: List<HabitEntity>,
-            habitLogs: List<HabitLogEntity>,
-            records: List<SessionRecordEntity>,
-            stamps: List<DailyStampEntity>,
-        ) {
-            db.withTransaction {
-                db.categoryDao().upsert(categories)
-                db.taskDao().upsert(tasks)
-                db.habitDao().upsert(habits)
-                db.habitLogDao().upsert(habitLogs)
-                db.sessionRecordDao().upsert(records)
-                db.dailyStampDao().upsert(stamps)
-            }
-        }
-    }
 
     val runtimeSnapshot: Flow<TimerRuntimeState?> = dataStore.data.map { prefs ->
         decodeRuntimeSnapshot(prefs[KEY_RUNTIME_SNAPSHOT] ?: "")
@@ -257,16 +167,15 @@ class AppRepository(
      * new account. See [com.endiar.purrodoro.auth.AccountManager].
      */
     suspend fun clearAccountOwnedData() {
-        ensureMigrated()
         dataStore.edit { prefs ->
             listOf(
-                // tasks + categories (legacy blobs pre-migration; counters always)
-                KEY_TASKS, KEY_NEXT_TASK_ID,
-                KEY_CATEGORIES, KEY_NEXT_CATEGORY_ID, KEY_SELECTED_CATEGORY_ID,
-                // habits
-                KEY_HABITS, KEY_NEXT_HABIT_ID,
-                // history / progress
-                KEY_SESSION_RECORDS, KEY_STAMPS, KEY_COMPLETED,
+                // task + category counters
+                KEY_NEXT_TASK_ID,
+                KEY_NEXT_CATEGORY_ID, KEY_SELECTED_CATEGORY_ID,
+                // habit counter
+                KEY_NEXT_HABIT_ID,
+                // progress counter
+                KEY_COMPLETED,
                 // in-flight focus + cycle
                 KEY_INTERRUPTED_FOCUS, KEY_RUNTIME_SNAPSHOT, KEY_PENDING_CYCLE_ACK,
                 // account-tied greeting name
@@ -290,49 +199,28 @@ class AppRepository(
     }
 
     /**
-     * True once the user has finished or skipped onboarding.
-     *
-     * For a brand-new install the key is absent and we resolve to false so the
-     * onboarding flow plays. For users upgrading from a build that predates
-     * onboarding, we treat existing tasks / habits / session records as proof
-     * they've already learned the app, so they don't get an unexpected first-run
-     * flow on next launch.
+     * True once the user has finished or skipped onboarding. Absent key
+     * (brand-new install) resolves to false so the onboarding flow plays.
      */
     val hasSeenOnboardingFlow: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_HAS_SEEN_ONBOARDING] ?: hasPriorAppUsage(prefs)
+        prefs[KEY_HAS_SEEN_ONBOARDING] ?: false
     }
 
     /**
      * True once the user has finished or dismissed the spotlight feature tour.
-     *
      * The tour is a lighter, second-stage primer that plays on the Home tab
-     * after onboarding. For users upgrading from a build that predates the
-     * tour, [hasPriorAppUsage] proves they already know the app, so they don't
-     * get an unexpected coachmark sweep on next launch.
+     * after onboarding.
      */
     val hasSeenTutorialFlow: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_HAS_SEEN_TUTORIAL] ?: hasPriorAppUsage(prefs)
-    }
-
-    private fun hasPriorAppUsage(prefs: Preferences): Boolean {
-        val records = prefs[KEY_SESSION_RECORDS]
-        val tasks = prefs[KEY_TASKS]
-        val habits = prefs[KEY_HABITS]
-        fun nonEmpty(value: String?): Boolean =
-            !value.isNullOrBlank() && value != "[]"
-        return nonEmpty(records) || nonEmpty(tasks) || nonEmpty(habits)
+        prefs[KEY_HAS_SEEN_TUTORIAL] ?: false
     }
 
     /**
      * Single source of truth for the UI. Settings and device-local preferences
      * come from DataStore; account-owned domain data (tasks, categories,
-     * habits + logs, session records, daily stamps) is served from Room. The
-     * flow gates on [ensureMigrated] so any entry point (activity, widget,
-     * timer service) triggers the one-time DataStore → Room migration before
-     * the first emission.
+     * habits + logs, session records, daily stamps) is served from Room.
      */
     val appState: Flow<AppState> = flow {
-        ensureMigrated()
         val db = roomDb
         emitAll(
             combine(
@@ -438,7 +326,6 @@ class AppRepository(
     }
     suspend fun setNextTaskId(value: Int) = dataStore.edit { it[KEY_NEXT_TASK_ID] = value }
     suspend fun setStamps(value: Map<LocalDate, Int>) {
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -488,7 +375,6 @@ class AppRepository(
     /** Appends several records in a single transaction (used by debug data seeding). */
     suspend fun appendSessionRecords(records: List<SessionRecord>) {
         if (records.isEmpty()) return
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -506,7 +392,6 @@ class AppRepository(
 
     /** Soft-deletes all stored session records (used by debug reset). */
     suspend fun clearSessionRecords() {
-        ensureMigrated()
         roomDb.sessionRecordDao().softDeleteAll(System.currentTimeMillis())
     }
 
@@ -519,7 +404,6 @@ class AppRepository(
     }
 
     suspend fun incrementStampFor(date: LocalDate) {
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -542,7 +426,6 @@ class AppRepository(
     }
 
     suspend fun setTasks(value: List<FocusTask>) {
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -571,7 +454,6 @@ class AppRepository(
     }
 
     suspend fun setCategories(value: List<Category>) {
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -610,7 +492,6 @@ class AppRepository(
         dataStore.edit { it[KEY_NOTIFICATION_SOUND] = value }
 
     suspend fun addCategory(name: String, colorArgb: Long? = null) {
-        ensureMigrated()
         var newId = 0
         dataStore.edit { prefs ->
             val nextId = prefs[KEY_NEXT_CATEGORY_ID] ?: 1
@@ -626,7 +507,6 @@ class AppRepository(
     }
 
     suspend fun updateCategory(id: Int, name: String, colorArgb: Long?) {
-        ensureMigrated()
         val dao = roomDb.categoryDao()
         val current = dao.getByLegacyId(id) ?: return
         dao.upsert(
@@ -642,7 +522,6 @@ class AppRepository(
     }
 
     suspend fun deleteCategory(id: Int) {
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -675,7 +554,6 @@ class AppRepository(
      * the task is gone — completion is binary and triggered by cycle success.
      */
     suspend fun setTaskCompleted(taskId: Int, completed: Boolean) {
-        ensureMigrated()
         val dao = roomDb.taskDao()
         val current = dao.getByLegacyId(taskId) ?: return
         if (current.completed == completed) return
@@ -691,7 +569,6 @@ class AppRepository(
     }
 
     suspend fun deleteSessionRecord(id: Long) {
-        ensureMigrated()
         val dao = roomDb.sessionRecordDao()
         val existing = dao.getByLegacyId(id) ?: return
         dao.softDelete(existing.id, System.currentTimeMillis())
@@ -713,7 +590,6 @@ class AppRepository(
         occurrence: HabitOccurrence = HabitOccurrence.Daily,
         timeBlock: TimeBlock = TimeBlock.Anytime,
     ): Int {
-        ensureMigrated()
         var newId = 0
         dataStore.edit { prefs ->
             val nextId = prefs[KEY_NEXT_HABIT_ID] ?: 1
@@ -731,7 +607,6 @@ class AppRepository(
     }
 
     suspend fun deleteHabit(id: Int) {
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -749,7 +624,6 @@ class AppRepository(
         occurrence: HabitOccurrence,
         timeBlock: TimeBlock,
     ) {
-        ensureMigrated()
         val dao = roomDb.habitDao()
         val current = dao.getByLegacyId(id) ?: return
         val updated = Habit(
@@ -761,7 +635,6 @@ class AppRepository(
     }
 
     suspend fun toggleHabitBinaryCompletion(id: Int, date: LocalDate) {
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -792,7 +665,6 @@ class AppRepository(
      * index never conflicts.
      */
     private suspend fun setHabitLogState(legacyHabitId: Int, date: LocalDate, stateTag: String?) {
-        ensureMigrated()
         val db = roomDb
         val now = System.currentTimeMillis()
         db.withTransaction {
@@ -824,64 +696,6 @@ class AppRepository(
         locallyModifiedAt = now,
         deleted = false,
     )
-}
-
-// --- Encoding helpers ---
-
-internal fun encodeStamps(stamps: Map<LocalDate, Int>): String =
-    stamps.entries.joinToString(",") { "${it.key}=${it.value}" }
-
-internal fun decodeStamps(raw: String): Map<LocalDate, Int> {
-    if (raw.isBlank()) return emptyMap()
-    return runCatching {
-        raw.split(",").associate { pair ->
-            val (date, count) = pair.split("=")
-            LocalDate.parse(date) to count.toInt()
-        }
-    }.getOrElse { emptyMap() }
-}
-
-// Schema, pipe-separated per record:
-//   0:id 1:startedAt 2:endedAt 3:focusMinutes 4:shortBreakMinutes 5:longBreakMinutes
-//   6:completedFocusCount 7:totalFocusCount 8:status 9:taskEncoded
-//   10:completedShortBreakCount (v2+) 11:completedLongBreakCount (v2+)
-//
-// Fields 10/11 were added in v2. Older records have 10 fields; the decoder defaults
-// the new counts to 0 so previously-saved sessions stay readable without migration.
-internal fun encodeSessionRecords(records: List<SessionRecord>): String =
-    records.joinToString("\n") { r ->
-        val taskEncoded = if (r.taskName != null) URLEncoder.encode(r.taskName, "UTF-8") else ""
-        listOf(
-            r.id, r.startedAt, r.endedAt,
-            r.focusMinutes, r.shortBreakMinutes, r.longBreakMinutes,
-            r.completedFocusCount, r.totalFocusCount,
-            r.status.name, taskEncoded,
-            r.completedShortBreakCount, r.completedLongBreakCount
-        ).joinToString("|")
-    }
-
-internal fun decodeSessionRecords(raw: String): List<SessionRecord> {
-    if (raw.isBlank()) return emptyList()
-    return runCatching {
-        raw.split("\n").mapNotNull { line ->
-            val p = line.split("|")
-            if (p.size < 10) return@mapNotNull null
-            SessionRecord(
-                id = p[0].toLong(),
-                startedAt = p[1].toLong(),
-                endedAt = p[2].toLong(),
-                focusMinutes = p[3].toInt(),
-                shortBreakMinutes = p[4].toInt(),
-                longBreakMinutes = p[5].toInt(),
-                completedFocusCount = p[6].toInt(),
-                totalFocusCount = p[7].toInt(),
-                status = SessionStatus.valueOf(p[8]),
-                taskName = if (p[9].isBlank()) null else URLDecoder.decode(p[9], "UTF-8"),
-                completedShortBreakCount = p.getOrNull(10)?.toIntOrNull() ?: 0,
-                completedLongBreakCount = p.getOrNull(11)?.toIntOrNull() ?: 0
-            )
-        }
-    }.getOrElse { emptyList() }
 }
 
 // --- Runtime snapshot encoding ---
@@ -1018,191 +832,6 @@ internal fun decodeInterruptedFocus(raw: String): InterruptedFocus? {
             focusMinutes = p.getOrNull(6)?.takeIf { it.isNotBlank() }?.toInt(),
         )
     }.getOrNull()
-}
-
-// --- Task encoding ---
-//
-// v1 schema (7 fields):
-//   "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>:<categoryIdOrEmpty>"
-//
-// v2 schema (9 fields, adds priority + dueDate):
-//   "<id>:<urlTitle>:<minutes>:<completed>:<plannedSessions>:<completedSessions>:<categoryIdOrEmpty>:<priorityTag>:<dueDateIsoOrEmpty>"
-//
-// Decoder accepts both — missing v2 fields fall back to Normal priority and no due date,
-// so existing installs read cleanly without a migration step.
-internal fun encodeTasks(tasks: List<FocusTask>): String =
-    if (tasks.isEmpty()) "[]"
-    else tasks.joinToString("\n") { t ->
-        val encodedTitle = URLEncoder.encode(t.title, "UTF-8")
-        val catField = t.categoryId?.toString() ?: ""
-        val priorityField = t.priority.storageTag
-        val dueField = t.dueDate?.toString() ?: ""
-        "${t.id}:$encodedTitle:${t.minutes}:${t.completed}:${t.plannedSessions}:${t.completedSessions}:$catField:$priorityField:$dueField"
-    }
-
-internal fun decodeTasks(raw: String): List<FocusTask> {
-    if (raw.isBlank()) return emptyList()
-    if (raw == "[]") return emptyList()
-    return runCatching {
-        raw.split("\n").map { line ->
-            val p = line.split(":", limit = 9)
-            FocusTask(
-                id = p[0].toInt(),
-                title = URLDecoder.decode(p[1], "UTF-8"),
-                minutes = p[2].toInt(),
-                completed = p[3].toBoolean(),
-                plannedSessions = p[4].toInt(),
-                completedSessions = p[5].toInt(),
-                categoryId = p.getOrNull(6)?.takeIf { it.isNotBlank() }?.toInt(),
-                priority = TaskPriority.fromStorageTag(p.getOrNull(7)),
-                dueDate = p.getOrNull(8)?.takeIf { it.isNotBlank() }
-                    ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-            )
-        }
-    }.getOrElse { emptyList() }
-}
-
-// --- Category encoding ---
-//
-// v1 schema (2 fields): "<id>:<urlName>"
-// v2 schema (3 fields): "<id>:<urlName>:<colorArgbOrEmpty>"
-//
-// The color field was added with the category color picker. Older 2-field lines
-// decode with a null color, so existing installs read cleanly without migration.
-internal fun encodeCategories(categories: List<Category>): String =
-    if (categories.isEmpty()) "[]"
-    else categories.joinToString("\n") { c ->
-        "${c.id}:${URLEncoder.encode(c.name, "UTF-8")}:${c.colorArgb ?: ""}"
-    }
-
-internal fun decodeCategories(raw: String): List<Category> {
-    if (raw.isBlank()) return emptyList()
-    if (raw == "[]") return emptyList()
-    return runCatching {
-        raw.split("\n").map { line ->
-            val p = line.split(":", limit = 3)
-            Category(
-                id = p[0].toInt(),
-                name = URLDecoder.decode(p[1], "UTF-8"),
-                colorArgb = p.getOrNull(2)?.takeIf { it.isNotBlank() }?.toLongOrNull(),
-            )
-        }
-    }.getOrElse { emptyList() }
-}
-
-// ─── Habit encoding ───────────────────────────────────────────────────────────
-//
-// v2 schema — one habit per line, 11 pipe-separated fields:
-//   0:id  1:urlName  2:urlEmoji  3:colorArgb  4:createdAt
-//   5:targetTag  (legacy "B"|"Q"|"P" — habits are check-off only now, always "B")
-//   6:targetValue (legacy — always 1 now)
-//   7:occurrenceTag  ("D" daily | "W" weekdays)
-//   8:occurrenceData (empty for daily; "MON,WED,FRI" for weekdays)
-//   9:timeBlockTag   ("M"|"A"|"E"|"X")
-//   10:logsCsv       comma-separated "<isoDate>~<tag>[~progress]"
-//                    tags: "C" Completed | "S" Skipped | "P" Partial (legacy)
-//
-// Fields 5/6 are retained for backward compatibility with previously stored
-// data but are no longer meaningful: every habit is a simple binary check-off.
-//
-// v1 legacy (6 fields): id|urlName|urlEmoji|colorArgb|createdAt|completionDatesCsv
-// Detected on read and migrated to Daily/Anytime with Completed logs.
-
-internal fun encodeHabits(habits: List<Habit>): String =
-    if (habits.isEmpty()) "[]"
-    else habits.joinToString("\n") { h ->
-        val (oTag, oData) = when (val o = h.occurrence) {
-            HabitOccurrence.Daily -> "D" to ""
-            is HabitOccurrence.Weekdays -> "W" to o.days.sortedBy { it.value }.joinToString(",") { it.name }
-        }
-        val bTag = when (h.timeBlock) {
-            TimeBlock.Morning -> "M"; TimeBlock.Afternoon -> "A"
-            TimeBlock.Evening -> "E"; TimeBlock.Anytime -> "X"
-        }
-        val logsCsv = h.logs.entries.sortedBy { it.key }.joinToString(",") { (date, log) ->
-            when (val s = log.state) {
-                HabitLogState.Completed -> "$date~C"
-                HabitLogState.Skipped   -> "$date~S"
-                is HabitLogState.Partial -> "$date~P~${s.progress}"
-            }
-        }
-        listOf(
-            h.id, URLEncoder.encode(h.name, "UTF-8"), URLEncoder.encode(h.emoji, "UTF-8"),
-            h.colorArgb, h.createdAt,
-            "B", 1, oTag, oData, bTag, logsCsv
-        ).joinToString("|")
-    }
-
-internal fun decodeHabits(raw: String): List<Habit> {
-    if (raw.isBlank() || raw == "[]") return emptyList()
-    return runCatching {
-        raw.split("\n").mapNotNull { line ->
-            val p = line.split("|")
-            when {
-                p.size >= 11 -> decodeHabitV2(p)
-                p.size in 5..6 -> decodeHabitV1(p)
-                else -> null
-            }
-        }
-    }.getOrElse { emptyList() }
-}
-
-private fun decodeHabitV2(p: List<String>): Habit {
-    // Fields 5 (target tag) and 6 (target value) are legacy and ignored —
-    // habits are check-off only now.
-    val occurrence: HabitOccurrence = when (p[7]) {
-        "W" -> {
-            val days = p[8].split(",").filter { it.isNotBlank() }
-                .mapNotNull { runCatching { DayOfWeek.valueOf(it) }.getOrNull() }.toSet()
-            if (days.isEmpty()) HabitOccurrence.Daily else HabitOccurrence.Weekdays(days)
-        }
-        else -> HabitOccurrence.Daily
-    }
-    val timeBlock = when (p[9]) {
-        "M" -> TimeBlock.Morning; "A" -> TimeBlock.Afternoon
-        "E" -> TimeBlock.Evening; else -> TimeBlock.Anytime
-    }
-    val logs: Map<LocalDate, HabitLog> = p.getOrNull(10)
-        ?.takeIf { it.isNotBlank() }
-        ?.split(",")
-        ?.mapNotNull { entry ->
-            val parts = entry.split("~")
-            if (parts.size < 2) return@mapNotNull null
-            val date = runCatching { LocalDate.parse(parts[0]) }.getOrNull() ?: return@mapNotNull null
-            val state: HabitLogState = when (parts[1]) {
-                "C" -> HabitLogState.Completed
-                "S" -> HabitLogState.Skipped
-                "P" -> HabitLogState.Partial(parts.getOrNull(2)?.toIntOrNull()?.coerceAtLeast(0) ?: 0)
-                else -> return@mapNotNull null
-            }
-            date to HabitLog(state)
-        }
-        ?.toMap() ?: emptyMap()
-    return Habit(
-        id = p[0].toInt(),
-        name = URLDecoder.decode(p[1], "UTF-8"),
-        emoji = URLDecoder.decode(p[2], "UTF-8"),
-        colorArgb = p[3].toLong(),
-        createdAt = p[4].toLong(),
-        occurrence = occurrence, timeBlock = timeBlock, logs = logs,
-    )
-}
-
-private fun decodeHabitV1(p: List<String>): Habit {
-    val completions = p.getOrNull(5)
-        ?.takeIf { it.isNotBlank() }
-        ?.split(",")
-        ?.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
-        ?.associateWith { HabitLog(HabitLogState.Completed) }
-        ?: emptyMap()
-    return Habit(
-        id = p[0].toInt(),
-        name = URLDecoder.decode(p[1], "UTF-8"),
-        emoji = URLDecoder.decode(p[2], "UTF-8"),
-        colorArgb = p[3].toLong(),
-        createdAt = p[4].toLong(),
-        logs = completions,
-    )
 }
 
 private fun decodeOptionalInt(raw: String?): Int? =

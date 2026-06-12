@@ -129,12 +129,6 @@ class AppRepositoryTest {
     }
 
     @Test
-    fun `encodeStamps with emptyMap round-trips to emptyMap`() {
-        val encoded = encodeStamps(emptyMap())
-        assertEquals(emptyMap<java.time.LocalDate, Int>(), decodeStamps(encoded))
-    }
-
-    @Test
     fun `pendingCycleCompletionAck defaults to false`() = runTest {
         val repo = makeRepo()
         assertEquals(false, repo.pendingCycleCompletionAckFlow.first())
@@ -170,7 +164,8 @@ class AppRepositoryTest {
     }
 
     @Test
-    fun `task encoding round-trips priority and due date`() {
+    fun `setTasks round-trips priority and due date through Room`() = runTest {
+        val repo = makeRepo()
         val tasks = listOf(
             FocusTask(
                 id = 1,
@@ -189,23 +184,9 @@ class AppRepositoryTest {
             FocusTask(id = 3, title = "Default everything", minutes = 25),
         )
 
-        val decoded = decodeTasks(encodeTasks(tasks))
+        repo.setTasks(tasks)
 
-        assertEquals(tasks, decoded)
-    }
-
-    @Test
-    fun `task decoder accepts legacy v1 rows without priority or due date`() {
-        // v1 format has 7 colon-separated fields (no priority, no due date).
-        val v1 = "7:Refine%20task%20screen:25:false:1:0:"
-        val decoded = decodeTasks(v1)
-
-        assertEquals(1, decoded.size)
-        val task = decoded.first()
-        assertEquals(7, task.id)
-        assertEquals("Refine task screen", task.title)
-        assertEquals(TaskPriority.Normal, task.priority)
-        assertEquals(null, task.dueDate)
+        assertEquals(tasks, repo.appState.first().tasks)
     }
 
     // --- ownerId (data ownership marker) ---
