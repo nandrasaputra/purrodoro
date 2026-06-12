@@ -8,6 +8,17 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.room.withTransaction
+import com.endiar.purrodoro.data.local.CategoryEntity
+import com.endiar.purrodoro.data.local.DailyStampEntity
+import com.endiar.purrodoro.data.local.HabitEntity
+import com.endiar.purrodoro.data.local.HabitLogEntity
+import com.endiar.purrodoro.data.local.LegacyBlobs
+import com.endiar.purrodoro.data.local.LocalStoreMigration
+import com.endiar.purrodoro.data.local.MigrationSink
+import com.endiar.purrodoro.data.local.PurrodoroDatabase
+import com.endiar.purrodoro.data.local.SessionRecordEntity
+import com.endiar.purrodoro.data.local.TaskEntity
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.Category
@@ -36,6 +47,8 @@ import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.time.LocalDate
@@ -65,7 +78,10 @@ data class AppState(
 )
 
 
-class AppRepository(private val dataStore: DataStore<Preferences>) {
+class AppRepository(
+    private val dataStore: DataStore<Preferences>,
+    private val db: PurrodoroDatabase? = null,
+) {
 
     companion object {
         private val KEY_GLASS_MODE = stringPreferencesKey("glass_readability_mode")
@@ -97,6 +113,7 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
         private val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
         private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial")
         private val KEY_INTERRUPTED_FOCUS = stringPreferencesKey("interrupted_focus")
+        private val KEY_MIGRATED_TO_ROOM = booleanPreferencesKey("has_migrated_to_room")
 
         // Marks which account the on-device data belongs to. Null = unclaimed
         // (guest data). Survives sign-out; drives the Claim/Keep/Drop rule on the
@@ -110,8 +127,86 @@ class AppRepository(private val dataStore: DataStore<Preferences>) {
 
         fun get(context: Context): AppRepository =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: AppRepository(context.applicationContext.dataStore).also { INSTANCE = it }
+                INSTANCE ?: AppRepository(
+                    context.applicationContext.dataStore,
+                    PurrodoroDatabase.get(context),
+                ).also { INSTANCE = it }
             }
+    }
+
+    private val migrationMutex = Mutex()
+    @Volatile private var migrationDone = false
+
+    /**
+     * One-time DataStore → Room migration gate. Safe to call from any entry
+     * point (activity, widget, timer service): the first caller performs the
+     * migration, everyone else waits on the mutex and then no-ops. Once the
+     * [KEY_MIGRATED_TO_ROOM] flag is set the gate is a cheap volatile read.
+     *
+     * Crash safety: the Room tables are cleared before writing, and the flag +
+     * legacy-key removal commit in a single DataStore edit after the Room
+     * transaction, so a crash mid-migration re-runs it from scratch.
+     */
+    suspend fun ensureMigrated() {
+        val db = db ?: return
+        if (migrationDone) return
+        migrationMutex.withLock {
+            if (migrationDone) return
+            val prefs = dataStore.data.first()
+            if (prefs[KEY_MIGRATED_TO_ROOM] == true) {
+                migrationDone = true
+                return
+            }
+            db.withTransaction {
+                db.taskDao().clearAll()
+                db.categoryDao().clearAll()
+                db.habitDao().clearAll()
+                db.habitLogDao().clearAll()
+                db.sessionRecordDao().clearAll()
+                db.dailyStampDao().clearAll()
+            }
+            val legacy = LegacyBlobs(
+                tasksRaw = prefs[KEY_TASKS] ?: "",
+                categoriesRaw = prefs[KEY_CATEGORIES] ?: "",
+                habitsRaw = prefs[KEY_HABITS] ?: "",
+                recordsRaw = prefs[KEY_SESSION_RECORDS] ?: "",
+                stampsRaw = prefs[KEY_STAMPS] ?: "",
+            )
+            LocalStoreMigration().migrate(legacy, RoomMigrationSink(db))
+            // The legacy keys hasPriorAppUsage reads are about to be deleted,
+            // so stamp its upgrade conclusion into the explicit flags now.
+            val hadDomainData = hasPriorAppUsage(prefs)
+            dataStore.edit { p ->
+                if (hadDomainData) {
+                    if (p[KEY_HAS_SEEN_ONBOARDING] == null) p[KEY_HAS_SEEN_ONBOARDING] = true
+                    if (p[KEY_HAS_SEEN_TUTORIAL] == null) p[KEY_HAS_SEEN_TUTORIAL] = true
+                }
+                listOf(KEY_TASKS, KEY_CATEGORIES, KEY_HABITS, KEY_SESSION_RECORDS, KEY_STAMPS)
+                    .forEach { p.remove(it) }
+                p[KEY_MIGRATED_TO_ROOM] = true
+            }
+            migrationDone = true
+        }
+    }
+
+    private class RoomMigrationSink(private val db: PurrodoroDatabase) : MigrationSink {
+        override suspend fun write(
+            tasks: List<TaskEntity>,
+            categories: List<CategoryEntity>,
+            habits: List<HabitEntity>,
+            habitLogs: List<HabitLogEntity>,
+            records: List<SessionRecordEntity>,
+            stamps: List<DailyStampEntity>,
+        ) {
+            db.withTransaction {
+                db.categoryDao().upsert(categories)
+                db.taskDao().upsert(tasks)
+                db.habitDao().upsert(habits)
+                db.habitLogDao().upsert(habitLogs)
+                db.sessionRecordDao().upsert(records)
+                db.dailyStampDao().upsert(stamps)
+            }
+        }
     }
 
     val runtimeSnapshot: Flow<TimerRuntimeState?> = dataStore.data.map { prefs ->
