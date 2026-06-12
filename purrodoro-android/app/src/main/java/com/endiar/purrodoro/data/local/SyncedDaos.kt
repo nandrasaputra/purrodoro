@@ -129,6 +129,10 @@ interface HabitLogDao {
     @Query("UPDATE habit_logs SET deleted = 1, dirty = 1, locallyModifiedAt = :now WHERE id = :id")
     suspend fun softDelete(id: String, now: Long)
 
+    /** Sync helper: hard-removes one row when a pull re-keys it onto the server id. */
+    @Query("DELETE FROM habit_logs WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     @Query("DELETE FROM habit_logs")
     suspend fun clearAll()
 }
@@ -197,6 +201,10 @@ interface DailyStampDao {
 
     @Query("UPDATE daily_stamps SET deleted = 1, dirty = 1, locallyModifiedAt = :now WHERE id = :id")
     suspend fun softDelete(id: String, now: Long)
+
+    /** Sync helper: hard-removes one row when a pull re-keys it onto the server id. */
+    @Query("DELETE FROM daily_stamps WHERE id = :id")
+    suspend fun deleteById(id: String)
 
     @Query("DELETE FROM daily_stamps")
     suspend fun clearAll()
