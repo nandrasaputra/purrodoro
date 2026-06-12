@@ -18,6 +18,10 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE deleted = 0")
     suspend fun getAll(): List<TaskEntity>
 
+    /** Write-path helper: includes tombstones so unique legacyIds can be resurrected. */
+    @Query("SELECT * FROM tasks")
+    suspend fun getAllIncludingDeleted(): List<TaskEntity>
+
     @Query("SELECT * FROM tasks WHERE dirty = 1")
     suspend fun getDirty(): List<TaskEntity>
 
@@ -44,6 +48,10 @@ interface CategoryDao {
 
     @Query("SELECT * FROM categories WHERE deleted = 0")
     suspend fun getAll(): List<CategoryEntity>
+
+    /** Write-path helper: includes tombstones so unique legacyIds can be resurrected. */
+    @Query("SELECT * FROM categories")
+    suspend fun getAllIncludingDeleted(): List<CategoryEntity>
 
     @Query("SELECT * FROM categories WHERE dirty = 1")
     suspend fun getDirty(): List<CategoryEntity>
