@@ -284,6 +284,10 @@
     <string name="soundscape_transport_play_cd">Play Soundscape</string>
     <string name="soundscape_transport_pause_cd">Pause Soundscape</string>
     <string name="soundscape_volume_percent">%1$d%%</string>
+    <string name="soundscape_download">Download</string>
+    <string name="soundscape_downloading">Downloading…</string>
+    <string name="soundscape_remove_download">Remove download</string>
+    <string name="soundscape_download_size">%1$s MB</string>
     <string name="music_bloom">Bloom</string>
     <string name="music_bloom_artist">Yasumu</string>
     <string name="music_chill_fm">Chill FM</string>

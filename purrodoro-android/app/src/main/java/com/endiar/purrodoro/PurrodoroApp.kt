@@ -1359,6 +1359,8 @@ fun PurrodoroApp(
                         onMusicToggle = {
                             removeMusicFromMix()
                         },
+                        onDownloadTrack = onDownloadTrack,
+                        onDeleteDownload = onDeleteDownload,
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,
                     )
