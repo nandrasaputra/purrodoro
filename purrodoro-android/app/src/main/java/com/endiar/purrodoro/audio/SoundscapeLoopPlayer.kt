@@ -5,21 +5,22 @@ import android.media.MediaPlayer
 import androidx.annotation.RawRes
 
 /**
- * Loops a single bundled `res/raw` track with independent volume control.
+ * Loops a single track with independent volume control. Sources are either
+ * bundled `res/raw` resources or downloaded files ([AudioSource]).
  *
- * Each player instance holds at most **one** track: pause/resume continues that
- * track mid-playback. Switching to a different resource tears down the previous
- * track and always starts the new one from the beginning.
+ * Each player instance holds at most **one** track: pause/resume continues
+ * that track mid-playback. Switching to a different source tears down the
+ * previous track and always starts the new one from the beginning.
  */
 class SoundscapeLoopPlayer(context: Context) {
 
     private val appContext = context.applicationContext
     private var player: MediaPlayer? = null
-    private var loadedResId: Int? = null
+    private var loadedSource: AudioSource? = null
 
-    fun play(@RawRes resId: Int, volume: Float) {
+    fun play(source: AudioSource, volume: Float) {
         val clamped = volume.coerceIn(0f, 1f)
-        if (loadedResId == resId) {
+        if (loadedSource == source) {
             player?.setVolume(clamped, clamped)
             if (player?.isPlaying != true) {
                 player?.start()
@@ -27,13 +28,16 @@ class SoundscapeLoopPlayer(context: Context) {
             return
         }
         tearDownPlayer()
-        val mediaPlayer = MediaPlayer.create(appContext, resId) ?: return
+        val mediaPlayer = createPlayer(source) ?: return
         mediaPlayer.isLooping = true
         mediaPlayer.setVolume(clamped, clamped)
         mediaPlayer.start()
         player = mediaPlayer
-        loadedResId = resId
+        loadedSource = source
     }
+
+    @Deprecated("Transitional — Task 3 migrates call sites to play(AudioSource)")
+    fun play(@RawRes resId: Int, volume: Float) = play(AudioSource.Bundled(resId), volume)
 
     fun setVolume(volume: Float) {
         val clamped = volume.coerceIn(0f, 1f)
@@ -52,9 +56,19 @@ class SoundscapeLoopPlayer(context: Context) {
         tearDownPlayer()
     }
 
+    private fun createPlayer(source: AudioSource): MediaPlayer? = when (source) {
+        is AudioSource.Bundled -> MediaPlayer.create(appContext, source.resId)
+        is AudioSource.LocalFile -> runCatching {
+            MediaPlayer().apply {
+                setDataSource(source.path)
+                prepare()
+            }
+        }.getOrElse { null }
+    }
+
     private fun tearDownPlayer() {
         player?.release()
         player = null
-        loadedResId = null
+        loadedSource = null
     }
 }
