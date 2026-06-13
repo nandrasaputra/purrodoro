@@ -1,7 +1,7 @@
 package com.endiar.purrodoro.model
 
-import androidx.annotation.RawRes
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.audio.AudioSource
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -84,13 +84,29 @@ data class FocusTask(
  */
 data class Category(val id: Int, val name: String, val colorArgb: Long? = null)
 
+/** Download lifecycle of a cloud track on this device. */
+sealed interface DownloadState {
+    data object NotDownloaded : DownloadState
+    /** [progress] is 0f..1f. */
+    data class Downloading(val progress: Float) : DownloadState
+    data object Downloaded : DownloadState
+}
+
+/** Cloud-catalog metadata; null on bundled tracks. */
+data class RemoteTrackInfo(
+    val fileSizeBytes: Long,
+    val downloadState: DownloadState,
+)
+
 data class SoundOption(
     val id: Int,
     val name: String,
     val description: String,
     val locked: Boolean,
     val symbol: String,
-    @field:RawRes val audioResId: Int,
+    /** null = cloud track not downloaded yet (not playable). */
+    val audio: AudioSource?,
+    val remote: RemoteTrackInfo? = null,
 )
 
 /** Lo-fi focus track shown in the Soundscape sheet vinyl row. */
@@ -98,8 +114,10 @@ data class MusicOption(
     val id: Int,
     val name: String,
     val artist: String,
-    @field:RawRes val audioResId: Int,
+    /** null = cloud track not downloaded yet (not playable). */
+    val audio: AudioSource?,
     val locked: Boolean = false,
+    val remote: RemoteTrackInfo? = null,
 )
 
 data class TimerSettings(

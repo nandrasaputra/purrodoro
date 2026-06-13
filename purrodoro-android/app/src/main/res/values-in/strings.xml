@@ -281,6 +281,10 @@
     <string name="soundscape_transport_play_cd">Putar Soundscape</string>
     <string name="soundscape_transport_pause_cd">Jeda Soundscape</string>
     <string name="soundscape_volume_percent">%1$d%%</string>
+    <string name="soundscape_download">Unduh</string>
+    <string name="soundscape_downloading">Mengunduh…</string>
+    <string name="soundscape_remove_download">Hapus unduhan</string>
+    <string name="soundscape_download_size">%1$s MB</string>
     <string name="music_bloom">Bloom</string>
     <string name="music_bloom_artist">Yasumu</string>
     <string name="music_chill_fm">Chill FM</string>
