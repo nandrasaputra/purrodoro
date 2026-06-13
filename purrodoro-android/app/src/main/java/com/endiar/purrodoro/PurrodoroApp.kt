@@ -54,6 +54,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.audio.SoundscapeLoopPlayer
 import com.endiar.purrodoro.audio.AudioSource
+import com.endiar.purrodoro.soundscape.SoundscapeModule
+import com.endiar.purrodoro.soundscape.toMusicOption
+import com.endiar.purrodoro.soundscape.toSoundOption
+import com.endiar.purrodoro.model.DownloadState
 import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.ui.auth.rememberAccountSwitchGate
@@ -240,6 +244,22 @@ fun PurrodoroApp(
     val accountManager = remember(repo) { AccountManager(repo, SyncModule.get(context).syncHooks) }
     val accountSwitchGate = rememberAccountSwitchGate()
 
+    // Cloud soundscape catalog: cached snapshot + per-track download states.
+    val soundscape = remember { SoundscapeModule.get(context) }
+    val catalogTracks by soundscape.catalogRepository.observeCatalog()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val downloadStates by soundscape.downloadManager.states.collectAsStateWithLifecycle()
+
+    // One refresh per app start. IMPORTANT: prune runs against the repository's
+    // cache snapshot, NOT against `catalogTracks` — that state starts as
+    // emptyList() before Room emits, and prune(emptyList()) would delete every
+    // downloaded file on launch. If refresh failed (offline), snapshot() is the
+    // last known catalog, which is still the correct prune reference.
+    LaunchedEffect(Unit) {
+        soundscape.catalogRepository.refresh()
+        soundscape.downloadManager.prune(soundscape.catalogRepository.snapshot())
+    }
+
     // Bridge from the Quick Start widget: when the host activity receives a
     // launch intent with EXTRA_AUTO_OPEN_START_FOCUS we surface the existing
     // Start Focus sheet automatically, but only when no cycle is in flight —
@@ -400,7 +420,7 @@ fun PurrodoroApp(
         }
         persistTasks(tasks.filterNot(toDelete))
     }
-    val ambienceOptions = listOf(
+    val bundledAmbienceOptions = listOf(
         SoundOption(
             id = 1,
             name = stringResource(R.string.sound_rain_name),
@@ -418,7 +438,7 @@ fun PurrodoroApp(
             audio = AudioSource.Bundled(R.raw.ambience_restaurant),
         ),
     )
-    val musicOptions = listOf(
+    val bundledMusicOptions = listOf(
         MusicOption(
             id = 1,
             name = stringResource(R.string.music_bloom),
@@ -439,6 +459,46 @@ fun PurrodoroApp(
             locked = true,
         ),
     )
+
+    // Cloud catalog rows mapped to option models and appended after the
+    // bundled lists. `audio` is non-null only once the file is on disk.
+    val cloudMusicOptions = catalogTracks
+        .filter { it.kind == "music" }
+        .map { track ->
+            val state = downloadStates[track.id] ?: DownloadState.NotDownloaded
+            track.toMusicOption(
+                downloadState = state,
+                localPath = soundscape.downloadManager.localFile(track)
+                    .takeIf { state == DownloadState.Downloaded }?.absolutePath,
+            )
+        }
+    val cloudAmbienceOptions = catalogTracks
+        .filter { it.kind == "ambience" }
+        .map { track ->
+            val state = downloadStates[track.id] ?: DownloadState.NotDownloaded
+            track.toSoundOption(
+                downloadState = state,
+                localPath = soundscape.downloadManager.localFile(track)
+                    .takeIf { state == DownloadState.Downloaded }?.absolutePath,
+            )
+        }
+    val musicOptions = bundledMusicOptions + cloudMusicOptions
+    val ambienceOptions = bundledAmbienceOptions + cloudAmbienceOptions
+
+    // Cloud-track download/delete actions, surfaced in the Sounds sheet (Task 8).
+    val onDownloadTrack: (Int) -> Unit = { trackId ->
+        catalogTracks.firstOrNull { it.id == trackId }?.let { track ->
+            scope.launch { soundscape.downloadManager.download(track) }
+        }
+    }
+    val onDeleteDownload: (Int) -> Unit = { trackId ->
+        catalogTracks.firstOrNull { it.id == trackId }?.let { track ->
+            // Stop playback first if this exact track is playing.
+            if (playingMusicId == trackId) playingMusicId = null
+            if (playingAmbienceId == trackId) playingAmbienceId = null
+            soundscape.downloadManager.delete(track)
+        }
+    }
 
     fun isAmbienceInMix(id: Int): Boolean =
         ambienceOptions.any { it.id == id && (!it.locked || isPremium) }
