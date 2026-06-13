@@ -22,8 +22,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SessionRecordEntity::class,
         DailyStampEntity::class,
         ProfileEntity::class,
+        SoundscapeTrackEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class PurrodoroDatabase : RoomDatabase() {
@@ -35,6 +36,7 @@ abstract class PurrodoroDatabase : RoomDatabase() {
     abstract fun sessionRecordDao(): SessionRecordDao
     abstract fun dailyStampDao(): DailyStampDao
     abstract fun profileDao(): ProfileDao
+    abstract fun soundscapeTrackDao(): SoundscapeTrackDao
 
     companion object {
         /**
@@ -58,6 +60,26 @@ abstract class PurrodoroDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 adds the soundscape_track cloud-catalog cache. */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `soundscape_track` (" +
+                        "`id` INTEGER NOT NULL, " +
+                        "`kind` TEXT NOT NULL, " +
+                        "`name` TEXT NOT NULL, " +
+                        "`artist` TEXT NOT NULL, " +
+                        "`symbol` TEXT NOT NULL, " +
+                        "`filePath` TEXT NOT NULL, " +
+                        "`fileSizeBytes` INTEGER NOT NULL, " +
+                        "`isPremium` INTEGER NOT NULL, " +
+                        "`sortOrder` INTEGER NOT NULL, " +
+                        "`updatedAtMillis` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`))"
+                )
+            }
+        }
+
         @Volatile private var INSTANCE: PurrodoroDatabase? = null
 
         fun get(context: Context): PurrodoroDatabase =
@@ -66,7 +88,7 @@ abstract class PurrodoroDatabase : RoomDatabase() {
                     context.applicationContext,
                     PurrodoroDatabase::class.java,
                     "purrodoro.db",
-                ).addMigrations(MIGRATION_1_2)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build().also { INSTANCE = it }
             }
     }
