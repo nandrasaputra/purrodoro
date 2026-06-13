@@ -27,6 +27,8 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.input.pointer.pointerInput
@@ -70,14 +72,17 @@ import com.composables.icons.lucide.AudioLines
 import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.ChevronUp
+import com.composables.icons.lucide.CloudDownload
 import com.composables.icons.lucide.CloudRain
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Music
 import com.composables.icons.lucide.Pause
 import com.composables.icons.lucide.Play
+import com.composables.icons.lucide.Trash2
 import com.composables.icons.lucide.Volume2
 import com.composables.icons.lucide.VolumeX
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.model.DownloadState
 import com.endiar.purrodoro.model.GlassTreatment
 import com.endiar.purrodoro.model.MusicOption
 import com.endiar.purrodoro.model.SoundOption
@@ -905,6 +910,39 @@ private fun SoundscapeLayerStatusRow(
     }
 }
 
+/**
+ * Resolves a music tile tap, gating cloud tracks on their download state:
+ * locked tracks always route through [onMusicSelected] (premium sheet), a
+ * download in flight is ignored, a not-downloaded track starts its download,
+ * and a bundled/downloaded track plays or toggles as before.
+ */
+private fun musicTileClick(
+    track: MusicOption,
+    isPlaying: Boolean,
+    onMusicSelected: (MusicOption) -> Unit,
+    onMusicToggle: (MusicOption) -> Unit,
+    onDownloadTrack: (Int) -> Unit,
+): () -> Unit = when {
+    track.locked -> { { onMusicSelected(track) } }
+    track.remote?.downloadState is DownloadState.Downloading -> { {} }
+    track.remote?.downloadState == DownloadState.NotDownloaded -> { { onDownloadTrack(track.id) } }
+    else -> { { if (isPlaying) onMusicToggle(track) else onMusicSelected(track) } }
+}
+
+/** Ambience counterpart of [musicTileClick]. */
+private fun ambienceTileClick(
+    sound: SoundOption,
+    isPlaying: Boolean,
+    onAmbienceSelected: (SoundOption) -> Unit,
+    onAmbienceToggle: (SoundOption) -> Unit,
+    onDownloadTrack: (Int) -> Unit,
+): () -> Unit = when {
+    sound.locked -> { { onAmbienceSelected(sound) } }
+    sound.remote?.downloadState is DownloadState.Downloading -> { {} }
+    sound.remote?.downloadState == DownloadState.NotDownloaded -> { { onDownloadTrack(sound.id) } }
+    else -> { { if (isPlaying) onAmbienceToggle(sound) else onAmbienceSelected(sound) } }
+}
+
 @Composable
 fun SoundsScreen(
     ambienceOptions: List<SoundOption>,
@@ -918,6 +956,8 @@ fun SoundsScreen(
     onMusicSelected: (MusicOption) -> Unit,
     onMusicToggle: (MusicOption) -> Unit,
     modifier: Modifier = Modifier,
+    onDownloadTrack: (Int) -> Unit = {},
+    onDeleteDownload: (Int) -> Unit = {},
     @Suppress("UNUSED_PARAMETER") glassTreatment: GlassTreatment = GlassTreatment.Clear,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     @Suppress("UNUSED_PARAMETER") overBackdrop: Boolean = true,
@@ -966,6 +1006,8 @@ fun SoundsScreen(
                 playingAmbienceId = playingAmbienceId,
                 onAmbienceSelected = onAmbienceSelected,
                 onAmbienceToggle = onAmbienceToggle,
+                onDownloadTrack = onDownloadTrack,
+                onDeleteDownload = onDeleteDownload,
                 modifier = Modifier.padding(horizontal = KuroSpacing.lg),
             )
         } else {
@@ -976,9 +1018,13 @@ fun SoundsScreen(
                         sound = sound,
                         isPlaying = isPlaying,
                         tileLabel = ambienceShortName(sound.id),
-                        onClick = {
-                            if (isPlaying) onAmbienceToggle(sound) else onAmbienceSelected(sound)
-                        },
+                        onClick = ambienceTileClick(
+                            sound = sound,
+                            isPlaying = isPlaying,
+                            onAmbienceSelected = onAmbienceSelected,
+                            onAmbienceToggle = onAmbienceToggle,
+                            onDownloadTrack = onDownloadTrack,
+                        ),
                     )
                 }
             }
@@ -996,6 +1042,8 @@ fun SoundsScreen(
                 playingMusicId = playingMusicId,
                 onMusicSelected = onMusicSelected,
                 onMusicToggle = onMusicToggle,
+                onDownloadTrack = onDownloadTrack,
+                onDeleteDownload = onDeleteDownload,
                 modifier = Modifier.padding(horizontal = KuroSpacing.lg),
             )
         } else {
@@ -1005,9 +1053,13 @@ fun SoundsScreen(
                     LofiVinylTile(
                         track = track,
                         isPlaying = isPlaying,
-                        onClick = {
-                            if (isPlaying) onMusicToggle(track) else onMusicSelected(track)
-                        },
+                        onClick = musicTileClick(
+                            track = track,
+                            isPlaying = isPlaying,
+                            onMusicSelected = onMusicSelected,
+                            onMusicToggle = onMusicToggle,
+                            onDownloadTrack = onDownloadTrack,
+                        ),
                     )
                 }
             }
@@ -1208,6 +1260,8 @@ private fun SoundscapeExpandedAmbienceGrid(
     onAmbienceSelected: (SoundOption) -> Unit,
     onAmbienceToggle: (SoundOption) -> Unit,
     modifier: Modifier = Modifier,
+    onDownloadTrack: (Int) -> Unit = {},
+    onDeleteDownload: (Int) -> Unit = {},
 ) {
     Column(
         modifier = modifier,
@@ -1221,9 +1275,15 @@ private fun SoundscapeExpandedAmbienceGrid(
                         sound = sound,
                         isPlaying = isPlaying,
                         tileLabel = ambienceShortName(sound.id),
-                        onClick = {
-                            if (isPlaying) onAmbienceToggle(sound) else onAmbienceSelected(sound)
-                        },
+                        onClick = ambienceTileClick(
+                            sound = sound,
+                            isPlaying = isPlaying,
+                            onAmbienceSelected = onAmbienceSelected,
+                            onAmbienceToggle = onAmbienceToggle,
+                            onDownloadTrack = onDownloadTrack,
+                        ),
+                        showRemoveDownload = true,
+                        onDeleteDownload = onDeleteDownload,
                     )
                 }
             }
@@ -1238,6 +1298,8 @@ private fun SoundscapeExpandedLofiGrid(
     onMusicSelected: (MusicOption) -> Unit,
     onMusicToggle: (MusicOption) -> Unit,
     modifier: Modifier = Modifier,
+    onDownloadTrack: (Int) -> Unit = {},
+    onDeleteDownload: (Int) -> Unit = {},
 ) {
     Column(
         modifier = modifier,
@@ -1250,9 +1312,15 @@ private fun SoundscapeExpandedLofiGrid(
                     LofiVinylTile(
                         track = track,
                         isPlaying = isPlaying,
-                        onClick = {
-                            if (isPlaying) onMusicToggle(track) else onMusicSelected(track)
-                        },
+                        onClick = musicTileClick(
+                            track = track,
+                            isPlaying = isPlaying,
+                            onMusicSelected = onMusicSelected,
+                            onMusicToggle = onMusicToggle,
+                            onDownloadTrack = onDownloadTrack,
+                        ),
+                        showRemoveDownload = true,
+                        onDeleteDownload = onDeleteDownload,
                     )
                 }
             }
@@ -1367,10 +1435,13 @@ private fun AmbienceTile(
     isPlaying: Boolean,
     tileLabel: String,
     onClick: () -> Unit,
+    showRemoveDownload: Boolean = false,
+    onDeleteDownload: (Int) -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val borderColor = if (isPlaying) Coral else tokens.cardBorder.copy(alpha = 0.7f)
     val borderWidth = if (isPlaying) 2.dp else 1.dp
+    val downloadState = sound.remote?.downloadState
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1381,6 +1452,8 @@ private fun AmbienceTile(
                 role = Role.Button,
                 onClickLabel = when {
                     sound.locked -> stringResource(R.string.sound_unlock_cd, sound.name)
+                    downloadState == DownloadState.NotDownloaded ->
+                        stringResource(R.string.soundscape_download)
                     isPlaying -> stringResource(R.string.sound_stop_cd, sound.name)
                     else -> stringResource(R.string.sound_play_cd, sound.name)
                 },
@@ -1407,9 +1480,43 @@ private fun AmbienceTile(
                         .padding(KuroSpacing.xs),
                 )
             }
+            when (downloadState) {
+                DownloadState.NotDownloaded -> Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(KuroSpacing.xs)
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Lucide.CloudDownload,
+                        contentDescription = stringResource(R.string.soundscape_download),
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                is DownloadState.Downloading -> CircularProgressIndicator(
+                    progress = { downloadState.progress },
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(KuroSpacing.soundscapeAmbienceTile - KuroSpacing.md),
+                    strokeWidth = 2.dp,
+                    color = Coral,
+                )
+                else -> Unit // bundled or downloaded: no badge
+            }
         }
         Text(
-            text = tileLabel,
+            text = if (downloadState == DownloadState.NotDownloaded) {
+                stringResource(
+                    R.string.soundscape_download_size,
+                    "%.1f".format((sound.remote?.fileSizeBytes ?: 0L) / 1_000_000f),
+                )
+            } else {
+                tileLabel
+            },
             color = tokens.textPrimary,
             style = KuroType.labelMeta,
             textAlign = TextAlign.Center,
@@ -1417,10 +1524,19 @@ private fun AmbienceTile(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (isPlaying) {
-            SoundscapePlayingChip()
-        } else {
-            Spacer(Modifier.height(KuroSpacing.md + KuroSpacing.xs))
+        when {
+            showRemoveDownload && downloadState == DownloadState.Downloaded -> {
+                IconButton(onClick = { onDeleteDownload(sound.id) }) {
+                    Icon(
+                        imageVector = Lucide.Trash2,
+                        contentDescription = stringResource(R.string.soundscape_remove_download),
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            isPlaying -> SoundscapePlayingChip()
+            else -> Spacer(Modifier.height(KuroSpacing.md + KuroSpacing.xs))
         }
     }
 }
@@ -1430,10 +1546,13 @@ private fun LofiVinylTile(
     track: MusicOption,
     isPlaying: Boolean,
     onClick: () -> Unit,
+    showRemoveDownload: Boolean = false,
+    onDeleteDownload: (Int) -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val vinylSize = KuroSpacing.soundscapeLofiVinyl
     val haloSize = vinylSize + 20.dp
+    val downloadState = track.remote?.downloadState
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1443,6 +1562,8 @@ private fun LofiVinylTile(
                 role = Role.Button,
                 onClickLabel = when {
                     track.locked -> stringResource(R.string.sound_unlock_cd, track.name)
+                    downloadState == DownloadState.NotDownloaded ->
+                        stringResource(R.string.soundscape_download)
                     isPlaying -> stringResource(R.string.sound_stop_cd, track.name)
                     else -> stringResource(R.string.sound_play_cd, track.name)
                 },
@@ -1483,6 +1604,32 @@ private fun LofiVinylTile(
                         .padding(KuroSpacing.xs),
                 )
             }
+            when (downloadState) {
+                DownloadState.NotDownloaded -> Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Lucide.CloudDownload,
+                        contentDescription = stringResource(R.string.soundscape_download),
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                is DownloadState.Downloading -> CircularProgressIndicator(
+                    progress = { downloadState.progress },
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(vinylSize + 8.dp),
+                    strokeWidth = 2.dp,
+                    color = Coral,
+                )
+                else -> Unit // bundled or downloaded: no badge
+            }
         }
         Column(
             modifier = Modifier.width(haloSize),
@@ -1501,7 +1648,14 @@ private fun LofiVinylTile(
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                text = track.artist,
+                text = if (downloadState == DownloadState.NotDownloaded) {
+                    stringResource(
+                        R.string.soundscape_download_size,
+                        "%.1f".format((track.remote?.fileSizeBytes ?: 0L) / 1_000_000f),
+                    )
+                } else {
+                    track.artist
+                },
                 color = tokens.textMuted,
                 style = KuroType.labelMeta,
                 textAlign = TextAlign.Center,
@@ -1509,6 +1663,16 @@ private fun LofiVinylTile(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (showRemoveDownload && downloadState == DownloadState.Downloaded) {
+                IconButton(onClick = { onDeleteDownload(track.id) }) {
+                    Icon(
+                        imageVector = Lucide.Trash2,
+                        contentDescription = stringResource(R.string.soundscape_remove_download),
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }
