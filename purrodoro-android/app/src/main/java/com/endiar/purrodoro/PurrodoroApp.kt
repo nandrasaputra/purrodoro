@@ -53,6 +53,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.audio.SoundscapeLoopPlayer
+import com.endiar.purrodoro.audio.AudioSource
+import com.endiar.purrodoro.soundscape.SoundscapeModule
+import com.endiar.purrodoro.soundscape.toMusicOption
+import com.endiar.purrodoro.soundscape.toSoundOption
+import com.endiar.purrodoro.model.DownloadState
 import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.ui.auth.rememberAccountSwitchGate
@@ -239,6 +244,22 @@ fun PurrodoroApp(
     val accountManager = remember(repo) { AccountManager(repo, SyncModule.get(context).syncHooks) }
     val accountSwitchGate = rememberAccountSwitchGate()
 
+    // Cloud soundscape catalog: cached snapshot + per-track download states.
+    val soundscape = remember { SoundscapeModule.get(context) }
+    val catalogTracks by soundscape.catalogRepository.observeCatalog()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val downloadStates by soundscape.downloadManager.states.collectAsStateWithLifecycle()
+
+    // One refresh per app start. IMPORTANT: prune runs against the repository's
+    // cache snapshot, NOT against `catalogTracks` — that state starts as
+    // emptyList() before Room emits, and prune(emptyList()) would delete every
+    // downloaded file on launch. If refresh failed (offline), snapshot() is the
+    // last known catalog, which is still the correct prune reference.
+    LaunchedEffect(Unit) {
+        soundscape.catalogRepository.refresh()
+        soundscape.downloadManager.prune(soundscape.catalogRepository.snapshot())
+    }
+
     // Bridge from the Quick Start widget: when the host activity receives a
     // launch intent with EXTRA_AUTO_OPEN_START_FOCUS we surface the existing
     // Start Focus sheet automatically, but only when no cycle is in flight —
@@ -399,14 +420,14 @@ fun PurrodoroApp(
         }
         persistTasks(tasks.filterNot(toDelete))
     }
-    val ambienceOptions = listOf(
+    val bundledAmbienceOptions = listOf(
         SoundOption(
             id = 1,
             name = stringResource(R.string.sound_rain_name),
             description = stringResource(R.string.sound_rain_desc),
             locked = false,
             symbol = "Rain",
-            audioResId = R.raw.ambience_light_rain,
+            audio = AudioSource.Bundled(R.raw.ambience_light_rain),
         ),
         SoundOption(
             id = 2,
@@ -414,30 +435,70 @@ fun PurrodoroApp(
             description = stringResource(R.string.sound_cafe_desc),
             locked = false,
             symbol = "Cafe",
-            audioResId = R.raw.ambience_restaurant,
+            audio = AudioSource.Bundled(R.raw.ambience_restaurant),
         ),
     )
-    val musicOptions = listOf(
+    val bundledMusicOptions = listOf(
         MusicOption(
             id = 1,
             name = stringResource(R.string.music_bloom),
             artist = stringResource(R.string.music_bloom_artist),
-            audioResId = R.raw.lofi_bloom_yasumu,
+            audio = AudioSource.Bundled(R.raw.lofi_bloom_yasumu),
         ),
         MusicOption(
             id = 2,
             name = stringResource(R.string.music_chill_fm),
             artist = stringResource(R.string.music_chill_fm_artist),
-            audioResId = R.raw.lofi_chill_fm_dope_cat,
+            audio = AudioSource.Bundled(R.raw.lofi_chill_fm_dope_cat),
         ),
         MusicOption(
             id = 3,
             name = stringResource(R.string.music_midnight_whisper),
             artist = stringResource(R.string.music_midnight_whisper_artist),
-            audioResId = R.raw.lofi_midnight_whisper_matrika,
+            audio = AudioSource.Bundled(R.raw.lofi_midnight_whisper_matrika),
             locked = true,
         ),
     )
+
+    // Cloud catalog rows mapped to option models and appended after the
+    // bundled lists. `audio` is non-null only once the file is on disk.
+    val cloudMusicOptions = catalogTracks
+        .filter { it.kind == "music" }
+        .map { track ->
+            val state = downloadStates[track.id] ?: DownloadState.NotDownloaded
+            track.toMusicOption(
+                downloadState = state,
+                localPath = soundscape.downloadManager.localFile(track)
+                    .takeIf { state == DownloadState.Downloaded }?.absolutePath,
+            )
+        }
+    val cloudAmbienceOptions = catalogTracks
+        .filter { it.kind == "ambience" }
+        .map { track ->
+            val state = downloadStates[track.id] ?: DownloadState.NotDownloaded
+            track.toSoundOption(
+                downloadState = state,
+                localPath = soundscape.downloadManager.localFile(track)
+                    .takeIf { state == DownloadState.Downloaded }?.absolutePath,
+            )
+        }
+    val musicOptions = bundledMusicOptions + cloudMusicOptions
+    val ambienceOptions = bundledAmbienceOptions + cloudAmbienceOptions
+
+    // Cloud-track download/delete actions, surfaced in the Sounds sheet (Task 8).
+    val onDownloadTrack: (Int) -> Unit = { trackId ->
+        catalogTracks.firstOrNull { it.id == trackId }?.let { track ->
+            scope.launch { soundscape.downloadManager.download(track) }
+        }
+    }
+    val onDeleteDownload: (Int) -> Unit = { trackId ->
+        catalogTracks.firstOrNull { it.id == trackId }?.let { track ->
+            // Stop playback first if this exact track is playing.
+            if (playingMusicId == trackId) playingMusicId = null
+            if (playingAmbienceId == trackId) playingAmbienceId = null
+            soundscape.downloadManager.delete(track)
+        }
+    }
 
     fun isAmbienceInMix(id: Int): Boolean =
         ambienceOptions.any { it.id == id && (!it.locked || isPremium) }
@@ -529,7 +590,11 @@ fun PurrodoroApp(
             ambiencePlayer.pause()
             return@LaunchedEffect
         }
-        ambiencePlayer.play(sound.audioResId, ambienceVolume)
+        val source = sound.audio ?: run {
+            ambiencePlayer.pause()   // cloud track not downloaded yet
+            return@LaunchedEffect
+        }
+        ambiencePlayer.play(source, ambienceVolume)
     }
     LaunchedEffect(playingMusicId, musicVolume, isPremium) {
         val trackId = playingMusicId
@@ -545,7 +610,11 @@ fun PurrodoroApp(
             musicPlayer.pause()
             return@LaunchedEffect
         }
-        musicPlayer.play(track.audioResId, musicVolume)
+        val source = track.audio ?: run {
+            musicPlayer.pause()   // cloud track not downloaded yet
+            return@LaunchedEffect
+        }
+        musicPlayer.play(source, musicVolume)
     }
 
     // --- Derive timer state from the service ---
@@ -1290,6 +1359,8 @@ fun PurrodoroApp(
                         onMusicToggle = {
                             removeMusicFromMix()
                         },
+                        onDownloadTrack = onDownloadTrack,
+                        onDeleteDownload = onDeleteDownload,
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,
                     )
