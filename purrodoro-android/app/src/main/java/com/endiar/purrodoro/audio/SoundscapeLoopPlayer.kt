@@ -2,7 +2,6 @@ package com.endiar.purrodoro.audio
 
 import android.content.Context
 import android.media.MediaPlayer
-import androidx.annotation.RawRes
 
 /**
  * Loops a single track with independent volume control. Sources are either
@@ -35,9 +34,6 @@ class SoundscapeLoopPlayer(context: Context) {
         player = mediaPlayer
         loadedSource = source
     }
-
-    @Deprecated("Transitional — Task 3 migrates call sites to play(AudioSource)")
-    fun play(@RawRes resId: Int, volume: Float) = play(AudioSource.Bundled(resId), volume)
 
     fun setVolume(volume: Float) {
         val clamped = volume.coerceIn(0f, 1f)

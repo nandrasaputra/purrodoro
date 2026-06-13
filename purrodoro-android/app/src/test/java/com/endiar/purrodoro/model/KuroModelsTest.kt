@@ -1,13 +1,41 @@
 package com.endiar.purrodoro.model
 
+import com.endiar.purrodoro.audio.AudioSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
 
 class KuroModelsTest {
+
+    @Test
+    fun `bundled option is playable, cloud option only after download`() {
+        val bundled = MusicOption(
+            id = 1,
+            name = "Bloom",
+            artist = "Yasumu",
+            audio = AudioSource.Bundled(resId = 42),
+        )
+        val cloudNotDownloaded = MusicOption(
+            id = 100,
+            name = "Rainy Window",
+            artist = "Cloud Cat",
+            audio = null,
+            remote = RemoteTrackInfo(fileSizeBytes = 2_000_000, downloadState = DownloadState.NotDownloaded),
+        )
+        val cloudDownloaded = cloudNotDownloaded.copy(
+            audio = AudioSource.LocalFile("/data/files/soundscapes/100-v1.mp3"),
+            remote = RemoteTrackInfo(fileSizeBytes = 2_000_000, downloadState = DownloadState.Downloaded),
+        )
+        assertNotNull(bundled.audio)
+        assertNull(cloudNotDownloaded.audio)
+        assertNotNull(cloudDownloaded.audio)
+        assertEquals(DownloadState.Downloaded, cloudDownloaded.remote?.downloadState)
+    }
     @Test
     fun timerModeFormatsRemainingTime() {
         assertEquals("25:00", TimerMode.Focus.formatDuration())
