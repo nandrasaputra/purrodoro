@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.audio.SoundscapeLoopPlayer
+import com.endiar.purrodoro.audio.AudioSource
 import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.ui.auth.rememberAccountSwitchGate
@@ -406,7 +407,7 @@ fun PurrodoroApp(
             description = stringResource(R.string.sound_rain_desc),
             locked = false,
             symbol = "Rain",
-            audioResId = R.raw.ambience_light_rain,
+            audio = AudioSource.Bundled(R.raw.ambience_light_rain),
         ),
         SoundOption(
             id = 2,
@@ -414,7 +415,7 @@ fun PurrodoroApp(
             description = stringResource(R.string.sound_cafe_desc),
             locked = false,
             symbol = "Cafe",
-            audioResId = R.raw.ambience_restaurant,
+            audio = AudioSource.Bundled(R.raw.ambience_restaurant),
         ),
     )
     val musicOptions = listOf(
@@ -422,19 +423,19 @@ fun PurrodoroApp(
             id = 1,
             name = stringResource(R.string.music_bloom),
             artist = stringResource(R.string.music_bloom_artist),
-            audioResId = R.raw.lofi_bloom_yasumu,
+            audio = AudioSource.Bundled(R.raw.lofi_bloom_yasumu),
         ),
         MusicOption(
             id = 2,
             name = stringResource(R.string.music_chill_fm),
             artist = stringResource(R.string.music_chill_fm_artist),
-            audioResId = R.raw.lofi_chill_fm_dope_cat,
+            audio = AudioSource.Bundled(R.raw.lofi_chill_fm_dope_cat),
         ),
         MusicOption(
             id = 3,
             name = stringResource(R.string.music_midnight_whisper),
             artist = stringResource(R.string.music_midnight_whisper_artist),
-            audioResId = R.raw.lofi_midnight_whisper_matrika,
+            audio = AudioSource.Bundled(R.raw.lofi_midnight_whisper_matrika),
             locked = true,
         ),
     )
@@ -529,7 +530,11 @@ fun PurrodoroApp(
             ambiencePlayer.pause()
             return@LaunchedEffect
         }
-        ambiencePlayer.play(sound.audioResId, ambienceVolume)
+        val source = sound.audio ?: run {
+            ambiencePlayer.pause()   // cloud track not downloaded yet
+            return@LaunchedEffect
+        }
+        ambiencePlayer.play(source, ambienceVolume)
     }
     LaunchedEffect(playingMusicId, musicVolume, isPremium) {
         val trackId = playingMusicId
@@ -545,7 +550,11 @@ fun PurrodoroApp(
             musicPlayer.pause()
             return@LaunchedEffect
         }
-        musicPlayer.play(track.audioResId, musicVolume)
+        val source = track.audio ?: run {
+            musicPlayer.pause()   // cloud track not downloaded yet
+            return@LaunchedEffect
+        }
+        musicPlayer.play(source, musicVolume)
     }
 
     // --- Derive timer state from the service ---
