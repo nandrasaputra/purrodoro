@@ -1,5 +1,7 @@
 package com.endiar.purrodoro.ui.components
 
+import com.endiar.purrodoro.model.TimerRuntimeState
+import com.endiar.purrodoro.model.TimerState
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FiniteAnimationSpec
@@ -50,3 +52,31 @@ object FocusModeMotion {
         }
     }
 }
+
+/**
+ * Whether a Pomodoro cycle is still in flight on-device. Drives focus-mode
+ * visibility: the overlay stays up while a session is running OR paused between
+ * segments, or briefly while the service runtime hasn't arrived yet after
+ * start.
+ *
+ * A cleared runtime (e.g. Stop from the notification) ends the session unless
+ * [focusStartPending] is true for that short start window.
+ *
+ * An [TimerState.Idle] runtime is NOT in flight: the service briefly publishes
+ * an idle warm-reset snapshot (currentIndex = 0, items preserved) after a
+ * natural cycle finish or skip-to-end, and the overlay must drop then so it
+ * doesn't linger under the cycle-complete dialog.
+ */
+fun focusSessionInFlight(
+    runtimeState: TimerRuntimeState?,
+    focusStartPending: Boolean,
+): Boolean = when (val rt = runtimeState) {
+    null -> focusStartPending
+    else -> rt.session.timerState != TimerState.Idle
+}
+
+fun focusModeActive(
+    isFocusMode: Boolean,
+    runtimeState: TimerRuntimeState?,
+    focusStartPending: Boolean,
+): Boolean = isFocusMode && focusSessionInFlight(runtimeState, focusStartPending)

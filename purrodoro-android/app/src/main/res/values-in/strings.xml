@@ -237,6 +237,7 @@
     <string name="focus_exit_cd">Keluar dari mode fokus</string>
     <string name="focus_start_break">Mulai istirahat</string>
     <string name="focus_resume_focus">Lanjutkan fokus</string>
+    <string name="focus_pause_focus">Jeda</string>
     <string name="focus_tap_to_exit">ketuk di mana saja untuk keluar</string>
     <string name="focus_pause_break_cd">Jeda istirahat</string>
 
