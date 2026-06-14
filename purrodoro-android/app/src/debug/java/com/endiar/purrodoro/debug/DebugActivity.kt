@@ -94,6 +94,7 @@ private fun DebugScreen(
     val clockOverride by debugRepo.clockOverride.collectAsStateWithLifecycle()
     val isPremiumOverrideEnabled by debugRepo.isPremiumOverrideEnabled.collectAsStateWithLifecycle()
     val premiumOverrideValue by debugRepo.premiumOverrideValue.collectAsStateWithLifecycle()
+    val isSkipTicksEnabled by debugRepo.isSkipTicksEnabled.collectAsStateWithLifecycle()
     val syncNotificationEnabled by debugRepo.syncNotificationEnabled.collectAsStateWithLifecycle()
     var showCatalog by remember { mutableStateOf(false) }
 
@@ -142,6 +143,7 @@ private fun DebugScreen(
                 clockOverride = clockOverride,
                 isPremiumOverrideEnabled = isPremiumOverrideEnabled,
                 premiumOverrideValue = premiumOverrideValue,
+                isSkipTicksEnabled = isSkipTicksEnabled,
                 onRestart = onRestartApp
             )
 
@@ -318,6 +320,35 @@ private fun DebugScreen(
                 }
 
                 // placeholder for Task 3
+                HorizontalDivider()
+
+                // --- Timer: Skip Ticks ---
+                SectionTitle("TIMER — SKIP TICKS")
+                Text(
+                    "Runs every focus/break segment for ~1s instead of its real length, " +
+                        "so you can walk a whole cycle in seconds. Recorded history keeps the " +
+                        "real durations (e.g. 4 cycles × 5 min). Respects \"auto start next " +
+                        "session\": off = each segment pauses for you to tap; on = blasts through.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Skip ticks", style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = isSkipTicksEnabled,
+                        onCheckedChange = debugRepo::setSkipTicksEnabled,
+                    )
+                }
+                Text(
+                    "Applies to timers started after toggling. A cycle already running keeps its current segment length.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                )
+
                 HorizontalDivider()
 
                 // --- Sync debug notification ---
@@ -658,6 +689,7 @@ private fun StatusBanner(
     clockOverride: java.time.LocalTime?,
     isPremiumOverrideEnabled: Boolean,
     premiumOverrideValue: Boolean,
+    isSkipTicksEnabled: Boolean,
     onRestart: () -> Unit
 ) {
     Surface(
@@ -674,7 +706,7 @@ private fun StatusBanner(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val hasOverride = clockOverride != null || isPremiumOverrideEnabled
+            val hasOverride = clockOverride != null || isPremiumOverrideEnabled || isSkipTicksEnabled
             if (!hasOverride) {
                 Text(
                     "No overrides active",
@@ -693,6 +725,13 @@ private fun StatusBanner(
                     if (isPremiumOverrideEnabled) {
                         Text(
                             if (premiumOverrideValue) "★ Premium (override)" else "☆ Free (override)",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    if (isSkipTicksEnabled) {
+                        Text(
+                            "⏩ Skip ticks",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )

@@ -20,6 +20,7 @@ import com.endiar.purrodoro.model.TimerRuntimeState
 import com.endiar.purrodoro.model.TimerSession
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
+import com.endiar.purrodoro.model.TimerSkipOverride
 import com.endiar.purrodoro.model.buildCycle
 import com.endiar.purrodoro.model.seconds
 import com.endiar.purrodoro.model.shouldStampStopAsFocus
@@ -129,7 +130,7 @@ class TimerService : Service() {
 
     private suspend fun startCycle(settings: TimerSettings, task: FocusTask?, activeHabitId: Int?, focusType: FocusType = FocusType.Empty) = transitionMutex.withLock {
         val items = buildCycle(settings)
-        val firstSeconds = items.first().type.seconds()
+        val firstSeconds = TimerSkipOverride.effectiveSeconds(items.first().type.seconds())
         val now = System.currentTimeMillis()
         val record = SessionRecord(
             id = now,
@@ -215,7 +216,9 @@ class TimerService : Service() {
         }
         // Skip is an explicit user action — advance the cycle but leave the next
         // segment paused, regardless of autoStartNextSession.
-        val nextSeconds = current.session.items[nextIndex].type.seconds()
+        val nextSeconds = TimerSkipOverride.effectiveSeconds(
+            current.session.items[nextIndex].type.seconds()
+        )
         val updated = current.copy(
             session = current.session.copy(
                 currentIndex = nextIndex,
