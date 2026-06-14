@@ -247,6 +247,32 @@ fun journeyMinutesLabel(minutes: Int): String {
     }
 }
 
+/**
+ * Y-axis scale for the weekly focus bar chart. [topMinutes] is the value at the
+ * top gridline (a "nice" rounded number ≥ the tallest day), [midMinutes] the
+ * midpoint tick. Bars are drawn as a fraction of [topMinutes].
+ */
+data class JourneyChartScale(val topMinutes: Int, val midMinutes: Int)
+
+/**
+ * Picks an adaptive, nicely-rounded top-of-axis value so the chart stays
+ * readable whether the busiest day is 10 minutes or 6+ hours. Rounds up through
+ * a table of pleasant durations, then to the next whole hour beyond it. Empty
+ * weeks fall back to a 1h grid.
+ */
+fun journeyChartScale(maxDayMinutes: Int): JourneyChartScale {
+    val top = niceAxisTopMinutes(maxDayMinutes.coerceAtLeast(0))
+    return JourneyChartScale(topMinutes = top, midMinutes = top / 2)
+}
+
+private fun niceAxisTopMinutes(maxMinutes: Int): Int {
+    if (maxMinutes <= 0) return 60
+    val steps = intArrayOf(15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720)
+    steps.firstOrNull { it >= maxMinutes }?.let { return it }
+    // Beyond the table (12h+): round up to the next whole hour.
+    return ((maxMinutes + 59) / 60) * 60
+}
+
 private fun daySummary(date: LocalDate, records: List<SessionRecord>): JourneyDaySummary {
     val focusMinutes = records.focusMinutes()
     val month = date.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
@@ -279,7 +305,7 @@ private fun SessionRecord.toTimelineRow(zone: ZoneId): JourneyTimelineRow {
         durationMinutes = focusMinutes.coerceAtLeast(0),
         statusLabel = if (status == SessionStatus.Completed) "Completed" else "Partial",
         completed = status == SessionStatus.Completed,
-        title = taskName?.takeIf { it.isNotBlank() } ?: "Focus time",
+        title = taskName?.takeIf { it.isNotBlank() } ?: "Free Focus",
         taskName = taskName,
         record = this
     )
