@@ -161,7 +161,7 @@ private fun JourneyTimelineEntry(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val title = row.taskName?.takeIf { it.isNotBlank() }
-        ?: stringResource(R.string.home_metric_focus_time)
+        ?: stringResource(R.string.focus_type_free)
     val meta = stringResource(R.string.journey_timeline_meta, row.timeLabel, row.durationLabel)
     val cardShape = RoundedCornerShape(KuroSpacing.radiusSm)
 

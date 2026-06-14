@@ -151,6 +151,7 @@
     <string name="focus_type_habit">Kebiasaan</string>
     <string name="focus_type_simple_note">Catatan</string>
     <string name="focus_type_focus">Fokus</string>
+    <string name="focus_type_free">Fokus Bebas</string>
 
     <!-- Greetings -->
     <string name="greeting_morning_salutation">Selamat pagi,</string>

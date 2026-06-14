@@ -65,7 +65,7 @@ import com.composables.icons.lucide.CircleCheck
 import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.NotebookPen
-import com.composables.icons.lucide.Square
+import com.composables.icons.lucide.Timer
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -230,13 +230,18 @@ fun CycleCompleteDialog(
 
                         StreakPill(streakPill = streakPill)
 
-                        Spacer(Modifier.height(KuroSpacing.md))
+                        // Free focus (no task / habit / note attached) has no intent
+                        // to show — skip the receipt row entirely instead of rendering
+                        // a generic placeholder.
+                        if (focusType != FocusType.Empty) {
+                            Spacer(Modifier.height(KuroSpacing.md))
 
-                        IntentReceiptRow(
-                            focusType = focusType,
-                            intentEmoji = intentEmoji,
-                            intentLabel = intentLabel,
-                        )
+                            IntentReceiptRow(
+                                focusType = focusType,
+                                intentEmoji = intentEmoji,
+                                intentLabel = intentLabel,
+                            )
+                        }
 
                         Spacer(Modifier.height(KuroSpacing.lg))
 
@@ -465,7 +470,7 @@ private fun IntentLeading(focusType: FocusType, emojiOverride: String?) {
                 FocusType.Task -> Lucide.CircleCheck
                 FocusType.Habit -> Lucide.Leaf
                 FocusType.SimpleNote -> Lucide.NotebookPen
-                FocusType.Empty -> Lucide.Square
+                FocusType.Empty -> Lucide.Timer
             }
             Icon(
                 imageVector = icon,
