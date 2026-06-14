@@ -87,7 +87,7 @@ class MarkAllDirtyDaoTest {
                     focusMinutes = 25, shortBreakMinutes = 5, longBreakMinutes = 15,
                     completedFocusCount = 1, totalFocusCount = 4,
                     completedShortBreakCount = 0, completedLongBreakCount = 0,
-                    statusName = "Completed", taskName = null,
+                    statusName = "Completed", taskName = null, focusTypeName = null,
                     dirty = false, locallyModifiedAt = 1L, deleted = false,
                 )
             )

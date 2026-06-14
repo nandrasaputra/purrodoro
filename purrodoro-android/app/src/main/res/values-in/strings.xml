@@ -215,6 +215,16 @@
     <string name="cycle_v4_body">Satu siklus penuh bukan hal sepele. Nikmati keberhasilanmu.</string>
     <string name="cycle_v5_title">Semua beres</string>
     <string name="cycle_v5_body">Satu siklus penuh sudah terlewati. Tarik napas, lalu kembalilah saat kamu siap.</string>
+    <string name="cycle_duration_minutes">%1$d menit</string>
+    <string name="cycle_duration_hours">%1$d jam</string>
+    <string name="cycle_duration_hours_minutes">%1$d jam %2$d menit</string>
+    <string name="cycle_streak_multi">🔥 Streak %1$d hari</string>
+    <string name="cycle_streak_day_one_new">Hari ke-1 — awal yang bagus</string>
+    <string name="cycle_streak_day_one_back">Selamat datang kembali — hari ke-1</string>
+    <string name="cycle_free_focus_eyebrow">Fokus bebas</string>
+    <string name="cycle_free_focus_subtitle">Kamu hadir</string>
+    <string name="cycle_confetti_cd">Konfeti perayaan</string>
+    <string name="cycle_cat_celebrate_cd">Purrodoro merayakan siklus yang kamu selesaikan</string>
 
     <!-- Focus mode overlay -->
     <string name="focus_mode_label_focus">FOKUS</string>
