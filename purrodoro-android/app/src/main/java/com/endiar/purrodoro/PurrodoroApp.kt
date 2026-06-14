@@ -1129,7 +1129,10 @@ fun PurrodoroApp(
             if (showProfile) {
                 ProfileScreen(
                     settings = settings,
-                    onBack = { showProfile = false },
+                    onBack = {
+                        showLoginSheet = false
+                        showProfile = false
+                    },
                     onUpdateSettings = { persistSettings(it) },
                     notificationSoundEnabled = notificationSoundEnabled,
                     onUpdateNotificationSound = { persistNotificationSoundEnabled(it) },
