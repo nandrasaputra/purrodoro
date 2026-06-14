@@ -393,6 +393,11 @@
     <string name="journey_stat_none">—</string>
     <string name="journey_stat_focus_days">focus days</string>
     <string name="journey_stat_streak">day streak</string>
+    <string name="journey_today_column_cd">Today, %1$s focus</string>
+    <plurals name="journey_today_sessions">
+        <item quantity="one">%d session</item>
+        <item quantity="other">%d sessions</item>
+    </plurals>
 
     <!-- History -->
     <string name="history_title">History</string>

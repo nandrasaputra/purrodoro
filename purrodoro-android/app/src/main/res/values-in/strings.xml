@@ -389,6 +389,10 @@
     <string name="journey_stat_none">—</string>
     <string name="journey_stat_focus_days">hari fokus</string>
     <string name="journey_stat_streak">hari beruntun</string>
+    <string name="journey_today_column_cd">Hari ini, fokus %1$s</string>
+    <plurals name="journey_today_sessions">
+        <item quantity="other">%d sesi</item>
+    </plurals>
 
     <!-- History -->
     <string name="history_title">Riwayat</string>
