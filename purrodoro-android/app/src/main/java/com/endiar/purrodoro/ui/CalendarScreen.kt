@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -55,7 +57,6 @@ import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Flame
 import com.composables.icons.lucide.History
 import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Star
 import com.composables.icons.lucide.Target
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.GlassTreatment
@@ -66,6 +67,7 @@ import com.endiar.purrodoro.ui.designsystem.KuroScreenScaffold
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.JourneyGreen
+import com.endiar.purrodoro.ui.theme.KuroSurfaceTokens
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import java.time.LocalDate
 import java.time.YearMonth
@@ -130,10 +132,16 @@ fun CalendarScreen(
                 TodayTimelineCard(summary.todayRows)
             }
             JourneySection(label = stringResource(R.string.journey_period_week)) {
-                WeeklyFocusCard(summary)
+                WeeklyFocusCard(summary = summary, today = today)
             }
             JourneySection(label = stringResource(R.string.journey_period_month)) {
-                MonthHeatmapCard(displayMonth = displayMonth, intensities = intensities, month = month, bestStreakDays = monthStreak)
+                MonthHeatmapCard(
+                    displayMonth = displayMonth,
+                    today = today,
+                    intensities = intensities,
+                    month = month,
+                    bestStreakDays = monthStreak,
+                )
             }
             JourneySection(label = stringResource(R.string.journey_section_all_time)) {
                 AllTimeCard(allTime)
@@ -196,7 +204,7 @@ private fun JourneyHeader(onOpenHistory: () -> Unit) {
 private val JourneyEnterEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
 
 @Composable
-private fun WeeklyFocusCard(summary: JourneySummary) {
+private fun WeeklyFocusCard(summary: JourneySummary, today: LocalDate) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     // One-shot entrance: bars grow up from the baseline in a left-to-right wave.
     // Vertical growth reads as "building up" the week; the per-bar delay stays
@@ -209,22 +217,60 @@ private fun WeeklyFocusCard(summary: JourneySummary) {
     val weekNoteColor = summary.weekOverWeekPercent?.takeIf { it > 0 }?.let { JourneyGreen }
         ?: tokens.textSecondary
     val noneLabel = stringResource(R.string.journey_stat_none)
+    val todayLabel = stringResource(R.string.journey_today)
     val avgLabel = if (summary.dailyAverageMinutes > 0) journeyMinutesLabel(summary.dailyAverageMinutes) else noneLabel
-    val bestDayLabel = summary.weekBars
-        .maxByOrNull { it.focusMinutes }
-        ?.takeIf { it.focusMinutes > 0 }
-        ?.dayLabel?.take(3) ?: noneLabel
+    val todayFocusMinutes = summary.weekBars.firstOrNull { it.date == today }?.focusMinutes ?: 0
+    val todayFocusLabel = journeyMinutesLabel(todayFocusMinutes)
+    val todaySessions = summary.selectedDay.focusSessions
+    val todaySessionsLabel = pluralStringResource(
+        R.plurals.journey_today_sessions,
+        todaySessions,
+        todaySessions,
+    )
     KuroElevatedCard {
-        Text(stringResource(R.string.journey_focus_time_week), color = tokens.textPrimary, style = KuroType.headingCard)
-        Spacer(Modifier.height(KuroSpacing.sm))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
-            Text(journeyMinutesLabel(summary.weekFocusMinutes), color = tokens.textPrimary, style = KuroType.metricValueLarge)
-            Text(weekNote, color = weekNoteColor, style = KuroType.metricDeltaPositive)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.journey_focus_time_week),
+                    color = tokens.textPrimary,
+                    style = KuroType.headingCard,
+                )
+                Spacer(Modifier.height(KuroSpacing.sm))
+                Text(
+                    journeyMinutesLabel(summary.weekFocusMinutes),
+                    color = tokens.textPrimary,
+                    style = KuroType.metricValueLarge,
+                )
+                Text(
+                    weekNote,
+                    color = weekNoteColor,
+                    style = KuroType.labelMeta,
+                )
+            }
+            Image(
+                painter = painterResource(R.drawable.cat_home_sleeping),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(
+                    width = KuroSpacing.journeySelectedDayCatWidth,
+                    height = KuroSpacing.journeySelectedDayCatHeight,
+                ),
+            )
         }
         Spacer(Modifier.height(KuroSpacing.sm))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
             JourneyStatChip(Lucide.Clock, stringResource(R.string.journey_stat_daily_avg), avgLabel, Modifier.weight(1f))
-            JourneyStatChip(Lucide.Star, stringResource(R.string.journey_stat_best_day), bestDayLabel, Modifier.weight(1f))
+            JourneyStatChip(
+                icon = Lucide.Target,
+                label = todayLabel,
+                value = todaySessionsLabel,
+                modifier = Modifier.weight(1f),
+                highlighted = true,
+            )
         }
         Spacer(Modifier.height(KuroSpacing.md))
         val maxDayMinutes = summary.weekBars.maxOfOrNull { it.focusMinutes } ?: 0
@@ -241,6 +287,7 @@ private fun WeeklyFocusCard(summary: JourneySummary) {
             ) {
                 val topMinutes = scale.topMinutes.coerceAtLeast(1)
                 summary.weekBars.forEachIndexed { index, bar ->
+                    val isToday = bar.date == today
                     // Floor non-zero days to a minimum visible fraction so a tiny
                     // day next to a huge one still reads as "something happened".
                     val ratio = if (bar.focusMinutes <= 0) {
@@ -257,56 +304,89 @@ private fun WeeklyFocusCard(summary: JourneySummary) {
                         ),
                         label = "weekBarGrow",
                     )
-                    Column(
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom,
+                    val todayColumnCd = if (isToday) {
+                        stringResource(R.string.journey_today_column_cd, todayFocusLabel)
+                    } else {
+                        null
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .then(
+                                if (todayColumnCd != null) {
+                                    Modifier.semantics { contentDescription = todayColumnCd }
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        contentAlignment = Alignment.BottomCenter,
                     ) {
-                        // Bar region: takes all height left above the day label, so a
-                        // full-height bar can never push the label out of the plot.
-                        Box(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
-                            contentAlignment = Alignment.BottomCenter,
-                        ) {
-                            if (bar.focusMinutes > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(KuroSpacing.journeyChartBarWidth)
-                                        .fillMaxHeight((ratio * grow).coerceIn(0f, 1f))
-                                        .clip(RoundedCornerShape(topStart = KuroSpacing.xs, topEnd = KuroSpacing.xs))
-                                        .background(if (index == 6) tokens.accentSoft else tokens.accent),
-                                )
-                            }
+                        if (isToday) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.88f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(KuroSpacing.sm))
+                                    .background(tokens.activeCardFill),
+                            )
                         }
-                        Spacer(Modifier.height(KuroSpacing.xs))
-                        Text(
-                            bar.dayLabel.take(3),
-                            color = tokens.textSecondary,
-                            style = KuroType.labelMeta,
-                            maxLines = 1,
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom,
+                        ) {
+                            // Bar region: takes all height left above the day label, so a
+                            // full-height bar can never push the label out of the plot.
+                            Box(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                contentAlignment = Alignment.BottomCenter,
+                            ) {
+                                if (bar.focusMinutes > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(KuroSpacing.journeyChartBarWidth)
+                                            .fillMaxHeight((ratio * grow).coerceIn(0f, 1f))
+                                            .clip(RoundedCornerShape(topStart = KuroSpacing.xs, topEnd = KuroSpacing.xs))
+                                            .background(tokens.accent),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(KuroSpacing.xs))
+                            Text(
+                                bar.dayLabel.take(3),
+                                color = if (isToday) tokens.accent else tokens.textSecondary,
+                                style = if (isToday) KuroType.labelStrong else KuroType.labelMeta,
+                                maxLines = 1,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
             }
-            Image(
-                painter = painterResource(R.drawable.cat_home_sleeping),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(width = KuroSpacing.journeySelectedDayCatWidth, height = KuroSpacing.journeyChartPlotHeight),
-            )
         }
     }
 }
 
 /** Small bordered chip: icon + stacked label/value, used on the weekly card header. */
 @Composable
-private fun JourneyStatChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String, modifier: Modifier = Modifier) {
+private fun JourneyStatChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(KuroSpacing.radiusSm),
-        color = tokens.cardFill,
-        border = BorderStroke(1.dp, tokens.cardBorder),
+        color = if (highlighted) tokens.activeCardFill else tokens.cardFill,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (highlighted) tokens.accent.copy(alpha = 0.35f) else tokens.cardBorder,
+        ),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = KuroSpacing.sm, vertical = KuroSpacing.xs),
@@ -325,8 +405,13 @@ private fun JourneyStatChip(icon: androidx.compose.ui.graphics.vector.ImageVecto
 @Composable
 private fun ChartAxis(scale: JourneyChartScale) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val topLabel = journeyMinutesLabel(scale.topMinutes)
+    val midLabel = journeyMinutesLabel(scale.midMinutes)
     Column(
-        modifier = Modifier.width(KuroSpacing.journeyChartAxisWidth).fillMaxHeight(),
+        modifier = Modifier
+            .wrapContentWidth()
+            .fillMaxHeight()
+            .padding(end = KuroSpacing.xs),
         horizontalAlignment = Alignment.End,
     ) {
         // Tick region mirrors the bars' weighted plot area so "0" lines up with
@@ -336,8 +421,8 @@ private fun ChartAxis(scale: JourneyChartScale) {
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.End,
         ) {
-            Text(journeyMinutesLabel(scale.topMinutes), color = tokens.textSecondary, style = KuroType.labelMeta, maxLines = 1)
-            Text(journeyMinutesLabel(scale.midMinutes), color = tokens.textSecondary, style = KuroType.labelMeta, maxLines = 1)
+            Text(topLabel, color = tokens.textSecondary, style = KuroType.labelMeta, maxLines = 1)
+            Text(midLabel, color = tokens.textSecondary, style = KuroType.labelMeta, maxLines = 1)
             Text("0", color = tokens.textSecondary, style = KuroType.labelMeta, maxLines = 1)
         }
         // Reserve the same bottom slot the bars use for their day label so the
@@ -348,7 +433,13 @@ private fun ChartAxis(scale: JourneyChartScale) {
 }
 
 @Composable
-private fun MonthHeatmapCard(displayMonth: YearMonth, intensities: Map<LocalDate, Int>, month: JourneyMonth, bestStreakDays: Int) {
+private fun MonthHeatmapCard(
+    displayMonth: YearMonth,
+    today: LocalDate,
+    intensities: Map<LocalDate, Int>,
+    month: JourneyMonth,
+    bestStreakDays: Int,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     // One-shot diagonal wave: cells fade + scale in, delayed by their (row+col)
     // position so the month "develops" from the top-left corner. Diagonal span
@@ -377,6 +468,8 @@ private fun MonthHeatmapCard(displayMonth: YearMonth, intensities: Map<LocalDate
                         repeat(7) { col ->
                             val date = firstVisible.plusDays((row * 7 + col).toLong())
                             val inMonth = YearMonth.from(date) == displayMonth
+                            val isToday = inMonth && date == today
+                            val intensity = intensities[date] ?: 0
                             val reveal by animateFloatAsState(
                                 targetValue = if (cellsShown) 1f else 0f,
                                 animationSpec = tween(
@@ -393,8 +486,25 @@ private fun MonthHeatmapCard(displayMonth: YearMonth, intensities: Map<LocalDate
                                         .aspectRatio(1f)
                                         .then(if (inMonth) Modifier.scale(0.7f + 0.3f * reveal).alpha(reveal) else Modifier)
                                         .clip(RoundedCornerShape(KuroSpacing.xs))
-                                        .background(if (inMonth) heatCellColor(intensities[date] ?: 0) else Color.Transparent),
-                                )
+                                        .background(if (inMonth) heatCellColor(intensity) else Color.Transparent),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    if (isToday) {
+                                        Text(
+                                            text = date.dayOfMonth.toString(),
+                                            color = heatCellTodayTextColor(intensity, tokens),
+                                            style = KuroType.labelStrong,
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(KuroSpacing.xs / 2)
+                                                .size(KuroSpacing.journeyCalendarFocusDot)
+                                                .clip(CircleShape)
+                                                .background(heatCellTodayDotColor(intensity, tokens)),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -451,6 +561,13 @@ private fun heatCellColor(level: Int): Color {
         else -> tokens.cardBorder.copy(alpha = 0.45f)
     }
 }
+
+private fun heatCellTodayTextColor(level: Int, tokens: KuroSurfaceTokens): Color =
+    if (level >= 3) tokens.accentOn else tokens.textPrimary
+
+/** Today marker dot: invert on saturated cells so it stays visible. */
+private fun heatCellTodayDotColor(level: Int, tokens: KuroSurfaceTokens): Color =
+    if (level >= 3) tokens.accentOn else tokens.accent
 
 @Composable
 private fun AllTimeCard(allTime: JourneyAllTime) {
