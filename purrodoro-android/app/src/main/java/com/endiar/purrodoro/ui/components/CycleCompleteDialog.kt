@@ -1,5 +1,6 @@
 package com.endiar.purrodoro.ui.components
 
+import android.media.MediaPlayer
 import android.provider.Settings
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -136,6 +137,12 @@ fun CycleCompleteDialog(
     val catDrawable = when (streakPill) {
         is CycleStreakPill.MultiDay -> R.drawable.cat_celebrate_starry
         else -> R.drawable.cat_celebrate_clean
+    }
+
+    LaunchedEffect(Unit) {
+        val mp = MediaPlayer.create(context, R.raw.cycle_complete_success)
+        mp?.setOnCompletionListener { it.release() }
+        mp?.start()
     }
 
     Dialog(
