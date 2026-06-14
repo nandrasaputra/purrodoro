@@ -197,6 +197,9 @@ fun KuroAdaptiveBottomSheet(
         if (dismissing) {
             delay(KuroSheetMotion.ExitDurationMs.toLong())
             onDismiss()
+            // Parent normally removes this composable here. Reset so a blocked dismiss
+            // (or a second back while OAuth is in flight) cannot strand dismissing=true.
+            dismissing = false
         }
     }
 

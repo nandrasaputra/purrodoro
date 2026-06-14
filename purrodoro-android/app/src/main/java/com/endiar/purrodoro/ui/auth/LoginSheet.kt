@@ -19,6 +19,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.auth.SupabaseConfig
@@ -46,6 +50,7 @@ import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
 import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -62,6 +67,23 @@ fun LoginSheet(
     val genericError = stringResource(R.string.login_error_generic)
     val notConfiguredError = stringResource(R.string.login_error_not_configured)
     val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Returning from the Google account picker / browser may not deliver a ComposeAuth
+    // callback before the user presses back. Clear the signing-in gate on resume so
+    // the sheet can always dismiss and tear down its Dialog scrim.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && isSigningIn) {
+                scope.launch {
+                    delay(500)
+                    isSigningIn = false
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val googleSignIn = authRepository.composeAuth.rememberSignInWithGoogle(
         onResult = { result ->
@@ -90,7 +112,8 @@ fun LoginSheet(
 
     KuroAdaptiveBottomSheet(
         onDismiss = {
-            if (!isSigningIn) onDismiss()
+            isSigningIn = false
+            onDismiss()
         },
         horizontalPadding = KuroSpacing.xl,
         containerColor = tokens.cardFill,

@@ -203,6 +203,9 @@ private fun JourneyHeader(onOpenHistory: () -> Unit) {
 /** Material 3 emphasized-decelerate — calm arrival for entrance motion. */
 private val JourneyEnterEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
 
+/** Roomier inset for Journey summary cards (weekly, monthly, today, all-time). */
+private val JourneyCardPadding = PaddingValues(KuroSpacing.xl)
+
 @Composable
 private fun WeeklyFocusCard(summary: JourneySummary, today: LocalDate) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -227,7 +230,7 @@ private fun WeeklyFocusCard(summary: JourneySummary, today: LocalDate) {
         todaySessions,
         todaySessions,
     )
-    KuroElevatedCard {
+    KuroElevatedCard(contentPadding = JourneyCardPadding) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -239,12 +242,13 @@ private fun WeeklyFocusCard(summary: JourneySummary, today: LocalDate) {
                     color = tokens.textPrimary,
                     style = KuroType.headingCard,
                 )
-                Spacer(Modifier.height(KuroSpacing.sm))
+                Spacer(Modifier.height(KuroSpacing.md))
                 Text(
                     journeyMinutesLabel(summary.weekFocusMinutes),
                     color = tokens.textPrimary,
                     style = KuroType.metricValueLarge,
                 )
+                Spacer(Modifier.height(KuroSpacing.xs))
                 Text(
                     weekNote,
                     color = weekNoteColor,
@@ -261,7 +265,7 @@ private fun WeeklyFocusCard(summary: JourneySummary, today: LocalDate) {
                 ),
             )
         }
-        Spacer(Modifier.height(KuroSpacing.sm))
+        Spacer(Modifier.height(KuroSpacing.md))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
             JourneyStatChip(Lucide.Clock, stringResource(R.string.journey_stat_daily_avg), avgLabel, Modifier.weight(1f))
             JourneyStatChip(
@@ -272,7 +276,7 @@ private fun WeeklyFocusCard(summary: JourneySummary, today: LocalDate) {
                 highlighted = true,
             )
         }
-        Spacer(Modifier.height(KuroSpacing.md))
+        Spacer(Modifier.height(KuroSpacing.lg))
         val maxDayMinutes = summary.weekBars.maxOfOrNull { it.focusMinutes } ?: 0
         val scale = remember(maxDayMinutes) { journeyChartScale(maxDayMinutes) }
         Row(
@@ -389,7 +393,7 @@ private fun JourneyStatChip(
         ),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = KuroSpacing.sm, vertical = KuroSpacing.xs),
+            modifier = Modifier.padding(horizontal = KuroSpacing.sm, vertical = KuroSpacing.sm),
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -411,7 +415,7 @@ private fun ChartAxis(scale: JourneyChartScale) {
         modifier = Modifier
             .wrapContentWidth()
             .fillMaxHeight()
-            .padding(end = KuroSpacing.xs),
+            .padding(end = KuroSpacing.sm),
         horizontalAlignment = Alignment.End,
     ) {
         // Tick region mirrors the bars' weighted plot area so "0" lines up with
@@ -446,17 +450,17 @@ private fun MonthHeatmapCard(
     // is 5+6=11 steps * 18ms = ~200ms, keeping the wave under budget.
     var cellsShown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { cellsShown = true }
-    KuroElevatedCard {
+    KuroElevatedCard(contentPadding = JourneyCardPadding) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xl),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 modifier = Modifier.weight(1.35f),
-                verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2),
+                verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
                     listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
                         Text(day, color = tokens.textSecondary, style = KuroType.labelMeta, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
                     }
@@ -464,7 +468,7 @@ private fun MonthHeatmapCard(
                 val firstDay = displayMonth.atDay(1)
                 val firstVisible = firstDay.minusDays((firstDay.dayOfWeek.value - 1).toLong())
                 repeat(6) { row ->
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
                         repeat(7) { col ->
                             val date = firstVisible.plusDays((row * 7 + col).toLong())
                             val inMonth = YearMonth.from(date) == displayMonth
@@ -512,7 +516,7 @@ private fun MonthHeatmapCard(
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
             ) {
                 MonthStat(Lucide.Calendar, month.focusDays.toString(), stringResource(R.string.journey_stat_focus_days))
                 MonthStatDivider()
@@ -571,7 +575,7 @@ private fun heatCellTodayDotColor(level: Int, tokens: KuroSurfaceTokens): Color 
 
 @Composable
 private fun AllTimeCard(allTime: JourneyAllTime) {
-    KuroElevatedCard {
+    KuroElevatedCard(contentPadding = JourneyCardPadding) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -615,7 +619,7 @@ private fun AllTimeStat(icon: androidx.compose.ui.graphics.vector.ImageVector, v
 @Composable
 private fun TodayTimelineCard(rows: List<JourneyTimelineRow>) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    KuroElevatedCard {
+    KuroElevatedCard(contentPadding = JourneyCardPadding) {
         if (rows.isEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
                 Image(
