@@ -268,6 +268,7 @@ fun SessionRecordDto.toEntity(existing: SessionRecordEntity?): SessionRecordEnti
     completedLongBreakCount = completedLongBreakCount,
     statusName = status,
     taskName = taskName,
+    focusTypeName = existing?.focusTypeName,
     dirty = false,
     locallyModifiedAt = existing?.locallyModifiedAt ?: 0L,
     deleted = deleted,

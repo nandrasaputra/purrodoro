@@ -90,6 +90,8 @@ import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadge
 import com.endiar.purrodoro.ui.designsystem.KuroPill
 import com.endiar.purrodoro.ui.designsystem.KuroPillKind
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
+import com.endiar.purrodoro.ui.tutorial.TutorialTarget
+import com.endiar.purrodoro.ui.tutorial.tutorialAnchor
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.CardWhite
 import com.endiar.purrodoro.ui.theme.Cocoa
@@ -443,6 +445,7 @@ private fun SoundscapeTransportControlButton(
             .size(KuroSpacing.journeyMetricIconCircle)
             .clip(CircleShape)
             .background(Coral)
+            .tutorialAnchor(TutorialTarget.SoundscapePlay)
             .clickable(role = Role.Button, onClickLabel = controlLabel, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

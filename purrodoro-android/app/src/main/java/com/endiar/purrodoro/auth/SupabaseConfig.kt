@@ -26,9 +26,8 @@ object SupabaseConfig {
     const val URL = "https://birjkyerhokqdzhdfgpt.supabase.co"
     const val PUBLISHABLE_KEY = "sb_publishable_GgfnZ3nRLCm-_HBfJfbWVw_4K2D_KRu"
 
-    // TODO(setup): replace with the real Google OAuth *Web* client ID.
     const val GOOGLE_WEB_CLIENT_ID =
-        "REPLACE_WITH_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
+        "779946032719-he3g7a7e4fog471u71ls69cpig8a4mth.apps.googleusercontent.com"
 
     /** Guard so the UI can surface a clear message instead of a cryptic failure. */
     val isGoogleConfigured: Boolean

@@ -359,7 +359,8 @@ data class SessionRecord(
     val status: SessionStatus,
     val taskName: String?,
     val completedShortBreakCount: Int = 0,
-    val completedLongBreakCount: Int = 0
+    val completedLongBreakCount: Int = 0,
+    val focusType: FocusType? = null,
 )
 
 /** Returns the segment duration in seconds, regardless of variant. */

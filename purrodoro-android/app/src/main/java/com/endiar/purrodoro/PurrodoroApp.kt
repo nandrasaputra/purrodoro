@@ -84,6 +84,9 @@ import com.endiar.purrodoro.model.TimerState
 import com.endiar.purrodoro.model.glassTreatmentFor
 import com.endiar.purrodoro.sync.LogoutDecision
 import com.endiar.purrodoro.sync.SyncModule
+import com.endiar.purrodoro.sync.SyncStatusStore
+import com.endiar.purrodoro.sync.canSync
+import com.endiar.purrodoro.sync.resolveSyncStatusPresentation
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
 import com.endiar.purrodoro.ui.CalendarScreen
@@ -138,6 +141,12 @@ fun PurrodoroApp(
     openTab: kotlinx.coroutines.flow.SharedFlow<AppTab>? = null,
 ) {
     val authState by authRepository.authState.collectAsStateWithLifecycle(initialValue = AuthState.Guest)
+
+    val syncSnapshot by SyncStatusStore.snapshot.collectAsStateWithLifecycle()
+    val ownerId by repo.ownerIdFlow.collectAsStateWithLifecycle(initialValue = null)
+    val signedInUserId = (authState as? AuthState.SignedIn)?.user?.userId
+    val syncEnabled = canSync(signedInUserId, ownerId)
+    val syncPresentation = if (syncEnabled) resolveSyncStatusPresentation(syncSnapshot) else null
 
     val appState by repo.appState.collectAsStateWithLifecycle(
         initialValue = AppState(
@@ -532,8 +541,38 @@ fun PurrodoroApp(
 
     fun resumeSoundscape() {
         markSoundscapeUsed()
-        playingAmbienceId = soundscapeMixAmbienceId?.takeIf(::isAmbienceInMix)
-        playingMusicId = soundscapeMixMusicId?.takeIf(::isMusicInMix)
+
+        fun defaultAmbienceId(): Int? =
+            ambienceOptions.firstOrNull { (!it.locked || isPremium) && it.audio != null }?.id
+
+        fun defaultMusicId(): Int? =
+            musicOptions.firstOrNull { (!it.locked || isPremium) && it.audio != null }?.id
+
+        var ambienceId = soundscapeMixAmbienceId?.takeIf(::isAmbienceInMix)
+        if (ambienceId == null) {
+            defaultAmbienceId()?.let { id ->
+                ambienceId = id
+                if (soundscapeMixAmbienceId == null) {
+                    persistSelectedSoundId(id)
+                    soundscapeMixAmbienceId = id
+                    persistSoundscapeMix()
+                }
+            }
+        }
+
+        var musicId = soundscapeMixMusicId?.takeIf(::isMusicInMix)
+        if (musicId == null) {
+            defaultMusicId()?.let { id ->
+                musicId = id
+                if (soundscapeMixMusicId == null) {
+                    soundscapeMixMusicId = id
+                    persistSoundscapeMix()
+                }
+            }
+        }
+
+        playingAmbienceId = ambienceId
+        playingMusicId = musicId
     }
 
     fun pauseSoundscape() {
@@ -1102,6 +1141,8 @@ fun PurrodoroApp(
                     onRequestEnableNotifications = onEnableNotifications,
                     authState = authState,
                     onRequestLogin = { showLoginSheet = true },
+                    syncEnabled = syncEnabled,
+                    syncPresentation = syncPresentation,
                     onSignOut = {
                         scope.launch {
                             // Flush local changes first; only warn when the

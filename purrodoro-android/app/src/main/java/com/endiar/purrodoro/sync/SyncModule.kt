@@ -72,13 +72,23 @@ class SyncModule private constructor(
      */
     suspend fun syncIfEligible(): SyncEngine.SyncResult? {
         val userId = authRepository.currentAuthUser()?.userId
-        if (!canSync(userId, repo.currentOwnerId())) return null
+        val ownerId = repo.currentOwnerId()
+        if (!canSync(userId, ownerId)) {
+            SyncDebugReporter.instance?.onSyncFinished(result = null, eligible = false)
+            SyncStatusStore.record(eligible = false, result = null)
+            return null
+        }
         return try {
-            engine.syncOnce()
+            engine.syncOnce().also { result ->
+                SyncDebugReporter.instance?.onSyncFinished(result = result, eligible = true)
+                SyncStatusStore.record(eligible = true, result = result)
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {
             if (shouldSignOut(t)) authRepository.signOut()
+            SyncDebugReporter.instance?.onSyncFinished(result = null, eligible = true)
+            SyncStatusStore.record(eligible = true, result = null)
             null
         }
     }

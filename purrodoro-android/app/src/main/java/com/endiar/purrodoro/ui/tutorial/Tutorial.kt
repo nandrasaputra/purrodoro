@@ -24,7 +24,7 @@ import com.endiar.purrodoro.R
  * a [tutorialAnchor] modifier somewhere in the tree; the overlay reads back the
  * element's on-screen [Rect] to punch the spotlight hole and place the tooltip.
  */
-enum class TutorialTarget { StartFocus, TasksTab, HabitsTab, JourneyTab }
+enum class TutorialTarget { StartFocus, SoundscapePlay, TasksTab, HabitsTab, JourneyTab }
 
 /** Which side of the spotlit element the tooltip card sits on. */
 enum class TooltipPlacement { Below, Above }
@@ -44,13 +44,14 @@ data class TutorialStep(
 )
 
 /**
- * The default 4-step product tour, mirroring the onboarding's "act → plan →
+ * The default 5-step product tour, mirroring the onboarding's "act → plan →
  * reflect" arc but anchored to the live UI:
  *
  *  1. Start Focus CTA (Home)  — tooltip below, points up
- *  2. Tasks dock tab          — tooltip above, points down
- *  3. Habits dock tab         — tooltip above, points down
- *  4. Journey dock tab        — tooltip above, points down
+ *  2. Soundscape play button  — tooltip above, points down
+ *  3. Tasks dock tab          — tooltip above, points down
+ *  4. Habits dock tab         — tooltip above, points down
+ *  5. Journey dock tab        — tooltip above, points down
  */
 val defaultTutorialSteps: List<TutorialStep> = listOf(
     TutorialStep(
@@ -60,6 +61,14 @@ val defaultTutorialSteps: List<TutorialStep> = listOf(
         placement = TooltipPlacement.Below,
         spotlightCornerRadius = 34.dp,
         spotlightPadding = 6.dp,
+    ),
+    TutorialStep(
+        target = TutorialTarget.SoundscapePlay,
+        titleRes = R.string.tutorial_soundscape_title,
+        bodyRes = R.string.tutorial_soundscape_body,
+        placement = TooltipPlacement.Above,
+        spotlightCornerRadius = 22.dp,
+        spotlightPadding = 4.dp,
     ),
     TutorialStep(
         target = TutorialTarget.TasksTab,

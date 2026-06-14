@@ -16,13 +16,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,8 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.Chrome
-import com.composables.icons.lucide.Lucide
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.auth.SupabaseConfig
@@ -48,6 +46,7 @@ import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
 import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginSheet(
@@ -62,16 +61,29 @@ fun LoginSheet(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val genericError = stringResource(R.string.login_error_generic)
     val notConfiguredError = stringResource(R.string.login_error_not_configured)
+    val scope = rememberCoroutineScope()
 
     val googleSignIn = authRepository.composeAuth.rememberSignInWithGoogle(
         onResult = { result ->
-            isSigningIn = false
             when (result) {
-                is NativeSignInResult.Success ->
-                    authRepository.currentAuthUser()?.let(onSignedIn)
-                is NativeSignInResult.ClosedByUser -> Unit
-                is NativeSignInResult.Error -> errorMessage = result.message ?: genericError
-                is NativeSignInResult.NetworkError -> errorMessage = result.message ?: genericError
+                is NativeSignInResult.Success -> scope.launch {
+                    val user = authRepository.awaitSignedInUser()
+                    isSigningIn = false
+                    if (user != null) {
+                        onSignedIn(user)
+                    } else {
+                        errorMessage = genericError
+                    }
+                }
+                is NativeSignInResult.ClosedByUser -> isSigningIn = false
+                is NativeSignInResult.Error -> {
+                    isSigningIn = false
+                    errorMessage = result.message ?: genericError
+                }
+                is NativeSignInResult.NetworkError -> {
+                    isSigningIn = false
+                    errorMessage = result.message ?: genericError
+                }
             }
         },
     )
@@ -190,12 +202,7 @@ private fun GoogleSignInButton(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = Lucide.Chrome,
-            contentDescription = null,
-            tint = tokens.textPrimary,
-            modifier = Modifier.size(20.dp),
-        )
+        GoogleBrandIcon(modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.size(KuroSpacing.sm))
         Text(
             text = stringResource(R.string.login_continue_with_google),

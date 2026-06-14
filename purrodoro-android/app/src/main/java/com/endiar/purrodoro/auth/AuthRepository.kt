@@ -10,8 +10,12 @@ import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.compose.auth.ComposeAuth
 import io.github.jan.supabase.compose.auth.composeAuth
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -52,6 +56,21 @@ class AuthRepository(private val client: SupabaseClient) {
 
     /** The signed-in user right now, or null when guest. Used post-sign-in. */
     fun currentAuthUser(): AuthUser? = client.auth.currentUserOrNull()?.toAuthUser()
+
+    /**
+     * Resolves the signed-in user after native Google sign-in. The ComposeAuth
+     * success callback can fire a tick before the Supabase session is readable
+     * via [currentAuthUser], so we poll briefly then fall back to [authState].
+     */
+    suspend fun awaitSignedInUser(): AuthUser? {
+        repeat(20) {
+            currentAuthUser()?.let { return it }
+            delay(100)
+        }
+        return withTimeoutOrNull(3_000L) {
+            authState.filterIsInstance<AuthState.SignedIn>().map { it.user }.first()
+        }
+    }
 
     suspend fun signOut() {
         // Clears the Supabase session only; local app data is retained per the
