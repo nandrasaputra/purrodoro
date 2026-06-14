@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,6 +93,7 @@ fun CycleCompleteDialog(
     streakPill: CycleStreakPill,
     confirmLabel: String = stringResource(R.string.cycle_done),
     secondaryLabel: String? = stringResource(R.string.cycle_view_journey),
+    soundEnabled: Boolean = true,
     onConfirm: () -> Unit,
     onSecondary: () -> Unit = {},
 ) {
@@ -139,10 +141,23 @@ fun CycleCompleteDialog(
         else -> R.drawable.cat_celebrate_clean
     }
 
-    LaunchedEffect(Unit) {
-        val mp = MediaPlayer.create(context, R.raw.cycle_complete_success)
-        mp?.setOnCompletionListener { it.release() }
-        mp?.start()
+    DisposableEffect(soundEnabled) {
+        var mp: MediaPlayer? = null
+        if (soundEnabled) {
+            mp = MediaPlayer.create(context, R.raw.cycle_complete_success)?.apply {
+                setOnCompletionListener {
+                    it.release()
+                    mp = null
+                }
+                start()
+            }
+        }
+        onDispose {
+            // Release if the dialog is dismissed before playback completes,
+            // otherwise the MediaPlayer instance leaks until GC.
+            mp?.release()
+            mp = null
+        }
     }
 
     Dialog(

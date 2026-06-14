@@ -88,8 +88,10 @@ fun LoginSheet(
     val googleSignIn = authRepository.composeAuth.rememberSignInWithGoogle(
         onResult = { result ->
             when (result) {
-                is NativeSignInResult.Success -> scope.launch {
-                    val user = authRepository.awaitSignedInUser()
+                is NativeSignInResult.Success -> authRepository.resolveSignedInUser { user ->
+                    // Resolution runs on AuthRepository's application scope, so this
+                    // fires even if the sheet was already dismissed — sign-in
+                    // succeeded server-side and the AccountManager handoff must run.
                     isSigningIn = false
                     if (user != null) {
                         onSignedIn(user)
