@@ -152,6 +152,7 @@
     <string name="focus_type_habit">Habit</string>
     <string name="focus_type_simple_note">Simple Note</string>
     <string name="focus_type_focus">Focus</string>
+    <string name="focus_type_free">Free Focus</string>
 
     <!-- Greetings -->
     <string name="greeting_morning_salutation">Good morning,</string>

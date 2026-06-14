@@ -49,7 +49,7 @@ import com.composables.icons.lucide.NotebookPen
 import com.composables.icons.lucide.Pause
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.Sparkles
-import com.composables.icons.lucide.Square
+import com.composables.icons.lucide.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -1190,7 +1190,7 @@ private fun FocusTypeIcon(
                 FocusType.Task -> Lucide.CircleCheck
                 FocusType.Habit -> Lucide.Leaf
                 FocusType.SimpleNote -> Lucide.NotebookPen
-                FocusType.Empty -> Lucide.Square
+                FocusType.Empty -> Lucide.Timer
             }
             Icon(
                 imageVector = icon,
@@ -1207,7 +1207,7 @@ private fun focusTypeLabel(focusType: FocusType): String = when (focusType) {
     FocusType.Task -> stringResource(R.string.focus_type_task)
     FocusType.Habit -> stringResource(R.string.focus_type_habit)
     FocusType.SimpleNote -> stringResource(R.string.focus_type_simple_note)
-    FocusType.Empty -> stringResource(R.string.focus_type_focus)
+    FocusType.Empty -> stringResource(R.string.focus_type_free)
 }
 
 @Composable

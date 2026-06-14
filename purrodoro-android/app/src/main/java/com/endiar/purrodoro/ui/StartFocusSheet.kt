@@ -29,7 +29,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.NotebookPen
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.Plus
-import com.composables.icons.lucide.Square
+import com.composables.icons.lucide.Timer
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.width
@@ -1427,7 +1427,7 @@ private fun intentIcon(intent: FocusIntent): ImageVector = when (intent) {
     FocusIntent.Habit -> Lucide.Leaf
     FocusIntent.Task -> Lucide.CircleCheck
     FocusIntent.SimpleNote -> Lucide.NotebookPen
-    FocusIntent.Empty -> Lucide.Square
+    FocusIntent.Empty -> Lucide.Timer
 }
 
 @Composable
@@ -1435,5 +1435,5 @@ private fun focusIntentLabel(intent: FocusIntent): String = when (intent) {
     FocusIntent.Habit -> stringResource(R.string.focus_type_habit)
     FocusIntent.Task -> stringResource(R.string.focus_type_task)
     FocusIntent.SimpleNote -> stringResource(R.string.intent_simple_note)
-    FocusIntent.Empty -> stringResource(R.string.intent_empty)
+    FocusIntent.Empty -> stringResource(R.string.focus_type_free)
 }

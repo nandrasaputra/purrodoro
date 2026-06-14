@@ -31,7 +31,7 @@ import com.composables.icons.lucide.Languages
 import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.NotebookPen
-import com.composables.icons.lucide.Square
+import com.composables.icons.lucide.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -486,7 +486,7 @@ private fun IntentPage() {
         )
         IntentTileRow(
             left = IntentSpec(stringResource(R.string.onboarding_intent_note), Lucide.NotebookPen),
-            right = IntentSpec(stringResource(R.string.onboarding_intent_free), Lucide.Square),
+            right = IntentSpec(stringResource(R.string.onboarding_intent_free), Lucide.Timer),
         )
     }
 
