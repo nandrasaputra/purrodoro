@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -226,19 +227,27 @@ private fun WeeklyFocusCard(summary: JourneySummary) {
             JourneyStatChip(Lucide.Star, stringResource(R.string.journey_stat_best_day), bestDayLabel, Modifier.weight(1f))
         }
         Spacer(Modifier.height(KuroSpacing.md))
+        val maxDayMinutes = summary.weekBars.maxOfOrNull { it.focusMinutes } ?: 0
+        val scale = remember(maxDayMinutes) { journeyChartScale(maxDayMinutes) }
         Row(
-            modifier = Modifier.fillMaxWidth().height(KuroSpacing.journeyChartHeight),
+            modifier = Modifier.fillMaxWidth().height(KuroSpacing.journeyChartPlotHeight),
             verticalAlignment = Alignment.Bottom,
         ) {
-            ChartAxis()
+            ChartAxis(scale)
             Row(
-                modifier = Modifier.weight(1f).height(KuroSpacing.journeyChartPlotHeight),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.Bottom,
             ) {
-                val maxMinutes = maxOf(180, summary.weekBars.maxOfOrNull { it.focusMinutes } ?: 0)
+                val topMinutes = scale.topMinutes.coerceAtLeast(1)
                 summary.weekBars.forEachIndexed { index, bar ->
-                    val ratio = if (maxMinutes == 0) 0f else bar.focusMinutes.toFloat() / maxMinutes.toFloat()
+                    // Floor non-zero days to a minimum visible fraction so a tiny
+                    // day next to a huge one still reads as "something happened".
+                    val ratio = if (bar.focusMinutes <= 0) {
+                        0f
+                    } else {
+                        (bar.focusMinutes.toFloat() / topMinutes.toFloat()).coerceIn(0.04f, 1f)
+                    }
                     val grow by animateFloatAsState(
                         targetValue = if (barsShown) 1f else 0f,
                         animationSpec = tween(
@@ -248,24 +257,34 @@ private fun WeeklyFocusCard(summary: JourneySummary) {
                         ),
                         label = "weekBarGrow",
                     )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
-                        if (bar.focusMinutes > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .width(KuroSpacing.journeyChartBarWidth)
-                                    .height(KuroSpacing.journeyChartBarMaxHeight * ratio * grow)
-                                    .clip(RoundedCornerShape(topStart = KuroSpacing.xs, topEnd = KuroSpacing.xs))
-                                    .background(if (index == 6) tokens.accentSoft else tokens.accent),
-                            )
-                        } else {
-                            Spacer(
-                                modifier = Modifier
-                                    .width(KuroSpacing.journeyChartBarWidth)
-                                    .height(KuroSpacing.xs / 2),
-                            )
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                    ) {
+                        // Bar region: takes all height left above the day label, so a
+                        // full-height bar can never push the label out of the plot.
+                        Box(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            contentAlignment = Alignment.BottomCenter,
+                        ) {
+                            if (bar.focusMinutes > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(KuroSpacing.journeyChartBarWidth)
+                                        .fillMaxHeight((ratio * grow).coerceIn(0f, 1f))
+                                        .clip(RoundedCornerShape(topStart = KuroSpacing.xs, topEnd = KuroSpacing.xs))
+                                        .background(if (index == 6) tokens.accentSoft else tokens.accent),
+                                )
+                            }
                         }
-                        Spacer(Modifier.height(KuroSpacing.sm))
-                        Text(bar.dayLabel.take(3), color = tokens.textSecondary, style = KuroType.labelMeta)
+                        Spacer(Modifier.height(KuroSpacing.xs))
+                        Text(
+                            bar.dayLabel.take(3),
+                            color = tokens.textSecondary,
+                            style = KuroType.labelMeta,
+                            maxLines = 1,
+                        )
                     }
                 }
             }
@@ -304,16 +323,27 @@ private fun JourneyStatChip(icon: androidx.compose.ui.graphics.vector.ImageVecto
 }
 
 @Composable
-private fun ChartAxis() {
+private fun ChartAxis(scale: JourneyChartScale) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
-        modifier = Modifier.width(KuroSpacing.journeyChartAxisWidth).height(KuroSpacing.journeyChartAxisHeight),
-        verticalArrangement = Arrangement.SpaceBetween,
-        horizontalAlignment = Alignment.End
+        modifier = Modifier.width(KuroSpacing.journeyChartAxisWidth).fillMaxHeight(),
+        horizontalAlignment = Alignment.End,
     ) {
-        Text("3h", color = tokens.textSecondary, style = KuroType.labelMeta)
-        Text("1.5h", color = tokens.textSecondary, style = KuroType.labelMeta)
-        Text("0", color = tokens.textSecondary, style = KuroType.labelMeta)
+        // Tick region mirrors the bars' weighted plot area so "0" lines up with
+        // the bar baseline.
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End,
+        ) {
+            Text(journeyMinutesLabel(scale.topMinutes), color = tokens.textSecondary, style = KuroType.labelMeta, maxLines = 1)
+            Text(journeyMinutesLabel(scale.midMinutes), color = tokens.textSecondary, style = KuroType.labelMeta, maxLines = 1)
+            Text("0", color = tokens.textSecondary, style = KuroType.labelMeta, maxLines = 1)
+        }
+        // Reserve the same bottom slot the bars use for their day label so the
+        // tick region height matches the bar region exactly.
+        Spacer(Modifier.height(KuroSpacing.xs))
+        Text("0", color = tokens.textSecondary, style = KuroType.labelMeta, modifier = Modifier.alpha(0f))
     }
 }
 
