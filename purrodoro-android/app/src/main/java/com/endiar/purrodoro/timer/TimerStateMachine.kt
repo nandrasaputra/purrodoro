@@ -7,6 +7,7 @@ import com.endiar.purrodoro.model.SessionStatus
 import com.endiar.purrodoro.model.TimerRuntimeState
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
+import com.endiar.purrodoro.model.TimerSkipOverride
 import com.endiar.purrodoro.model.seconds
 import java.time.Instant
 import java.time.ZoneId
@@ -112,7 +113,7 @@ object TimerStateMachine {
         }
 
         val nextItem = snapshot.session.items[nextIndex]
-        val nextSeconds = nextItem.type.seconds()
+        val nextSeconds = TimerSkipOverride.effectiveSeconds(nextItem.type.seconds())
         val baseEndsAt = snapshot.endsAtMillis ?: now
 
         val advanced = if (settings.autoStartNextSession) {
