@@ -29,7 +29,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.draw.scale
-import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.Bell
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Check
@@ -46,14 +45,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -89,6 +85,7 @@ import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.ui.components.KuroCard
 import com.endiar.purrodoro.ui.components.KuroPrimaryButton
+import com.endiar.purrodoro.ui.designsystem.KuroBackScreenTopBar
 import com.endiar.purrodoro.ui.designsystem.KuroBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroDivider
 import com.endiar.purrodoro.ui.designsystem.KuroInputField
@@ -146,21 +143,9 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Lucide.ArrowLeft,
-                            contentDescription = stringResource(R.string.common_back),
-                            tint = tokens.textPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = tokens.pageBackground,
-                    scrolledContainerColor = tokens.pageBackground
-                )
+            KuroBackScreenTopBar(
+                title = stringResource(R.string.settings_title),
+                onBack = onBack,
             )
         },
         containerColor = tokens.pageBackground
@@ -172,19 +157,12 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = KuroSpacing.lg)
         ) {
-            Spacer(modifier = Modifier.height(KuroSpacing.xs))
-            Text(
-                text = stringResource(R.string.settings_title),
-                style = KuroType.headingSettings,
-                color = tokens.textPrimary,
-            )
             Text(
                 text = stringResource(R.string.settings_subtitle),
                 style = KuroType.labelStrong,
                 color = tokens.textSecondary,
-                modifier = Modifier.padding(top = KuroSpacing.xs)
+                modifier = Modifier.padding(top = KuroSpacing.sm, bottom = KuroSpacing.xl),
             )
-            Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
             KuroSectionHeader(title = stringResource(R.string.settings_section_account))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))

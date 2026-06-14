@@ -29,10 +29,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -66,6 +70,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.CalendarDays
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Flag
@@ -121,6 +126,40 @@ fun KuroScreenScaffold(
             ScreenStickyBar(title = stickyTitle, modifier = Modifier.fillMaxWidth())
         }
     }
+}
+
+/** Shared top bar for pushed sub-screens (Settings, History, etc.). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun KuroBackScreenTopBar(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                text = title,
+                style = KuroType.headingCard,
+                color = tokens.textPrimary,
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Lucide.ArrowLeft,
+                    contentDescription = stringResource(R.string.common_back),
+                    tint = tokens.textPrimary,
+                )
+            }
+        },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = tokens.pageBackground,
+            scrolledContainerColor = tokens.pageBackground,
+        ),
+        modifier = modifier,
+    )
 }
 
 /** Shadowed surface card for the Journey tab (metrics, charts, calendar). */

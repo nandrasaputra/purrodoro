@@ -115,6 +115,7 @@ import com.endiar.purrodoro.model.InterruptedFocus
 import com.endiar.purrodoro.model.effectiveTarget
 import com.endiar.purrodoro.model.progressOn
 import com.endiar.purrodoro.ui.components.CycleCompleteDialog
+import com.endiar.purrodoro.ui.components.resolveCycleStreakPill
 import com.endiar.purrodoro.ui.components.KuroFlatSurface
 import com.endiar.purrodoro.ui.components.DashboardDock
 import com.endiar.purrodoro.ui.components.SoundscapeDockMode
@@ -1322,6 +1323,7 @@ fun PurrodoroApp(
                     focusType = snapshot.focusType,
                     intentEmoji = snapshot.intentEmoji,
                     intentLabel = snapshot.intentLabel,
+                    streakPill = resolveCycleStreakPill(stamps, LocalDate.now()),
                     confirmLabel = androidx.compose.ui.res.stringResource(CycleCompletionCopy.buttonLabelRes),
                     secondaryLabel = androidx.compose.ui.res.stringResource(R.string.cycle_view_journey),
                     onConfirm = {

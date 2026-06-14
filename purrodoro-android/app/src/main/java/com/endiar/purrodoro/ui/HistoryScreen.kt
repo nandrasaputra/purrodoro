@@ -22,16 +22,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +44,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Clock
@@ -57,6 +53,7 @@ import com.composables.icons.lucide.Target
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.SessionRecord
 import com.endiar.purrodoro.model.SessionStatus
+import com.endiar.purrodoro.ui.designsystem.KuroBackScreenTopBar
 import com.endiar.purrodoro.ui.designsystem.KuroBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroElevatedCard
 import com.endiar.purrodoro.ui.designsystem.KuroPill
@@ -100,27 +97,9 @@ fun HistoryScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.history_title),
-                        style = KuroType.headingCard,
-                        color = tokens.textPrimary,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Lucide.ArrowLeft,
-                            contentDescription = stringResource(R.string.common_back),
-                            tint = tokens.textPrimary,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = tokens.pageBackground,
-                    scrolledContainerColor = tokens.pageBackground,
-                ),
+            KuroBackScreenTopBar(
+                title = stringResource(R.string.history_title),
+                onBack = onBack,
             )
         },
         containerColor = tokens.pageBackground,
