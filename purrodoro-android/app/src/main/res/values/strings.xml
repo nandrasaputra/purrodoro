@@ -240,6 +240,7 @@
     <string name="focus_exit_cd">Exit focus mode</string>
     <string name="focus_start_break">Start break</string>
     <string name="focus_resume_focus">Resume focus</string>
+    <string name="focus_pause_focus">Pause</string>
     <string name="focus_tap_to_exit">tap anywhere to exit</string>
     <string name="focus_pause_break_cd">Pause break</string>
 

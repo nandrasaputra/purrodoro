@@ -30,9 +30,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -60,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.CircleCheck
+import com.composables.icons.lucide.CircleStop
 import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.NotebookPen
@@ -92,9 +96,10 @@ import com.endiar.purrodoro.ui.theme.kuroTokens
  *  - Coral progress dots with current emphasized + `n / m` text.
  *  - Mascot anchored in the lower-middle.
  *  - State-aware bottom CTA:
+ *      * focus running  → quiet secondary "Pause" pill
+ *      * focus paused   → coral "Resume focus" pill + quiet "Stop session"
  *      * break ready    → coral "Start break" pill + "Skip break" text
  *      * break running  → "Skip break" text + small coral pause circle
- *      * focus paused   → coral "Resume focus" pill
  *      * all states     → "tap anywhere to exit" hint (pinned below actions)
  *
  * Tap-anywhere-to-exit applies on all states; explicit controls consume the
@@ -114,6 +119,7 @@ fun FocusModeOverlay(
     isRunning: Boolean,
     onExit: () -> Unit,
     onStartPause: () -> Unit,
+    onStop: () -> Unit,
     onSkip: () -> Unit,
     isSoundscapePlaying: Boolean = false,
     soundscapeDisplayName: String = "",
@@ -179,7 +185,10 @@ fun FocusModeOverlay(
     val isPaused = currentTimerState == TimerState.Paused
     val breakReady = isBreak && !isRunning
     val breakRunning = isBreak && isRunning
+    val focusRunning = !isBreak && isRunning
     val focusPaused = !isBreak && isPaused
+
+    var showStopConfirmDialog by remember { mutableStateOf(false) }
 
     val modeLabel = when (timerMode) {
         TimerMode.Focus -> stringResource(R.string.focus_mode_label_focus)
@@ -353,13 +362,57 @@ fun FocusModeOverlay(
             BottomActions(
                 breakReady = breakReady,
                 breakRunning = breakRunning,
+                focusRunning = focusRunning,
                 focusPaused = focusPaused,
                 onStartPause = onStartPause,
+                onStop = { showStopConfirmDialog = true },
                 onSkip = onSkip,
             )
 
             Spacer(Modifier.height(28.dp))
         }
+    }
+
+    if (showStopConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showStopConfirmDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.home_stop_title),
+                    color = tokens.textPrimary,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.home_stop_body),
+                    color = tokens.textSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showStopConfirmDialog = false
+                    onStop()
+                }) {
+                    Text(
+                        text = stringResource(R.string.home_stop_confirm),
+                        color = tokens.accent,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStopConfirmDialog = false }) {
+                    Text(
+                        text = stringResource(R.string.home_stop_dismiss),
+                        color = tokens.textSecondary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+            containerColor = tokens.cardFill,
+            shape = RoundedCornerShape(KuroSpacing.xl),
+        )
     }
 }
 
@@ -473,8 +526,10 @@ private fun focusCounts(
 private fun BottomActions(
     breakReady: Boolean,
     breakRunning: Boolean,
+    focusRunning: Boolean,
     focusPaused: Boolean,
     onStartPause: () -> Unit,
+    onStop: () -> Unit,
     onSkip: () -> Unit,
 ) {
     Column(
@@ -502,11 +557,26 @@ private fun BottomActions(
                 CoralPauseCircle(onClick = onStartPause)
             }
 
-            focusPaused -> CoralPillButton(
-                text = stringResource(R.string.focus_resume_focus),
-                onClick = onStartPause,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            focusPaused -> {
+                CoralPillButton(
+                    text = stringResource(R.string.focus_resume_focus),
+                    onClick = onStartPause,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                QuietTextAction(
+                    text = stringResource(R.string.home_stop_session),
+                    onClick = onStop,
+                    icon = Lucide.CircleStop,
+                )
+            }
+
+            focusRunning -> {
+                SubtleSecondaryButton(
+                    text = stringResource(R.string.focus_pause_focus),
+                    onClick = onStartPause,
+                    icon = Lucide.Pause,
+                )
+            }
         }
         TapToExitHint()
     }
@@ -558,7 +628,11 @@ private fun CoralPillButton(
 }
 
 @Composable
-private fun QuietTextAction(text: String, onClick: () -> Unit) {
+private fun QuietTextAction(
+    text: String,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val interactionSource = remember { MutableInteractionSource() }
     Box(
@@ -573,11 +647,73 @@ private fun QuietTextAction(text: String, onClick: () -> Unit) {
             .padding(horizontal = 12.dp, vertical = 10.dp)
             .semantics { contentDescription = text },
     ) {
-        Text(
-            text = text,
-            color = tokens.textSecondary,
-            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tokens.textSecondary,
+                    modifier = Modifier.size(15.dp),
+                )
+                Spacer(Modifier.width(5.dp))
+            }
+            Text(
+                text = text,
+                color = tokens.textSecondary,
+                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SubtleSecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .pressScale(interactionSource, pressedScale = 0.98f)
+            .height(44.dp)
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .background(tokens.cardFill.copy(alpha = 0.85f))
+            .border(
+                1.dp,
+                tokens.cardBorder.copy(alpha = 0.7f),
+                RoundedCornerShape(KuroSpacing.radiusPill),
+            )
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            )
+            .padding(horizontal = KuroSpacing.lg)
+            .semantics { contentDescription = text },
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tokens.textSecondary.copy(alpha = 0.65f),
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                text = text,
+                color = tokens.textSecondary.copy(alpha = 0.75f),
+                style = KuroType.bodyPrimary.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                ),
+            )
+        }
     }
 }
 

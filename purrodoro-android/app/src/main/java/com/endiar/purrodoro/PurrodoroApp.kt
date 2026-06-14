@@ -120,6 +120,7 @@ import com.endiar.purrodoro.ui.components.KuroFlatSurface
 import com.endiar.purrodoro.ui.components.DashboardDock
 import com.endiar.purrodoro.ui.components.SoundscapeDockMode
 import com.endiar.purrodoro.ui.components.FocusModeMotion
+import com.endiar.purrodoro.ui.components.focusModeActive
 import com.endiar.purrodoro.ui.components.FocusModeOverlay
 import com.endiar.purrodoro.ui.components.SpotlightTutorialOverlay
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
@@ -244,6 +245,7 @@ fun PurrodoroApp(
         )
     }
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
+    var focusStartPending by rememberSaveable { mutableStateOf(false) }
     var showProfile by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
     var showLoginSheet by remember { mutableStateOf(false) }
@@ -664,11 +666,18 @@ fun PurrodoroApp(
     // Focus mode is sticky for the duration of a session — running OR paused —
     // so the user can "continue from focus screen" when auto-start-break is off
     // and the timer pauses between segments. We only drop focus mode when the
-    // session truly tears down (Idle / null runtime), or when the user
-    // explicitly exits (tap-to-exit, Stop, switch tabs from a sheet, etc.).
-    // Also covers the brief async window before the runtime arrives so a cold
-    // restart into focus mode snaps cleanly to the final state.
-    val focusActive = isFocusMode && (isStarted || runtimeState == null)
+    // session truly tears down (Stop / null runtime with no pending start), or
+    // when the user explicitly exits (tap-to-exit, switch tabs from a sheet).
+    // [focusStartPending] covers the brief async window before the service
+    // runtime arrives after start(); without it we'd flash out of focus mode on
+    // a notification Stop (runtime null was previously treated as in-flight).
+    LaunchedEffect(runtimeState) {
+        if (runtimeState != null) focusStartPending = false
+    }
+    val focusActive = focusModeActive(isFocusMode, runtimeState, focusStartPending)
+    LaunchedEffect(focusActive) {
+        if (isFocusMode && !focusActive) isFocusMode = false
+    }
     val focusTransition = updateTransition(targetState = focusActive, label = "focusMode")
 
     val soundscapeDockMode = when {
@@ -705,6 +714,72 @@ fun PurrodoroApp(
     val cycleItems: List<TimerSessionItem> = runtimeState?.session?.items ?: emptyList()
     val cycleIndex = runtimeState?.session?.currentIndex ?: 0
     val currentTimerState = runtimeState?.session?.timerState ?: TimerState.Idle
+
+    val stopActiveSession: () -> Unit = {
+        // Remember unfinished task/habit focus so Home can offer to continue it.
+        val rt = runtimeState
+        val futureFocusSessions = rt?.session?.let {
+            remainingFocusSessionsAfterCurrent(it.items, it.currentIndex)
+        } ?: 0
+        val activeFocusMinutes = rt?.session?.items
+            ?.mapNotNull { (it.type as? SessionItemType.Focus)?.seconds }
+            ?.firstOrNull()
+            ?.let { (it + 59) / 60 }
+            ?: settings.focusMinutes
+        val interrupted: InterruptedFocus? = when {
+            rt == null -> null
+            rt.focusType == FocusType.Task && (rt.activeTask?.id ?: 0) > 0 ->
+                when {
+                    currentItemType is SessionItemType.Focus && remainingSeconds > 0 ->
+                        InterruptedFocus(
+                            focusType = FocusType.Task,
+                            taskId = rt.activeTask?.id,
+                            habitId = null,
+                            title = rt.activeTask?.title ?: "",
+                            remainingSeconds = remainingSeconds,
+                        )
+                    currentItemType !is SessionItemType.Focus && futureFocusSessions > 0 ->
+                        InterruptedFocus(
+                            focusType = FocusType.Task,
+                            taskId = rt.activeTask?.id,
+                            habitId = null,
+                            title = rt.activeTask?.title ?: "",
+                            remainingSeconds = 0,
+                            remainingFocusSessions = futureFocusSessions,
+                            focusMinutes = activeFocusMinutes,
+                        )
+                    else -> null
+                }
+            rt.focusType == FocusType.Habit && rt.activeHabitId != null ->
+                when {
+                    currentItemType is SessionItemType.Focus && remainingSeconds > 0 ->
+                        InterruptedFocus(
+                            focusType = FocusType.Habit,
+                            taskId = null,
+                            habitId = rt.activeHabitId,
+                            title = rt.activeTask?.title ?: "",
+                            remainingSeconds = remainingSeconds,
+                        )
+                    currentItemType !is SessionItemType.Focus && futureFocusSessions > 0 ->
+                        InterruptedFocus(
+                            focusType = FocusType.Habit,
+                            taskId = null,
+                            habitId = rt.activeHabitId,
+                            title = rt.activeTask?.title ?: "",
+                            remainingSeconds = 0,
+                            remainingFocusSessions = futureFocusSessions,
+                            focusMinutes = activeFocusMinutes,
+                        )
+                    else -> null
+                }
+            else -> null
+        }
+        scope.launch { repo.setInterruptedFocus(interrupted) }
+        timerConnection.controller.stop()
+        isFocusMode = false
+        focusStartPending = false
+        activeTask = null
+    }
 
     val backdropTime = AppClock.now()
     val homeGreeting = com.endiar.purrodoro.ui.rememberHomeGreeting(backdropTime)
@@ -839,73 +914,7 @@ fun PurrodoroApp(
                             }
                             showStartFocusSheet = true
                         },
-                        onStop = {
-                            // Remember unfinished task/habit focus so Home can
-                            // offer to continue it. Mid-focus stops preserve the
-                            // leftover minutes; break stops preserve the number
-                            // of future focus sessions in the block.
-                            val rt = runtimeState
-                            val futureFocusSessions = rt?.session?.let {
-                                remainingFocusSessionsAfterCurrent(it.items, it.currentIndex)
-                            } ?: 0
-                            val activeFocusMinutes = rt?.session?.items
-                                ?.mapNotNull { (it.type as? SessionItemType.Focus)?.seconds }
-                                ?.firstOrNull()
-                                ?.let { (it + 59) / 60 }
-                                ?: settings.focusMinutes
-                            val interrupted: InterruptedFocus? = when {
-                                rt == null -> null
-                                rt.focusType == FocusType.Task && (rt.activeTask?.id ?: 0) > 0 ->
-                                    when {
-                                        currentItemType is SessionItemType.Focus && remainingSeconds > 0 ->
-                                            InterruptedFocus(
-                                                focusType = FocusType.Task,
-                                                taskId = rt.activeTask?.id,
-                                                habitId = null,
-                                                title = rt.activeTask?.title ?: "",
-                                                remainingSeconds = remainingSeconds,
-                                            )
-                                        currentItemType !is SessionItemType.Focus && futureFocusSessions > 0 ->
-                                            InterruptedFocus(
-                                                focusType = FocusType.Task,
-                                                taskId = rt.activeTask?.id,
-                                                habitId = null,
-                                                title = rt.activeTask?.title ?: "",
-                                                remainingSeconds = 0,
-                                                remainingFocusSessions = futureFocusSessions,
-                                                focusMinutes = activeFocusMinutes,
-                                            )
-                                        else -> null
-                                    }
-                                rt.focusType == FocusType.Habit && rt.activeHabitId != null ->
-                                    when {
-                                        currentItemType is SessionItemType.Focus && remainingSeconds > 0 ->
-                                            InterruptedFocus(
-                                                focusType = FocusType.Habit,
-                                                taskId = null,
-                                                habitId = rt.activeHabitId,
-                                                title = rt.activeTask?.title ?: "",
-                                                remainingSeconds = remainingSeconds,
-                                            )
-                                        currentItemType !is SessionItemType.Focus && futureFocusSessions > 0 ->
-                                            InterruptedFocus(
-                                                focusType = FocusType.Habit,
-                                                taskId = null,
-                                                habitId = rt.activeHabitId,
-                                                title = rt.activeTask?.title ?: "",
-                                                remainingSeconds = 0,
-                                                remainingFocusSessions = futureFocusSessions,
-                                                focusMinutes = activeFocusMinutes,
-                                            )
-                                        else -> null
-                                    }
-                                else -> null
-                            }
-                            scope.launch { repo.setInterruptedFocus(interrupted) }
-                            timerConnection.controller.stop()
-                            isFocusMode = false
-                            activeTask = null
-                        },
+                        onStop = stopActiveSession,
                         onOpenProfile = { showProfile = true },
                         onOpenSoundscape = { showSoundsSheet = true },
                         onMuteSoundscape = { pauseSoundscape() },
@@ -940,6 +949,7 @@ fun PurrodoroApp(
                             // dashboard) so task and habit starts behave the same:
                             // "you pressed start, now focus."
                             isFocusMode = true
+                            focusStartPending = true
                             selectedTab = AppTab.Timer
                             requestNotificationPermission()
                             scope.launch { repo.setInterruptedFocus(null) }
@@ -1064,6 +1074,7 @@ fun PurrodoroApp(
                         else timerConnection.controller.resume()
                     },
                     onSkip = { timerConnection.controller.skip() },
+                    onStop = stopActiveSession,
                     isSoundscapePlaying = isSoundscapePlaying,
                     soundscapeDisplayName = soundscapeTransportLabel,
                     showSoundscapeFirstRunHint = !hasEverUsedSoundscape,
@@ -1110,6 +1121,7 @@ fun PurrodoroApp(
                             // Timer tab; the Habits-originated caller navigates here.
                             selectedTab = AppTab.Timer
                             isFocusMode = true
+                            focusStartPending = true
                             activeTask = request.task
                             scope.launch { repo.setInterruptedFocus(null) }
                             timerConnection.controller.start(request.settings, request.task, request.habitId, request.focusType)
