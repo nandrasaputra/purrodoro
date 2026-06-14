@@ -106,6 +106,7 @@ data class SessionRecordEntity(
     val completedLongBreakCount: Int,
     val statusName: String,
     val taskName: String?,
+    val focusTypeName: String?,
     val dirty: Boolean,
     val locallyModifiedAt: Long,
     val deleted: Boolean,

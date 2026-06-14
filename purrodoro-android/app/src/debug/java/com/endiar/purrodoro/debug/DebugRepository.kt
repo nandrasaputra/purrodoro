@@ -23,6 +23,7 @@ private val Context.debugDataStore by preferencesDataStore(name = "kuro_debug_pr
 private val KEY_CLOCK_OVERRIDE = stringPreferencesKey("clock_override")
 private val KEY_IS_PREMIUM_OVERRIDE = booleanPreferencesKey("is_premium_override")
 private val KEY_PREMIUM_OVERRIDE_VALUE = booleanPreferencesKey("premium_override_value")
+private val KEY_SYNC_NOTIFICATION_ENABLED = booleanPreferencesKey("sync_notification_enabled")
 private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
 
 class DebugRepository(private val context: Context? = null) : ClockDebugSource, PremiumDebugSource {
@@ -32,6 +33,7 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource, 
     override val clockOverride = MutableStateFlow<LocalTime?>(null)
     override val isPremiumOverrideEnabled = MutableStateFlow(false)
     override val premiumOverrideValue = MutableStateFlow(true)
+    val syncNotificationEnabled = MutableStateFlow(true)
 
     init {
         if (context != null) {
@@ -41,6 +43,8 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource, 
                 ?.let { runCatching { LocalTime.parse(it, TIME_FORMAT) }.getOrNull() }
             isPremiumOverrideEnabled.value = prefs[KEY_IS_PREMIUM_OVERRIDE] ?: false
             premiumOverrideValue.value = prefs[KEY_PREMIUM_OVERRIDE_VALUE] ?: true
+            syncNotificationEnabled.value = prefs[KEY_SYNC_NOTIFICATION_ENABLED] ?: true
+            applySyncNotificationPreference()
         }
     }
 
@@ -74,6 +78,21 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource, 
                 }
             }
         }
+    }
+
+    fun setSyncNotificationEnabled(enabled: Boolean) {
+        syncNotificationEnabled.value = enabled
+        val ctx = context ?: return
+        scope.launch {
+            ctx.debugDataStore.edit { prefs ->
+                prefs[KEY_SYNC_NOTIFICATION_ENABLED] = enabled
+            }
+            SyncDebugController.setEnabled(ctx, enabled)
+        }
+    }
+
+    fun applySyncNotificationPreference() {
+        context?.let { SyncDebugController.setEnabled(it, syncNotificationEnabled.value) }
     }
 
     companion object {

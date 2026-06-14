@@ -13,6 +13,7 @@ class KuroDebugApplication : Application() {
         super.onCreate()
         val debugRepo = DebugRepository.init(this)
         AppClock.source = debugRepo
+        debugRepo.applySyncNotificationPreference()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // On API 33+ posting notifications needs runtime permission. We

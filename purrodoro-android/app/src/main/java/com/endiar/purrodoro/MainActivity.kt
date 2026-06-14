@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
             val authRepository = AuthRepository.get(this)
             val appearanceMode by repo.appState
                 .map { it.appearanceMode }
-                .collectAsStateWithLifecycle(initialValue = AppearanceMode.Auto)
+                .collectAsStateWithLifecycle(initialValue = AppearanceMode.Light)
 
             val language by repo.appState
                 .map { it.language }

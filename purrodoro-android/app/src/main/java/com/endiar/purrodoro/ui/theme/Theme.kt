@@ -43,7 +43,7 @@ private val LightColorScheme = lightColorScheme(
  */
 @Composable
 fun PurrodoroTheme(
-    appearanceMode: AppearanceMode = AppearanceMode.Auto,
+    appearanceMode: AppearanceMode = AppearanceMode.Light,
     systemInDark: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {

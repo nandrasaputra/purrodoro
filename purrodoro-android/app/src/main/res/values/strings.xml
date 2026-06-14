@@ -129,6 +129,19 @@
     <string name="logout_unsynced_body">Some recent changes couldn\'t be synced to the cloud. They\'ll stay on this device, but may be lost if another account signs in here.</string>
     <string name="logout_unsynced_confirm">Sign out anyway</string>
 
+    <!-- Sync status (Profile, signed-in only) -->
+    <string name="settings_section_sync">SYNC</string>
+    <string name="sync_status_not_yet">Syncing soon</string>
+    <string name="sync_status_skipped">Setting up backup</string>
+    <string name="sync_status_up_to_date">Backed up</string>
+    <string name="sync_status_incomplete">Saving…</string>
+    <string name="sync_status_failed">Couldn\'t back up</string>
+    <string name="sync_status_last_sync">Last backed up · %1$s</string>
+    <string name="sync_status_last_tried">Last tried · %1$s</string>
+    <string name="sync_time_just_now">just now</string>
+    <string name="sync_time_minutes_ago">%1$d min ago</string>
+    <string name="sync_time_hours_ago">%1$d hr ago</string>
+
     <!-- Timer modes -->
     <string name="timer_mode_focus">Focus</string>
     <string name="timer_mode_short_break">Short Break</string>
@@ -585,6 +598,8 @@
     <string name="tutorial_cat_cd">Purrodoro the cat</string>
     <string name="tutorial_start_focus_title">Start your first focus</string>
     <string name="tutorial_start_focus_body">Tap here to begin a Pomodoro and let Purrodoro keep time for you.</string>
+    <string name="tutorial_soundscape_title">Play your Soundscape</string>
+    <string name="tutorial_soundscape_body">Tap here to mix ambience and lo-fi music while you focus.</string>
     <string name="tutorial_tasks_title">Plan what matters</string>
     <string name="tutorial_tasks_body">Add tasks here, then pick one to focus on with Purrodoro.</string>
     <string name="tutorial_habits_title">Build gentle habits</string>

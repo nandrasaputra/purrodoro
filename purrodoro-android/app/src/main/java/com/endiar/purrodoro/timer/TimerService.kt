@@ -141,7 +141,8 @@ class TimerService : Service() {
             completedFocusCount = 0,
             totalFocusCount = items.count { it.type is SessionItemType.Focus },
             status = SessionStatus.Partial,
-            taskName = task?.title
+            taskName = task?.title,
+            focusType = focusType,
         )
         val state = TimerRuntimeState(
             session = TimerSession(items, 0, firstSeconds, TimerState.Playing),

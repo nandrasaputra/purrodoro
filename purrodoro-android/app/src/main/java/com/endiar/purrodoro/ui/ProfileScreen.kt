@@ -84,6 +84,7 @@ import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AuthState
 import com.endiar.purrodoro.model.isNameFromAccount
 import com.endiar.purrodoro.ui.auth.AccountSection
+import com.endiar.purrodoro.sync.SyncStatusPresentation
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.ui.components.KuroCard
@@ -107,7 +108,7 @@ fun ProfileScreen(
     onUpdateSettings: (TimerSettings) -> Unit,
     notificationSoundEnabled: Boolean,
     onUpdateNotificationSound: (Boolean) -> Unit,
-    appearanceMode: AppearanceMode = AppearanceMode.Auto,
+    appearanceMode: AppearanceMode = AppearanceMode.Light,
     onUpdateAppearanceMode: (AppearanceMode) -> Unit = {},
     language: AppLanguage = AppLanguage.System,
     onUpdateLanguage: (AppLanguage) -> Unit = {},
@@ -117,6 +118,8 @@ fun ProfileScreen(
     authState: AuthState = AuthState.Guest,
     onRequestLogin: () -> Unit = {},
     onSignOut: () -> Unit = {},
+    syncEnabled: Boolean = false,
+    syncPresentation: SyncStatusPresentation? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
@@ -189,6 +192,7 @@ fun ProfileScreen(
                 authState = authState,
                 onRequestLogin = onRequestLogin,
                 onSignOut = onSignOut,
+                syncPresentation = if (syncEnabled) syncPresentation else null,
             )
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))

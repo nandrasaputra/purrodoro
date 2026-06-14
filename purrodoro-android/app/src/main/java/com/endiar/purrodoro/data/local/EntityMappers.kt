@@ -2,6 +2,7 @@ package com.endiar.purrodoro.data.local
 
 import com.endiar.purrodoro.model.Category
 import com.endiar.purrodoro.model.FocusTask
+import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.Habit
 import com.endiar.purrodoro.model.HabitLog
 import com.endiar.purrodoro.model.HabitLogState
@@ -194,6 +195,7 @@ fun SessionRecord.toEntity(
     completedLongBreakCount = completedLongBreakCount,
     statusName = status.name,
     taskName = taskName,
+    focusTypeName = focusType?.name,
     dirty = dirty,
     locallyModifiedAt = modifiedAt,
     deleted = false,
@@ -212,4 +214,5 @@ fun SessionRecordEntity.toDomain(): SessionRecord = SessionRecord(
     taskName = taskName,
     completedShortBreakCount = completedShortBreakCount,
     completedLongBreakCount = completedLongBreakCount,
+    focusType = focusTypeName?.let { runCatching { FocusType.valueOf(it) }.getOrNull() },
 )

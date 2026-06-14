@@ -24,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ProfileEntity::class,
         SoundscapeTrackEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class PurrodoroDatabase : RoomDatabase() {
@@ -80,6 +80,13 @@ abstract class PurrodoroDatabase : RoomDatabase() {
             }
         }
 
+        /** v4 adds focusTypeName to session_records for local focus-type tracking. */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `session_records` ADD COLUMN `focusTypeName` TEXT")
+            }
+        }
+
         @Volatile private var INSTANCE: PurrodoroDatabase? = null
 
         fun get(context: Context): PurrodoroDatabase =
@@ -88,7 +95,7 @@ abstract class PurrodoroDatabase : RoomDatabase() {
                     context.applicationContext,
                     PurrodoroDatabase::class.java,
                     "purrodoro.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build().also { INSTANCE = it }
             }
     }

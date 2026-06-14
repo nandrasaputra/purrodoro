@@ -144,9 +144,9 @@ class AppRepositoryTest {
     }
 
     @Test
-    fun `default appearanceMode is Auto`() = runTest {
+    fun `default appearanceMode is Light`() = runTest {
         val repo = makeRepo()
-        assertEquals(AppearanceMode.Auto, repo.appState.first().appearanceMode)
+        assertEquals(AppearanceMode.Light, repo.appState.first().appearanceMode)
     }
 
     @Test

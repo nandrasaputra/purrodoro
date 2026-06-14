@@ -43,11 +43,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.PremiumOverride
 import com.endiar.purrodoro.model.SessionRecord
 import com.endiar.purrodoro.model.SessionStatus
@@ -92,6 +94,7 @@ private fun DebugScreen(
     val clockOverride by debugRepo.clockOverride.collectAsStateWithLifecycle()
     val isPremiumOverrideEnabled by debugRepo.isPremiumOverrideEnabled.collectAsStateWithLifecycle()
     val premiumOverrideValue by debugRepo.premiumOverrideValue.collectAsStateWithLifecycle()
+    val syncNotificationEnabled by debugRepo.syncNotificationEnabled.collectAsStateWithLifecycle()
     var showCatalog by remember { mutableStateOf(false) }
 
     if (showCatalog) {
@@ -110,6 +113,7 @@ private fun DebugScreen(
         )
     )
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -314,6 +318,38 @@ private fun DebugScreen(
                 }
 
                 // placeholder for Task 3
+                HorizontalDivider()
+
+                // --- Sync debug notification ---
+                SectionTitle("SYNC DEBUG")
+                Text(
+                    "Shows a persistent notification with the latest sync pass outcome. Tap it to open the sync debug screen.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Sync notification", style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = syncNotificationEnabled,
+                        onCheckedChange = debugRepo::setSyncNotificationEnabled,
+                    )
+                }
+                OutlinedButton(
+                    onClick = {
+                        context.startActivity(
+                            android.content.Intent(context, SyncDebugActivity::class.java)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = syncNotificationEnabled,
+                ) {
+                    Text("Open sync debug screen")
+                }
+
                 HorizontalDivider()
 
                 // --- Session Injection ---
@@ -714,6 +750,7 @@ private fun buildDaySessions(
             taskName = DEBUG_TASK_NAMES[i % DEBUG_TASK_NAMES.size],
             completedShortBreakCount = if (i < sessions - 1) 1 else 0,
             completedLongBreakCount = 0,
+            focusType = FocusType.SimpleNote,
         )
     }
 }

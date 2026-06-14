@@ -128,6 +128,19 @@
     <string name="logout_unsynced_body">Beberapa perubahan terbaru belum tersinkron ke cloud. Perubahan itu tetap ada di perangkat ini, tetapi bisa hilang jika akun lain masuk di sini.</string>
     <string name="logout_unsynced_confirm">Tetap keluar</string>
 
+    <!-- Sync status (Profile, signed-in only) -->
+    <string name="settings_section_sync">SINKRONISASI</string>
+    <string name="sync_status_not_yet">Segera tersimpan</string>
+    <string name="sync_status_skipped">Menyiapkan backup</string>
+    <string name="sync_status_up_to_date">Sudah tersimpan</string>
+    <string name="sync_status_incomplete">Sedang menyimpan…</string>
+    <string name="sync_status_failed">Gagal tersimpan</string>
+    <string name="sync_status_last_sync">Terakhir disimpan · %1$s</string>
+    <string name="sync_status_last_tried">Terakhir dicoba · %1$s</string>
+    <string name="sync_time_just_now">baru saja</string>
+    <string name="sync_time_minutes_ago">%1$d menit lalu</string>
+    <string name="sync_time_hours_ago">%1$d jam lalu</string>
+
     <!-- Timer modes -->
     <string name="timer_mode_focus">Fokus</string>
     <string name="timer_mode_short_break">Istirahat Singkat</string>
@@ -569,6 +582,8 @@
     <string name="tutorial_cat_cd">Purrodoro si kucing</string>
     <string name="tutorial_start_focus_title">Mulai fokus pertamamu</string>
     <string name="tutorial_start_focus_body">Ketuk di sini untuk memulai Pomodoro dan biarkan Purrodoro menghitung waktunya.</string>
+    <string name="tutorial_soundscape_title">Putar Soundscape-mu</string>
+    <string name="tutorial_soundscape_body">Ketuk di sini untuk mencampur ambien dan musik lo-fi saat kamu fokus.</string>
     <string name="tutorial_tasks_title">Rencanakan yang penting</string>
     <string name="tutorial_tasks_body">Tambahkan tugas di sini, lalu pilih satu untuk difokuskan bersama Purrodoro.</string>
     <string name="tutorial_habits_title">Bangun kebiasaan lembut</string>
