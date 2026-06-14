@@ -10,11 +10,15 @@ import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.compose.auth.ComposeAuth
 import io.github.jan.supabase.compose.auth.composeAuth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -44,6 +48,15 @@ class AuthRepository(private val client: SupabaseClient) {
     /** Exposed so [com.endiar.purrodoro.ui.auth.LoginSheet] can start the native flow. */
     val composeAuth: ComposeAuth get() = client.composeAuth
 
+    /**
+     * Application-lived scope for sign-in resolution. Resolving the signed-in
+     * user (see [resolveSignedInUser]) must not be tied to the LoginSheet's
+     * composition: the sheet can be dismissed — cancelling its
+     * `rememberCoroutineScope` — while [awaitSignedInUser] is still polling,
+     * which would otherwise skip the post-sign-in handoff to AccountManager.
+     */
+    private val resolverScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
     val authState: Flow<AuthState> = client.auth.sessionStatus.map { status ->
         when (status) {
             is SessionStatus.Authenticated ->
@@ -69,6 +82,18 @@ class AuthRepository(private val client: SupabaseClient) {
         }
         return withTimeoutOrNull(3_000L) {
             authState.filterIsInstance<AuthState.SignedIn>().map { it.user }.first()
+        }
+    }
+
+    /**
+     * Resolves the signed-in user on an application-lived scope and delivers the
+     * result on the main thread. Survives the LoginSheet leaving composition so
+     * the post-sign-in handoff (AccountManager) always runs once the native
+     * Google flow reports success.
+     */
+    fun resolveSignedInUser(onResolved: (AuthUser?) -> Unit) {
+        resolverScope.launch {
+            onResolved(awaitSignedInUser())
         }
     }
 

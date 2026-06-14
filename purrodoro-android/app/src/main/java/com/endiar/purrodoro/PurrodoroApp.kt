@@ -1341,6 +1341,7 @@ fun PurrodoroApp(
                     streakPill = resolveCycleStreakPill(stamps, LocalDate.now()),
                     confirmLabel = androidx.compose.ui.res.stringResource(CycleCompletionCopy.buttonLabelRes),
                     secondaryLabel = androidx.compose.ui.res.stringResource(R.string.cycle_view_journey),
+                    soundEnabled = notificationSoundEnabled,
                     onConfirm = {
                         scope.launch { repo.setPendingCycleCompletionAck(false) }
                     },
