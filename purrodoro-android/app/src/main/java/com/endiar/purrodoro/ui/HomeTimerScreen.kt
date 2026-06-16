@@ -105,6 +105,7 @@ import com.endiar.purrodoro.ui.designsystem.pressScale
 import com.endiar.purrodoro.ui.theme.Mint
 import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
+import com.endiar.purrodoro.ui.theme.luminance
 import com.endiar.purrodoro.ui.tutorial.TutorialTarget
 import com.endiar.purrodoro.ui.tutorial.tutorialAnchor
 import java.time.LocalDate
@@ -420,10 +421,11 @@ private fun LeafSprig(modifier: Modifier = Modifier, veinColor: Color) {
 
 @Composable
 private fun HeroImage(modifier: Modifier = Modifier, time: LocalTime) {
-    val resId = if (time.hour in 6..17) {
-        R.drawable.cat_home_header_day
-    } else {
-        R.drawable.cat_home_header_night
+    val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
+    val resId = when {
+        isDark -> R.drawable.cat_home_header_night
+        time.hour in 6..17 -> R.drawable.cat_home_header_day
+        else -> R.drawable.cat_home_header_night
     }
     Image(
         painter = painterResource(id = resId),

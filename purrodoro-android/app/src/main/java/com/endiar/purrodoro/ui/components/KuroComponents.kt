@@ -486,7 +486,7 @@ private fun DockTabItem(
     // pale tint that washes out against the dock. interactiveFill/Text are the
     // design system's contrast-verified "active pill" pairing.
     val iconColor by animateColorAsState(
-        targetValue = if (active) tokens.interactiveText else tokens.textMuted,
+        targetValue = if (active) tokens.interactiveText else tokens.textSecondary,
         animationSpec = tween(durationMillis = 200),
         label = "dockIconColor",
     )

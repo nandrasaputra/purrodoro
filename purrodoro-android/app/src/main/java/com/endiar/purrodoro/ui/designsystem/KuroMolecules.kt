@@ -344,7 +344,7 @@ fun KuroInputField(
     TextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text(placeholder, style = KuroType.bodyPrimary, color = tokens.textFaint) },
+        placeholder = { Text(placeholder, style = KuroType.bodyPrimary, color = tokens.textMuted) },
         singleLine = singleLine,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,

@@ -99,6 +99,7 @@ import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.designsystem.categoryColorChoices
 import com.endiar.purrodoro.ui.designsystem.categoryColorFor
 import com.endiar.purrodoro.ui.theme.kuroTokens
+import com.endiar.purrodoro.ui.theme.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextAlign
 /**
@@ -2277,12 +2278,28 @@ private fun NextFocusHeroCard(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Image(
-                painter = painterResource(id = R.drawable.cat_checklist),
+                painter = painterResource(
+                    id = if (MaterialTheme.colorScheme.background.luminance() <= 0.5f) {
+                        R.drawable.cat_face
+                    } else {
+                        R.drawable.cat_checklist
+                    },
+                ),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .width(92.dp)
-                    .height(72.dp),
+                    .height(72.dp)
+                    .then(
+                        if (MaterialTheme.colorScheme.background.luminance() <= 0.5f) {
+                            Modifier
+                                .clip(RoundedCornerShape(KuroSpacing.radiusSm))
+                                .background(tokens.accentSoft)
+                                .padding(KuroSpacing.xs)
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
             Column(
                 modifier = Modifier.weight(1f),

@@ -11,15 +11,15 @@ import com.endiar.purrodoro.model.AppearanceMode
 
 private val DarkColorScheme = darkColorScheme(
     primary = DockCoral,
-    onPrimary = Cocoa,
+    onPrimary = CardWhite,
     secondary = Lavender,
     tertiary = Mint,
     background = NightDeep,
-    onBackground = NightMuted,
+    onBackground = CardWhite,
     surface = NightCard,
-    onSurface = NightMuted,
+    onSurface = CardWhite,
     surfaceVariant = NightCardActive,
-    onSurfaceVariant = NightFaint,
+    onSurfaceVariant = NightMuted,
     outline = NightBorder,
 )
 
@@ -43,7 +43,7 @@ private val LightColorScheme = lightColorScheme(
  */
 @Composable
 fun PurrodoroTheme(
-    appearanceMode: AppearanceMode = AppearanceMode.Light,
+    appearanceMode: AppearanceMode = AppearanceMode.Auto,
     systemInDark: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {

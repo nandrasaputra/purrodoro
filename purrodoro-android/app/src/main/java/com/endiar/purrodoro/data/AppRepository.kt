@@ -55,7 +55,7 @@ import java.util.UUID
 
 data class AppState(
     val glassReadabilityMode: GlassReadabilityMode,
-    val appearanceMode: AppearanceMode = AppearanceMode.Light,
+    val appearanceMode: AppearanceMode = AppearanceMode.Auto,
     val language: AppLanguage = AppLanguage.System,
     val userName: String = "",
     val selectedSoundId: Int,
@@ -450,7 +450,7 @@ class AppRepository(
                 ?: GlassReadabilityMode.Adaptive,
             appearanceMode = prefs[KEY_APPEARANCE_MODE]
                 ?.let { runCatching { AppearanceMode.valueOf(it) }.getOrNull() }
-                ?: AppearanceMode.Light,
+                ?: AppearanceMode.Auto,
             language = AppLanguage.fromName(prefs[KEY_APP_LANGUAGE]),
             userName = (prefs[KEY_USER_NAME] ?: "").trim(),
             selectedSoundId = prefs[KEY_SOUND_ID] ?: 1,

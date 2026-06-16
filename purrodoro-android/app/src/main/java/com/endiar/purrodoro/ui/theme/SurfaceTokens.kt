@@ -103,6 +103,12 @@ object KuroTokens {
         get() = MaterialTheme.colorScheme.kuroTokens
 }
 
+/** True when the active [MaterialTheme] scheme is the dark palette. */
+@Composable
+@ReadOnlyComposable
+fun isDarkColorScheme(): Boolean =
+    MaterialTheme.colorScheme.background.luminance() <= 0.5f
+
 internal fun Color.luminance(): Float {
     return 0.2126f * red + 0.7152f * green + 0.0722f * blue
 }
