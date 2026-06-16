@@ -10,7 +10,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -43,6 +42,7 @@ import com.endiar.purrodoro.ui.theme.PremiumBadgeGradientBottomDark
 import com.endiar.purrodoro.ui.theme.PremiumBadgeGradientTop
 import com.endiar.purrodoro.ui.theme.PremiumBadgeGradientTopDark
 import com.endiar.purrodoro.ui.theme.PremiumBadgeText
+import com.endiar.purrodoro.ui.theme.isDarkColorScheme
 
 /** Display size of [R.drawable.premium_star_sparkle] inside the badge. */
 private val PremiumStarSize = 9.dp
@@ -67,7 +67,7 @@ fun KuroPremiumBadge(
     modifier: Modifier = Modifier,
     label: String = stringResource(R.string.sound_pill_premium),
 ) {
-    val dark = isSystemInDarkTheme()
+    val dark = isDarkColorScheme()
     val gradient = Brush.verticalGradient(
         colors = listOf(
             if (dark) PremiumBadgeGradientTopDark else PremiumBadgeGradientTop,

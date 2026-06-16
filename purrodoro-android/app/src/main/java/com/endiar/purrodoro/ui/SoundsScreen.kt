@@ -244,9 +244,13 @@ fun SoundscapeTransportBar(
         else -> tokens.cardFill.copy(alpha = 0.45f)
     }
     val nameColor = when {
-        isPlaying -> Cocoa
+        isPlaying -> if (MaterialTheme.colorScheme.background.luminance() <= 0.5f) {
+            tokens.textPrimary
+        } else {
+            Cocoa
+        }
         showFirstRunHint -> tokens.textSecondary
-        else -> tokens.textMuted
+        else -> tokens.textSecondary
     }
     val expandLabel = stringResource(R.string.soundscape_mini_open_cd)
 
@@ -642,7 +646,17 @@ fun SoundscapeMiniPlayer(
             .height(KuroSpacing.soundscapeTransportBarHeight)
             .shadow(shadowElevation, shape, spotColor = shadowColor, ambientColor = shadowColor)
             .clip(shape)
-            .background(if (isActive) CardWhite else tokens.cardFill)
+            .background(
+                if (isActive) {
+                    if (MaterialTheme.colorScheme.background.luminance() <= 0.5f) {
+                        tokens.activeCardFill
+                    } else {
+                        CardWhite
+                    }
+                } else {
+                    tokens.cardFill
+                },
+            )
             .border(
                 width = if (isActive) 1.5.dp else 1.dp,
                 color = if (isActive) Coral.copy(alpha = 0.42f) else tokens.cardBorder.copy(alpha = 0.55f),
