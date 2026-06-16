@@ -113,11 +113,15 @@ class MainActivity : ComponentActivity() {
             val authRepository = AuthRepository.get(this)
             val appearanceMode by repo.appState
                 .map { it.appearanceMode }
-                .collectAsStateWithLifecycle(initialValue = AppearanceMode.Auto)
+                .collectAsStateWithLifecycle(
+                    initialValue = initialAppState?.appearanceMode ?: AppearanceMode.Auto,
+                )
 
             val language by repo.appState
                 .map { it.language }
-                .collectAsStateWithLifecycle(initialValue = AppLanguage.System)
+                .collectAsStateWithLifecycle(
+                    initialValue = initialAppState?.language ?: AppLanguage.System,
+                )
 
             val systemInDark = isSystemInDarkTheme()
             val isDark = appearanceMode.isDark(systemInDark)
