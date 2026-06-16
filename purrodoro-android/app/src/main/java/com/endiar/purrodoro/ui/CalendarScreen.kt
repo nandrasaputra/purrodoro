@@ -494,11 +494,6 @@ private fun MonthHeatmapCard(
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     if (isToday) {
-                                        Text(
-                                            text = date.dayOfMonth.toString(),
-                                            color = heatCellTodayTextColor(intensity, tokens),
-                                            style = KuroType.labelStrong,
-                                        )
                                         Box(
                                             modifier = Modifier
                                                 .align(Alignment.TopEnd)
@@ -565,9 +560,6 @@ private fun heatCellColor(level: Int): Color {
         else -> tokens.cardBorder.copy(alpha = 0.45f)
     }
 }
-
-private fun heatCellTodayTextColor(level: Int, tokens: KuroSurfaceTokens): Color =
-    if (level >= 3) tokens.accentOn else tokens.textPrimary
 
 /** Today marker dot: invert on saturated cells so it stays visible. */
 private fun heatCellTodayDotColor(level: Int, tokens: KuroSurfaceTokens): Color =
