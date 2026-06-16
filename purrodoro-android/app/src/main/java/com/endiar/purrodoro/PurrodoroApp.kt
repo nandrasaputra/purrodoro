@@ -951,7 +951,6 @@ fun PurrodoroApp(
                             isFocusMode = true
                             focusStartPending = true
                             selectedTab = AppTab.Timer
-                            requestNotificationPermission()
                             scope.launch { repo.setInterruptedFocus(null) }
                             timerConnection.controller.start(request.settings, request.task, request.habitId, request.focusType)
                         },
@@ -1115,7 +1114,6 @@ fun PurrodoroApp(
                         onStartFocus = { request ->
                             showStartFocusSheet = false
                             startFocusPrefill = null
-                            requestNotificationPermission()
                             // Always land on Home's immersive focus screen on
                             // confirm. Home-originated callers are already on the
                             // Timer tab; the Habits-originated caller navigates here.

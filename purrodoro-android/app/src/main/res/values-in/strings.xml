@@ -186,7 +186,7 @@
     <string name="home_min_left">%1$d mnt tersisa</string>
     <string name="home_resume_left">%1$s tersisa</string>
     <string name="home_todays_focus">Fokus Hari Ini</string>
-    <string name="home_view_all">Lihat semua</string>
+    <string name="home_open_profile_cd">Buka profil</string>
     <string name="home_metric_focus_time">Waktu fokus</string>
     <string name="home_metric_sessions">Sesi</string>
     <string name="home_metric_completed">Selesai</string>
