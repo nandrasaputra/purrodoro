@@ -218,8 +218,8 @@ fun PurrodoroApp(
     var soundscapeMixMusicId by remember(appState.soundscapeMixMusicId) {
         mutableStateOf(appState.soundscapeMixMusicId)
     }
-    var ambienceVolume by rememberSaveable { mutableStateOf(0.7f) }
-    var musicVolume by rememberSaveable { mutableStateOf(0.45f) }
+    var ambienceVolume by rememberSaveable { mutableStateOf(0.25f) }
+    var musicVolume by rememberSaveable { mutableStateOf(0.50f) }
     var showPremiumSheet by rememberSaveable { mutableStateOf(false) }
     var premiumUpsellTrigger by remember { mutableStateOf(PremiumUpsellTrigger()) }
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
@@ -439,7 +439,7 @@ fun PurrodoroApp(
             description = stringResource(R.string.sound_rain_desc),
             locked = false,
             symbol = "Rain",
-            audio = AudioSource.Bundled(R.raw.ambience_light_rain),
+            audio = AudioSource.Bundled(R.raw.ambience_rain),
         ),
         SoundOption(
             id = 2,
@@ -447,7 +447,39 @@ fun PurrodoroApp(
             description = stringResource(R.string.sound_cafe_desc),
             locked = false,
             symbol = "Cafe",
-            audio = AudioSource.Bundled(R.raw.ambience_restaurant),
+            audio = AudioSource.Bundled(R.raw.ambience_cafe),
+        ),
+        SoundOption(
+            id = 3,
+            name = stringResource(R.string.sound_fire_name),
+            description = stringResource(R.string.sound_fire_desc),
+            locked = true,
+            symbol = "Fire",
+            audio = AudioSource.Bundled(R.raw.ambience_fireplace),
+        ),
+        SoundOption(
+            id = 4,
+            name = stringResource(R.string.sound_forest_name),
+            description = stringResource(R.string.sound_forest_desc),
+            locked = true,
+            symbol = "Forest",
+            audio = AudioSource.Bundled(R.raw.ambience_forest),
+        ),
+        SoundOption(
+            id = 5,
+            name = stringResource(R.string.sound_sea_wave_name),
+            description = stringResource(R.string.sound_sea_wave_desc),
+            locked = true,
+            symbol = "Wave",
+            audio = AudioSource.Bundled(R.raw.ambience_sea_wave),
+        ),
+        SoundOption(
+            id = 6,
+            name = stringResource(R.string.sound_winter_wind_name),
+            description = stringResource(R.string.sound_winter_wind_desc),
+            locked = true,
+            symbol = "Wind",
+            audio = AudioSource.Bundled(R.raw.ambience_winter_wind),
         ),
     )
     val bundledMusicOptions = listOf(

@@ -141,8 +141,8 @@ fun HomeTimerScreen(
     onMuteSoundscape: () -> Unit = {},
     playingAmbienceName: String? = null,
     playingMusicName: String? = null,
-    ambienceVolume: Float = 0.7f,
-    musicVolume: Float = 0.45f,
+    ambienceVolume: Float = 0.25f,
+    musicVolume: Float = 0.50f,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {

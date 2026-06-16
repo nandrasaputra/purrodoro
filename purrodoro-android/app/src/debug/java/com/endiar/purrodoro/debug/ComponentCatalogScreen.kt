@@ -39,6 +39,7 @@ import com.endiar.purrodoro.ui.designsystem.KuroListRow
 import com.endiar.purrodoro.ui.designsystem.KuroPill
 import com.endiar.purrodoro.ui.designsystem.KuroPillKind
 import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadge
+import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadgeCompact
 import com.endiar.purrodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.purrodoro.ui.designsystem.KuroSegmentedControl
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -264,7 +265,10 @@ private fun ComponentsSection() {
         }
 
         Text("KuroPremiumBadge", style = KuroType.labelStrong, color = tokens.textMuted)
-        KuroPremiumBadge()
+        Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+            KuroPremiumBadge()
+            KuroPremiumBadgeCompact()
+        }
 
         // Molecules
         Text("Molecules", style = KuroType.headingCard, color = tokens.textPrimary)

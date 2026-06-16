@@ -87,6 +87,7 @@ import com.endiar.purrodoro.model.GlassTreatment
 import com.endiar.purrodoro.model.MusicOption
 import com.endiar.purrodoro.model.SoundOption
 import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadge
+import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadgeCompact
 import com.endiar.purrodoro.ui.designsystem.KuroPill
 import com.endiar.purrodoro.ui.designsystem.KuroPillKind
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -1443,7 +1444,31 @@ private fun soundscapeStatusLine(
 private fun ambienceShortName(soundId: Int): String = when (soundId) {
     1 -> stringResource(R.string.sound_rain_short)
     2 -> stringResource(R.string.sound_cafe_short)
+    3 -> stringResource(R.string.sound_fire_short)
+    4 -> stringResource(R.string.sound_forest_short)
+    5 -> stringResource(R.string.sound_sea_wave_short)
+    6 -> stringResource(R.string.sound_winter_wind_short)
     else -> ""
+}
+
+/** Nudges the compact premium badge past the tile corner (outside the clipped artwork). */
+private val SoundscapePremiumBadgeOutsideOffset = 6.dp
+
+/** Reserved headroom so outside badges are not clipped by the sheet or adjacent rows. */
+private val SoundscapePremiumBadgeHeadroom = KuroSpacing.sm
+
+@Composable
+private fun SoundscapePremiumBadgeOutside(
+    locked: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    if (!locked) return
+    KuroPremiumBadgeCompact(
+        modifier = modifier.offset(
+            x = SoundscapePremiumBadgeOutsideOffset,
+            y = -SoundscapePremiumBadgeOutsideOffset,
+        ),
+    )
 }
 
 @Composable
@@ -1465,6 +1490,7 @@ private fun AmbienceTile(
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
         modifier = Modifier
             .width(KuroSpacing.soundscapeAmbienceTile)
+            .padding(top = SoundscapePremiumBadgeHeadroom)
             .clickable(
                 role = Role.Button,
                 onClickLabel = when {
@@ -1480,50 +1506,53 @@ private fun AmbienceTile(
         Box(
             modifier = Modifier
                 .size(KuroSpacing.soundscapeAmbienceTile)
-                .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-                .border(borderWidth, borderColor, RoundedCornerShape(KuroSpacing.radiusMd)),
-            contentAlignment = Alignment.Center,
+                .graphicsLayer { clip = false },
         ) {
-            Image(
-                painter = painterResource(ambienceIconRes(sound.id)),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-            if (sound.locked) {
-                KuroPremiumBadge(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(KuroSpacing.xs),
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                    .border(borderWidth, borderColor, RoundedCornerShape(KuroSpacing.radiusMd)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(ambienceIconRes(sound.id)),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
                 )
-            }
-            when (downloadState) {
-                DownloadState.NotDownloaded -> Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(KuroSpacing.xs)
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Lucide.CloudDownload,
-                        contentDescription = stringResource(R.string.soundscape_download),
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurface,
+                when (downloadState) {
+                    DownloadState.NotDownloaded -> Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(KuroSpacing.xs)
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Lucide.CloudDownload,
+                            contentDescription = stringResource(R.string.soundscape_download),
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    is DownloadState.Downloading -> CircularProgressIndicator(
+                        progress = { downloadState.progress },
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(KuroSpacing.soundscapeAmbienceTile - KuroSpacing.md),
+                        strokeWidth = 2.dp,
+                        color = Coral,
                     )
+                    else -> Unit // bundled or downloaded: no badge
                 }
-                is DownloadState.Downloading -> CircularProgressIndicator(
-                    progress = { downloadState.progress },
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(KuroSpacing.soundscapeAmbienceTile - KuroSpacing.md),
-                    strokeWidth = 2.dp,
-                    color = Coral,
-                )
-                else -> Unit // bundled or downloaded: no badge
             }
+            SoundscapePremiumBadgeOutside(
+                locked = sound.locked,
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
         }
         Text(
             text = if (downloadState == DownloadState.NotDownloaded) {
@@ -1614,13 +1643,6 @@ private fun LofiVinylTile(
                 isSpinning = isPlaying,
                 modifier = Modifier.size(vinylSize),
             )
-            if (track.locked) {
-                KuroPremiumBadge(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(KuroSpacing.xs),
-                )
-            }
             when (downloadState) {
                 DownloadState.NotDownloaded -> Box(
                     modifier = Modifier
@@ -1646,6 +1668,13 @@ private fun LofiVinylTile(
                     color = Coral,
                 )
                 else -> Unit // bundled or downloaded: no badge
+            }
+            if (track.locked) {
+                KuroPremiumBadge(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(KuroSpacing.xs),
+                )
             }
         }
         Column(
@@ -1890,6 +1919,10 @@ private fun SoundscapePlayingChip() {
 private fun ambienceIconRes(soundId: Int): Int = when (soundId) {
     1 -> R.drawable.soundscape_ambience_rain
     2 -> R.drawable.soundscape_ambience_cafe
+    3 -> R.drawable.soundscape_ambience_fireplace
+    4 -> R.drawable.soundscape_ambience_forest
+    5 -> R.drawable.soundscape_ambience_sea_wave
+    6 -> R.drawable.soundscape_ambience_winter_wind
     else -> R.drawable.soundscape_ambience_rain
 }
 

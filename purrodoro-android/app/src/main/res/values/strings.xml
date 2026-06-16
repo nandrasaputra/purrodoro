@@ -353,6 +353,12 @@
     <string name="sound_forest_desc">Leaves, birds, and slow wind</string>
     <string name="sound_fire_name">Fireplace</string>
     <string name="sound_fire_desc">Crackling fire with sleepy cat</string>
+    <string name="sound_sea_wave_short">Sea Waves</string>
+    <string name="sound_sea_wave_name">Ocean Shore</string>
+    <string name="sound_sea_wave_desc">Gentle surf rolling onto sand</string>
+    <string name="sound_winter_wind_short">Winter Wind</string>
+    <string name="sound_winter_wind_name">Winter Wind</string>
+    <string name="sound_winter_wind_desc">Cold breeze through a quiet night</string>
     <string name="sound_keys_name">Night Keyboard</string>
     <string name="sound_keys_desc">Gentle keys in a quiet room</string>
 
