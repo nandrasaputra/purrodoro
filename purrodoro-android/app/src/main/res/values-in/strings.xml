@@ -350,6 +350,12 @@
     <string name="sound_forest_desc">Dedaunan, burung, dan angin sepoi</string>
     <string name="sound_fire_name">Perapian</string>
     <string name="sound_fire_desc">Api yang berderak dengan kucing mengantuk</string>
+    <string name="sound_sea_wave_short">Ombak</string>
+    <string name="sound_sea_wave_name">Pantai Tenang</string>
+    <string name="sound_sea_wave_desc">Ombak lembut menyapu pasir</string>
+    <string name="sound_winter_wind_short">Angin Dingin</string>
+    <string name="sound_winter_wind_name">Angin Musim Dingin</string>
+    <string name="sound_winter_wind_desc">Hembusan dingin di malam yang sunyi</string>
     <string name="sound_keys_name">Keyboard Malam</string>
     <string name="sound_keys_desc">Ketukan tombol lembut di ruang sunyi</string>
 

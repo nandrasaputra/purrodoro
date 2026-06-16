@@ -12,9 +12,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +29,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -35,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.ui.theme.PremiumBadgeGradientBottom
@@ -44,16 +48,29 @@ import com.endiar.purrodoro.ui.theme.PremiumBadgeGradientTopDark
 import com.endiar.purrodoro.ui.theme.PremiumBadgeText
 import com.endiar.purrodoro.ui.theme.isDarkColorScheme
 
-/** Display size of [R.drawable.premium_star_sparkle] inside the badge. */
+/** Display size of [R.drawable.premium_star_sparkle] inside the pill badge. */
 private val PremiumStarSize = 9.dp
 
+/** Star size inside the compact circular badge. */
+private val PremiumCompactStarSize = 10.dp
+
 private val BadgeShape = RoundedCornerShape(KuroSpacing.radiusSm)
+
+/** Fits the top corner of 84dp ambience tiles without clipping. */
+private val CompactBadgeSize = 20.dp
 
 /** Ambient shimmer sweep — Premium personality, ~2.4s loop. */
 private const val ShimmerDurationMs = 2400
 
 /** Secondary star twinkle — offset phase from shimmer. */
 private const val StarTwinkleDurationMs = 1600
+
+private data class PremiumBadgeMotion(
+    val shimmerProgress: Float,
+    val starScale: Float,
+    val starAlpha: Float,
+    val reduceMotion: Boolean,
+)
 
 /**
  * Purrodoro **Starry Pill** premium badge (Design A).
@@ -67,6 +84,69 @@ fun KuroPremiumBadge(
     modifier: Modifier = Modifier,
     label: String = stringResource(R.string.sound_pill_premium),
 ) {
+    val badgeCd = stringResource(R.string.premium_badge_cd, label)
+    val motion = rememberPremiumBadgeMotion()
+
+    PremiumBadgeChrome(
+        modifier = modifier,
+        shape = BadgeShape,
+        contentDescription = badgeCd,
+        motion = motion,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            PremiumBadgeStar(
+                size = PremiumStarSize,
+                motion = motion,
+            )
+            Text(
+                text = label,
+                style = KuroType.labelMeta.copy(fontWeight = FontWeight.SemiBold),
+                color = PremiumBadgeText,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/**
+ * **Starry Dot** — icon-only premium badge for tight tile corners (e.g. ambience).
+ * Same purple gradient + shimmer as [KuroPremiumBadge], without the label.
+ */
+@Composable
+fun KuroPremiumBadgeCompact(
+    modifier: Modifier = Modifier,
+) {
+    val label = stringResource(R.string.sound_pill_premium)
+    val badgeCd = stringResource(R.string.premium_badge_cd, label)
+    val motion = rememberPremiumBadgeMotion()
+
+    PremiumBadgeChrome(
+        modifier = modifier.size(CompactBadgeSize),
+        shape = CircleShape,
+        contentDescription = badgeCd,
+        motion = motion,
+        contentAlignment = Alignment.Center,
+    ) {
+        PremiumBadgeStar(
+            size = PremiumCompactStarSize,
+            motion = motion,
+        )
+    }
+}
+
+@Composable
+private fun PremiumBadgeChrome(
+    modifier: Modifier,
+    shape: Shape,
+    contentDescription: String,
+    motion: PremiumBadgeMotion,
+    contentAlignment: Alignment = Alignment.TopStart,
+    content: @Composable BoxScope.() -> Unit,
+) {
     val dark = isDarkColorScheme()
     val gradient = Brush.verticalGradient(
         colors = listOf(
@@ -74,9 +154,55 @@ fun KuroPremiumBadge(
             if (dark) PremiumBadgeGradientBottomDark else PremiumBadgeGradientBottom,
         ),
     )
-    val badgeCd = stringResource(R.string.premium_badge_cd, label)
-    val reduceMotion = rememberReduceMotionEnabled()
 
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = 3.dp,
+                shape = shape,
+                clip = false,
+                ambientColor = PremiumBadgeGradientBottom.copy(alpha = 0.35f),
+                spotColor = PremiumBadgeGradientBottom.copy(alpha = 0.45f),
+            )
+            .clip(shape)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = contentAlignment,
+    ) {
+        Box(modifier = Modifier.matchParentSize().background(gradient))
+        content()
+        if (!motion.reduceMotion) {
+            PremiumBadgeShimmerOverlay(
+                progress = motion.shimmerProgress,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumBadgeStar(
+    size: Dp,
+    motion: PremiumBadgeMotion,
+) {
+    Image(
+        painter = painterResource(id = R.drawable.premium_star_sparkle),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .size(size)
+            .graphicsLayer {
+                if (!motion.reduceMotion) {
+                    scaleX = motion.starScale
+                    scaleY = motion.starScale
+                    alpha = motion.starAlpha
+                }
+            },
+    )
+}
+
+@Composable
+private fun rememberPremiumBadgeMotion(): PremiumBadgeMotion {
+    val reduceMotion = rememberReduceMotionEnabled()
     val shimmerTransition = rememberInfiniteTransition(label = "premiumBadgeShimmer")
     val shimmerProgress by shimmerTransition.animateFloat(
         initialValue = 0f,
@@ -105,53 +231,12 @@ fun KuroPremiumBadge(
         ),
         label = "starAlpha",
     )
-
-    Box(
-        modifier = modifier
-            .shadow(
-                elevation = 3.dp,
-                shape = BadgeShape,
-                clip = false,
-                ambientColor = PremiumBadgeGradientBottom.copy(alpha = 0.35f),
-                spotColor = PremiumBadgeGradientBottom.copy(alpha = 0.45f),
-            )
-            .clip(BadgeShape)
-            .semantics { contentDescription = badgeCd },
-    ) {
-        Box(modifier = Modifier.matchParentSize().background(gradient))
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.premium_star_sparkle),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .size(PremiumStarSize)
-                    .graphicsLayer {
-                        if (!reduceMotion) {
-                            scaleX = starScale
-                            scaleY = starScale
-                            alpha = starAlpha
-                        }
-                    },
-            )
-            Text(
-                text = label,
-                style = KuroType.labelMeta.copy(fontWeight = FontWeight.SemiBold),
-                color = PremiumBadgeText,
-                maxLines = 1,
-            )
-        }
-        if (!reduceMotion) {
-            PremiumBadgeShimmerOverlay(
-                progress = shimmerProgress,
-                modifier = Modifier.matchParentSize(),
-            )
-        }
-    }
+    return PremiumBadgeMotion(
+        shimmerProgress = shimmerProgress,
+        starScale = starScale,
+        starAlpha = starAlpha,
+        reduceMotion = reduceMotion,
+    )
 }
 
 /** Horizontal highlight sweep — ambient shine layer. */
