@@ -50,6 +50,7 @@ import com.composables.icons.lucide.Pause
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Timer
+import com.composables.icons.lucide.User
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -382,7 +383,7 @@ private fun HomeHeader(
             )
         }
         Spacer(Modifier.width(KuroSpacing.md))
-        CatAvatar(onClick = onOpenProfile)
+        CatAvatar(onClick = onOpenProfile, modifier = Modifier.align(Alignment.Top))
     }
 }
 
@@ -898,11 +899,6 @@ private fun TodayMetricsCard(metrics: TodayFocusMetrics) {
                     color = tokens.textPrimary,
                     style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold)
                 )
-                Text(
-                    text = stringResource(R.string.home_view_all),
-                    color = tokens.accent,
-                    style = KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium)
-                )
             }
             Row(modifier = Modifier.fillMaxWidth()) {
                 MetricColumn(label = stringResource(R.string.home_metric_focus_time), value = metrics.focusTimeLabel, modifier = Modifier.weight(1f))
@@ -1296,28 +1292,36 @@ private fun FullCycleDots(
 }
 
 @Composable
-private fun CatAvatar(onClick: () -> Unit = {}, size: Dp = 64.dp) {
+private fun CatAvatar(
+    onClick: () -> Unit = {},
+    size: Dp = 52.dp,
+    modifier: Modifier = Modifier,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val openProfileLabel = stringResource(R.string.home_open_profile_cd)
     // Scale the inner padding + status dot with the avatar so the compact
     // sticky-bar variant stays proportional to the full header one.
     val innerPadding = size * (6f / 64f)
     val dotSize = size * (16f / 64f)
-    Box(modifier = Modifier.size(size).clickable(onClick = onClick)) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clickable(onClick = onClick, onClickLabel = openProfileLabel)
+    ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(CircleShape)
                 .background(tokens.cardFill)
                 .border(1.dp, tokens.cardBorder, CircleShape)
-                .padding(innerPadding)
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.cat_face),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
+            Icon(
+                imageVector = Lucide.User,
+                contentDescription = openProfileLabel,
+                tint = tokens.accent,
+                modifier = Modifier.fillMaxSize(0.7f)
             )
         }
         Box(

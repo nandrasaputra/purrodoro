@@ -187,7 +187,7 @@
     <string name="home_min_left">%1$d min left</string>
     <string name="home_resume_left">%1$s left</string>
     <string name="home_todays_focus">Today\'s Focus</string>
-    <string name="home_view_all">View all</string>
+    <string name="home_open_profile_cd">Open profile</string>
     <string name="home_metric_focus_time">Focus time</string>
     <string name="home_metric_sessions">Sessions</string>
     <string name="home_metric_completed">Completed</string>
