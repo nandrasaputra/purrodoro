@@ -40,6 +40,7 @@ import com.composables.icons.lucide.Lucide
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.AuthProvider
 import com.endiar.purrodoro.model.AuthState
+import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.sync.SyncStatusPresentation
 import com.endiar.purrodoro.ui.SyncStatusMiniPanel
 import com.endiar.purrodoro.ui.components.KuroCard
@@ -208,6 +209,18 @@ private fun SignedInAccountWithSyncCard(
             )
         }
     }
+}
+
+/** Compact signed-in identity row (avatar, name, email, provider). */
+@Composable
+internal fun SignedInAccountSummary(
+    user: AuthUser,
+    modifier: Modifier = Modifier,
+) {
+    SignedInAccountIdentityRow(
+        authState = AuthState.SignedIn(user),
+        modifier = modifier,
+    )
 }
 
 @Composable

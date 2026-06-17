@@ -44,8 +44,7 @@ data class TutorialStep(
 )
 
 /**
- * The default 5-step product tour, mirroring the onboarding's "act → plan →
- * reflect" arc but anchored to the live UI:
+ * The default 5-step product tour on Home:
  *
  *  1. Start Focus CTA (Home)  — tooltip below, points up
  *  2. Soundscape play button  — tooltip above, points down

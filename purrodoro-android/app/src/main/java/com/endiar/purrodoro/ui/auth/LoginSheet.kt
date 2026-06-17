@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +61,7 @@ fun LoginSheet(
     onSignedIn: (AuthUser) -> Unit,
     onContinueAsGuest: () -> Unit,
     fallbackDisplayName: String = "",
+    onSigningInChanged: (Boolean) -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var isSigningIn by remember { mutableStateOf(false) }
@@ -69,15 +71,24 @@ fun LoginSheet(
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Returning from the Google account picker / browser may not deliver a ComposeAuth
-    // callback before the user presses back. Clear the signing-in gate on resume so
-    // the sheet can always dismiss and tear down its Dialog scrim.
-    DisposableEffect(lifecycleOwner) {
+    LaunchedEffect(isSigningIn) {
+        onSigningInChanged(isSigningIn)
+    }
+
+    // Returning from the Google account picker may not deliver a ComposeAuth callback
+    // when the user cancels. Only clear the in-flight gate after resume if no session
+    // was established — keep the loader visible through token exchange on success.
+    DisposableEffect(lifecycleOwner, authRepository) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME && isSigningIn) {
                 scope.launch {
-                    delay(500)
-                    isSigningIn = false
+                    delay(300)
+                    if (!isSigningIn) return@launch
+                    if (authRepository.currentAuthUser() != null) return@launch
+                    delay(1500)
+                    if (isSigningIn && authRepository.currentAuthUser() == null) {
+                        isSigningIn = false
+                    }
                 }
             }
         }

@@ -114,7 +114,7 @@ class MainActivity : ComponentActivity() {
             val appearanceMode by repo.appState
                 .map { it.appearanceMode }
                 .collectAsStateWithLifecycle(
-                    initialValue = initialAppState?.appearanceMode ?: AppearanceMode.Auto,
+                    initialValue = initialAppState?.appearanceMode ?: AppearanceMode.Light,
                 )
 
             val language by repo.appState

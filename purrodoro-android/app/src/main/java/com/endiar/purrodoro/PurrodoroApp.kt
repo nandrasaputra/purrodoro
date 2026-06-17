@@ -300,11 +300,8 @@ fun PurrodoroApp(
         }
     }
 
-    // First-run gate: replace the entire app surface with the onboarding flow
-    // until the user finishes (or skips) it. Both completion paths just mark
-    // the flag and drop the user on Home — they choose when to start their
-    // first focus from the home screen's prominent CTA. Tapping "Turn on
-    // notifications" additionally fires the Android system permission ask.
+    // First-run gate: sign in with Google or continue as guest, then Home +
+    // spotlight tips teach the product.
     if (!hasSeenOnboarding) {
         OnboardingScreen(
             authRepository = authRepository,
@@ -315,23 +312,19 @@ fun PurrodoroApp(
                 language = v
                 scope.launch { repo.setLanguage(v) }
             },
-            onSkip = { name ->
-                scope.launch {
-                    if (name.isNotBlank()) repo.setUserName(name)
-                    repo.setHasSeenOnboarding(true)
-                }
-            },
-            onAllowNotifications = { name ->
-                scope.launch {
-                    if (name.isNotBlank()) repo.setUserName(name)
-                    repo.setHasSeenOnboarding(true)
-                }
-                requestNotificationPermission()
+            onComplete = {
+                scope.launch { repo.setHasSeenOnboarding(true) }
             },
             onPersistUserName = { name ->
                 val trimmed = name.trim()
                 userName = trimmed
                 scope.launch { repo.setUserName(trimmed) }
+            },
+            onWelcomeGuestChoice = {
+                if (authState is AuthState.SignedIn) {
+                    authRepository.signOut()
+                    repo.setOwnerId(null)
+                }
             },
         )
         return

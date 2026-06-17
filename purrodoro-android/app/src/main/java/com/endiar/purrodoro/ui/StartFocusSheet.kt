@@ -72,12 +72,14 @@ import com.endiar.purrodoro.model.TaskPriority
 import com.endiar.purrodoro.model.TimeBlock
 import com.endiar.purrodoro.model.TimerSettings
 import kotlinx.coroutines.launch
+import com.endiar.purrodoro.model.HabitFocusBlockReason
+import com.endiar.purrodoro.model.canStartFocus
 import com.endiar.purrodoro.model.effectiveTarget
+import com.endiar.purrodoro.model.focusBlockReason
 import com.endiar.purrodoro.model.isScheduledOn
 import com.endiar.purrodoro.model.isSkippedOn
 import com.endiar.purrodoro.model.isTargetMetOn
 import com.endiar.purrodoro.model.progressOn
-import com.endiar.purrodoro.ui.components.FocusAlreadyCompleteDialog
 import com.endiar.purrodoro.ui.components.KuroCard
 import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
@@ -187,11 +189,6 @@ fun StartFocusSheet(
     var selectedHabitId by rememberSaveable { mutableIntStateOf(initialHabitId) }
     var pickerDraftId by rememberSaveable { mutableIntStateOf(-1) }
     var pickerSnapshot by remember { mutableStateOf<StartFocusPickerSnapshot?>(null) }
-    // Holds a built request that's pending the "this is already complete" prompt.
-    // Non-null while the confirmation dialog is on screen; confirming forwards it
-    // to onStartFocus untouched, so the task/habit keeps its done state and only
-    // the Pomodoro itself is recorded.
-    var pendingCompletedRequest by remember { mutableStateOf<StartFocusRequest?>(null) }
 
     // CreateTask page state
     var createTaskTitle by rememberSaveable { mutableStateOf("") }
@@ -274,23 +271,11 @@ fun StartFocusSheet(
         }
     }
 
-    // Completed tasks are allowed through: the "already complete" confirmation
-    // lives at the task/habit detail "Focus with Purrodoro" tap, so by the time a
-    // completed task reaches this sheet the user has already agreed to proceed.
     fun canStart(): Boolean = when (intent) {
         FocusIntent.Empty -> true
         FocusIntent.SimpleNote -> noteText.trim().isNotEmpty()
-        FocusIntent.Task -> selectedTaskId >= 0 && tasks.any { it.id == selectedTaskId }
-        FocusIntent.Habit -> selectedHabitId >= 0 && todayHabits.any { it.id == selectedHabitId }
-    }
-
-    // Whether the currently-selected intent points at an item that's already done
-    // (a completed task, or a habit whose target is met today). Used to show the
-    // "focus on it anyway?" confirmation before starting.
-    fun selectedAlreadyComplete(): Boolean = when (intent) {
-        FocusIntent.Task -> tasks.firstOrNull { it.id == selectedTaskId }?.completed == true
-        FocusIntent.Habit -> habits.firstOrNull { it.id == selectedHabitId }?.isTargetMetOn(today) == true
-        FocusIntent.Empty, FocusIntent.SimpleNote -> false
+        FocusIntent.Task -> tasks.firstOrNull { it.id == selectedTaskId }?.canStartFocus() == true
+        FocusIntent.Habit -> habits.firstOrNull { it.id == selectedHabitId }?.canStartFocus(today) == true
     }
 
     KuroAdaptiveBottomSheet(
@@ -300,21 +285,18 @@ fun StartFocusSheet(
         footer = if (page == StartFocusSheetPage.Confirm) {
             { _ ->
                 StartFocusConfirmButton(enabled = canStart(), onClick = {
-                    val request = buildStartFocusRequest(
-                        intent = intent,
-                        noteText = noteText,
-                        selectedTaskId = selectedTaskId,
-                        selectedHabitId = selectedHabitId,
-                        tasks = tasks,
-                        todayHabits = todayHabits,
-                        today = today,
-                        settings = sessionSettings,
+                    onStartFocus(
+                        buildStartFocusRequest(
+                            intent = intent,
+                            noteText = noteText,
+                            selectedTaskId = selectedTaskId,
+                            selectedHabitId = selectedHabitId,
+                            tasks = tasks,
+                            todayHabits = todayHabits,
+                            today = today,
+                            settings = sessionSettings,
+                        ),
                     )
-                    if (selectedAlreadyComplete()) {
-                        pendingCompletedRequest = request
-                    } else {
-                        onStartFocus(request)
-                    }
                 })
             }
         } else {
@@ -329,6 +311,8 @@ fun StartFocusSheet(
                     selectedTaskId = selectedTaskId,
                     selectedHabitId = selectedHabitId,
                     tasks = tasks,
+                    habits = habits,
+                    today = today,
                     todayHabits = todayHabits,
                     sessionSettings = sessionSettings,
                     onIntentClick = ::onIntentClick,
@@ -500,17 +484,6 @@ fun StartFocusSheet(
         }
     }
 
-    pendingCompletedRequest?.let { request ->
-        FocusAlreadyCompleteDialog(
-            isHabit = intent == FocusIntent.Habit,
-            onConfirm = {
-                pendingCompletedRequest = null
-                onStartFocus(request)
-            },
-            onDismiss = { pendingCompletedRequest = null },
-        )
-    }
-
 }
 
 private fun buildStartFocusRequest(
@@ -558,12 +531,45 @@ private fun buildStartFocusRequest(
 }
 
 @Composable
+private fun startFocusBlockMessage(
+    intent: FocusIntent,
+    selectedTaskId: Int,
+    selectedHabitId: Int,
+    tasks: List<FocusTask>,
+    habits: List<Habit>,
+    today: LocalDate,
+): String? = when (intent) {
+    FocusIntent.Task -> {
+        val task = tasks.firstOrNull { it.id == selectedTaskId }
+        if (task != null && !task.canStartFocus()) {
+            stringResource(R.string.tasks_helper_completed)
+        } else {
+            null
+        }
+    }
+    FocusIntent.Habit -> {
+        when (habits.firstOrNull { it.id == selectedHabitId }?.focusBlockReason(today)) {
+            HabitFocusBlockReason.NotScheduled ->
+                stringResource(R.string.habits_helper_focus_not_scheduled)
+            HabitFocusBlockReason.Skipped ->
+                stringResource(R.string.habits_helper_skipped)
+            HabitFocusBlockReason.Completed ->
+                stringResource(R.string.habits_helper_completed)
+            null -> null
+        }
+    }
+    FocusIntent.Empty, FocusIntent.SimpleNote -> null
+}
+
+@Composable
 private fun StartFocusConfirmContent(
     intent: FocusIntent,
     noteText: String,
     selectedTaskId: Int,
     selectedHabitId: Int,
     tasks: List<FocusTask>,
+    habits: List<Habit>,
+    today: LocalDate,
     todayHabits: List<Habit>,
     sessionSettings: TimerSettings,
     onIntentClick: (FocusIntent) -> Unit,
@@ -632,6 +638,43 @@ private fun StartFocusConfirmContent(
         settings = sessionSettings,
         onEdit = onEditConfig,
     )
+
+    startFocusBlockMessage(
+        intent = intent,
+        selectedTaskId = selectedTaskId,
+        selectedHabitId = selectedHabitId,
+        tasks = tasks,
+        habits = habits,
+        today = today,
+    )?.let { message ->
+        Spacer(Modifier.height(KuroSpacing.md))
+        StartFocusHelperRow(message = message)
+    }
+}
+
+@Composable
+private fun StartFocusHelperRow(message: String) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.cat_face),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape),
+        )
+        Text(
+            text = message,
+            color = tokens.textSecondary,
+            style = KuroType.bodySecondary,
+            modifier = Modifier.weight(1f),
+        )
+    }
 }
 
 @Composable
