@@ -1,0 +1,80 @@
+[
+  {
+    "kind": "ambience",
+    "localId": 1,
+    "rawResource": "ambience_rain",
+    "symbol": "Rain",
+    "defaultPremium": false,
+    "sortOrder": 10,
+    "stringKeys": { "name": "sound_rain_name", "description": "sound_rain_desc" }
+  },
+  {
+    "kind": "ambience",
+    "localId": 2,
+    "rawResource": "ambience_cafe",
+    "symbol": "Cafe",
+    "defaultPremium": false,
+    "sortOrder": 20,
+    "stringKeys": { "name": "sound_cafe_name", "description": "sound_cafe_desc" }
+  },
+  {
+    "kind": "ambience",
+    "localId": 3,
+    "rawResource": "ambience_fireplace",
+    "symbol": "Fire",
+    "defaultPremium": true,
+    "sortOrder": 30,
+    "stringKeys": { "name": "sound_fire_name", "description": "sound_fire_desc" }
+  },
+  {
+    "kind": "ambience",
+    "localId": 4,
+    "rawResource": "ambience_forest",
+    "symbol": "Forest",
+    "defaultPremium": true,
+    "sortOrder": 40,
+    "stringKeys": { "name": "sound_forest_name", "description": "sound_forest_desc" }
+  },
+  {
+    "kind": "ambience",
+    "localId": 5,
+    "rawResource": "ambience_sea_wave",
+    "symbol": "Wave",
+    "defaultPremium": true,
+    "sortOrder": 50,
+    "stringKeys": { "name": "sound_sea_wave_name", "description": "sound_sea_wave_desc" }
+  },
+  {
+    "kind": "ambience",
+    "localId": 6,
+    "rawResource": "ambience_winter_wind",
+    "symbol": "Wind",
+    "defaultPremium": true,
+    "sortOrder": 60,
+    "stringKeys": { "name": "sound_winter_wind_name", "description": "sound_winter_wind_desc" }
+  },
+  {
+    "kind": "music",
+    "localId": 1,
+    "rawResource": "lofi_bloom_yasumu",
+    "defaultPremium": false,
+    "sortOrder": 10,
+    "stringKeys": { "name": "music_bloom", "artist": "music_bloom_artist" }
+  },
+  {
+    "kind": "music",
+    "localId": 2,
+    "rawResource": "lofi_chill_fm_dope_cat",
+    "defaultPremium": false,
+    "sortOrder": 20,
+    "stringKeys": { "name": "music_chill_fm", "artist": "music_chill_fm_artist" }
+  },
+  {
+    "kind": "music",
+    "localId": 3,
+    "rawResource": "lofi_midnight_whisper_matrika",
+    "defaultPremium": true,
+    "sortOrder": 30,
+    "stringKeys": { "name": "music_midnight_whisper", "artist": "music_midnight_whisper_artist" }
+  }
+]

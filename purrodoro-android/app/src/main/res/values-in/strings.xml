@@ -318,6 +318,23 @@
     <string name="soundscape_downloading">Mengunduh…</string>
     <string name="soundscape_remove_download">Hapus unduhan</string>
     <string name="soundscape_download_size">%1$s MB</string>
+
+    <!-- Storage management -->
+    <string name="settings_section_storage">PENYIMPANAN</string>
+    <string name="storage_manage_label">Kelola penyimpanan</string>
+    <string name="storage_title">Penyimpanan</string>
+    <string name="storage_used">%1$s terpakai</string>
+    <string name="storage_summary_subtitle">Dipakai oleh suara yang diunduh</string>
+    <string name="storage_section_downloads">UNDUHAN</string>
+    <string name="storage_downloading">Mengunduh… %1$d%%</string>
+    <string name="storage_remove_one_cd">Hapus unduhan %1$s</string>
+    <string name="storage_remove_all">Hapus semua unduhan</string>
+    <string name="storage_remove_all_title">Hapus semua unduhan?</string>
+    <string name="storage_remove_all_body">Ini mengosongkan %1$s. Kamu bisa mengunduh suara ini lagi kapan saja.</string>
+    <string name="storage_remove_all_confirm">Hapus semua</string>
+    <string name="storage_empty">Belum ada unduhan</string>
+    <string name="storage_empty_hint">Suara yang kamu unduh untuk diputar offline akan muncul di sini.</string>
+
     <string name="music_bloom">Bloom</string>
     <string name="music_bloom_artist">Yasumu</string>
     <string name="music_chill_fm">Chill FM</string>

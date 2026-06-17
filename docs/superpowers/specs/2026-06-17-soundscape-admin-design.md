@@ -36,12 +36,22 @@ Every track in the Sounds sheet is either **local** (bytes in APK) or **remote**
 `public.soundscape_bundled_catalog` keyed by `(kind, local_id)`:
 
 - `raw_resource` → APK `R.raw.*` stem (e.g. `ambience_rain`)
-- `is_active` → visibility
+- `is_active` → visibility (see note below)
 - `is_premium` → lock
 - `sort_order` → section order
 - `name`, `artist`, `symbol` → optional display overrides (empty = use `strings.xml` in app)
 
 APK bytes are **not** in Supabase. Admin cannot delete bundled bytes without an app release.
+
+**Existence vs override.** The on-device `BundledTrackRegistry` (the APK
+defaults) is the source of *existence*; this table only *overrides*
+visibility/premium/order/display. A bundled track with no matching row defaults
+to **visible**, so shipping a new APK track is never silently swallowed by an
+unseeded table. To *hide* a track, the admin sets `is_active = false`. Because
+the app must tell "hidden" apart from "not yet seeded", it reads **all** bundled
+rows (active and inactive) — the table's RLS allows public read of every row
+(it exposes only flags/metadata, never audio bytes). The remote
+`soundscape_tracks` RLS is unchanged: still active-only.
 
 ### Repo manifest
 
@@ -55,12 +65,20 @@ Local-only SPA at `tools/soundscape-admin/`:
 - **Local panel:** list APK-mapped tracks, edit visibility/premium/order (no upload)
 - Auth: Supabase **service role** key in `.env.local` (gitignored)
 
-Not deployed publicly; not shipped in the app.
+Not deployed publicly; not shipped in the app. **Dev-server only** — never
+`npm run build`/serve `dist/`, since Vite inlines `VITE_*` env vars (the
+RLS-bypassing service role key) into client JS.
 
 ## Android changes
 
 1. Fetch `soundscape_bundled_catalog` on startup alongside remote catalog; cache in Room.
-2. `SoundscapeCatalogBuilder` merges local registry + remote Room rows into `MusicOption` / `SoundOption` lists.
+2. `SoundscapeCatalogBuilder` (pure) merges the bundled registry + cached
+   overrides + remote Room rows into `MusicOption` / `SoundOption` lists.
+   Delivery is carried by the existing `RemoteTrackInfo? == null` (no separate
+   delivery type). The builder iterates the registry defaults and left-joins the
+   cached row by `(kind, localId)`: missing row → visible default; inactive row
+   → hidden; non-blank `name`/`artist`/`symbol` override the `strings.xml`
+   defaults. Bundled tracks render before remote tracks.
 3. Remove hardcoded bundled lists from `PurrodoroApp.kt`.
 4. Offline: use last cached bundled overrides; fall back to code defaults if never fetched.
 

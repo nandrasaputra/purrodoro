@@ -55,6 +55,7 @@ import com.endiar.purrodoro.R
 import com.endiar.purrodoro.audio.SoundscapeLoopPlayer
 import com.endiar.purrodoro.audio.AudioSource
 import com.endiar.purrodoro.soundscape.SoundscapeModule
+import com.endiar.purrodoro.soundscape.SoundscapeCatalogBuilder
 import com.endiar.purrodoro.soundscape.toMusicOption
 import com.endiar.purrodoro.soundscape.toSoundOption
 import com.endiar.purrodoro.model.DownloadState
@@ -98,6 +99,9 @@ import com.endiar.purrodoro.ui.HistoryScreen
 import com.endiar.purrodoro.ui.HomeTimerScreen
 import com.endiar.purrodoro.ui.ProfileScreen
 import com.endiar.purrodoro.ui.SoundsScreen
+import com.endiar.purrodoro.ui.StorageScreen
+import com.endiar.purrodoro.ui.buildStorageList
+import com.endiar.purrodoro.ui.formatBytes
 import com.endiar.purrodoro.ui.SoundscapeSheetStickyFooter
 import com.endiar.purrodoro.ui.soundscapeSavedMixLabel
 import com.endiar.purrodoro.ui.StartFocusPrefill
@@ -249,6 +253,7 @@ fun PurrodoroApp(
     var focusStartPending by rememberSaveable { mutableStateOf(false) }
     var showProfile by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    var showStorage by remember { mutableStateOf(false) }
     var showLoginSheet by remember { mutableStateOf(false) }
     var showLogoutWarning by remember { mutableStateOf(false) }
 
@@ -261,6 +266,9 @@ fun PurrodoroApp(
     val soundscape = remember { SoundscapeModule.get(context) }
     val catalogTracks by soundscape.catalogRepository.observeCatalog()
         .collectAsStateWithLifecycle(initialValue = emptyList())
+    // Bundled (APK) catalog overrides: visibility / premium / order / display.
+    val bundledTracks by soundscape.bundledCatalogRepository.observeCatalog()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
     val downloadStates by soundscape.downloadManager.states.collectAsStateWithLifecycle()
 
     // One refresh per app start. IMPORTANT: prune runs against the repository's
@@ -271,6 +279,7 @@ fun PurrodoroApp(
     LaunchedEffect(Unit) {
         soundscape.catalogRepository.refresh()
         soundscape.downloadManager.prune(soundscape.catalogRepository.snapshot())
+        soundscape.bundledCatalogRepository.refresh()
     }
 
     // Bridge from the Quick Start widget: when the host activity receives a
@@ -467,102 +476,32 @@ fun PurrodoroApp(
         }
         persistTasks(tasks.filterNot(toDelete))
     }
-    val bundledAmbienceOptions = listOf(
-        SoundOption(
-            id = 1,
-            name = stringResource(R.string.sound_rain_name),
-            description = stringResource(R.string.sound_rain_desc),
-            locked = false,
-            symbol = "Rain",
-            audio = AudioSource.Bundled(R.raw.ambience_rain),
-        ),
-        SoundOption(
-            id = 2,
-            name = stringResource(R.string.sound_cafe_name),
-            description = stringResource(R.string.sound_cafe_desc),
-            locked = false,
-            symbol = "Cafe",
-            audio = AudioSource.Bundled(R.raw.ambience_cafe),
-        ),
-        SoundOption(
-            id = 3,
-            name = stringResource(R.string.sound_fire_name),
-            description = stringResource(R.string.sound_fire_desc),
-            locked = true,
-            symbol = "Fire",
-            audio = AudioSource.Bundled(R.raw.ambience_fireplace),
-        ),
-        SoundOption(
-            id = 4,
-            name = stringResource(R.string.sound_forest_name),
-            description = stringResource(R.string.sound_forest_desc),
-            locked = true,
-            symbol = "Forest",
-            audio = AudioSource.Bundled(R.raw.ambience_forest),
-        ),
-        SoundOption(
-            id = 5,
-            name = stringResource(R.string.sound_sea_wave_name),
-            description = stringResource(R.string.sound_sea_wave_desc),
-            locked = true,
-            symbol = "Wave",
-            audio = AudioSource.Bundled(R.raw.ambience_sea_wave),
-        ),
-        SoundOption(
-            id = 6,
-            name = stringResource(R.string.sound_winter_wind_name),
-            description = stringResource(R.string.sound_winter_wind_desc),
-            locked = true,
-            symbol = "Wind",
-            audio = AudioSource.Bundled(R.raw.ambience_winter_wind),
-        ),
-    )
-    val bundledMusicOptions = listOf(
-        MusicOption(
-            id = 1,
-            name = stringResource(R.string.music_bloom),
-            artist = stringResource(R.string.music_bloom_artist),
-            audio = AudioSource.Bundled(R.raw.lofi_bloom_yasumu),
-        ),
-        MusicOption(
-            id = 2,
-            name = stringResource(R.string.music_chill_fm),
-            artist = stringResource(R.string.music_chill_fm_artist),
-            audio = AudioSource.Bundled(R.raw.lofi_chill_fm_dope_cat),
-        ),
-        MusicOption(
-            id = 3,
-            name = stringResource(R.string.music_midnight_whisper),
-            artist = stringResource(R.string.music_midnight_whisper_artist),
-            audio = AudioSource.Bundled(R.raw.lofi_midnight_whisper_matrika),
-            locked = true,
-        ),
-    )
-
-    // Cloud catalog rows mapped to option models and appended after the
-    // bundled lists. `audio` is non-null only once the file is on disk.
-    val cloudMusicOptions = catalogTracks
-        .filter { it.kind == "music" }
-        .map { track ->
-            val state = downloadStates[track.id] ?: DownloadState.NotDownloaded
-            track.toMusicOption(
-                downloadState = state,
-                localPath = soundscape.downloadManager.localFile(track)
-                    .takeIf { state == DownloadState.Downloaded }?.absolutePath,
-            )
+    // Soundscape option lists are built by the pure SoundscapeCatalogBuilder:
+    // the bundled (APK) registry left-joined with cached overrides, plus the
+    // remote cloud catalog. `audio` on a remote option is non-null only once the
+    // file is on disk. Display strings come from strings.xml via the registry's
+    // string-res defaults unless a non-blank override is set on the cached row.
+    val localPaths = remember(catalogTracks) {
+        catalogTracks.associate { track ->
+            track.id to soundscape.downloadManager.localFile(track).absolutePath
         }
-    val cloudAmbienceOptions = catalogTracks
-        .filter { it.kind == "ambience" }
-        .map { track ->
-            val state = downloadStates[track.id] ?: DownloadState.NotDownloaded
-            track.toSoundOption(
-                downloadState = state,
-                localPath = soundscape.downloadManager.localFile(track)
-                    .takeIf { state == DownloadState.Downloaded }?.absolutePath,
-            )
-        }
-    val musicOptions = bundledMusicOptions + cloudMusicOptions
-    val ambienceOptions = bundledAmbienceOptions + cloudAmbienceOptions
+    }
+    val ambienceOptions = SoundscapeCatalogBuilder.buildAmbienceOptions(
+        bundledRows = bundledTracks,
+        remoteRows = catalogTracks,
+        downloadStates = downloadStates,
+        localPaths = localPaths,
+        nameFor = { _, def -> context.getString(def.nameRes) },
+        subtitleFor = { _, def -> context.getString(def.subtitleRes) },
+    )
+    val musicOptions = SoundscapeCatalogBuilder.buildMusicOptions(
+        bundledRows = bundledTracks,
+        remoteRows = catalogTracks,
+        downloadStates = downloadStates,
+        localPaths = localPaths,
+        nameFor = { _, def -> context.getString(def.nameRes) },
+        subtitleFor = { _, def -> context.getString(def.subtitleRes) },
+    )
 
     // Cloud-track download/delete actions, surfaced in the Sounds sheet (Task 8).
     val onDownloadTrack: (Int) -> Unit = { trackId ->
@@ -576,6 +515,22 @@ fun PurrodoroApp(
             if (playingMusicId == trackId) playingMusicId = null
             if (playingAmbienceId == trackId) playingAmbienceId = null
             soundscape.downloadManager.delete(track)
+        }
+    }
+
+    // Storage screen: downloaded-content list + total, recomputed when the
+    // catalog or per-track download states change. Sizes are read from disk.
+    val storageSummary = remember(catalogTracks, downloadStates) {
+        buildStorageList(catalogTracks, downloadStates) { soundscape.downloadManager.fileSizeBytes(it) }
+    }
+    val onRemoveAllDownloads: () -> Unit = {
+        catalogTracks.forEach { track ->
+            if (downloadStates[track.id] == DownloadState.Downloaded) {
+                // Mirror the single-delete safety: stop playback before removing bytes.
+                if (playingMusicId == track.id) playingMusicId = null
+                if (playingAmbienceId == track.id) playingAmbienceId = null
+                soundscape.downloadManager.delete(track)
+            }
         }
     }
 
@@ -1239,6 +1194,8 @@ fun PurrodoroApp(
                     onRequestLogin = { showLoginSheet = true },
                     syncEnabled = syncEnabled,
                     syncPresentation = syncPresentation,
+                    storageUsedLabel = stringResource(R.string.storage_used, formatBytes(storageSummary.totalBytes)),
+                    onOpenStorage = { showStorage = true },
                     onSignOut = {
                         scope.launch {
                             // Flush local changes first; only warn when the
@@ -1249,6 +1206,15 @@ fun PurrodoroApp(
                             }
                         }
                     },
+                )
+            }
+
+            if (showStorage) {
+                StorageScreen(
+                    summary = storageSummary,
+                    onBack = { showStorage = false },
+                    onRemove = onDeleteDownload,
+                    onRemoveAll = onRemoveAllDownloads,
                 )
             }
 

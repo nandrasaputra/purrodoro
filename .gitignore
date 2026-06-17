@@ -73,3 +73,10 @@ Pods/
 # ──────────────────────────────────────────────────────────────
 .worktrees
 **/.worktrees
+
+# ──────────────────────────────────────────────────────────────
+# Soundscape debug admin (tools/soundscape-admin)
+# ──────────────────────────────────────────────────────────────
+tools/soundscape-admin/node_modules/
+tools/soundscape-admin/.env.local
+tools/soundscape-admin/dist/

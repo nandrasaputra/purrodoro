@@ -23,8 +23,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         DailyStampEntity::class,
         ProfileEntity::class,
         SoundscapeTrackEntity::class,
+        SoundscapeBundledEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class PurrodoroDatabase : RoomDatabase() {
@@ -37,6 +38,7 @@ abstract class PurrodoroDatabase : RoomDatabase() {
     abstract fun dailyStampDao(): DailyStampDao
     abstract fun profileDao(): ProfileDao
     abstract fun soundscapeTrackDao(): SoundscapeTrackDao
+    abstract fun soundscapeBundledDao(): SoundscapeBundledDao
 
     companion object {
         /**
@@ -87,6 +89,25 @@ abstract class PurrodoroDatabase : RoomDatabase() {
             }
         }
 
+        /** v5 adds the soundscape_bundled overrides cache for APK tracks. */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `soundscape_bundled` (" +
+                        "`kind` TEXT NOT NULL, " +
+                        "`localId` INTEGER NOT NULL, " +
+                        "`name` TEXT NOT NULL, " +
+                        "`artist` TEXT NOT NULL, " +
+                        "`symbol` TEXT NOT NULL, " +
+                        "`rawResource` TEXT NOT NULL, " +
+                        "`isPremium` INTEGER NOT NULL, " +
+                        "`sortOrder` INTEGER NOT NULL, " +
+                        "`isActive` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`kind`, `localId`))"
+                )
+            }
+        }
+
         @Volatile private var INSTANCE: PurrodoroDatabase? = null
 
         fun get(context: Context): PurrodoroDatabase =
@@ -95,7 +116,7 @@ abstract class PurrodoroDatabase : RoomDatabase() {
                     context.applicationContext,
                     PurrodoroDatabase::class.java,
                     "purrodoro.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build().also { INSTANCE = it }
             }
     }

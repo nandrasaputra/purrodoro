@@ -34,6 +34,7 @@ import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Coffee
+import com.composables.icons.lucide.HardDrive
 import com.composables.icons.lucide.Info
 import com.composables.icons.lucide.Languages
 import com.composables.icons.lucide.Lucide
@@ -117,6 +118,8 @@ fun ProfileScreen(
     onSignOut: () -> Unit = {},
     syncEnabled: Boolean = false,
     syncPresentation: SyncStatusPresentation? = null,
+    storageUsedLabel: String = "",
+    onOpenStorage: () -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
@@ -271,6 +274,19 @@ fun ProfileScreen(
                         systemLabel = stringResource(R.string.settings_language_system),
                     ),
                     onClick = { activePicker = PreferencePicker.Language },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(KuroSpacing.xl))
+
+            KuroSectionHeader(title = stringResource(R.string.settings_section_storage))
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            KuroCard(modifier = Modifier.fillMaxWidth()) {
+                TappableRow(
+                    icon = Lucide.HardDrive,
+                    label = stringResource(R.string.storage_manage_label),
+                    value = storageUsedLabel,
+                    onClick = onOpenStorage,
                 )
             }
 

@@ -12,6 +12,41 @@
 
 ---
 
+## Design decisions (resolved in lead review)
+
+These supersede earlier drafts of this plan; tasks below already reflect them.
+
+1. **No `SoundscapeCatalogEntry` / `SoundscapeDelivery` types.** Delivery is
+   already encoded on the existing option models: `RemoteTrackInfo? == null`
+   means a bundled (local) track, non-null means remote. Adding a parallel
+   unified model that nothing consumes is dead code. The builder produces the
+   existing `MusicOption` / `SoundOption` directly. (Former Task 3 removed.)
+
+2. **The `BundledTrackRegistry` is the source of *existence*; the Supabase
+   table is an *override* only.** The builder always iterates the registry
+   defaults and left-joins the cached DB row by `(kind, localId)`:
+   - row present → apply its overrides (visibility, premium, sort, display).
+   - row absent → keep the default and treat it as **visible**.
+
+   This makes "a newly bundled APK track not yet seeded in the table" default
+   to *visible* (so a release is never silently swallowed), while still letting
+   the admin hide an existing track.
+
+3. **Hiding requires reading inactive rows.** Because hiding must be
+   distinguishable from "unknown to the table", the app reads **all** bundled
+   rows (active and inactive) and filters on `is_active` client-side. The
+   bundled table's RLS therefore allows public read of every row (it exposes
+   only flags/metadata, never audio bytes). `is_active` is carried through the
+   DTO → entity → builder. (Remote `soundscape_tracks` RLS is unchanged:
+   still active-only.)
+
+4. **Service-role key never reaches a built bundle.** The admin is
+   **dev-server only** (`npm run dev`); `npm run build`/`dist/` must not be
+   served because Vite inlines `VITE_*` env vars into client JS, which would
+   expose the RLS-bypassing service role key. See Task 8.
+
+---
+
 ## File Structure
 
 | File | Responsibility | Action |
@@ -27,9 +62,7 @@
 | `tools/soundscape-admin/src/types.ts` | Shared TS types | Create |
 | `tools/soundscape-admin/src/styles.css` | Minimal layout | Create |
 | `tools/soundscape-admin/README.md` | How to run admin | Create |
-| `purrodoro-android/.../model/SoundscapeDelivery.kt` | `Local` / `Remote` enum | Create |
-| `purrodoro-android/.../model/SoundscapeCatalogEntry.kt` | Unified catalog row (pure) | Create |
-| `purrodoro-android/.../soundscape/BundledTrackRegistry.kt` | APK raw + string res defaults | Create |
+| `purrodoro-android/.../soundscape/BundledTrackRegistry.kt` | APK raw + string res defaults (source of *existence*) | Create |
 | `purrodoro-android/.../soundscape/SoundscapeCatalogBuilder.kt` | Merge local + remote → options | Create |
 | `purrodoro-android/.../soundscape/BundledCatalogApi.kt` | PostgREST fetch for bundled table | Create |
 | `purrodoro-android/.../soundscape/BundledCatalogRepository.kt` | Room cache + refresh | Create |
@@ -70,8 +103,13 @@ create table public.soundscape_bundled_catalog (
 
 alter table public.soundscape_bundled_catalog enable row level security;
 
-create policy "public_read_active_bundled" on public.soundscape_bundled_catalog
-  for select using (is_active = true);
+-- Public read of ALL rows (active and inactive). The app needs inactive rows
+-- to distinguish "hidden by admin" from "not yet seeded" — see Design
+-- decision 3. This table holds only flags/metadata, never audio bytes, so
+-- exposing inactive rows is harmless. Writes go through the service role
+-- (admin tool), which bypasses RLS.
+create policy "public_read_bundled" on public.soundscape_bundled_catalog
+  for select using (true);
 
 -- Seed: matches PurrodoroApp.kt defaults + res/raw filenames (2026-06-17).
 insert into public.soundscape_bundled_catalog
@@ -215,128 +253,13 @@ git commit -m "docs: add bundled soundscape manifest for admin and Android regis
 
 ---
 
-### Task 3: Android — delivery enum + catalog entry model
+### Task 3: ~~Android — delivery enum + catalog entry model~~ (removed)
 
-**Files:**
-- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/SoundscapeDelivery.kt`
-- Create: `purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/SoundscapeCatalogEntry.kt`
-- Create: `purrodoro-android/app/src/test/java/com/endiar/purrodoro/model/SoundscapeCatalogEntryTest.kt`
-
-- [ ] **Step 1: Write failing test**
-
-```kotlin
-package com.endiar.purrodoro.model
-
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
-
-class SoundscapeCatalogEntryTest {
-
-    @Test
-    fun `local entry is always playable without download`() {
-        val entry = SoundscapeCatalogEntry(
-            kind = "music",
-            localId = 1,
-            delivery = SoundscapeDelivery.Local,
-            name = "Bloom",
-            artist = "Yasumu",
-            symbol = "",
-            isVisible = true,
-            isPremium = false,
-            sortOrder = 10,
-            bundledRawName = "lofi_bloom_yasumu",
-        )
-        assertTrue(entry.isPlayable(downloaded = false))
-    }
-
-    @Test
-    fun `remote entry requires download to be playable`() {
-        val entry = SoundscapeCatalogEntry(
-            kind = "music",
-            localId = 100,
-            delivery = SoundscapeDelivery.Remote,
-            name = "Rainy Window",
-            artist = "Artist",
-            symbol = "",
-            isVisible = true,
-            isPremium = false,
-            sortOrder = 10,
-            remoteFilePath = "lofi/rainy.mp3",
-            fileSizeBytes = 2_000_000,
-            updatedAtMillis = 1_000L,
-        )
-        assertFalse(entry.isPlayable(downloaded = false))
-        assertTrue(entry.isPlayable(downloaded = true))
-    }
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `cd purrodoro-android && ./gradlew :app:testDebugUnitTest --tests com.endiar.purrodoro.model.SoundscapeCatalogEntryTest -q`
-
-Expected: FAIL — classes not found.
-
-- [ ] **Step 3: Implement models**
-
-`SoundscapeDelivery.kt`:
-
-```kotlin
-package com.endiar.purrodoro.model
-
-enum class SoundscapeDelivery {
-    Local,
-    Remote,
-}
-```
-
-`SoundscapeCatalogEntry.kt`:
-
-```kotlin
-package com.endiar.purrodoro.model
-
-/**
- * Unified catalog row for one soundscape track (local APK or remote cloud).
- * [localId] is the id within its [kind] namespace (ambience 1–6, music 1–3 for
- * local; remote cloud ids are ≥ 100 and used as [localId] for remote rows).
- */
-data class SoundscapeCatalogEntry(
-    val kind: String,
-    val localId: Int,
-    val delivery: SoundscapeDelivery,
-    val name: String,
-    val artist: String,
-    val symbol: String,
-    val isVisible: Boolean,
-    val isPremium: Boolean,
-    val sortOrder: Int,
-    val bundledRawName: String? = null,
-    val remoteFilePath: String? = null,
-    val fileSizeBytes: Long? = null,
-    val updatedAtMillis: Long? = null,
-) {
-    fun isPlayable(downloaded: Boolean): Boolean = when (delivery) {
-        SoundscapeDelivery.Local -> isVisible
-        SoundscapeDelivery.Remote -> isVisible && downloaded
-    }
-}
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `cd purrodoro-android && ./gradlew :app:testDebugUnitTest --tests com.endiar.purrodoro.model.SoundscapeCatalogEntryTest -q`
-
-Expected: BUILD SUCCESSFUL.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/SoundscapeDelivery.kt \
-        purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/SoundscapeCatalogEntry.kt \
-        purrodoro-android/app/src/test/java/com/endiar/purrodoro/model/SoundscapeCatalogEntryTest.kt
-git commit -m "feat: add unified SoundscapeCatalogEntry model"
-```
+**Removed in lead review (Design decision 1).** `SoundscapeDelivery` and
+`SoundscapeCatalogEntry` are not built: nothing downstream consumes them, and
+delivery is already encoded by `RemoteTrackInfo? == null` on the existing
+`MusicOption` / `SoundOption` models. The builder (Task 6) produces those
+models directly. Task numbers below are unchanged to avoid churn.
 
 ---
 
@@ -587,6 +510,7 @@ data class SoundscapeBundledEntity(
     val rawResource: String,
     val isPremium: Boolean,
     val sortOrder: Int,
+    val isActive: Boolean,
 )
 
 @Dao
@@ -632,6 +556,7 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
                 "`rawResource` TEXT NOT NULL, " +
                 "`isPremium` INTEGER NOT NULL, " +
                 "`sortOrder` INTEGER NOT NULL, " +
+                "`isActive` INTEGER NOT NULL, " +
                 "PRIMARY KEY(`kind`, `localId`))"
         )
     }
@@ -672,6 +597,7 @@ private fun BundledCatalogDto.toEntity() = SoundscapeBundledEntity(
     rawResource = rawResource,
     isPremium = isPremium,
     sortOrder = sortOrder,
+    isActive = isActive,
 )
 ```
 
@@ -715,44 +641,111 @@ import org.junit.Test
 
 class SoundscapeCatalogBuilderTest {
 
-    private fun bundled(kind: String, localId: Int, premium: Boolean = false) =
-        SoundscapeBundledEntity(
-            kind = kind,
-            localId = localId,
-            name = "",
-            artist = "",
-            symbol = "Rain",
-            rawResource = "ambience_rain",
-            isPremium = premium,
-            sortOrder = 10,
-        )
+    private val rainDefault = BundledTrackDefault(
+        kind = "ambience", localId = 1, rawResource = "ambience_rain",
+        nameRes = R.string.sound_rain_name, subtitleRes = R.string.sound_rain_desc,
+        symbol = "Rain", defaultPremium = false, sortOrder = 10,
+    )
+    private val cafeDefault = BundledTrackDefault(
+        kind = "ambience", localId = 2, rawResource = "ambience_cafe",
+        nameRes = R.string.sound_cafe_name, subtitleRes = R.string.sound_cafe_desc,
+        symbol = "Cafe", defaultPremium = false, sortOrder = 20,
+    )
+
+    private fun bundled(
+        localId: Int,
+        premium: Boolean = false,
+        active: Boolean = true,
+        sort: Int = 0,
+    ) = SoundscapeBundledEntity(
+        kind = "ambience", localId = localId, name = "", artist = "", symbol = "",
+        rawResource = "ambience_rain", isPremium = premium, sortOrder = sort, isActive = active,
+    )
 
     private fun remote(id: Int) = SoundscapeTrackEntity(
-        id = id,
-        kind = "music",
-        name = "Cloud Track",
-        artist = "Artist",
-        symbol = "",
-        filePath = "lofi/x.mp3",
-        fileSizeBytes = 2_000_000,
-        isPremium = false,
-        sortOrder = 10,
-        updatedAtMillis = 1_000,
+        id = id, kind = "music", name = "Cloud Track", artist = "Artist", symbol = "",
+        filePath = "lofi/x.mp3", fileSizeBytes = 2_000_000, isPremium = false,
+        sortOrder = 10, updatedAtMillis = 1_000,
     )
 
     @Test
-    fun `local ambience maps to bundled audio and no remote info`() {
+    fun `missing rows fall back to defaults and stay visible`() {
+        // No DB rows (offline / never fetched): every default shows, local audio, no remote.
         val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
-            bundledRows = listOf(bundled("ambience", 1)),
+            bundledRows = emptyList(),
             remoteRows = emptyList(),
             downloadStates = emptyMap(),
             localPaths = emptyMap(),
-            nameFor = { _, def -> "Rain" },
-            subtitleFor = { _, def -> "Gentle rain" },
+            nameFor = { _, _ -> "name" },
+            subtitleFor = { _, _ -> "sub" },
+            bundledDefaults = listOf(rainDefault, cafeDefault),
         )
-        assertEquals(1, options.size)
+        assertEquals(listOf(1, 2), options.map { it.id })
         assertEquals(AudioSource.Bundled(R.raw.ambience_rain), options[0].audio)
         assertNull(options[0].remote)
+    }
+
+    @Test
+    fun `inactive row hides its default`() {
+        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
+            bundledRows = listOf(bundled(localId = 1, active = false)),
+            remoteRows = emptyList(),
+            downloadStates = emptyMap(),
+            localPaths = emptyMap(),
+            nameFor = { _, _ -> "name" },
+            subtitleFor = { _, _ -> "sub" },
+            bundledDefaults = listOf(rainDefault, cafeDefault),
+        )
+        assertEquals(listOf(2), options.map { it.id }) // rain hidden, cafe remains
+    }
+
+    @Test
+    fun `row premium override wins over default`() {
+        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
+            bundledRows = listOf(bundled(localId = 1, premium = true)),
+            remoteRows = emptyList(),
+            downloadStates = emptyMap(),
+            localPaths = emptyMap(),
+            nameFor = { _, _ -> "name" },
+            subtitleFor = { _, _ -> "sub" },
+            bundledDefaults = listOf(rainDefault),
+        )
+        assertTrue(options.single().locked)
+    }
+
+    @Test
+    fun `row sort_order override reorders bundled tracks`() {
+        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
+            bundledRows = listOf(
+                bundled(localId = 1, sort = 99), // rain pushed last
+                bundled(localId = 2, sort = 1),  // cafe pulled first
+            ),
+            remoteRows = emptyList(),
+            downloadStates = emptyMap(),
+            localPaths = emptyMap(),
+            nameFor = { _, _ -> "name" },
+            subtitleFor = { _, _ -> "sub" },
+            bundledDefaults = listOf(rainDefault, cafeDefault),
+        )
+        assertEquals(listOf(2, 1), options.map { it.id })
+    }
+
+    @Test
+    fun `non-blank name and description overrides win`() {
+        val row = bundled(localId = 1)
+            .copy(name = "Custom Rain", artist = "Soft drizzle", symbol = "Storm")
+        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
+            bundledRows = listOf(row),
+            remoteRows = emptyList(),
+            downloadStates = emptyMap(),
+            localPaths = emptyMap(),
+            nameFor = { _, _ -> "default name" },
+            subtitleFor = { _, _ -> "default sub" },
+            bundledDefaults = listOf(rainDefault),
+        )
+        assertEquals("Custom Rain", options.single().name)
+        assertEquals("Soft drizzle", options.single().description)
+        assertEquals("Storm", options.single().symbol)
     }
 
     @Test
@@ -764,23 +757,29 @@ class SoundscapeCatalogBuilderTest {
             localPaths = emptyMap(),
             nameFor = { _, _ -> "unused" },
             subtitleFor = { _, _ -> "unused" },
+            bundledDefaults = emptyList(),
         )
         assertNull(options.single().audio)
         assertEquals(DownloadState.NotDownloaded, options.single().remote?.downloadState)
     }
 
     @Test
-    fun `hidden bundled rows are filtered out`() {
-        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
+    fun `bundled tracks render before remote tracks`() {
+        val options = SoundscapeCatalogBuilder.buildMusicOptions(
             bundledRows = emptyList(),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
+            remoteRows = listOf(remote(100)),
+            downloadStates = mapOf(100 to DownloadState.NotDownloaded),
             localPaths = emptyMap(),
-            nameFor = { _, def -> "Rain" },
-            subtitleFor = { _, def -> "Desc" },
-            bundledDefaults = BundledTrackRegistry.defaults,
+            nameFor = { _, _ -> "Bloom" },
+            subtitleFor = { _, _ -> "Yasumu" },
+            bundledDefaults = listOf(
+                BundledTrackDefault(
+                    "music", 1, "lofi_bloom_yasumu",
+                    R.string.music_bloom, R.string.music_bloom_artist, "", false, 10,
+                ),
+            ),
         )
-        assertEquals(6, options.size)
+        assertEquals(listOf(1, 100), options.map { it.id })
     }
 }
 ```
@@ -797,9 +796,19 @@ import com.endiar.purrodoro.data.local.SoundscapeBundledEntity
 import com.endiar.purrodoro.data.local.SoundscapeTrackEntity
 import com.endiar.purrodoro.model.DownloadState
 import com.endiar.purrodoro.model.MusicOption
-import com.endiar.purrodoro.model.RemoteTrackInfo
 import com.endiar.purrodoro.model.SoundOption
 
+/**
+ * Pure merge of the bundled (APK) registry + cached overrides + the remote
+ * cloud catalog into the option lists the Sounds sheet renders.
+ *
+ * Ownership of "existence" is the registry: we always iterate [bundledDefaults]
+ * and left-join the cached DB row by (kind, localId). A missing row keeps the
+ * default and stays visible (a freshly-bundled track not yet seeded must never
+ * silently disappear); an inactive row (`isActive == false`) hides its default.
+ * Non-blank `name` / `artist` / `symbol` on the row override the string-res
+ * defaults. Bundled tracks always render before remote tracks.
+ */
 object SoundscapeCatalogBuilder {
 
     fun buildAmbienceOptions(
@@ -811,16 +820,25 @@ object SoundscapeCatalogBuilder {
         subtitleFor: (SoundscapeBundledEntity?, BundledTrackDefault) -> String,
         bundledDefaults: List<BundledTrackDefault> = BundledTrackRegistry.defaults,
     ): List<SoundOption> {
-        val bundled = mergeBundledAmbience(bundledRows, bundledDefaults, nameFor, subtitleFor)
+        val bundled = mergeBundled("ambience", bundledRows, bundledDefaults)
+            .map { (def, row) ->
+                SoundOption(
+                    id = def.localId,
+                    name = row?.name?.takeIf { it.isNotBlank() } ?: nameFor(row, def),
+                    description = row?.artist?.takeIf { it.isNotBlank() } ?: subtitleFor(row, def),
+                    locked = row?.isPremium ?: def.defaultPremium,
+                    symbol = row?.symbol?.takeIf { it.isNotBlank() } ?: def.symbol,
+                    audio = AudioSource.Bundled(rawResIdFor(row, def)),
+                    remote = null,
+                )
+            }
         val remote = remoteRows
             .filter { it.kind == "ambience" }
             .sortedWith(compareBy({ it.sortOrder }, { it.id }))
             .map { row ->
-                val state = downloadStates[row.id] ?: DownloadState.NotDownloaded
-                val path = localPaths[row.id]
                 row.toSoundOption(
-                    downloadState = state,
-                    localPath = path.takeIf { state == DownloadState.Downloaded },
+                    downloadState = stateFor(row, downloadStates),
+                    localPath = localPathFor(row, downloadStates, localPaths),
                 )
             }
         return bundled + remote
@@ -835,57 +853,71 @@ object SoundscapeCatalogBuilder {
         subtitleFor: (SoundscapeBundledEntity?, BundledTrackDefault) -> String,
         bundledDefaults: List<BundledTrackDefault> = BundledTrackRegistry.defaults,
     ): List<MusicOption> {
-        val bundled = mergeBundledMusic(bundledRows, bundledDefaults, nameFor, subtitleFor)
+        val bundled = mergeBundled("music", bundledRows, bundledDefaults)
+            .map { (def, row) ->
+                MusicOption(
+                    id = def.localId,
+                    name = row?.name?.takeIf { it.isNotBlank() } ?: nameFor(row, def),
+                    artist = row?.artist?.takeIf { it.isNotBlank() } ?: subtitleFor(row, def),
+                    audio = AudioSource.Bundled(rawResIdFor(row, def)),
+                    locked = row?.isPremium ?: def.defaultPremium,
+                    remote = null,
+                )
+            }
         val remote = remoteRows
             .filter { it.kind == "music" }
             .sortedWith(compareBy({ it.sortOrder }, { it.id }))
             .map { row ->
-                val state = downloadStates[row.id] ?: DownloadState.NotDownloaded
-                val path = localPaths[row.id]
                 row.toMusicOption(
-                    downloadState = state,
-                    localPath = path.takeIf { state == DownloadState.Downloaded },
+                    downloadState = stateFor(row, downloadStates),
+                    localPath = localPathFor(row, downloadStates, localPaths),
                 )
             }
         return bundled + remote
     }
 
-    private fun mergeBundledAmbience(
+    /**
+     * Left-join the registry defaults (existence) with cached rows (overrides).
+     * Returns visible `(def, row?)` pairs sorted by effective sort order:
+     * - row absent  → visible default
+     * - row present and inactive → dropped (hidden)
+     * - row present and active   → kept, overrides applied by the caller
+     */
+    private fun mergeBundled(
+        kind: String,
         rows: List<SoundscapeBundledEntity>,
         defaults: List<BundledTrackDefault>,
-        nameFor: (SoundscapeBundledEntity?, BundledTrackDefault) -> String,
-        subtitleFor: (SoundscapeBundledEntity?, BundledTrackDefault) -> String,
-    ): List<SoundOption> {
-        val byKey = rows.associateBy { it.kind to it.localId }
+    ): List<Pair<BundledTrackDefault, SoundscapeBundledEntity?>> {
+        val byLocalId = rows.filter { it.kind == kind }.associateBy { it.localId }
         return defaults
-            .filter { it.kind == "ambience" }
+            .filter { it.kind == kind }
             .mapNotNull { def ->
-                val row = byKey["ambience" to def.localId]
-                if (row == null && rows.isNotEmpty()) return@mapNotNull null
-                val premium = row?.isPremium ?: def.defaultPremium
-                val sort = row?.sortOrder ?: def.sortOrder
-                def to Triple(row, premium, sort)
+                val row = byLocalId[def.localId]
+                if (row != null && !row.isActive) return@mapNotNull null
+                def to row
             }
-            .sortedBy { it.third }
-            .map { (row, premium, _) ->
-                val def = defaults.first { it.kind == "ambience" && it.localId == (row?.localId ?: defLocalId(row, "ambience")) }
-                SoundOption(
-                    id = def.localId,
-                    name = row?.name?.takeIf { it.isNotBlank() } ?: nameFor(row, def),
-                    description = row?.artist?.takeIf { it.isNotBlank() } ?: subtitleFor(row, def),
-                    locked = premium,
-                    symbol = row?.symbol?.takeIf { it.isNotBlank() } ?: def.symbol,
-                    audio = AudioSource.Bundled(BundledTrackRegistry.rawResId(row?.rawResource ?: def.rawResource)),
-                    remote = null,
-                )
-            }
+            .sortedBy { (def, row) -> row?.sortOrder ?: def.sortOrder }
     }
 
-    // ... mirror mergeBundledMusic similarly (artist = subtitleFor for music)
+    private fun rawResIdFor(row: SoundscapeBundledEntity?, def: BundledTrackDefault): Int =
+        BundledTrackRegistry.rawResId(row?.rawResource?.takeIf { it.isNotBlank() } ?: def.rawResource)
+
+    private fun stateFor(row: SoundscapeTrackEntity, states: Map<Int, DownloadState>): DownloadState =
+        states[row.id] ?: DownloadState.NotDownloaded
+
+    private fun localPathFor(
+        row: SoundscapeTrackEntity,
+        states: Map<Int, DownloadState>,
+        localPaths: Map<Int, String>,
+    ): String? = localPaths[row.id]?.takeIf { stateFor(row, states) == DownloadState.Downloaded }
 }
 ```
 
-> **Implementer note:** Complete `mergeBundledMusic` and helper `defLocalId` in the same file; keep logic symmetric with ambience. When `rows` is empty (offline, never fetched), fall back entirely to `defaults` so behavior matches today's hardcoded lists.
+> **Note:** `mergeBundled` is shared by both kinds — no separate
+> `mergeBundledMusic` / `defLocalId`. For music, `subtitleFor` supplies the
+> artist string; for ambience it supplies the description. When `rows` is empty
+> (offline / never fetched) every default is kept and visible, matching today's
+> hardcoded lists.
 
 - [ ] **Step 4: Run tests — expect PASS**
 
@@ -930,26 +962,33 @@ Remove `bundledAmbienceOptions` / `bundledMusicOptions` blocks (~lines 435–505
 
 Replace `musicOptions` / `ambienceOptions` construction with:
 
+> **Note:** resolve display strings with `context.getString(...)`, **not**
+> `stringResource(...)`. The builder invokes `nameFor`/`subtitleFor` in
+> non-composable context, so a `@Composable` call there fails to compile.
+> `LocalContext` is swapped by `KuroLocalizationProvider`, so `context` already
+> resolves the in-app language.
+
 ```kotlin
+val localPaths = remember(catalogTracks) {
+    catalogTracks.associate { track ->
+        track.id to soundscape.downloadManager.localFile(track).absolutePath
+    }
+}
 val ambienceOptions = SoundscapeCatalogBuilder.buildAmbienceOptions(
     bundledRows = bundledTracks,
     remoteRows = catalogTracks,
     downloadStates = downloadStates,
-    localPaths = catalogTracks.associate { track ->
-        track.id to soundscape.downloadManager.localFile(track).absolutePath
-    },
-    nameFor = { row, def -> stringResource(def.nameRes) },
-    subtitleFor = { row, def -> stringResource(def.subtitleRes) },
+    localPaths = localPaths,
+    nameFor = { _, def -> context.getString(def.nameRes) },
+    subtitleFor = { _, def -> context.getString(def.subtitleRes) },
 )
 val musicOptions = SoundscapeCatalogBuilder.buildMusicOptions(
     bundledRows = bundledTracks,
     remoteRows = catalogTracks,
     downloadStates = downloadStates,
-    localPaths = catalogTracks.associate { track ->
-        track.id to soundscape.downloadManager.localFile(track).absolutePath
-    },
-    nameFor = { row, def -> stringResource(def.nameRes) },
-    subtitleFor = { row, def -> stringResource(def.subtitleRes) },
+    localPaths = localPaths,
+    nameFor = { _, def -> context.getString(def.nameRes) },
+    subtitleFor = { _, def -> context.getString(def.subtitleRes) },
 )
 ```
 
@@ -970,6 +1009,14 @@ git commit -m "feat: wire bundled catalog overrides into PurrodoroApp soundscape
 ---
 
 ### Task 8: Debug web app — scaffold
+
+> **⚠️ Security — dev-server only.** This tool uses the Supabase **service role
+> key**, which bypasses RLS (full read/write on every table). Vite inlines any
+> `VITE_*` env var into the client bundle at build time, so **never run
+> `npm run build` / serve `dist/`** for this app — that would ship the key in
+> plaintext JS. Use `npm run dev` locally only. Keep the key in `.env.local`
+> (gitignored); never commit it. If a hosted admin is ever needed, move writes
+> behind a server that holds the key server-side (out of scope here).
 
 **Files:**
 - Create: `tools/soundscape-admin/package.json`
@@ -1162,18 +1209,21 @@ git commit -m "docs: add soundscape admin tool usage"
 
 | Spec requirement | Task |
 |---|---|
-| Local vs remote model in app | Tasks 3, 6, 7 |
+| Local vs remote model in app | Tasks 6, 7 (delivery = `remote == null`; no separate type — Design decision 1) |
 | Local: visibility + premium | Tasks 1, 5, 6, 7, 9 |
 | Remote: visibility + premium + download | Tasks 6, 7 (download unchanged), 9 |
 | `soundscape_tracks` remote-only | Task 9 (remote panel only writes that table) |
 | Bundled APK mapping | Tasks 2, 4 |
 | Debug admin list/add/remove | Task 9 |
 | Offline fallback for bundled | Task 6 (`defaults` when cache empty) |
+| Hide vs unseeded bundled track | Tasks 1, 5, 6 (read inactive rows; missing → visible — Design decision 2/3) |
 | Docs | Task 10 |
 
-**Placeholder scan:** none — all steps include concrete paths and code.
+**Placeholder scan:** none — all steps include concrete, compiling code.
 
-**Type consistency:** `BundledCatalogDto.localId` ↔ DB `local_id`; Room `SoundscapeBundledEntity.localId`; UI options use per-kind `localId` (unchanged from today).
+**Type consistency:** `BundledCatalogDto.localId` ↔ DB `local_id`; Room
+`SoundscapeBundledEntity.localId`; `is_active` flows DTO → entity → builder. UI
+options use per-kind `localId` (unchanged from today). Removed `SoundscapeCatalogEntry`/`SoundscapeDelivery` (Design decision 1).
 
 ---
 

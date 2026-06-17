@@ -321,6 +321,23 @@
     <string name="soundscape_downloading">Downloading…</string>
     <string name="soundscape_remove_download">Remove download</string>
     <string name="soundscape_download_size">%1$s MB</string>
+
+    <!-- Storage management -->
+    <string name="settings_section_storage">STORAGE</string>
+    <string name="storage_manage_label">Manage storage</string>
+    <string name="storage_title">Storage</string>
+    <string name="storage_used">%1$s used</string>
+    <string name="storage_summary_subtitle">Used by downloaded sounds</string>
+    <string name="storage_section_downloads">DOWNLOADS</string>
+    <string name="storage_downloading">Downloading… %1$d%%</string>
+    <string name="storage_remove_one_cd">Remove %1$s download</string>
+    <string name="storage_remove_all">Remove all downloads</string>
+    <string name="storage_remove_all_title">Remove all downloads?</string>
+    <string name="storage_remove_all_body">This frees %1$s. You can download these sounds again anytime.</string>
+    <string name="storage_remove_all_confirm">Remove all</string>
+    <string name="storage_empty">No downloads yet</string>
+    <string name="storage_empty_hint">Sounds you download for offline play will show up here.</string>
+
     <string name="music_bloom">Bloom</string>
     <string name="music_bloom_artist">Yasumu</string>
     <string name="music_chill_fm">Chill FM</string>

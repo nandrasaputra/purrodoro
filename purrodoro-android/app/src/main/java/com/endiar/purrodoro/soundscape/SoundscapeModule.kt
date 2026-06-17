@@ -20,6 +20,7 @@ object SoundscapeModule {
 
     class Holder(
         val catalogRepository: SoundscapeCatalogRepository,
+        val bundledCatalogRepository: BundledCatalogRepository,
         val downloadManager: TrackDownloadManager,
     )
 
@@ -34,6 +35,10 @@ object SoundscapeModule {
             catalogRepository = SoundscapeCatalogRepository(
                 api = SupabaseSoundscapeCatalogApi(SupabaseModule.get(appContext)),
                 dao = db.soundscapeTrackDao(),
+            ),
+            bundledCatalogRepository = BundledCatalogRepository(
+                api = SupabaseBundledCatalogApi(SupabaseModule.get(appContext)),
+                dao = db.soundscapeBundledDao(),
             ),
             downloadManager = TrackDownloadManager(
                 context = appContext,
