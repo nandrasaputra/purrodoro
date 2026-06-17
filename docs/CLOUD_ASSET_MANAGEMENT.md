@@ -220,3 +220,34 @@ curl -I "$PROJECT_URL/storage/v1/object/public/soundscape-audio/lofi/rainy_windo
 - [ ] row inserted with id ≥ 100 (never reused), exact `file_path`, real `file_size_bytes`
 - [ ] `kind`, `is_premium`, `sort_order` set intentionally
 - [ ] verified via anon `curl` + on-device relaunch
+
+---
+
+## Debug admin (recommended)
+
+Instead of hand-writing SQL in the Supabase dashboard, use the local debug admin
+at [`tools/soundscape-admin/`](../tools/soundscape-admin/). It manages both
+catalogs from one screen:
+
+- **Remote tracks** (`soundscape_tracks`): upload an MP3 + insert a row, toggle
+  visibility/premium, soft-delete, and preview playback.
+- **Local tracks** (`soundscape_bundled_catalog`): edit visibility/premium/order
+  for APK-bundled tracks (no byte upload — audio ships in `res/raw`).
+
+See the tool's [README](../tools/soundscape-admin/README.md) for setup. It is
+**dev-server only** and uses the service role key — never build/deploy it.
+
+### Local (bundled) catalog table
+
+`public.soundscape_bundled_catalog`, keyed by `(kind, local_id)`, controls
+visibility / premium / order / display overrides for the tracks bundled in the
+APK. Schema source of truth:
+[`supabase/migrations/0005_soundscape_bundled_catalog.sql`](../supabase/migrations/0005_soundscape_bundled_catalog.sql).
+
+| Rule | Why |
+|---|---|
+| `local_id` is **1–99**, unique per `kind` | mirrors the APK `BundledTrackRegistry` ids; remote ids stay ≥ 100. |
+| `raw_resource` matches an APK `res/raw` stem | the app maps it to `R.raw.*`; bytes are never in Supabase. |
+| `is_active = false` **hides** a bundled track | the app reads all rows (RLS allows it) to tell hidden from unseeded. |
+| A bundled track with **no row** stays **visible** | the on-device registry is the source of existence; a new APK track isn't swallowed by an unseeded table. |
+| `name` / `artist` / `symbol` empty → use `strings.xml` | non-blank values override the localized defaults. |

@@ -39,6 +39,10 @@ class TrackDownloadManager(
 
     fun isDownloaded(track: SoundscapeTrackEntity): Boolean = localFile(track).exists()
 
+    /** On-disk size of the downloaded file in bytes, or 0 if not present. */
+    fun fileSizeBytes(track: SoundscapeTrackEntity): Long =
+        localFile(track).let { if (it.exists()) it.length() else 0L }
+
     /** Recompute states from disk for the current catalog snapshot. */
     fun refreshStates(tracks: List<SoundscapeTrackEntity>) {
         _states.value = tracks.associate { track ->

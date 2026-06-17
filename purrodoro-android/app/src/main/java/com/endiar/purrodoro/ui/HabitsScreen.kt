@@ -81,6 +81,7 @@ import com.endiar.purrodoro.ui.designsystem.KuroScreenScaffold
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.kuroTokens
+import com.endiar.purrodoro.ui.theme.JourneyGreen
 import com.endiar.purrodoro.ui.theme.Mint
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -455,7 +456,10 @@ private fun HabitSectionHeader(
             Text(
                 text = trailing,
                 style = KuroType.labelMeta,
-                color = if (trailingAccent) tokens.accent else tokens.textFaint,
+                // "All done" reads as a positive completion cue, so use the app's
+                // established done-green (JourneyGreen) rather than coral — coral
+                // is reserved for primary forward actions (Start / Add).
+                color = if (trailingAccent) JourneyGreen else tokens.textFaint,
             )
         }
     }

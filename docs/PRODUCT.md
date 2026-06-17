@@ -404,6 +404,55 @@ Sign-out clears the auth session only; local app data is kept (current behavior)
 
 ---
 
+## Soundscapes & downloads
+
+The Sounds sheet mixes two independent layers — **Ambience** (rain, cafe, …) and
+**Lo-fi music** — each with its own volume, surfaced on the timer/focus screens
+via a compact transport bar. Every track has one of two delivery types:
+
+- **Local** — audio shipped in the APK (`res/raw`); plays instantly.
+- **Remote** — audio in Supabase Storage, **downloaded on demand**; a cloud
+  icon marks not-downloaded, a progress ring shows downloading, and the file can
+  be deleted later. Cloud track ids are `≥ 100`; local ids are `1–99` per kind.
+
+### Unified catalog (local + remote)
+
+Both catalogs are data-driven and editable without an app release:
+
+- Remote tracks live in `public.soundscape_tracks` (unchanged).
+- Local (bundled) track metadata lives in `public.soundscape_bundled_catalog`
+  (migration `0005`), keyed by `(kind, local_id)`. It overrides **visibility /
+  premium / order / display only** — the audio bytes still ship in the APK.
+- On Android, `BundledTrackRegistry` is the source of *existence* (the APK
+  defaults). The pure `SoundscapeCatalogBuilder` left-joins the registry with the
+  cached DB rows + the remote catalog into the `SoundOption` / `MusicOption`
+  lists (`PurrodoroApp.kt` no longer hardcodes them). A missing row → visible
+  default; an inactive row → hidden (the app reads all rows, active and
+  inactive, so it can tell "hidden" from "not yet seeded"). Offline falls back to
+  the registry defaults.
+- A debug-only web admin (`tools/soundscape-admin/`, Vite + TS) manages both
+  catalogs with the Supabase service role key. **Dev-server only** — never built
+  or deployed (Vite would inline the key). See `docs/CLOUD_ASSET_MANAGEMENT.md`.
+
+> Source spec/plan: `docs/superpowers/specs/2026-06-17-soundscape-admin-design.md`
+> and `docs/superpowers/plans/2026-06-17-soundscape-admin-and-unified-catalog.md`.
+
+### Storage management
+
+Profile → **Storage** opens a dedicated `StorageScreen` listing downloaded
+content (today: cloud soundscapes) with total space used, per-item remove, and a
+confirmed "remove all". Generic by design so future downloadable assets fit.
+In-progress downloads show as a non-removable progress row. Removing a download
+(single or bulk) stops playback of that track first; the user's saved mix is left
+intact (the track simply reverts to "needs re-download"). Downloads are
+public, re-downloadable cache (internal storage), not account-owned data, so an
+account switch leaves them in place. Built on the pure `buildStorageList` /
+`formatBytes` helpers (`ui/StorageModels.kt`).
+
+> Source spec: `docs/superpowers/specs/2026-06-17-storage-management-design.md`.
+
+---
+
 ## Glossary
 
 - **Cycle** — one full Pomodoro plan from first Focus through the trailing LongBreak. = one `SessionRecord`.
