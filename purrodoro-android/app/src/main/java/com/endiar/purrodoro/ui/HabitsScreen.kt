@@ -185,7 +185,7 @@ internal fun AddHabitSheet(
 fun HabitsScreen(
     habits: List<Habit>,
     today: LocalDate,
-    onAddHabit: (HabitDraft) -> Unit,
+    onAddHabit: (HabitDraft) -> Boolean,
     onUpdateHabit: (habitId: Int, draft: HabitDraft) -> Unit,
     onToggleBinary: (habitId: Int, date: LocalDate) -> Unit,
     onIncrementProgress: (habitId: Int, date: LocalDate, delta: Int) -> Unit,
@@ -193,6 +193,10 @@ fun HabitsScreen(
     onClearLog: (habitId: Int, date: LocalDate) -> Unit,
     onDeleteHabit: (habitId: Int) -> Unit,
     onStartPomodoroForHabit: (Habit) -> Unit,
+    canAddHabit: Boolean = true,
+    showFreeTierCap: Boolean = false,
+    habitCount: Int = 0,
+    onAddHabitBlocked: () -> Unit = {},
     modifier: Modifier = Modifier,
     glassTreatment: GlassTreatment = GlassTreatment.Clear,
     overBackdrop: Boolean = false,
@@ -219,6 +223,10 @@ fun HabitsScreen(
         detailHabitId = null
     }
 
+    val requestAddHabit: () -> Unit = {
+        if (canAddHabit) showAddSheet = true else onAddHabitBlocked()
+    }
+
     KuroScreenScaffold(
         stickyTitle = stringResource(R.string.habits_title),
         modifier = modifier,
@@ -234,11 +242,16 @@ fun HabitsScreen(
             verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
         ) {
             Box(headerMeasureModifier) {
-                HabitsScreenHeader(onAdd = { showAddSheet = true })
+                HabitsScreenHeader(
+                    onAdd = requestAddHabit,
+                    showFreeTierCap = showFreeTierCap,
+                    habitCount = habitCount,
+                    atCap = !canAddHabit,
+                )
             }
 
             if (habits.isEmpty()) {
-                EmptyHabitCard(onAdd = { showAddSheet = true })
+                EmptyHabitCard(onAdd = requestAddHabit)
             } else {
                 val grouped = groupHabitsByDueState(habits, today)
                 // Single running index so the staggered entrance keeps a
@@ -337,7 +350,9 @@ fun HabitsScreen(
 
     if (showAddSheet) {
         AddHabitSheet(
-            onConfirm = { draft -> onAddHabit(draft); showAddSheet = false },
+            onConfirm = { draft ->
+                if (onAddHabit(draft)) showAddSheet = false
+            },
             onDismiss = { showAddSheet = false },
         )
     }
@@ -348,6 +363,9 @@ fun HabitsScreen(
 @Composable
 private fun HabitsScreenHeader(
     onAdd: () -> Unit,
+    showFreeTierCap: Boolean,
+    habitCount: Int,
+    atCap: Boolean,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
@@ -355,25 +373,28 @@ private fun HabitsScreenHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Title only — no leading mascot glyph, matching the shared top-bar
-        // pattern used by the Tasks screen. The sticky bar shown on scroll
-        // already echoes this title.
-        Text(
-            text = stringResource(R.string.habits_title),
-            color = tokens.textPrimary,
-            style = KuroType.headingDisplay,
+        ScreenTitleWithFreeTierCap(
+            title = stringResource(R.string.habits_title),
+            showFreeTierCap = showFreeTierCap,
+            current = habitCount,
+            limit = FreeTierCapLimits.habits,
+            capLabelRes = R.string.free_tier_habits_count,
         )
         val addHabitCd = stringResource(R.string.habits_add)
         Box(
             modifier = Modifier
                 .size(KuroSpacing.xxxl + KuroSpacing.sm)
                 .clip(CircleShape)
-                .background(tokens.accent)
+                .background(if (atCap) tokens.lockedFill else tokens.accent)
                 .clickable(onClick = onAdd)
                 .semantics { role = Role.Button; contentDescription = addHabitCd },
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "+", color = tokens.accentOn, style = KuroType.fabGlyph)
+            Text(
+                text = "+",
+                color = if (atCap) tokens.lockedText else tokens.accentOn,
+                style = KuroType.fabGlyph,
+            )
         }
     }
 }

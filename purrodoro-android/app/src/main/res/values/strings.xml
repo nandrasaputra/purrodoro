@@ -349,6 +349,17 @@
     <string name="premium_sheet_price_hint">From $2.99/month · 7-day free trial</string>
     <string name="premium_sheet_cta">Start Premium</string>
     <string name="premium_sheet_dismiss">Maybe later</string>
+    <string name="premium_cap_active_tasks">More active tasks</string>
+    <string name="premium_cap_habits">More habits</string>
+    <string name="premium_cap_active_tasks_title">Active task limit reached</string>
+    <string name="premium_cap_habits_title">Habit limit reached</string>
+    <string name="premium_cap_active_tasks_body">Your free plan includes up to %1$d active tasks. Mark one done or remove it to add another—or unlock Premium for unlimited tasks.</string>
+    <string name="premium_cap_habits_body">Your free plan includes up to %1$d habits. Remove one to add another—or unlock Premium for unlimited habits.</string>
+    <string name="premium_cap_perk_unlimited_tasks">Unlimited active tasks</string>
+    <string name="premium_cap_perk_unlimited_habits">Unlimited habits</string>
+    <string name="free_tier_active_tasks_count">%1$d/%2$d active</string>
+    <string name="free_tier_habits_count">%1$d/%2$d habits</string>
+    <string name="free_tier_cap_cd">%1$d of %2$d used on free plan</string>
     <string name="sound_pill_tap_to_play">Tap to play</string>
     <string name="sound_unlock_cd">Unlock %1$s</string>
     <string name="sound_stop_cd">Stop %1$s</string>

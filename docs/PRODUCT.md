@@ -9,6 +9,21 @@ finish, skip-to-end) differs.
 
 ---
 
+## Related documentation
+
+| Topic | Document |
+|---|---|
+| **Freemium model (design)** | [`docs/superpowers/specs/2026-06-07-freemium-model-design.md`](superpowers/specs/2026-06-07-freemium-model-design.md) — original gating architecture; some limits below supersede it |
+| **Freemium rollout (plan)** | [`docs/superpowers/plans/2026-06-07-freemium-model.md`](superpowers/plans/2026-06-07-freemium-model.md) |
+| **Premium badge UI** | [`purrodoro-android/docs/premium-badge.md`](../purrodoro-android/docs/premium-badge.md) — Starry Pill lock affordance |
+| **Soundscape catalog (cloud)** | [`docs/superpowers/specs/2026-06-17-soundscape-admin-design.md`](superpowers/specs/2026-06-17-soundscape-admin-design.md), [`docs/superpowers/plans/2026-06-17-soundscape-admin-and-unified-catalog.md`](superpowers/plans/2026-06-17-soundscape-admin-and-unified-catalog.md) |
+| **Cloud assets** | [`docs/CLOUD_ASSET_MANAGEMENT.md`](CLOUD_ASSET_MANAGEMENT.md) |
+| **Design system (locked tokens)** | [`docs/DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) |
+| **Auth & account identity** | [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](superpowers/specs/2026-06-09-auth-and-account-identity.md) |
+| **Android sync blockers / QA** | [`purrodoro-android/docs/pending-actions.md`](../purrodoro-android/docs/pending-actions.md) |
+
+---
+
 ## What "session" means
 
 The word "session" is overloaded in the codebase. Two senses, both are real:
@@ -222,26 +237,82 @@ data class SessionRecord(
 
 ## Monetization (in progress)
 
-Purrodoro is moving to a **freemium** model. This work is **in progress** — the
-design and implementation plan are written; gating is being built behind the
-existing debug `PremiumOverride` toggle, and in-app-purchase billing is not yet
-wired.
+Purrodoro uses a **freemium** model built around a **one-time unlock**
+("Purrodoro Premium"). **No subscriptions.** Play Billing / StoreKit is not wired
+yet — the paywall CTA currently flips a local `isPremium` flag; real purchase
+flow is a separate, later spec.
 
-- **Model:** one-time unlock ("Purrodoro Premium"). No subscriptions.
-- **Philosophy:** generous free — the core loop (timer, cycles, unlimited tasks,
-  basic stats, notifications, light/dark) is never blocked. Premium sells polish
-  and depth.
-- **Free vs premium (planned):** premium sounds (free: Rain + Cafe), extra
-  themes/mascot scenes, the full widget set, advanced Journey insights, and
-  removal of the soft caps on task categories (free: 3) and habits (free: 5).
-- **Gating:** a centralized `PremiumFeature` registry + pure `PremiumGate` helper
-  consume the existing `isPremium` source
-  (`PremiumOverride.overrideValue() ?: appState.isPremium`); a reusable paywall
-  sheet surfaces locks. Billing integration is a separate, later spec.
+**Philosophy:** generous free core loop (timer, cycles, focus mode, Journey,
+categories, notifications, light/dark appearance). Premium sells soundscape depth,
+higher task/habit headroom, and (planned) extra home-screen widgets.
 
-Reference documents:
-- Spec: [`docs/superpowers/specs/2026-06-07-freemium-model-design.md`](superpowers/specs/2026-06-07-freemium-model-design.md)
-- Plan: [`docs/superpowers/plans/2026-06-07-freemium-model.md`](superpowers/plans/2026-06-07-freemium-model.md)
+### Entitlement source
+
+```kotlin
+val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
+```
+
+- **`appState.isPremium`** — DataStore flag (`AppRepository.setIsPremium`).
+- **`PremiumOverride`** — debug-only toggle in Dev Tools; ignored in release builds.
+- Persists across account switch (device-local, not synced). See
+  [`premium-badge.md`](../purrodoro-android/docs/premium-badge.md) for lock UI.
+
+Cap logic lives in [`PremiumGate`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/PremiumGate.kt).
+Paywall UI: [`PremiumUpsellSheet`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumUpsellSheet.kt),
+cap labels: [`PremiumCapUi`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumCapUi.kt).
+
+### Free vs premium (current product)
+
+| Surface | Free | Premium | Android status |
+|---|---|---|---|
+| Timer / cycles / focus mode | Full | — | Shipped |
+| **Journey / stats** | **Full** | — | Shipped (never gated) |
+| Task **categories** | Unlimited | Unlimited | Shipped (not capped) |
+| **Active tasks** | **10** max | Unlimited | **Shipped** — counts only `!completed` tasks |
+| **Habits** | **7** max | Unlimited | **Shipped** |
+| Ambience + lo-fi | Rain, Cafe + 2 bundled lo-fi tracks | All locked bundled + cloud `is_premium` tracks | **Shipped** |
+| Light / dark appearance | Full | — | Shipped (not a premium perk) |
+| Home-screen widgets | **2 basic** (which two TBD) | Remaining 6 | **Not shipped** — all 8 widgets available today |
+
+**Soft-cap rules (tasks & habits):** caps only block **creating new** items once
+the limit is reached. Existing tasks and habits stay fully editable and usable.
+Completing a task frees an active slot; deleting a habit frees a slot. At the
+cap, the add affordance opens the premium paywall instead of the create sheet.
+
+Entry points gated: Tasks **+**, Habits **+**, Start Focus → create new task/habit,
+and the persistence layer in `PurrodoroApp.tryCreateTask` / `tryAddHabit`.
+
+**Cap UX (free users):** Tasks and Habits headers show a subtle counter
+(e.g. `8/10 active`, `5/7 habits`) via [`PremiumCapUi`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumCapUi.kt).
+At the limit the counter uses the premium locked tint, the **+** button switches
+to a muted purple fill, and tapping **+** opens a cap-specific paywall (title +
+body explain the free limit and how to free a slot). Soundscape locks still use
+the generic premium sheet.
+
+### Soundscape (shipped detail)
+
+Free bundled ambience: **Rain**, **Cafe**. Premium bundled: Fire, Forest, Sea
+Wave, Winter Wind, plus premium lo-fi (e.g. Midnight Whisper). Cloud catalog rows
+use server `is_premium` → `SoundOption.locked` / `MusicOption.locked`. See
+[soundscape-admin design](superpowers/specs/2026-06-17-soundscape-admin-design.md).
+
+### Not premium (explicit)
+
+- Journey, calendar, session history, streaks — **free for everyone**
+- Themes / mascot scenes — **not** a premium sell; light/dark is free
+- Task categories — **uncapped**
+
+### Still to build
+
+- Play Billing one-time purchase + restore
+- Widget picker restriction (2 free / 6 premium)
+- Paywall copy cleanup (one-time price; remove stale subscription placeholder strings)
+
+### Reference documents
+
+- Design (partially superseded on caps/Journey/widgets): [`superpowers/specs/2026-06-07-freemium-model-design.md`](superpowers/specs/2026-06-07-freemium-model-design.md)
+- Implementation plan: [`superpowers/plans/2026-06-07-freemium-model.md`](superpowers/plans/2026-06-07-freemium-model.md)
+- Premium badge: [`purrodoro-android/docs/premium-badge.md`](../purrodoro-android/docs/premium-badge.md)
 
 ---
 

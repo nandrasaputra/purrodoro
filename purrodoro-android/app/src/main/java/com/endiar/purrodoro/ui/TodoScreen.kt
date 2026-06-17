@@ -179,7 +179,7 @@ fun TodoScreen(
     categories: List<Category>,
     selectedCategoryId: Int?,
     onCategorySelected: (Int?) -> Unit,
-    onAddTask: (String, Int?, TaskPriority, LocalDate?) -> Unit,
+    onAddTask: (String, Int?, TaskPriority, LocalDate?) -> Boolean,
     onToggleTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
     onUpdateTask: (FocusTask) -> Unit,
@@ -188,6 +188,10 @@ fun TodoScreen(
     onRenameCategory: (Int, String, Long) -> Unit,
     onDeleteCategory: (Int) -> Unit,
     onFocusTask: (StartFocusRequest) -> Unit,
+    canAddTask: Boolean = true,
+    showFreeTierCap: Boolean = false,
+    activeTaskCount: Int = 0,
+    onAddTaskBlocked: () -> Unit = {},
     habits: List<Habit> = emptyList(),
     settings: TimerSettings = TimerSettings(),
     modifier: Modifier = Modifier,
@@ -244,6 +248,15 @@ fun TodoScreen(
 
     val today = remember { LocalDate.now() }
 
+    val attemptAddTask: () -> Unit = {
+        if (canAddTask) {
+            addTaskSheetCategoryId = selectedCategoryId
+            addTaskSheetVisible = true
+        } else {
+            onAddTaskBlocked()
+        }
+    }
+
     val categoryFilteredTasks = tasks.filter { task ->
         selectedCategoryId == null || task.categoryId == selectedCategoryId
     }
@@ -288,10 +301,10 @@ fun TodoScreen(
         ) {
             Box(headerMeasureModifier) {
                 TasksScreenHeader(
-                    onAdd = {
-                        addTaskSheetCategoryId = selectedCategoryId
-                        addTaskSheetVisible = true
-                    },
+                    onAdd = attemptAddTask,
+                    showFreeTierCap = showFreeTierCap,
+                    activeTaskCount = activeTaskCount,
+                    atCap = !canAddTask,
                 )
             }
 
@@ -435,9 +448,12 @@ fun TodoScreen(
                 keyboardController?.hide()
             },
             onAdd = { title, categoryId, priority, dueDate ->
-                onAddTask(title, categoryId, priority, dueDate)
-                addTaskSheetVisible = false
-                keyboardController?.hide()
+                onAddTask(title, categoryId, priority, dueDate).also { added ->
+                    if (added) {
+                        addTaskSheetVisible = false
+                        keyboardController?.hide()
+                    }
+                }
             },
             onAddCategory = { addCategorySheetVisible = true },
         )
@@ -633,6 +649,9 @@ fun TodoScreen(
 @Composable
 private fun TasksScreenHeader(
     onAdd: () -> Unit,
+    showFreeTierCap: Boolean,
+    activeTaskCount: Int,
+    atCap: Boolean,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
@@ -640,27 +659,28 @@ private fun TasksScreenHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Title only — no leading mascot glyph, matching the shared top-bar
-        // pattern (see HabitsScreen). The sticky bar shown on scroll already
-        // echoes this title.
-        Text(
-            text = stringResource(R.string.tasks_title),
-            color = tokens.textPrimary,
-            style = KuroType.headingDisplay,
+        ScreenTitleWithFreeTierCap(
+            title = stringResource(R.string.tasks_title),
+            showFreeTierCap = showFreeTierCap,
+            current = activeTaskCount,
+            limit = FreeTierCapLimits.activeTasks,
+            capLabelRes = R.string.free_tier_active_tasks_count,
         )
-        // Primary add action lives top-right (replacing the old bottom FAB),
-        // consistent with the Habits header's add button.
         val addTaskCd = stringResource(R.string.tasks_add)
         Box(
             modifier = Modifier
                 .size(KuroSpacing.xxxl + KuroSpacing.sm)
                 .clip(CircleShape)
-                .background(tokens.accent)
+                .background(if (atCap) tokens.lockedFill else tokens.accent)
                 .clickable(onClick = onAdd)
                 .semantics { role = Role.Button; contentDescription = addTaskCd },
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "+", color = tokens.accentOn, style = KuroType.fabGlyph)
+            Text(
+                text = "+",
+                color = if (atCap) tokens.lockedText else tokens.accentOn,
+                style = KuroType.fabGlyph,
+            )
         }
     }
 }
@@ -1081,7 +1101,7 @@ internal fun AddTaskSheet(
     categories: List<Category>,
     defaultCategoryId: Int?,
     onDismiss: () -> Unit,
-    onAdd: (title: String, categoryId: Int?, priority: TaskPriority, dueDate: LocalDate?) -> Unit,
+    onAdd: (title: String, categoryId: Int?, priority: TaskPriority, dueDate: LocalDate?) -> Boolean,
     onAddCategory: () -> Unit,
 ) {
     var title by rememberSaveable { mutableStateOf("") }
@@ -1097,8 +1117,8 @@ internal fun AddTaskSheet(
     val canSubmit = title.trim().isNotEmpty()
     val submit: () -> Unit = {
         val trimmed = title.trim()
-        if (trimmed.isNotEmpty()) {
-            onAdd(trimmed, categoryId, priority, dueDate)
+        if (trimmed.isNotEmpty() && onAdd(trimmed, categoryId, priority, dueDate)) {
+            onDismiss()
         }
     }
 

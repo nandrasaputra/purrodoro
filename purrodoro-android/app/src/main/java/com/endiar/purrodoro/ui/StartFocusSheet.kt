@@ -155,8 +155,12 @@ fun StartFocusSheet(
     prefill: StartFocusPrefill? = null,
     categories: List<Category> = emptyList(),
     defaultCategoryId: Int? = null,
-    onAddTask: ((String, Int?, TaskPriority, LocalDate?) -> Int)? = null,
-    onAddHabit: (suspend (HabitDraft) -> Int)? = null,
+    canAddTask: Boolean = true,
+    canAddHabit: Boolean = true,
+    onAddTaskBlocked: () -> Unit = {},
+    onAddHabitBlocked: () -> Unit = {},
+    onAddTask: ((String, Int?, TaskPriority, LocalDate?) -> Int?)? = null,
+    onAddHabit: (suspend (HabitDraft) -> Int?)? = null,
 ) {
     val initialIntent = when (prefill) {
         is StartFocusPrefill.Task -> FocusIntent.Task
@@ -344,13 +348,17 @@ fun StartFocusSheet(
                     createTitle = onAddTask?.let { stringResource(R.string.sheet_create_new_task) },
                     createSubtitle = onAddTask?.let { stringResource(R.string.sheet_create_new_task_subtitle) },
                     onCreateNew = onAddTask?.let { {
-                        createTaskTitle = ""
-                        createTaskCategoryId = defaultCategoryId
-                        createTaskPriority = TaskPriority.Normal
-                        createTaskDueDate = null
-                        createTaskMoreExpanded = false
-                        createTaskSubPage = null
-                        page = StartFocusSheetPage.CreateTask
+                        if (canAddTask) {
+                            createTaskTitle = ""
+                            createTaskCategoryId = defaultCategoryId
+                            createTaskPriority = TaskPriority.Normal
+                            createTaskDueDate = null
+                            createTaskMoreExpanded = false
+                            createTaskSubPage = null
+                            page = StartFocusSheetPage.CreateTask
+                        } else {
+                            onAddTaskBlocked()
+                        }
                     } },
                 )
             }
@@ -375,12 +383,16 @@ fun StartFocusSheet(
                     createTitle = onAddHabit?.let { stringResource(R.string.sheet_create_new_habit) },
                     createSubtitle = onAddHabit?.let { stringResource(R.string.sheet_create_new_habit_subtitle) },
                     onCreateNew = onAddHabit?.let { {
-                        createHabitName = ""
-                        createHabitEmoji = "✅"
-                        createHabitColorArgb = PRESET_COLORS[0]
-                        createHabitDays = java.time.DayOfWeek.entries.toSet()
-                        createHabitMoreExpanded = false
-                        page = StartFocusSheetPage.CreateHabit
+                        if (canAddHabit) {
+                            createHabitName = ""
+                            createHabitEmoji = "✅"
+                            createHabitColorArgb = PRESET_COLORS[0]
+                            createHabitDays = java.time.DayOfWeek.entries.toSet()
+                            createHabitMoreExpanded = false
+                            page = StartFocusSheetPage.CreateHabit
+                        } else {
+                            onAddHabitBlocked()
+                        }
                     } },
                 )
             }
@@ -419,7 +431,7 @@ fun StartFocusSheet(
                                 createTaskCategoryId,
                                 createTaskPriority,
                                 createTaskDueDate,
-                            )
+                            ) ?: return@StartFocusCreateTaskContent
                             selectedTaskId = newId
                             pickerDraftId = newId
                             intent = FocusIntent.Task
@@ -459,7 +471,7 @@ fun StartFocusSheet(
                             timeBlock = TimeBlock.Anytime,
                         )
                         scope.launch {
-                            val newId = onAddHabit!!(draft)
+                            val newId = onAddHabit!!(draft) ?: return@launch
                             selectedHabitId = newId
                             pickerDraftId = newId
                             intent = FocusIntent.Habit
