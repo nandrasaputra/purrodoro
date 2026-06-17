@@ -346,6 +346,17 @@
     <string name="premium_sheet_price_hint">Mulai $2,99/bulan · uji coba gratis 7 hari</string>
     <string name="premium_sheet_cta">Mulai Premium</string>
     <string name="premium_sheet_dismiss">Nanti saja</string>
+    <string name="premium_cap_active_tasks">Lebih banyak tugas aktif</string>
+    <string name="premium_cap_habits">Lebih banyak kebiasaan</string>
+    <string name="premium_cap_active_tasks_title">Batas tugas aktif tercapai</string>
+    <string name="premium_cap_habits_title">Batas kebiasaan tercapai</string>
+    <string name="premium_cap_active_tasks_body">Paket gratis mencakup hingga %1$d tugas aktif. Tandai selesai atau hapus satu untuk menambah lagi—atau buka Premium untuk tugas aktif tanpa batas.</string>
+    <string name="premium_cap_habits_body">Paket gratis mencakup hingga %1$d kebiasaan. Hapus satu untuk menambah lagi—atau buka Premium untuk kebiasaan tanpa batas.</string>
+    <string name="premium_cap_perk_unlimited_tasks">Tugas aktif tanpa batas</string>
+    <string name="premium_cap_perk_unlimited_habits">Kebiasaan tanpa batas</string>
+    <string name="free_tier_active_tasks_count">%1$d/%2$d aktif</string>
+    <string name="free_tier_habits_count">%1$d/%2$d kebiasaan</string>
+    <string name="free_tier_cap_cd">%1$d dari %2$d terpakai di paket gratis</string>
     <string name="sound_pill_tap_to_play">Ketuk untuk memutar</string>
     <string name="sound_unlock_cd">Buka %1$s</string>
     <string name="sound_stop_cd">Hentikan %1$s</string>

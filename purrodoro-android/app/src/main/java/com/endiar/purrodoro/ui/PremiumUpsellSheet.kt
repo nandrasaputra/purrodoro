@@ -30,11 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.AudioLines
+import com.composables.icons.lucide.ListTodo
 import com.composables.icons.lucide.Crown
 import com.composables.icons.lucide.LayoutGrid
+import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Sparkles
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.model.PremiumGate
 import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -46,12 +49,6 @@ import com.endiar.purrodoro.ui.theme.kuroTokens
 /** Aspect ratio of [R.drawable.premium_sheet_header] (1536×1024). */
 private const val PremiumSheetHeaderAspectRatio = 1536f / 1024f
 
-/**
- * What the user tapped before the premium gate opened. Drives headline copy only —
- * the hero header is a baked illustration; body copy stays localizable below.
- */
-data class PremiumUpsellTrigger(val lockedFeatureName: String? = null)
-
 @Composable
 fun PremiumUpsellSheet(
     trigger: PremiumUpsellTrigger,
@@ -59,13 +56,19 @@ fun PremiumUpsellSheet(
     onUpgrade: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val contentKey = when (val reason = trigger.reason) {
+        is PremiumUpsellReason.LockedSound -> "sound:${reason.featureName}"
+        PremiumUpsellReason.ActiveTaskCap -> "cap:tasks"
+        PremiumUpsellReason.HabitCap -> "cap:habits"
+        PremiumUpsellReason.Generic -> "generic"
+    }
 
     KuroAdaptiveBottomSheet(
         onDismiss = onDismiss,
         horizontalPadding = 0.dp,
         containerColor = tokens.cardFill,
         showCloseButton = true,
-        contentKey = trigger.lockedFeatureName,
+        contentKey = contentKey,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Image(
@@ -84,55 +87,23 @@ fun PremiumUpsellSheet(
                     .padding(top = KuroSpacing.md, bottom = KuroSpacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                PremiumSheetHeadline(
-                    text = trigger.lockedFeatureName?.let {
-                        stringResource(R.string.premium_sheet_title_locked, it)
-                    } ?: stringResource(R.string.premium_sheet_title),
-                )
+                PremiumSheetHeadline(text = paywallTitle(trigger.reason))
                 Spacer(modifier = Modifier.height(KuroSpacing.xs))
                 Text(
-                    text = stringResource(R.string.premium_sheet_subtitle),
+                    text = paywallBody(trigger.reason),
                     style = KuroType.bodyPrimary,
                     color = tokens.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.widthIn(max = 300.dp),
                 )
                 Spacer(modifier = Modifier.height(KuroSpacing.lg))
-                PremiumPerkRow(
-                    icon = {
-                        Icon(
-                            Lucide.AudioLines,
-                            contentDescription = null,
-                            tint = tokens.lockedText,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    label = stringResource(R.string.premium_perk_sounds),
-                )
-                Spacer(modifier = Modifier.height(KuroSpacing.sm))
-                PremiumPerkRow(
-                    icon = {
-                        Icon(
-                            Lucide.LayoutGrid,
-                            contentDescription = null,
-                            tint = tokens.lockedText,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    label = stringResource(R.string.premium_perk_widgets),
-                )
-                Spacer(modifier = Modifier.height(KuroSpacing.sm))
-                PremiumPerkRow(
-                    icon = {
-                        Icon(
-                            Lucide.Sparkles,
-                            contentDescription = null,
-                            tint = tokens.lockedText,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    },
-                    label = stringResource(R.string.premium_perk_mascot),
-                )
+                paywallPerks(trigger.reason).forEachIndexed { index, perk ->
+                    if (index > 0) Spacer(modifier = Modifier.height(KuroSpacing.sm))
+                    PremiumPerkRow(
+                        icon = perk.icon,
+                        label = stringResource(perk.labelRes),
+                    )
+                }
                 Spacer(modifier = Modifier.height(KuroSpacing.lg))
                 Text(
                     text = stringResource(R.string.premium_sheet_price_hint),
@@ -155,6 +126,69 @@ fun PremiumUpsellSheet(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun paywallTitle(reason: PremiumUpsellReason): String = when (reason) {
+    is PremiumUpsellReason.LockedSound ->
+        stringResource(R.string.premium_sheet_title_locked, reason.featureName)
+    PremiumUpsellReason.ActiveTaskCap ->
+        stringResource(R.string.premium_cap_active_tasks_title)
+    PremiumUpsellReason.HabitCap ->
+        stringResource(R.string.premium_cap_habits_title)
+    PremiumUpsellReason.Generic ->
+        stringResource(R.string.premium_sheet_title)
+}
+
+@Composable
+private fun paywallBody(reason: PremiumUpsellReason): String = when (reason) {
+    is PremiumUpsellReason.LockedSound ->
+        stringResource(R.string.premium_sheet_subtitle)
+    PremiumUpsellReason.ActiveTaskCap ->
+        stringResource(R.string.premium_cap_active_tasks_body, PremiumGate.FREE_ACTIVE_TASK_LIMIT)
+    PremiumUpsellReason.HabitCap ->
+        stringResource(R.string.premium_cap_habits_body, PremiumGate.FREE_HABIT_LIMIT)
+    PremiumUpsellReason.Generic ->
+        stringResource(R.string.premium_sheet_subtitle)
+}
+
+private data class PaywallPerk(
+    val labelRes: Int,
+    val icon: @Composable () -> Unit,
+)
+
+@Composable
+private fun paywallPerks(reason: PremiumUpsellReason): List<PaywallPerk> {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    return when (reason) {
+        PremiumUpsellReason.ActiveTaskCap -> listOf(
+            PaywallPerk(R.string.premium_cap_perk_unlimited_tasks) {
+                Icon(Lucide.ListTodo, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
+            },
+            PaywallPerk(R.string.premium_perk_sounds) {
+                Icon(Lucide.AudioLines, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
+            },
+        )
+        PremiumUpsellReason.HabitCap -> listOf(
+            PaywallPerk(R.string.premium_cap_perk_unlimited_habits) {
+                Icon(Lucide.Leaf, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
+            },
+            PaywallPerk(R.string.premium_perk_sounds) {
+                Icon(Lucide.AudioLines, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
+            },
+        )
+        else -> listOf(
+            PaywallPerk(R.string.premium_perk_sounds) {
+                Icon(Lucide.AudioLines, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
+            },
+            PaywallPerk(R.string.premium_perk_widgets) {
+                Icon(Lucide.LayoutGrid, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
+            },
+            PaywallPerk(R.string.premium_perk_mascot) {
+                Icon(Lucide.Sparkles, null, tint = tokens.lockedText, modifier = Modifier.size(16.dp))
+            },
+        )
     }
 }
 

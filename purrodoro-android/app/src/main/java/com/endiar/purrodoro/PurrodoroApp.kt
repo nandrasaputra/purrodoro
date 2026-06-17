@@ -73,6 +73,7 @@ import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.GlassReadabilityMode
 import com.endiar.purrodoro.model.GlassTreatment
+import com.endiar.purrodoro.model.PremiumGate
 import com.endiar.purrodoro.model.PremiumOverride
 import com.endiar.purrodoro.model.SessionItemType
 import com.endiar.purrodoro.model.MusicOption
@@ -406,9 +407,50 @@ fun PurrodoroApp(
         persistNextTaskId(nextTaskId + 1)
         return newId
     }
-    val addTask: (String, Int?, com.endiar.purrodoro.model.TaskPriority, LocalDate?) -> Unit =
+
+    fun showPremiumCapPaywall(trigger: PremiumUpsellTrigger) {
+        premiumUpsellTrigger = trigger
+        showPremiumSheet = true
+    }
+
+    fun tryCreateTask(
+        title: String,
+        categoryId: Int?,
+        priority: com.endiar.purrodoro.model.TaskPriority,
+        dueDate: LocalDate?,
+    ): Int? {
+        if (!PremiumGate.canAddActiveTask(PremiumGate.activeTaskCount(tasks), isPremium)) {
+            showPremiumCapPaywall(PremiumUpsellTrigger.activeTaskCap)
+            return null
+        }
+        return createTask(title, categoryId, priority, dueDate)
+    }
+
+    fun tryAddHabit(draft: HabitDraft): Boolean {
+        if (!PremiumGate.canAddHabit(appState.habits.size, isPremium)) {
+            showPremiumCapPaywall(PremiumUpsellTrigger.habitCap)
+            return false
+        }
+        scope.launch {
+            repo.addHabit(
+                name = draft.name,
+                emoji = draft.emoji,
+                colorArgb = draft.colorArgb,
+                occurrence = draft.occurrence,
+                timeBlock = draft.timeBlock,
+            )
+        }
+        return true
+    }
+
+    val activeTaskCount = PremiumGate.activeTaskCount(tasks)
+    val canAddActiveTask = PremiumGate.canAddActiveTask(activeTaskCount, isPremium)
+    val canAddHabit = PremiumGate.canAddHabit(appState.habits.size, isPremium)
+    val showFreeTierCaps = !isPremium
+
+    val addTask: (String, Int?, com.endiar.purrodoro.model.TaskPriority, LocalDate?) -> Boolean =
         { title, categoryId, priority, dueDate ->
-            createTask(title, categoryId, priority, dueDate)
+            tryCreateTask(title, categoryId, priority, dueDate) != null
         }
     val toggleTask: (Int) -> Unit = { taskId ->
         persistTasks(tasks.map { if (it.id == taskId) it.toggleCompleted() else it })
@@ -957,6 +999,12 @@ fun PurrodoroApp(
                         selectedCategoryId = selectedCategoryId,
                         onCategorySelected = { persistSelectedCategoryId(it) },
                         onAddTask = addTask,
+                        canAddTask = canAddActiveTask,
+                        showFreeTierCap = showFreeTierCaps,
+                        activeTaskCount = activeTaskCount,
+                        onAddTaskBlocked = {
+                            showPremiumCapPaywall(PremiumUpsellTrigger.activeTaskCap)
+                        },
                         onToggleTask = toggleTask,
                         onDeleteTask = deleteTask,
                         onUpdateTask = updateTask,
@@ -1009,16 +1057,12 @@ fun PurrodoroApp(
                     AppTab.Habits -> HabitsScreen(
                         habits = appState.habits,
                         today = java.time.LocalDate.now(),
-                        onAddHabit = { draft ->
-                            scope.launch {
-                                repo.addHabit(
-                                    name = draft.name,
-                                    emoji = draft.emoji,
-                                    colorArgb = draft.colorArgb,
-                                    occurrence = draft.occurrence,
-                                    timeBlock = draft.timeBlock,
-                                )
-                            }
+                        onAddHabit = { draft -> tryAddHabit(draft) },
+                        canAddHabit = canAddHabit,
+                        showFreeTierCap = showFreeTierCaps,
+                        habitCount = appState.habits.size,
+                        onAddHabitBlocked = {
+                            showPremiumCapPaywall(PremiumUpsellTrigger.habitCap)
                         },
                         onUpdateHabit = { id, draft ->
                             scope.launch {
@@ -1120,17 +1164,30 @@ fun PurrodoroApp(
                         prefill = startFocusPrefill,
                         categories = categories,
                         defaultCategoryId = selectedCategoryId,
+                        canAddTask = canAddActiveTask,
+                        canAddHabit = canAddHabit,
+                        onAddTaskBlocked = {
+                            showPremiumCapPaywall(PremiumUpsellTrigger.activeTaskCap)
+                        },
+                        onAddHabitBlocked = {
+                            showPremiumCapPaywall(PremiumUpsellTrigger.habitCap)
+                        },
                         onAddTask = { title, categoryId, priority, dueDate ->
-                            createTask(title, categoryId, priority, dueDate)
+                            tryCreateTask(title, categoryId, priority, dueDate)
                         },
                         onAddHabit = { draft ->
-                            repo.addHabit(
-                                name = draft.name,
-                                emoji = draft.emoji,
-                                colorArgb = draft.colorArgb,
-                                occurrence = draft.occurrence,
-                                timeBlock = draft.timeBlock,
-                            )
+                            if (!PremiumGate.canAddHabit(appState.habits.size, isPremium)) {
+                                showPremiumCapPaywall(PremiumUpsellTrigger.habitCap)
+                                null
+                            } else {
+                                repo.addHabit(
+                                    name = draft.name,
+                                    emoji = draft.emoji,
+                                    colorArgb = draft.colorArgb,
+                                    occurrence = draft.occurrence,
+                                    timeBlock = draft.timeBlock,
+                                )
+                            }
                         },
                         onDismiss = {
                             showStartFocusSheet = false
@@ -1421,7 +1478,7 @@ fun PurrodoroApp(
                         playingMusicId = playingMusicId,
                         onAmbienceSelected = { sound ->
                             if (sound.locked && !isPremium) {
-                                premiumUpsellTrigger = PremiumUpsellTrigger(lockedFeatureName = sound.name)
+                                premiumUpsellTrigger = PremiumUpsellTrigger.lockedSound(sound.name)
                                 showPremiumSheet = true
                             } else {
                                 addAmbienceToMix(sound)
@@ -1432,7 +1489,7 @@ fun PurrodoroApp(
                         },
                         onMusicSelected = { track ->
                             if (track.locked && !isPremium) {
-                                premiumUpsellTrigger = PremiumUpsellTrigger(lockedFeatureName = track.name)
+                                premiumUpsellTrigger = PremiumUpsellTrigger.lockedSound(track.name)
                                 showPremiumSheet = true
                             } else {
                                 addMusicToMix(track)
