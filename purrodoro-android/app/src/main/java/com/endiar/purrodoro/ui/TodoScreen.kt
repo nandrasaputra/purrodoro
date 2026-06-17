@@ -81,7 +81,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import com.endiar.purrodoro.ui.components.FocusAlreadyCompleteDialog
 import com.endiar.purrodoro.ui.components.FocusBusyDialog
 import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroBottomSheet
@@ -1365,9 +1364,6 @@ private fun TaskDetailSheet(
     }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var page by rememberSaveable { mutableStateOf(TaskSheetPage.Main) }
-    // Shown when the user taps "Focus with Purrodoro" on an already-completed task.
-    // Confirming proceeds to the normal start flow without un-completing it.
-    var showAlreadyCompleteConfirm by remember { mutableStateOf(false) }
 
     // Auto-save on dismiss: empty title falls back to the previous value rather
     // than committing whitespace. Only persist when something actually changed
@@ -1447,26 +1443,14 @@ private fun TaskDetailSheet(
                         isFocusActive -> DetailCtaState.Blocked
                         else -> DetailCtaState.StartFocus
                     }
+                    val focusUnavailable = ctaState == DetailCtaState.StartFocus && completed
                     FocusWithKuroButton(
                         label = when (ctaState) {
                             DetailCtaState.OpenFocus -> stringResource(R.string.tasks_open_focus)
                             else -> stringResource(R.string.tasks_focus_with_kuro)
                         },
-                        // Stay tappable even when blocked: the tap routes through
-                        // attemptStartFocus, which surfaces the "A focus is in
-                        // progress" dialog. A dead, greyed-out button left users
-                        // unsure why nothing happened / unaware a timer was live.
-                        enabled = true,
-                        onClick = {
-                            // Only the "start a new focus" path needs the
-                            // already-complete prompt; Open/Blocked are about a
-                            // session that's already live.
-                            if (ctaState == DetailCtaState.StartFocus && completed) {
-                                showAlreadyCompleteConfirm = true
-                            } else {
-                                onFocusTask(buildUpdatedTask())
-                            }
-                        },
+                        enabled = !focusUnavailable,
+                        onClick = { onFocusTask(buildUpdatedTask()) },
                     )
 
                     DetailHelperRow(
@@ -1478,7 +1462,11 @@ private fun TaskDetailSheet(
                                 stringResource(R.string.tasks_helper_blocked)
 
                             DetailCtaState.StartFocus ->
-                                stringResource(R.string.tasks_helper_start)
+                                if (completed) {
+                                    stringResource(R.string.tasks_helper_completed)
+                                } else {
+                                    stringResource(R.string.tasks_helper_start)
+                                }
                         },
                     )
 
@@ -1523,16 +1511,6 @@ private fun TaskDetailSheet(
         )
     }
 
-    if (showAlreadyCompleteConfirm) {
-        FocusAlreadyCompleteDialog(
-            isHabit = false,
-            onConfirm = {
-                showAlreadyCompleteConfirm = false
-                onFocusTask(buildUpdatedTask())
-            },
-            onDismiss = { showAlreadyCompleteConfirm = false },
-        )
-    }
 }
 
 /**

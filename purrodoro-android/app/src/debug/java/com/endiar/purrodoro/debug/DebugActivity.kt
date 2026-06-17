@@ -563,7 +563,7 @@ private fun DebugScreen(
                 // --- Onboarding / Tips ---
                 SectionTitle("ONBOARDING + TIPS")
                 Text(
-                    "Resets first-run onboarding and the spotlight tips so both replay. Existing tasks, habits, and history are kept.",
+                    "Resets first-run sign-in choice and the spotlight tips so both replay. Existing tasks, habits, and history are kept.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -573,7 +573,7 @@ private fun DebugScreen(
                             appRepo.setHasSeenOnboarding(false)
                             appRepo.setHasSeenTutorial(false)
                             val result = snackbarHostState.showSnackbar(
-                                message = "Onboarding and tips reset",
+                                message = "Sign-in gate and tips reset",
                                 actionLabel = "Restart",
                                 duration = SnackbarDuration.Short
                             )
@@ -584,7 +584,7 @@ private fun DebugScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Replay onboarding + tips")
+                    Text("Replay sign-in gate + tips")
                 }
 
                 HorizontalDivider()

@@ -62,7 +62,8 @@ import com.endiar.purrodoro.model.bestStreak
 import com.endiar.purrodoro.model.currentStreak
 import com.endiar.purrodoro.model.isScheduledOn
 import com.endiar.purrodoro.model.isTargetMetOn
-import com.endiar.purrodoro.ui.components.FocusAlreadyCompleteDialog
+import com.endiar.purrodoro.model.HabitFocusBlockReason
+import com.endiar.purrodoro.model.focusBlockReason
 import com.endiar.purrodoro.ui.components.FocusBusyDialog
 import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroBottomSheet
@@ -886,9 +887,10 @@ private fun HabitDetailContent(
         isFocusActive -> HabitFocusCtaState.Blocked
         else -> HabitFocusCtaState.StartFocus
     }
-    // Shown when the user taps "Focus with Purrodoro" on a habit already met today.
-    // Confirming proceeds to the normal start flow without clearing the log.
-    var showAlreadyCompleteConfirm by remember { mutableStateOf(false) }
+    val focusBlockReason = when (focusCta) {
+        HabitFocusCtaState.StartFocus -> habit.focusBlockReason(today)
+        else -> null
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -963,13 +965,10 @@ private fun HabitDetailContent(
         DetailSecondaryButton(
             label = if (focusCta == HabitFocusCtaState.OpenFocus) stringResource(R.string.habits_open_focus)
             else stringResource(R.string.habits_focus_with_kuro),
-            // Stay tappable when blocked so the tap can explain why (busy
-            // dialog) instead of presenting a dead, greyed-out button.
-            enabled = true,
+            enabled = focusBlockReason == null,
             onClick = {
                 when (focusCta) {
-                    HabitFocusCtaState.StartFocus ->
-                        if (doneToday) showAlreadyCompleteConfirm = true else onStartFocus()
+                    HabitFocusCtaState.StartFocus -> onStartFocus()
                     HabitFocusCtaState.OpenFocus -> onOpenFocus()
                     HabitFocusCtaState.Blocked -> onFocusBusy()
                 }
@@ -983,8 +982,16 @@ private fun HabitDetailContent(
                 HabitFocusCtaState.Blocked ->
                     stringResource(R.string.habits_helper_blocked)
 
-                HabitFocusCtaState.StartFocus ->
-                    stringResource(R.string.habits_helper_start)
+                HabitFocusCtaState.StartFocus -> when (focusBlockReason) {
+                    HabitFocusBlockReason.NotScheduled ->
+                        stringResource(R.string.habits_helper_focus_not_scheduled)
+                    HabitFocusBlockReason.Skipped ->
+                        stringResource(R.string.habits_helper_skipped)
+                    HabitFocusBlockReason.Completed ->
+                        stringResource(R.string.habits_helper_completed)
+                    null ->
+                        stringResource(R.string.habits_helper_start)
+                }
             },
         )
 
@@ -1011,17 +1018,6 @@ private fun HabitDetailContent(
         MonthlyHabitProgressCard(habits = listOf(habit), today = today)
 
         DetailDeleteButton(onDelete = onDelete)
-    }
-
-    if (showAlreadyCompleteConfirm) {
-        FocusAlreadyCompleteDialog(
-            isHabit = true,
-            onConfirm = {
-                showAlreadyCompleteConfirm = false
-                onStartFocus()
-            },
-            onDismiss = { showAlreadyCompleteConfirm = false },
-        )
     }
 }
 
