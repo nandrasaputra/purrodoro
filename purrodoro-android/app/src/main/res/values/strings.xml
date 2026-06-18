@@ -207,6 +207,10 @@
     <string name="home_scene_room_subtitle">Desk by the city window</string>
     <string name="home_scene_cafe_title">Café</string>
     <string name="home_scene_cafe_subtitle">Coffee shop corner table</string>
+    <string name="home_scene_library_title">Library</string>
+    <string name="home_scene_library_subtitle">Quiet desk among the stacks</string>
+    <string name="home_scene_park_title">Park</string>
+    <string name="home_scene_park_subtitle">Bench under the open sky</string>
     <string name="home_scene_option_cd">%1$s scene</string>
     <string name="home_metric_focus_time">Focus time</string>
     <string name="home_metric_sessions">Sessions</string>
@@ -373,7 +377,7 @@
     <string name="premium_chip_widgets">Extra Widgets</string>
     <string name="premium_chip_themes">Custom Themes</string>
     <string name="premium_perk_sounds">Every ambience &amp; lo-fi track</string>
-    <string name="premium_perk_widgets">6 premium home screen widgets</string>
+    <string name="premium_perk_scenes">Premium home scenes</string>
     <string name="premium_sheet_price_hint">From $2.99/month · 7-day free trial</string>
     <string name="premium_sheet_cta">Start Premium</string>
     <string name="premium_sheet_dismiss">Maybe later</string>
