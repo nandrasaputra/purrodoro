@@ -272,7 +272,8 @@ cap labels: [`PremiumCapUi`](../purrodoro-android/app/src/main/java/com/endiar/p
 | **Habits** | **10** max | Unlimited | **Shipped** |
 | Ambience + lo-fi | Rain, Cafe + 2 bundled lo-fi tracks | All locked bundled + cloud `is_premium` tracks | **Shipped** |
 | Light / dark appearance | Full | — | Shipped (not a premium perk) |
-| Home-screen widgets | **2 basic** (which two TBD) | Remaining 6 | **Not shipped** — all 8 widgets available today |
+| **Home hero scenes** | **Room only** | Room + Café, Library, Park | **Shipped** — picker + assets; day/night auto-switch |
+| Home-screen widgets | All 8 free for everyone | — | Shipped (not gated) |
 
 **Soft-cap rules (tasks & habits):** caps only block **creating new** items once
 the limit is reached. Existing tasks and habits stay fully editable and usable.
@@ -296,11 +297,22 @@ Wave, Winter Wind, plus premium lo-fi (e.g. Midnight Whisper). Cloud catalog row
 use server `is_premium` → `SoundOption.locked` / `MusicOption.locked`. See
 [soundscape-admin design](superpowers/specs/2026-06-17-soundscape-admin-design.md).
 
+### Home hero scenes (shipped detail)
+
+Free users get the **Room** backdrop only. Premium unlocks **Café, Library, and
+Park**. Each scene is one fixed environment with day/night art that auto-switches
+from local time and the app theme (`resolveHomeHeroDrawable`). Entry point: the
+circular **layers** button on the top-right of the home hero opens
+`HomeScenePickerSheet`. Free users see locked scenes with a Premium badge; tapping
+one opens `PremiumUpsellSheet`. Selection persists device-local in DataStore
+(`home_scene`) and is preserved for a future upgrade even while Room renders.
+
 ### Not premium (explicit)
 
 - Journey, calendar, session history, streaks — **free for everyone**
-- Themes / mascot scenes — **not** a premium sell; light/dark is free
+- Light / dark appearance — free; only **home hero scenes** are a premium sell
 - Task categories — **uncapped**
+- Home-screen widgets — **free for everyone**
 
 ### Still to build
 
