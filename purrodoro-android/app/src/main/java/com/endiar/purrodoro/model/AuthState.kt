@@ -54,7 +54,11 @@ data class AuthUser(
 )
 
 sealed class AuthState {
+    /** Session status not resolved yet (cold start); don't treat as guest. */
+    data object Loading : AuthState()
+
     data object Guest : AuthState()
+
     data class SignedIn(val user: AuthUser) : AuthState()
 }
 
@@ -63,6 +67,7 @@ fun resolvedDisplayName(authState: AuthState, localName: String): String = when 
         ?: localName.trim().takeIf { it.isNotBlank() }
         ?: ""
     AuthState.Guest -> localName.trim()
+    AuthState.Loading -> ""
 }
 
 fun isNameFromAccount(authState: AuthState, localName: String): Boolean {

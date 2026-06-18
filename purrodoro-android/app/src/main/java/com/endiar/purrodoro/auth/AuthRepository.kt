@@ -6,6 +6,7 @@ import com.endiar.purrodoro.model.AuthState
 import com.endiar.purrodoro.model.AuthUser
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.compose.auth.ComposeAuth
@@ -57,15 +58,35 @@ class AuthRepository(private val client: SupabaseClient) {
      */
     private val resolverScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    val authState: Flow<AuthState> = client.auth.sessionStatus.map { status ->
-        when (status) {
-            is SessionStatus.Authenticated ->
-                (status.session.user ?: client.auth.currentUserOrNull())
-                    ?.let { AuthState.SignedIn(it.toAuthUser()) }
-                    ?: AuthState.Guest
-            else -> AuthState.Guest
+    /** Reads the current session synchronously for first-frame UI (e.g. home greeting). */
+    fun snapshotAuthState(): AuthState =
+        currentAuthUser()?.let { AuthState.SignedIn(it) } ?: AuthState.Guest
+
+    /** Blocks until Supabase finishes reading the persisted session (cold start). */
+    suspend fun awaitInitialization(timeoutMs: Long = 2_000) {
+        withTimeoutOrNull(timeoutMs) {
+            client.auth.awaitInitialization()
         }
     }
+
+    val authState: Flow<AuthState> = client.auth.sessionStatus.map(::resolveAuthState)
+
+    private fun resolveAuthState(status: SessionStatus): AuthState = when (status) {
+        is SessionStatus.Authenticated ->
+            (status.session.user ?: client.auth.currentUserOrNull())
+                ?.let { AuthState.SignedIn(it.toAuthUser()) }
+                ?: snapshotAuthState()
+        is SessionStatus.NotAuthenticated -> AuthState.Guest
+        SessionStatus.Initializing -> hydratingAuthState()
+        is SessionStatus.RefreshFailure -> hydratingAuthState()
+    }
+
+    /** Session is still restoring; avoid treating the user as signed-out guest. */
+    private fun hydratingAuthState(): AuthState =
+        when (val snap = snapshotAuthState()) {
+            is AuthState.SignedIn -> snap
+            else -> AuthState.Loading
+        }
 
     /** The signed-in user right now, or null when guest. Used post-sign-in. */
     fun currentAuthUser(): AuthUser? = client.auth.currentUserOrNull()?.toAuthUser()
