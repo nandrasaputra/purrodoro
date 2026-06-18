@@ -1,5 +1,6 @@
 package com.endiar.purrodoro.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -802,6 +803,10 @@ private fun CategoryFilterSheet(
     val manageCategoriesCd = stringResource(R.string.tasks_manage_categories_cd)
     val newCategoryCd = stringResource(R.string.tasks_new_category)
 
+    BackHandler(enabled = page == CategoryFilterPage.Manage) {
+        page = CategoryFilterPage.Filter
+    }
+
     KuroBottomSheet(title = null, onDismiss = onDismiss, contentKey = page) {
         when (page) {
             CategoryFilterPage.Filter -> {
@@ -1122,6 +1127,13 @@ internal fun AddTaskSheet(
         }
     }
 
+    BackHandler(enabled = showDatePicker) {
+        showDatePicker = false
+    }
+    BackHandler(enabled = page != TaskSheetPage.Main) {
+        page = TaskSheetPage.Main
+    }
+
     KuroBottomSheet(title = null, onDismiss = onDismiss, contentKey = page) {
         when (page) {
             TaskSheetPage.Main -> {
@@ -1420,6 +1432,13 @@ private fun TaskDetailSheet(
         completed = completed,
         dueDate = dueDate,
     )
+
+    BackHandler(enabled = showDatePicker) {
+        showDatePicker = false
+    }
+    BackHandler(enabled = page != TaskSheetPage.Main) {
+        page = TaskSheetPage.Main
+    }
 
     KuroBottomSheet(title = null, onDismiss = saveAndDismiss, contentKey = page) {
         when (page) {

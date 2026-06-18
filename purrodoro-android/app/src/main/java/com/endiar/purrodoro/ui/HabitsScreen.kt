@@ -1,5 +1,6 @@
 package com.endiar.purrodoro.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -857,6 +858,9 @@ private fun HabitDetailSheet(
         onDismiss = onDismiss,
         contentKey = page,
     ) {
+        BackHandler(enabled = page == HabitDetailPage.Edit) {
+            page = HabitDetailPage.Detail
+        }
         when (page) {
             HabitDetailPage.Detail -> HabitDetailContent(
                 habit = habit,

@@ -1,6 +1,7 @@
 package com.endiar.purrodoro.ui.components
 
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateFloat
@@ -189,6 +190,13 @@ fun FocusModeOverlay(
     val focusPaused = !isBreak && isPaused
 
     var showStopConfirmDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = showStopConfirmDialog) {
+        showStopConfirmDialog = false
+    }
+    BackHandler(enabled = focusActive && !showStopConfirmDialog) {
+        onExit()
+    }
 
     val modeLabel = when (timerMode) {
         TimerMode.Focus -> stringResource(R.string.focus_mode_label_focus)
