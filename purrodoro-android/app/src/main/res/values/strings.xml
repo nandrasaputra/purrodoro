@@ -1,7 +1,5 @@
 <resources>
     <string name="app_name">Purrodoro</string>
-    <string name="widget_quick_start_label">Quick Start Purrodoro</string>
-    <string name="widget_quick_start_description">Start a calm focus session straight from your home screen.</string>
     <string name="widget_today_label">Today With Purrodoro</string>
     <string name="widget_today_description">See your focus sessions for today and a soft word from Purrodoro.</string>
 
@@ -30,7 +28,6 @@
 
     <!-- Settings / Profile -->
     <string name="settings_title">Settings</string>
-    <string name="settings_subtitle">Customize your focus experience.</string>
     <string name="settings_section_account">ACCOUNT</string>
     <string name="settings_section_profile">PROFILE</string>
     <string name="settings_name_from_account">From your account</string>
@@ -622,18 +619,6 @@
     <string name="notif_task_progress">%1$s · %2$d / %3$d</string>
 
     <!-- Widget content -->
-    <string name="widget_qs_celebrating_title">Nice work today</string>
-    <string name="widget_qs_celebrating_subtitle">Purrodoro is proud of you</string>
-    <string name="widget_qs_celebrating_action">Open Purrodoro</string>
-    <string name="widget_qs_ready_title">Purrodoro is ready</string>
-    <string name="widget_qs_ready_subtitle">Start a calm focus</string>
-    <string name="widget_qs_ready_action">Start Focus</string>
-    <string name="widget_qs_focusing_title">Purrodoro is focusing</string>
-    <string name="widget_qs_focusing_subtitle">Stay with your session</string>
-    <string name="widget_qs_focusing_action">Open Timer</string>
-    <string name="widget_qs_waiting_title">Purrodoro is waiting</string>
-    <string name="widget_qs_waiting_subtitle">Tap to resume</string>
-    <string name="widget_qs_waiting_action">Open Timer</string>
     <string name="widget_today_title">Today with Purrodoro</string>
     <string name="widget_today_focus_unit">focus</string>
     <string name="widget_today_enc_soft">A soft start is enough</string>
@@ -642,16 +627,27 @@
     <string name="widget_today_enc_proud">Purrodoro is proud today</string>
     <string name="widget_dashboard_label">Purrodoro Dashboard</string>
     <string name="widget_dashboard_description">A greeting, your focus count and streak, and a gentle nudge from Purrodoro.</string>
-    <string name="widget_daily_plan_label">Purrodoro Daily Plan</string>
+    <string name="widget_daily_plan_label">Purrodoro Tasks</string>
     <string name="widget_daily_plan_description">Today\'s habits and tasks as quick taps, with Purrodoro cheering you on.</string>
+    <string name="widget_daily_plan_title">Purrodoro Tasks</string>
+    <string name="widget_daily_plan_empty">All clear — enjoy a calm focus</string>
+    <string name="widget_daily_plan_overflow">+%1$d more waiting — tap to see them</string>
+    <string name="widget_daily_plan_start_focus">Start Focus</string>
     <string name="widget_streak_hero_label">Purrodoro Streak</string>
     <string name="widget_streak_hero_description">Keep your focus streak alive with a little help from Purrodoro.</string>
     <string name="widget_calm_minimal_label">Purrodoro Calm</string>
     <string name="widget_calm_minimal_description">A quiet, minimal nudge to begin gently with Purrodoro.</string>
-    <string name="widget_stats_grid_label">Purrodoro Stats</string>
+    <string name="widget_stats_grid_label">Purrodoro Daily Starts</string>
     <string name="widget_stats_grid_description">Focus, streak, habits and tasks at a glance with Purrodoro.</string>
+    <string name="widget_stats_grid_title">Purrodoro Daily Starts</string>
+    <string name="widget_stat_focus">focus</string>
+    <string name="widget_stat_streak">streak</string>
+    <string name="widget_stat_habits">habits</string>
+    <string name="widget_stat_tasks">tasks</string>
     <string name="widget_cozy_scene_label">Purrodoro Cozy</string>
     <string name="widget_cozy_scene_description">A cozy scene with Purrodoro and a soft reminder to focus together.</string>
+    <string name="widget_cozy_headline">Ready to focus together?</string>
+    <string name="widget_cozy_today_badge">🔥 %1$d today</string>
 
     <!-- Spotlight tutorial -->
     <string name="tutorial_skip">Skip</string>

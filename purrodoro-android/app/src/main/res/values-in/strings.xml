@@ -1,6 +1,4 @@
 <resources>
-    <string name="widget_quick_start_label">Mulai Cepat Purrodoro</string>
-    <string name="widget_quick_start_description">Mulai sesi fokus yang tenang langsung dari layar utama.</string>
     <string name="widget_today_label">Hari Ini Bersama Purrodoro</string>
     <string name="widget_today_description">Lihat sesi fokusmu hari ini dan sepatah kata lembut dari Purrodoro.</string>
 
@@ -29,7 +27,6 @@
 
     <!-- Settings / Profile -->
     <string name="settings_title">Pengaturan</string>
-    <string name="settings_subtitle">Sesuaikan pengalaman fokusmu.</string>
     <string name="settings_section_account">AKUN</string>
     <string name="settings_section_profile">PROFIL</string>
     <string name="settings_name_from_account">Dari akunmu</string>
@@ -617,18 +614,6 @@
     <string name="notif_task_progress">%1$s · %2$d / %3$d</string>
 
     <!-- Widget content -->
-    <string name="widget_qs_celebrating_title">Kerja bagus hari ini</string>
-    <string name="widget_qs_celebrating_subtitle">Purrodoro bangga padamu</string>
-    <string name="widget_qs_celebrating_action">Buka Purrodoro</string>
-    <string name="widget_qs_ready_title">Purrodoro siap</string>
-    <string name="widget_qs_ready_subtitle">Mulai fokus dengan tenang</string>
-    <string name="widget_qs_ready_action">Mulai Fokus</string>
-    <string name="widget_qs_focusing_title">Purrodoro sedang fokus</string>
-    <string name="widget_qs_focusing_subtitle">Tetap di sesimu</string>
-    <string name="widget_qs_focusing_action">Buka Timer</string>
-    <string name="widget_qs_waiting_title">Purrodoro menunggu</string>
-    <string name="widget_qs_waiting_subtitle">Ketuk untuk lanjut</string>
-    <string name="widget_qs_waiting_action">Buka Timer</string>
     <string name="widget_today_title">Hari ini bareng Purrodoro</string>
     <string name="widget_today_focus_unit">fokus</string>
     <string name="widget_today_enc_soft">Mulai pelan pun cukup</string>

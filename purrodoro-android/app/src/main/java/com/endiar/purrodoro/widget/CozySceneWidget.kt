@@ -7,7 +7,6 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
-import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -26,23 +25,18 @@ import androidx.glance.text.Text
 import com.endiar.purrodoro.R
 
 /**
- * Concept 10 — "Cozy Scene".
+ * Purrodoro Cozy home-screen widget.
  *
- * A fully immersive card: the warm painted study-nook illustration is the
- * background edge-to-edge (matching the widget picker preview), with only the
- * live nudge headline and a "today" pill floating over the empty wall area up
- * top. Tapping anywhere follows the current nudge target.
- *
- * The scene art (`cozy_scene_bg`) is pre-baked with a clear upper wall so the
- * dynamic text stays legible; everything below stays purely illustrative.
+ * Full-bleed study-nook illustration with the picker-preview headline and a
+ * live "focus today" pill floating over the empty wall up top.
  */
 class CozySceneWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.LARGE))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = WidgetDataLoader.load(context)
-        provideContent { CozySceneContent(context, data) }
+        val loaded = WidgetDataLoader.load(context)
+        provideContent { CozySceneContent(loaded) }
     }
 }
 
@@ -51,10 +45,8 @@ class CozySceneWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun CozySceneContent(context: Context, data: KuroWidgetData) {
-    val cardAction = WidgetActions.action(context, data.nudge.target)
-    val compact = LocalSize.current.width < WidgetSizes.COMPACT_THRESHOLD
-    val pad = if (compact) 12 else 16
+private fun CozySceneContent(loaded: LoadedWidgetData) {
+    val cardAction = WidgetActions.action(loaded.res, loaded.data.nudge.target)
 
     Box(
         modifier = GlanceModifier
@@ -62,7 +54,6 @@ private fun CozySceneContent(context: Context, data: KuroWidgetData) {
             .padding(8.dp)
             .clickable(cardAction),
     ) {
-        // Full-bleed cozy scene art as the card itself.
         Image(
             provider = ImageProvider(R.drawable.cozy_scene_bg),
             contentDescription = null,
@@ -70,19 +61,27 @@ private fun CozySceneContent(context: Context, data: KuroWidgetData) {
             modifier = GlanceModifier.fillMaxSize().cornerRadius(28.dp),
         )
 
-        // Live headline + today badge float over the empty wall up top.
-        Column(modifier = GlanceModifier.fillMaxSize().padding(horizontal = pad.dp, vertical = pad.dp)) {
-            if (!compact) {
-                Text(text = data.nudge.title, style = WidgetTheme.cozyTitle, maxLines = 2)
-                Spacer(modifier = GlanceModifier.height(8.dp))
-            }
-            TodayBadge(focusToday = data.focusToday)
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+        ) {
+            Text(
+                text = loaded.res.getString(R.string.widget_cozy_headline),
+                style = WidgetTheme.cozyTitle,
+                maxLines = 2,
+            )
+            Spacer(modifier = GlanceModifier.height(8.dp))
+            TodayBadge(
+                res = loaded.res,
+                focusToday = loaded.data.focusToday,
+            )
         }
     }
 }
 
 @Composable
-private fun TodayBadge(focusToday: Int) {
+private fun TodayBadge(res: Context, focusToday: Int) {
     Box(
         modifier = GlanceModifier
             .background(WidgetTheme.buttonFill)
@@ -90,7 +89,7 @@ private fun TodayBadge(focusToday: Int) {
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Text(
-            text = "\uD83D\uDD25 $focusToday today",
+            text = res.getString(R.string.widget_cozy_today_badge, focusToday),
             style = WidgetTheme.buttonLabel,
             maxLines = 1,
         )

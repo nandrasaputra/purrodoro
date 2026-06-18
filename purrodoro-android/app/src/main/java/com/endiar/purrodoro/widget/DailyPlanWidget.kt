@@ -29,15 +29,12 @@ import androidx.glance.text.Text
 import com.endiar.purrodoro.R
 
 /**
- * Concept 2 — "Daily Plan".
- *
- * Peeking Purrodoro header, up to three pending habit/task chips (each tappable into
- * the right tab), and a Start Focus CTA.
+ * Purrodoro Tasks — pending habit/task chips with a Start Focus CTA (picker preview).
  */
 class DailyPlanWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = WidgetDataLoader.load(context)
-        provideContent { DailyPlanContent(context, data) }
+        val loaded = WidgetDataLoader.load(context)
+        provideContent { DailyPlanContent(loaded) }
     }
 }
 
@@ -46,8 +43,10 @@ class DailyPlanWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun DailyPlanContent(context: Context, data: KuroWidgetData) {
-    val cardAction = WidgetActions.action(context, NudgeTarget.OpenApp)
+private fun DailyPlanContent(loaded: LoadedWidgetData) {
+    val data = loaded.data
+    val res = loaded.res
+    val cardAction = WidgetActions.action(res, NudgeTarget.OpenApp)
     val chips = data.planChips(max = 3)
     val overflow = (data.pendingHabits.size + data.pendingTasks.size) - chips.size
     KuroWidgetCard(onClick = cardAction, paddingHorizontal = 14, paddingVertical = 12) {
@@ -56,26 +55,28 @@ private fun DailyPlanContent(context: Context, data: KuroWidgetData) {
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Vertical.CenterVertically,
             ) {
-                Text(text = "Today with Purrodoro", style = WidgetTheme.title, maxLines = 1)
+                Text(
+                    text = res.getString(R.string.widget_daily_plan_title),
+                    style = WidgetTheme.title,
+                    maxLines = 1,
+                )
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 Image(
-                    provider = ImageProvider(R.drawable.cat_face),
+                    provider = ImageProvider(R.drawable.cat_peek),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = GlanceModifier.size(34.dp),
+                    modifier = GlanceModifier.size(40.dp),
                 )
             }
             Spacer(modifier = GlanceModifier.height(6.dp))
 
-            // Up to three compact chips in a fixed (non-scrolling) column so the
-            // whole plan fits a 3x3 tile; the weighted spacer keeps the CTA pinned.
             if (chips.isEmpty()) {
                 Box(
                     modifier = GlanceModifier.defaultWeight().fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "All clear — enjoy a calm focus",
+                        text = res.getString(R.string.widget_daily_plan_empty),
                         style = WidgetTheme.body,
                         maxLines = 2,
                     )
@@ -83,12 +84,12 @@ private fun DailyPlanContent(context: Context, data: KuroWidgetData) {
             } else {
                 chips.forEachIndexed { index, chip ->
                     if (index > 0) Spacer(modifier = GlanceModifier.height(6.dp))
-                    PlanChip(context = context, chip = chip)
+                    PlanChip(res = res, chip = chip)
                 }
                 if (overflow > 0) {
                     Spacer(modifier = GlanceModifier.height(8.dp))
                     Text(
-                        text = "+$overflow more waiting — tap to see them",
+                        text = res.getString(R.string.widget_daily_plan_overflow, overflow),
                         style = WidgetTheme.muted,
                         maxLines = 1,
                     )
@@ -98,8 +99,8 @@ private fun DailyPlanContent(context: Context, data: KuroWidgetData) {
 
             Spacer(modifier = GlanceModifier.height(6.dp))
             PrimaryCta(
-                label = "Start Focus",
-                onClick = WidgetActions.action(context, NudgeTarget.StartFocus),
+                label = res.getString(R.string.widget_daily_plan_start_focus),
+                onClick = WidgetActions.action(res, NudgeTarget.StartFocus),
                 height = 40,
             )
         }
@@ -107,7 +108,7 @@ private fun DailyPlanContent(context: Context, data: KuroWidgetData) {
 }
 
 @Composable
-private fun PlanChip(context: Context, chip: WidgetChip) {
+private fun PlanChip(res: Context, chip: WidgetChip) {
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()
@@ -115,7 +116,7 @@ private fun PlanChip(context: Context, chip: WidgetChip) {
             .background(WidgetTheme.chipFill)
             .cornerRadius(16.dp)
             .padding(horizontal = 10.dp)
-            .clickable(WidgetActions.action(context, chip.target)),
+            .clickable(WidgetActions.action(res, chip.target)),
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
         Text(text = chip.emoji, style = WidgetTheme.chipLabel, maxLines = 1)

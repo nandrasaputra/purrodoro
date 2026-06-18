@@ -35,8 +35,8 @@ class StreakHeroWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = WidgetDataLoader.load(context)
-        provideContent { StreakHeroContent(context, data) }
+        val loaded = WidgetDataLoader.load(context)
+        provideContent { StreakHeroContent(loaded) }
     }
 }
 
@@ -45,8 +45,10 @@ class StreakHeroWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun StreakHeroContent(context: Context, data: KuroWidgetData) {
-    val cardAction = WidgetActions.action(context, NudgeTarget.StartFocus)
+private fun StreakHeroContent(loaded: LoadedWidgetData) {
+    val data = loaded.data
+    val res = loaded.res
+    val cardAction = WidgetActions.action(res, NudgeTarget.StartFocus)
     val height = LocalSize.current.height
 
     Box(

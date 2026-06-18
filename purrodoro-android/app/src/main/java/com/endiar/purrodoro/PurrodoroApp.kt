@@ -282,7 +282,7 @@ fun PurrodoroApp(
         soundscape.bundledCatalogRepository.refresh()
     }
 
-    // Bridge from the Quick Start widget: when the host activity receives a
+    // Bridge from widgets that auto-open Start Focus: when the host activity receives a
     // launch intent with EXTRA_AUTO_OPEN_START_FOCUS we surface the existing
     // Start Focus sheet automatically, but only when no cycle is in flight —
     // otherwise the widget's "Open Timer" semantic is preserved.

@@ -35,30 +35,6 @@ class WidgetStateTest {
     )
 
     @Test
-    fun `quickStart returns Ready when no cycle and no pending ack`() {
-        val state = WidgetState.quickStart(runtime = null, pendingCycleAck = false)
-        assertEquals(QuickStartMood.Ready, state.mood)
-    }
-
-    @Test
-    fun `quickStart returns Celebrating when pending ack is set`() {
-        val state = WidgetState.quickStart(runtime = null, pendingCycleAck = true)
-        assertEquals(QuickStartMood.Celebrating, state.mood)
-    }
-
-    @Test
-    fun `quickStart returns Focusing when timer is Playing`() {
-        val state = WidgetState.quickStart(runtime = runtime(TimerState.Playing), pendingCycleAck = false)
-        assertEquals(QuickStartMood.Focusing, state.mood)
-    }
-
-    @Test
-    fun `quickStart returns Waiting when timer is Paused`() {
-        val state = WidgetState.quickStart(runtime = runtime(TimerState.Paused), pendingCycleAck = false)
-        assertEquals(QuickStartMood.Waiting, state.mood)
-    }
-
-    @Test
     fun `today widget gives soft start copy at zero focus`() {
         val state = WidgetState.today(
             focusCountToday = 0,

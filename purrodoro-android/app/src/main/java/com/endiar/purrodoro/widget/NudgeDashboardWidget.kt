@@ -34,8 +34,8 @@ import java.time.LocalTime
  */
 class NudgeDashboardWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = WidgetDataLoader.load(context)
-        provideContent { DashboardContent(context, data) }
+        val loaded = WidgetDataLoader.load(context)
+        provideContent { DashboardContent(loaded) }
     }
 }
 
@@ -52,8 +52,10 @@ private fun greetingFor(hour: Int): String = when {
 }
 
 @Composable
-private fun DashboardContent(context: Context, data: KuroWidgetData) {
-    val cardAction = WidgetActions.action(context, data.nudge.target)
+private fun DashboardContent(loaded: LoadedWidgetData) {
+    val data = loaded.data
+    val res = loaded.res
+    val cardAction = WidgetActions.action(res, data.nudge.target)
 
     Box(
         modifier = GlanceModifier

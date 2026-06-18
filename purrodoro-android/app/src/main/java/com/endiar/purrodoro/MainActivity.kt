@@ -27,7 +27,6 @@ import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
 import com.endiar.purrodoro.ui.KuroLocalizationProvider
 import com.endiar.purrodoro.ui.theme.PurrodoroTheme
-import com.endiar.purrodoro.widget.QuickStartWidget
 import com.endiar.purrodoro.widget.WidgetActions
 import com.endiar.purrodoro.widget.WidgetRefreshWorker
 import com.endiar.purrodoro.widget.WidgetUpdater
@@ -45,7 +44,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var timerConnection: TimerConnection
 
     /**
-     * One-shot signal pushed by the Quick Start widget (and any future entry
+     * One-shot signal pushed when a widget (or deep link) asks the app to
      * points) asking the app to auto-open the Start Focus sheet on launch.
      * Replay buffer is zero on purpose — only fresh signals fire the sheet.
      */
@@ -162,10 +161,10 @@ class MainActivity : ComponentActivity() {
 
     private fun handleWidgetIntent(intent: Intent?) {
         if (intent == null) return
-        if (intent.getBooleanExtra(QuickStartWidget.EXTRA_AUTO_OPEN_START_FOCUS, false)) {
+        if (intent.getBooleanExtra(WidgetActions.EXTRA_AUTO_OPEN_START_FOCUS, false)) {
             _autoOpenStartFocus.tryEmit(Unit)
             // Consume the flag so a config change replay doesn't re-trigger.
-            intent.removeExtra(QuickStartWidget.EXTRA_AUTO_OPEN_START_FOCUS)
+            intent.removeExtra(WidgetActions.EXTRA_AUTO_OPEN_START_FOCUS)
         }
         intent.getStringExtra(WidgetActions.EXTRA_OPEN_TAB)?.let { name ->
             AppTab.entries.firstOrNull { it.name == name }?.let { _openTab.tryEmit(it) }

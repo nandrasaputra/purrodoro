@@ -79,7 +79,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AuthState
-import com.endiar.purrodoro.model.isNameFromAccount
 import com.endiar.purrodoro.ui.auth.AccountSection
 import com.endiar.purrodoro.sync.SyncStatusPresentation
 import com.endiar.purrodoro.model.AppearanceMode
@@ -159,14 +158,8 @@ fun ProfileScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = KuroSpacing.lg)
+                .padding(top = KuroSpacing.sm)
         ) {
-            Text(
-                text = stringResource(R.string.settings_subtitle),
-                style = KuroType.labelStrong,
-                color = tokens.textSecondary,
-                modifier = Modifier.padding(top = KuroSpacing.sm, bottom = KuroSpacing.xl),
-            )
-
             KuroSectionHeader(title = stringResource(R.string.settings_section_account))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             AccountSection(
@@ -178,17 +171,19 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
-            KuroSectionHeader(title = stringResource(R.string.settings_section_profile))
-            Spacer(modifier = Modifier.height(KuroSpacing.sm))
-            KuroCard(modifier = Modifier.fillMaxWidth()) {
-                ProfileNameRow(
-                    userName = userName,
-                    showFromAccountHint = isNameFromAccount(authState, userName),
-                    onClick = { editingField = "name" },
-                )
-            }
+            if (authState is AuthState.Guest) {
+                KuroSectionHeader(title = stringResource(R.string.settings_section_profile))
+                Spacer(modifier = Modifier.height(KuroSpacing.sm))
+                KuroCard(modifier = Modifier.fillMaxWidth()) {
+                    ProfileNameRow(
+                        userName = userName,
+                        showFromAccountHint = false,
+                        onClick = { editingField = "name" },
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(KuroSpacing.xl))
+                Spacer(modifier = Modifier.height(KuroSpacing.xl))
+            }
 
             KuroSectionHeader(title = stringResource(R.string.settings_section_timer))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
