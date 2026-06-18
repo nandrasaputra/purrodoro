@@ -192,6 +192,14 @@
     <string name="home_resume_left">%1$s tersisa</string>
     <string name="home_todays_focus">Fokus Hari Ini</string>
     <string name="home_open_profile_cd">Buka profil</string>
+    <string name="home_change_scene_cd">Ganti latar beranda</string>
+    <string name="home_scene_picker_title">Latar beranda</string>
+    <string name="home_scene_picker_subtitle">Pilih tempat Kuro menunggu saat kamu fokus. Siang dan malam mengikuti waktu lokal.</string>
+    <string name="home_scene_room_title">Kamar</string>
+    <string name="home_scene_room_subtitle">Meja dekat jendela kota</string>
+    <string name="home_scene_cafe_title">Kafe</string>
+    <string name="home_scene_cafe_subtitle">Meja sudut coffee shop</string>
+    <string name="home_scene_option_cd">Latar %1$s</string>
     <string name="home_metric_focus_time">Waktu fokus</string>
     <string name="home_metric_sessions">Sesi</string>
     <string name="home_metric_completed">Selesai</string>
@@ -356,7 +364,6 @@
     <string name="premium_chip_themes">Tema Kustom</string>
     <string name="premium_perk_sounds">Semua ambience &amp; trek lo-fi</string>
     <string name="premium_perk_widgets">6 widget layar utama premium</string>
-    <string name="premium_perk_mascot">Pose kucing fokus ekstra</string>
     <string name="premium_sheet_price_hint">Mulai $2,99/bulan · uji coba gratis 7 hari</string>
     <string name="premium_sheet_cta">Mulai Premium</string>
     <string name="premium_sheet_dismiss">Nanti saja</string>

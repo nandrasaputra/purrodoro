@@ -27,6 +27,7 @@ import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.GlassReadabilityMode
 import com.endiar.purrodoro.model.Habit
+import com.endiar.purrodoro.model.HomeScene
 import com.endiar.purrodoro.model.HabitOccurrence
 import com.endiar.purrodoro.model.InterruptedFocus
 import com.endiar.purrodoro.model.SessionItemType
@@ -75,6 +76,7 @@ data class AppState(
     val habits: List<Habit> = emptyList(),
     val nextHabitId: Int = 1,
     val interruptedFocus: InterruptedFocus? = null,
+    val homeScene: HomeScene = HomeScene.Room,
 )
 
 
@@ -108,6 +110,7 @@ class AppRepository(
         private val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
         private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial")
         private val KEY_INTERRUPTED_FOCUS = stringPreferencesKey("interrupted_focus")
+        private val KEY_HOME_SCENE = stringPreferencesKey("home_scene")
 
         // Marks which account the on-device data belongs to. Null = unclaimed
         // (guest data). Survives sign-out; drives the Claim/Keep/Drop rule on the
@@ -480,11 +483,14 @@ class AppRepository(
             },
             nextHabitId = prefs[KEY_NEXT_HABIT_ID] ?: 1,
             interruptedFocus = decodeInterruptedFocus(prefs[KEY_INTERRUPTED_FOCUS] ?: ""),
+            homeScene = HomeScene.fromStorageName(prefs[KEY_HOME_SCENE]),
         )
     }
 
     suspend fun setGlassReadabilityMode(value: GlassReadabilityMode) = dataStore.edit { it[KEY_GLASS_MODE] = value.name }
     suspend fun setAppearanceMode(value: AppearanceMode) = dataStore.edit { it[KEY_APPEARANCE_MODE] = value.name }
+    suspend fun setHomeScene(value: HomeScene) =
+        dataStore.edit { it[KEY_HOME_SCENE] = value.storageName }
     suspend fun setLanguage(value: AppLanguage) = dataStore.edit { it[KEY_APP_LANGUAGE] = value.name }
     suspend fun setUserName(value: String) {
         val trimmed = value.trim()
