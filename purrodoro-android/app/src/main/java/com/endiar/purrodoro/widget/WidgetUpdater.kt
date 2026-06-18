@@ -22,7 +22,6 @@ object WidgetUpdater {
     private const val TAG = "WidgetUpdater"
 
     private val widgets: List<Pair<String, GlanceAppWidget>> = listOf(
-        "QuickStartWidget" to QuickStartWidget(),
         "TodayProgressWidget" to TodayProgressWidget(),
         "NudgeDashboardWidget" to NudgeDashboardWidget(),
         "DailyPlanWidget" to DailyPlanWidget(),

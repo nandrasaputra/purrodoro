@@ -20,30 +20,6 @@ import java.time.LocalDate
  * unit-tested without instrumentation.
  */
 
-/** Visual / semantic mood of the [QuickStartWidgetState]. */
-enum class QuickStartMood {
-    /** No timer is running. Primary action: start a new focus session. */
-    Ready,
-
-    /** A focus session is in progress. Primary action: open the app to the live timer. */
-    Focusing,
-
-    /** A focus session is paused. Primary action: open the app to resume. */
-    Waiting,
-
-    /** A cycle has just finished and the user has not yet acknowledged it. */
-    Celebrating,
-}
-
-/**
- * What the Quick Start Purrodoro widget renders. The [mood] fully determines the
- * title / subtitle / action copy, which is resolved against localized string
- * resources in the widget layer (keeping this model free of Android deps).
- */
-data class QuickStartWidgetState(
-    val mood: QuickStartMood,
-)
-
 /** Encouragement tone for the Today widget, resolved to localized copy in the widget. */
 enum class TodayEncouragement {
     SoftStart,
@@ -294,38 +270,12 @@ object WidgetState {
         else -> WidgetNudge(
             kind = NudgeKind.FreshFocus,
             title = "Purrodoro is ready",
-            line = "A soft start is enough",
+            line = "Purrodoro's ready when you are",
             ctaLabel = "Start Focus",
             target = NudgeTarget.StartFocus,
         )
     }
 
-
-    /**
-     * Derives the Quick Start widget state from the live runtime snapshot.
-     *
-     * - `null` snapshot (no in-flight cycle) → [QuickStartMood.Ready]
-     * - Idle session with a `pendingCycleAck` flag → [QuickStartMood.Celebrating]
-     * - Playing → [QuickStartMood.Focusing]
-     * - Paused → [QuickStartMood.Waiting]
-     */
-    fun quickStart(
-        runtime: TimerRuntimeState?,
-        pendingCycleAck: Boolean,
-    ): QuickStartWidgetState {
-        if (runtime == null) {
-            return QuickStartWidgetState(
-                mood = if (pendingCycleAck) QuickStartMood.Celebrating else QuickStartMood.Ready,
-            )
-        }
-        return when (runtime.session.timerState) {
-            TimerState.Playing -> QuickStartWidgetState(mood = QuickStartMood.Focusing)
-            TimerState.Paused -> QuickStartWidgetState(mood = QuickStartMood.Waiting)
-            TimerState.Idle -> QuickStartWidgetState(
-                mood = if (pendingCycleAck) QuickStartMood.Celebrating else QuickStartMood.Ready,
-            )
-        }
-    }
 
     /**
      * Derives the Today widget state.

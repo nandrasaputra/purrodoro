@@ -8,7 +8,7 @@ package com.endiar.purrodoro.model
  */
 object PremiumGate {
     const val FREE_ACTIVE_TASK_LIMIT = 10
-    const val FREE_HABIT_LIMIT = 7
+    const val FREE_HABIT_LIMIT = 10
 
     fun activeTaskCount(tasks: List<FocusTask>): Int =
         tasks.count { !it.completed }

@@ -38,11 +38,8 @@ import java.time.ZoneId
 /**
  * Today With Purrodoro home-screen widget.
  *
- * Warm cream card with a big coral focus count, Purrodoro's mouthless cat face
- * peeking from the bottom-right, and encouragement copy that softens for 0
- * focus and warms up at the goal.
- *
- * Tapping the widget just opens the app. No action callbacks needed.
+ * Warm cream card with a big coral focus count, encouragement copy, and the
+ * mouthless Purrodoro mascot peeking from the bottom-right (picker preview).
  */
 class TodayProgressWidget : GlanceAppWidget() {
 
@@ -87,15 +84,14 @@ private fun TodayContent(context: Context, res: Context, state: TodayWidgetState
                 .cornerRadius(28.dp)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
-            // Purrodoro peeking from the bottom-right.
             Box(
                 modifier = GlanceModifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomEnd,
             ) {
                 Image(
-                    provider = ImageProvider(R.drawable.cat_face),
+                    provider = ImageProvider(R.drawable.cat_peek),
                     contentDescription = null,
-                    modifier = GlanceModifier.size(48.dp),
+                    modifier = GlanceModifier.size(56.dp),
                 )
             }
 
@@ -109,9 +105,6 @@ private fun TodayContent(context: Context, res: Context, state: TodayWidgetState
                     style = WidgetTheme.title,
                     maxLines = 1,
                 )
-                // Weighted spacers above and below the metric cluster keep the
-                // count + encouragement centered in the card so the space the
-                // dot row used to occupy is absorbed instead of left blank.
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 Row(verticalAlignment = Alignment.Vertical.Bottom) {
                     Text(

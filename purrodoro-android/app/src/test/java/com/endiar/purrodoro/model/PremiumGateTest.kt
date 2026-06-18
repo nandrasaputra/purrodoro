@@ -32,9 +32,9 @@ class PremiumGateTest {
 
     @Test
     fun `canAddHabit allows up to limit for free users`() {
-        assertTrue(PremiumGate.canAddHabit(6, isPremium = false))
-        assertFalse(PremiumGate.canAddHabit(7, isPremium = false))
-        assertFalse(PremiumGate.canAddHabit(8, isPremium = false))
+        assertTrue(PremiumGate.canAddHabit(9, isPremium = false))
+        assertFalse(PremiumGate.canAddHabit(10, isPremium = false))
+        assertFalse(PremiumGate.canAddHabit(11, isPremium = false))
     }
 
     @Test

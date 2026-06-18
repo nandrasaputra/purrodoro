@@ -17,11 +17,12 @@ import java.time.LocalDate
  *
  * A widget tap turns a [NudgeTarget] into a launch intent carrying the right
  * extras; [MainActivity] reads them and either auto-opens the Start Focus sheet
- * or switches the active tab. Reuses the pre-existing
- * `EXTRA_AUTO_OPEN_START_FOCUS` contract so behavior matches the Quick Start
- * widget.
+ * or switches the active tab.
  */
 object WidgetActions {
+
+    /** Launch extra: auto-open the Start Focus sheet on the Timer tab. */
+    const val EXTRA_AUTO_OPEN_START_FOCUS = "com.endiar.purrodoro.widget.AUTO_OPEN_START_FOCUS"
 
     /** String extra naming the [AppTab] (by enum name) the app should open on. */
     const val EXTRA_OPEN_TAB = "com.endiar.purrodoro.widget.OPEN_TAB"
@@ -32,7 +33,7 @@ object WidgetActions {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             when (target) {
                 NudgeTarget.StartFocus ->
-                    putExtra(QuickStartWidget.EXTRA_AUTO_OPEN_START_FOCUS, true)
+                    putExtra(EXTRA_AUTO_OPEN_START_FOCUS, true)
 
                 NudgeTarget.OpenHabits -> putExtra(EXTRA_OPEN_TAB, AppTab.Habits.name)
                 NudgeTarget.OpenTasks -> putExtra(EXTRA_OPEN_TAB, AppTab.Todo.name)
@@ -52,21 +53,29 @@ object WidgetActions {
  * Kept separate from the pure [WidgetState.deriveData] so the derivation stays
  * unit-testable without Android / DataStore.
  */
+data class LoadedWidgetData(
+    val data: KuroWidgetData,
+    val res: Context,
+)
+
 object WidgetDataLoader {
 
-    suspend fun load(context: Context): KuroWidgetData = withContext(Dispatchers.IO) {
+    suspend fun load(context: Context): LoadedWidgetData = withContext(Dispatchers.IO) {
         val repo = AppRepository.get(context)
         val app = repo.appState.first()
         val runtime = repo.runtimeSnapshot.first()
         val pendingAck = repo.pendingCycleCompletionAckFlow.first()
-        WidgetState.deriveData(
-            stamps = app.stamps,
-            settings = app.settings,
-            habits = app.habits,
-            tasks = app.tasks,
-            runtime = runtime,
-            pendingCycleAck = pendingAck,
-            today = LocalDate.now(),
+        LoadedWidgetData(
+            data = WidgetState.deriveData(
+                stamps = app.stamps,
+                settings = app.settings,
+                habits = app.habits,
+                tasks = app.tasks,
+                runtime = runtime,
+                pendingCycleAck = pendingAck,
+                today = LocalDate.now(),
+            ),
+            res = localizedWidgetContext(context, app.language),
         )
     }
 }

@@ -16,7 +16,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/widget_quick_start_label"
+            android:text="@string/widget_today_label"
             android:textColor="@color/widget_text_primary"
             android:textSize="14sp"
             android:textStyle="bold" />

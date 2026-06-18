@@ -35,8 +35,8 @@ class CalmMinimalWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = WidgetDataLoader.load(context)
-        provideContent { CalmMinimalContent(context, data) }
+        val loaded = WidgetDataLoader.load(context)
+        provideContent { CalmMinimalContent(loaded) }
     }
 }
 
@@ -45,8 +45,10 @@ class CalmMinimalWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun CalmMinimalContent(context: Context, data: KuroWidgetData) {
-    val cardAction = WidgetActions.action(context, data.nudge.target)
+private fun CalmMinimalContent(loaded: LoadedWidgetData) {
+    val data = loaded.data
+    val res = loaded.res
+    val cardAction = WidgetActions.action(res, data.nudge.target)
 
     Box(
         modifier = GlanceModifier
