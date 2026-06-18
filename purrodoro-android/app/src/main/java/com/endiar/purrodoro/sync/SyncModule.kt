@@ -13,6 +13,7 @@ import com.endiar.purrodoro.auth.SupabaseModule
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import io.github.jan.supabase.exceptions.UnauthorizedRestException
+import com.endiar.purrodoro.widget.WidgetUpdater
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -201,12 +202,22 @@ class SyncModule private constructor(
         scope.launch {
             repo.localWrites.collect { scheduler.onLocalWrite() }
         }
+        // Task/habit/stamp edits should reach home-screen widgets without waiting
+        // for the next app launch or the daily worker.
+        scope.launch {
+            repo.localWrites.collect { WidgetUpdater.scheduleRefresh(appContext) }
+        }
         // App foreground -> immediate sync. Observers must be registered on
         // the main thread, and get() may run on a worker thread (SyncWorker).
         Handler(Looper.getMainLooper()).post {
             ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
                     scheduler.requestImmediate()
+                }
+
+                override fun onStop(owner: LifecycleOwner) {
+                    // Push the latest plan/stats before the user lands on the launcher.
+                    scope.launch { WidgetUpdater.refreshAll(appContext) }
                 }
             })
         }

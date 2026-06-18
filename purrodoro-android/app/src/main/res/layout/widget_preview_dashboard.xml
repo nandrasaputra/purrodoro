@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview-only layout for widget picker PNG; live widget uses Glance (NudgeDashboardWidget). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/widget_preview_tasks_outer_padding">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop"
+            android:src="@drawable/widget_preview_dashboard_bg" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:paddingLeft="@dimen/widget_preview_dashboard_overlay_padding_h"
+            android:paddingTop="@dimen/widget_preview_dashboard_overlay_padding_v"
+            android:paddingRight="@dimen/widget_preview_dashboard_overlay_padding_h"
+            android:paddingBottom="@dimen/widget_preview_dashboard_overlay_padding_v">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_preview_dashboard_greeting"
+                android:textColor="#4A3525"
+                android:textSize="@dimen/widget_preview_dashboard_greeting"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_preview_dashboard_subtitle"
+                android:textColor="#6B5244"
+                android:textSize="@dimen/widget_preview_dashboard_subtitle" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_preview_dashboard_focus_stat"
+                    android:textColor="#6B5244"
+                    android:textSize="@dimen/widget_preview_dashboard_stat" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/widget_preview_dashboard_streak_stat"
+                    android:textColor="#6B5244"
+                    android:textSize="@dimen/widget_preview_dashboard_stat" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_preview_dashboard_button_height"
+                android:background="@drawable/widget_button_bg"
+                android:gravity="center"
+                android:text="@string/widget_daily_plan_start_focus"
+                android:textColor="@color/widget_button_text"
+                android:textSize="@dimen/widget_preview_dashboard_button_text"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

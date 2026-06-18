@@ -10,6 +10,7 @@
     android:maxResizeHeight="350dp"
     android:targetCellWidth="3"
     android:targetCellHeight="3"
+    android:previewLayout="@layout/widget_preview_stats_grid"
     android:previewImage="@drawable/widget_preview_stats_grid"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
