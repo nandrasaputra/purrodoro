@@ -1,5 +1,6 @@
 package com.endiar.purrodoro
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloat
@@ -1454,6 +1455,30 @@ fun PurrodoroApp(
                 }
             }
 
+            // Full-screen overlays (not Dialog sheets) need explicit back handling.
+            // Nested sheets/dialogs dismiss themselves via KuroAdaptiveBottomSheet / Dialog.
+            // Focus mode handles its own back stack in FocusModeOverlay.
+            val tutorialOverlayActive = tutorialVisible && tutorialController.visible
+            BackHandler(
+                enabled = showStorage ||
+                    showProfile ||
+                    showHistory ||
+                    tutorialOverlayActive
+            ) {
+                when {
+                    showStorage -> showStorage = false
+                    showProfile -> {
+                        showLoginSheet = false
+                        showProfile = false
+                    }
+                    showHistory -> showHistory = false
+                    tutorialOverlayActive -> {
+                        tutorialController.skip {
+                            scope.launch { repo.setHasSeenTutorial(true) }
+                        }
+                    }
+                }
+            }
         }
     }
 

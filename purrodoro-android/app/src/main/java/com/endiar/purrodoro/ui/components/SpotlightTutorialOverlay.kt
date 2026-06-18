@@ -1,5 +1,6 @@
 package com.endiar.purrodoro.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -87,6 +88,9 @@ fun SpotlightTutorialOverlay(
     val density = LocalDensity.current
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val interactionSource = remember { MutableInteractionSource() }
+
+    BackHandler(onBack = onSkip)
+
     val breathingTransition = rememberInfiniteTransition(label = "spotlightBreathing")
     val breath by breathingTransition.animateFloat(
         initialValue = 0f,

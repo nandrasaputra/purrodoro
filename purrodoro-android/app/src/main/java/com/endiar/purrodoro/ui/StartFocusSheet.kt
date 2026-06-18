@@ -1,5 +1,6 @@
 package com.endiar.purrodoro.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -280,6 +281,41 @@ fun StartFocusSheet(
         FocusIntent.SimpleNote -> noteText.trim().isNotEmpty()
         FocusIntent.Task -> tasks.firstOrNull { it.id == selectedTaskId }?.canStartFocus() == true
         FocusIntent.Habit -> habits.firstOrNull { it.id == selectedHabitId }?.canStartFocus(today) == true
+    }
+
+    BackHandler(enabled = createTaskShowDatePicker) {
+        createTaskShowDatePicker = false
+    }
+    BackHandler(
+        enabled = when (page) {
+            StartFocusSheetPage.Confirm -> false
+            StartFocusSheetPage.CreateTask -> createTaskSubPage != null
+            else -> page != StartFocusSheetPage.Confirm
+        },
+    ) {
+        when (page) {
+            StartFocusSheetPage.CreateTask -> {
+                if (createTaskSubPage != null) {
+                    createTaskSubPage = null
+                } else {
+                    page = StartFocusSheetPage.PickTask
+                }
+            }
+            StartFocusSheetPage.PickTask -> {
+                restorePickerSnapshot()
+                page = StartFocusSheetPage.Confirm
+            }
+            StartFocusSheetPage.PickHabit -> {
+                restorePickerSnapshot()
+                page = StartFocusSheetPage.Confirm
+            }
+            StartFocusSheetPage.CreateHabit -> page = StartFocusSheetPage.PickHabit
+            StartFocusSheetPage.EditConfig -> {
+                sessionSettings = sessionSettingsBeforeEdit
+                page = StartFocusSheetPage.Confirm
+            }
+            StartFocusSheetPage.Confirm -> Unit
+        }
     }
 
     KuroAdaptiveBottomSheet(
