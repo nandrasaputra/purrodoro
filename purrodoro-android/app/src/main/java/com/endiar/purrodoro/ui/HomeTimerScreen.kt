@@ -44,6 +44,7 @@ import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.CircleCheck
 import com.composables.icons.lucide.CircleStop
 import com.composables.icons.lucide.Leaf
+import com.composables.icons.lucide.Layers
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.NotebookPen
 import com.composables.icons.lucide.Pause
@@ -76,6 +77,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -87,11 +89,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
+import com.endiar.purrodoro.model.HomeScene
 import com.endiar.purrodoro.model.SessionItemType
 import com.endiar.purrodoro.model.TimerMode
 import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
+import com.endiar.purrodoro.model.resolveHomeHeroDrawable
 import androidx.compose.material3.MaterialTheme
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.formatSeconds
@@ -143,6 +147,8 @@ fun HomeTimerScreen(
     playingMusicName: String? = null,
     ambienceVolume: Float = 0.25f,
     musicVolume: Float = 0.50f,
+    homeScene: HomeScene = HomeScene.Room,
+    onChangeHomeScene: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
@@ -213,6 +219,8 @@ fun HomeTimerScreen(
                     currentTimerState = currentTimerState,
                     timerSettings = timerSettings,
                     backdropTime = backdropTime,
+                    homeScene = homeScene,
+                    onChangeHomeScene = onChangeHomeScene,
                     onSkip = onSkip,
                     onStartPause = onStartPause,
                     onEnterFocusMode = onEnterFocusMode,
@@ -226,6 +234,8 @@ fun HomeTimerScreen(
             } else {
                 IdleHero(
                     backdropTime = backdropTime,
+                    homeScene = homeScene,
+                    onChangeHomeScene = onChangeHomeScene,
                     onRequestStartFocus = onRequestStartFocus,
                 )
             }
@@ -420,32 +430,65 @@ private fun LeafSprig(modifier: Modifier = Modifier, veinColor: Color) {
 }
 
 @Composable
-private fun HeroImage(modifier: Modifier = Modifier, time: LocalTime) {
+private fun HeroSceneImage(
+    scene: HomeScene,
+    time: LocalTime,
+    onChangeScene: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
-    val resId = when {
-        isDark -> R.drawable.cat_home_header_night
-        time.hour in 6..17 -> R.drawable.cat_home_header_day
-        else -> R.drawable.cat_home_header_night
-    }
-    Image(
-        painter = painterResource(id = resId),
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
+    val resId = resolveHomeHeroDrawable(scene, isDark, time)
+    val changeSceneLabel = stringResource(R.string.home_change_scene_cd)
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Box(
         modifier = modifier
             .aspectRatio(1.48f)
-            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-    )
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd)),
+    ) {
+        Image(
+            painter = painterResource(id = resId),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(KuroSpacing.sm)
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(tokens.cardFill.copy(alpha = 0.92f))
+                .border(1.dp, tokens.cardBorder, CircleShape)
+                .clickable(onClick = onChangeScene, onClickLabel = changeSceneLabel)
+                .semantics { contentDescription = changeSceneLabel },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Lucide.Layers,
+                contentDescription = null,
+                tint = tokens.textPrimary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
 }
 
 @Composable
 private fun IdleHero(
     backdropTime: LocalTime,
+    homeScene: HomeScene,
+    onChangeHomeScene: () -> Unit,
     onRequestStartFocus: () -> Unit,
 ) {
     Box(
         modifier = Modifier.fillMaxWidth()
     ) {
-        HeroImage(modifier = Modifier.fillMaxWidth(), time = backdropTime)
+        HeroSceneImage(
+            scene = homeScene,
+            time = backdropTime,
+            onChangeScene = onChangeHomeScene,
+            modifier = Modifier.fillMaxWidth(),
+        )
         HomePrimaryButton(
             text = stringResource(R.string.home_start_focus),
             onClick = onRequestStartFocus,
@@ -485,6 +528,8 @@ private fun ActiveHero(
     currentTimerState: TimerState,
     timerSettings: TimerSettings,
     backdropTime: LocalTime,
+    homeScene: HomeScene,
+    onChangeHomeScene: () -> Unit,
     onSkip: () -> Unit,
     onStartPause: () -> Unit,
     onEnterFocusMode: () -> Unit,
@@ -509,7 +554,12 @@ private fun ActiveHero(
             .fillMaxWidth()
             .trimBottom(deadSpace)
     ) {
-        HeroImage(modifier = Modifier.fillMaxWidth(), time = backdropTime)
+        HeroSceneImage(
+            scene = homeScene,
+            time = backdropTime,
+            onChangeScene = onChangeHomeScene,
+            modifier = Modifier.fillMaxWidth(),
+        )
         ActiveTimerCard(
             timerMode = timerMode,
             remainingSeconds = remainingSeconds,

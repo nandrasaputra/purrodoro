@@ -269,7 +269,7 @@ cap labels: [`PremiumCapUi`](../purrodoro-android/app/src/main/java/com/endiar/p
 | **Journey / stats** | **Full** | — | Shipped (never gated) |
 | Task **categories** | Unlimited | Unlimited | Shipped (not capped) |
 | **Active tasks** | **10** max | Unlimited | **Shipped** — counts only `!completed` tasks |
-| **Habits** | **7** max | Unlimited | **Shipped** |
+| **Habits** | **10** max | Unlimited | **Shipped** |
 | Ambience + lo-fi | Rain, Cafe + 2 bundled lo-fi tracks | All locked bundled + cloud `is_premium` tracks | **Shipped** |
 | Light / dark appearance | Full | — | Shipped (not a premium perk) |
 | Home-screen widgets | **2 basic** (which two TBD) | Remaining 6 | **Not shipped** — all 8 widgets available today |
@@ -283,7 +283,7 @@ Entry points gated: Tasks **+**, Habits **+**, Start Focus → create new task/h
 and the persistence layer in `PurrodoroApp.tryCreateTask` / `tryAddHabit`.
 
 **Cap UX (free users):** Tasks and Habits headers show a subtle counter
-(e.g. `8/10 active`, `5/7 habits`) via [`PremiumCapUi`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumCapUi.kt).
+(e.g. `8/10 active`, `8/10 habits`) via [`PremiumCapUi`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumCapUi.kt).
 At the limit the counter uses the premium locked tint, the **+** button switches
 to a muted purple fill, and tapping **+** opens a cap-specific paywall (title +
 body explain the free limit and how to free a slot). Soundscape locks still use
@@ -306,7 +306,7 @@ use server `is_premium` → `SoundOption.locked` / `MusicOption.locked`. See
 
 - Play Billing one-time purchase + restore
 - Widget picker restriction (2 free / 6 premium)
-- Paywall copy cleanup (one-time price; remove stale subscription placeholder strings)
+- Paywall copy cleanup (one-time price; remove stale subscription placeholder strings; no mascot poses perk)
 
 ### Reference documents
 
