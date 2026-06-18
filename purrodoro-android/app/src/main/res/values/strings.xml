@@ -200,6 +200,14 @@
     <string name="home_resume_left">%1$s left</string>
     <string name="home_todays_focus">Today\'s Focus</string>
     <string name="home_open_profile_cd">Open profile</string>
+    <string name="home_change_scene_cd">Change home scene</string>
+    <string name="home_scene_picker_title">Home scene</string>
+    <string name="home_scene_picker_subtitle">Pick where Kuro waits while you focus. Day and night match your time of day.</string>
+    <string name="home_scene_room_title">Room</string>
+    <string name="home_scene_room_subtitle">Desk by the city window</string>
+    <string name="home_scene_cafe_title">Café</string>
+    <string name="home_scene_cafe_subtitle">Coffee shop corner table</string>
+    <string name="home_scene_option_cd">%1$s scene</string>
     <string name="home_metric_focus_time">Focus time</string>
     <string name="home_metric_sessions">Sessions</string>
     <string name="home_metric_completed">Completed</string>
@@ -366,7 +374,6 @@
     <string name="premium_chip_themes">Custom Themes</string>
     <string name="premium_perk_sounds">Every ambience &amp; lo-fi track</string>
     <string name="premium_perk_widgets">6 premium home screen widgets</string>
-    <string name="premium_perk_mascot">Extra focus cat poses</string>
     <string name="premium_sheet_price_hint">From $2.99/month · 7-day free trial</string>
     <string name="premium_sheet_cta">Start Premium</string>
     <string name="premium_sheet_dismiss">Maybe later</string>

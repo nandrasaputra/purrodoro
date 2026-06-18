@@ -185,9 +185,6 @@ private fun paywallPerks(reason: PremiumUpsellReason): List<PaywallPerk> {
             PaywallPerk(R.string.premium_perk_widgets) {
                 Icon(Lucide.LayoutGrid, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
             },
-            PaywallPerk(R.string.premium_perk_mascot) {
-                Icon(Lucide.Sparkles, null, tint = tokens.lockedText, modifier = Modifier.size(16.dp))
-            },
         )
     }
 }
