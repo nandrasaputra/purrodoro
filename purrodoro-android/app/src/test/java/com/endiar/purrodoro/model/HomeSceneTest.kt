@@ -39,4 +39,28 @@ class HomeSceneTest {
         assertFalse(canSelectHomeScene(HomeScene.Cafe, isPremium = false))
         assertTrue(canSelectHomeScene(HomeScene.Cafe, isPremium = true))
     }
+
+    @Test
+    fun resolveHomeHeroDrawable_libraryDay() {
+        assertEquals(
+            R.drawable.cat_home_scene_library_day,
+            resolveHomeHeroDrawable(HomeScene.Library, isDarkTheme = false, time = LocalTime.of(10, 0)),
+        )
+    }
+
+    @Test
+    fun resolveHomeHeroDrawable_parkNight() {
+        assertEquals(
+            R.drawable.cat_home_scene_park_night,
+            resolveHomeHeroDrawable(HomeScene.Park, isDarkTheme = true, time = LocalTime.of(10, 0)),
+        )
+    }
+
+    @Test
+    fun premiumScenesArePremiumOnly() {
+        assertTrue(HomeScene.Cafe.isPremiumOnly)
+        assertTrue(HomeScene.Library.isPremiumOnly)
+        assertTrue(HomeScene.Park.isPremiumOnly)
+        assertFalse(HomeScene.Room.isPremiumOnly)
+    }
 }
