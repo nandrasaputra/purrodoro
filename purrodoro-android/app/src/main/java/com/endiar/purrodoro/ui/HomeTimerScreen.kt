@@ -454,21 +454,27 @@ private fun HeroSceneImage(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(KuroSpacing.sm)
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(tokens.cardFill.copy(alpha = 0.92f))
-                .border(1.dp, tokens.cardBorder, CircleShape)
+                .padding(KuroSpacing.xs)
+                .size(48.dp)
                 .clickable(onClick = onChangeScene, onClickLabel = changeSceneLabel)
                 .semantics { contentDescription = changeSceneLabel },
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Lucide.Layers,
-                contentDescription = null,
-                tint = tokens.textPrimary,
-                modifier = Modifier.size(18.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(tokens.cardFill.copy(alpha = 0.92f))
+                    .border(1.dp, tokens.cardBorder, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Lucide.Layers,
+                    contentDescription = null,
+                    tint = tokens.textPrimary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }

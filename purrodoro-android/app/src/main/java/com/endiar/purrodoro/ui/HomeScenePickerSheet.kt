@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -35,11 +36,13 @@ import androidx.compose.ui.unit.dp
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.HomeScene
 import com.endiar.purrodoro.model.canSelectHomeScene
+import com.endiar.purrodoro.model.resolveHomeHeroDrawable
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadge
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.kuroTokens
+import java.time.LocalTime
 
 @Composable
 fun HomeScenePickerSheet(
@@ -88,6 +91,7 @@ private fun HomeSceneOptionRow(
     onClick: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
     val title = stringResource(scene.titleRes())
     val rowCd = stringResource(R.string.home_scene_option_cd, title)
     val shape = RoundedCornerShape(KuroSpacing.radiusSm)
@@ -114,7 +118,7 @@ private fun HomeSceneOptionRow(
                 .clip(RoundedCornerShape(KuroSpacing.radiusSm)),
         ) {
             Image(
-                painter = painterResource(scene.dayDrawable()),
+                painter = painterResource(resolveHomeHeroDrawable(scene, isDark, LocalTime.now())),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -136,7 +140,7 @@ private fun HomeSceneOptionRow(
             Spacer(modifier = Modifier.height(KuroSpacing.xs))
             Text(
                 text = stringResource(scene.subtitleRes()),
-                style = KuroType.labelMeta,
+                style = KuroType.bodySecondary,
                 color = tokens.textSecondary,
             )
         }
