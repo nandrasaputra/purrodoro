@@ -74,6 +74,7 @@ import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.GlassReadabilityMode
 import com.endiar.purrodoro.model.GlassTreatment
+import com.endiar.purrodoro.model.HomeScene
 import com.endiar.purrodoro.model.PremiumGate
 import com.endiar.purrodoro.model.PremiumOverride
 import com.endiar.purrodoro.model.SessionItemType
@@ -96,6 +97,7 @@ import com.endiar.purrodoro.ui.CycleCompletionCopy
 import com.endiar.purrodoro.ui.HabitsScreen
 import com.endiar.purrodoro.ui.HabitDraft
 import com.endiar.purrodoro.ui.HistoryScreen
+import com.endiar.purrodoro.ui.HomeScenePickerSheet
 import com.endiar.purrodoro.ui.HomeTimerScreen
 import com.endiar.purrodoro.ui.ProfileScreen
 import com.endiar.purrodoro.ui.SoundsScreen
@@ -117,6 +119,8 @@ import com.endiar.purrodoro.ui.auth.LoginSheet
 import com.endiar.purrodoro.ui.onboarding.OnboardingScreen
 import com.endiar.purrodoro.ui.todayFocusMetrics
 import com.endiar.purrodoro.model.InterruptedFocus
+import com.endiar.purrodoro.model.effectiveHomeScene
+import com.endiar.purrodoro.model.canSelectHomeScene
 import com.endiar.purrodoro.model.effectiveTarget
 import com.endiar.purrodoro.model.progressOn
 import com.endiar.purrodoro.ui.components.CycleCompleteDialog
@@ -213,6 +217,7 @@ fun PurrodoroApp(
     val context = LocalContext.current
 
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
+    val displayHomeScene = effectiveHomeScene(appState.homeScene, isPremium)
 
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
     var playingAmbienceId by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -228,6 +233,7 @@ fun PurrodoroApp(
     var showPremiumSheet by rememberSaveable { mutableStateOf(false) }
     var premiumUpsellTrigger by remember { mutableStateOf(PremiumUpsellTrigger()) }
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
+    var showHomeScenePicker by remember { mutableStateOf(false) }
     var hasEverUsedSoundscape by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(
@@ -946,6 +952,8 @@ fun PurrodoroApp(
                         musicVolume = musicVolume,
                         contentPadding = screenContentPadding,
                         activeFocusType = runtimeState?.focusType ?: FocusType.Empty,
+                        homeScene = displayHomeScene,
+                        onChangeHomeScene = { showHomeScenePicker = true },
                     )
 
                     AppTab.Todo -> TodoScreen(
@@ -1406,6 +1414,23 @@ fun PurrodoroApp(
                         scope.launch {
                             repo.setIsPremium(true)
                             showPremiumSheet = false
+                        }
+                    },
+                )
+            }
+
+            if (showHomeScenePicker) {
+                HomeScenePickerSheet(
+                    selected = appState.homeScene,
+                    isPremium = isPremium,
+                    onDismiss = { showHomeScenePicker = false },
+                    onSelect = { scene ->
+                        if (!canSelectHomeScene(scene, isPremium)) {
+                            showHomeScenePicker = false
+                            showPremiumCapPaywall(PremiumUpsellTrigger())
+                        } else {
+                            scope.launch { repo.setHomeScene(scene) }
+                            showHomeScenePicker = false
                         }
                     },
                 )
