@@ -199,6 +199,10 @@
     <string name="home_scene_room_subtitle">Meja dekat jendela kota</string>
     <string name="home_scene_cafe_title">Kafe</string>
     <string name="home_scene_cafe_subtitle">Meja sudut coffee shop</string>
+    <string name="home_scene_library_title">Perpustakaan</string>
+    <string name="home_scene_library_subtitle">Meja tenang di antara rak buku</string>
+    <string name="home_scene_park_title">Taman</string>
+    <string name="home_scene_park_subtitle">Bangku di bawah langit terbuka</string>
     <string name="home_scene_option_cd">Latar %1$s</string>
     <string name="home_metric_focus_time">Waktu fokus</string>
     <string name="home_metric_sessions">Sesi</string>
@@ -363,7 +367,7 @@
     <string name="premium_chip_widgets">Widget Ekstra</string>
     <string name="premium_chip_themes">Tema Kustom</string>
     <string name="premium_perk_sounds">Semua ambience &amp; trek lo-fi</string>
-    <string name="premium_perk_widgets">6 widget layar utama premium</string>
+    <string name="premium_perk_scenes">Latar beranda premium</string>
     <string name="premium_sheet_price_hint">Mulai $2,99/bulan · uji coba gratis 7 hari</string>
     <string name="premium_sheet_cta">Mulai Premium</string>
     <string name="premium_sheet_dismiss">Nanti saja</string>
