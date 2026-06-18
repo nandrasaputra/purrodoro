@@ -644,6 +644,11 @@
     <string name="widget_stat_streak">streak</string>
     <string name="widget_stat_habits">habits</string>
     <string name="widget_stat_tasks">tasks</string>
+    <string name="widget_preview_daily_plan_overflow">+3 more waiting — tap to see them</string>
+    <string name="widget_preview_dashboard_greeting">Good morning</string>
+    <string name="widget_preview_dashboard_subtitle">Purrodoro\'s ready when you are</string>
+    <string name="widget_preview_dashboard_focus_stat">🎯 0 focus</string>
+    <string name="widget_preview_dashboard_streak_stat">🔥 5 day streak</string>
     <string name="widget_cozy_scene_label">Purrodoro Cozy</string>
     <string name="widget_cozy_scene_description">A cozy scene with Purrodoro and a soft reminder to focus together.</string>
     <string name="widget_cozy_headline">Ready to focus together?</string>

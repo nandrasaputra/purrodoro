@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview-only layout for widget picker PNG; live widget uses Glance (DailyPlanWidget). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/widget_preview_tasks_outer_padding">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_card_bg"
+        android:orientation="vertical"
+        android:paddingLeft="@dimen/widget_preview_tasks_card_padding_h"
+        android:paddingTop="@dimen/widget_preview_tasks_card_padding_v"
+        android:paddingRight="@dimen/widget_preview_tasks_card_padding_h"
+        android:paddingBottom="@dimen/widget_preview_tasks_card_padding_v">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_daily_plan_title"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="@dimen/widget_preview_tasks_title"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="@dimen/widget_preview_tasks_cat"
+                android:layout_height="@dimen/widget_preview_tasks_cat"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:src="@drawable/cat_peek" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/widget_preview_tasks_chip_height"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/widget_chip_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💧"
+                android:textSize="@dimen/widget_preview_tasks_chip_text" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Drink water"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="@dimen/widget_preview_tasks_chip_text" />
+
+            <View
+                android:layout_width="@dimen/widget_preview_tasks_chip_dot"
+                android:layout_height="@dimen/widget_preview_tasks_chip_dot"
+                android:background="@drawable/widget_accent_soft_bg" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/widget_preview_tasks_chip_height"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/widget_chip_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📖"
+                android:textSize="@dimen/widget_preview_tasks_chip_text" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Read 10 pages"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="@dimen/widget_preview_tasks_chip_text" />
+
+            <View
+                android:layout_width="@dimen/widget_preview_tasks_chip_dot"
+                android:layout_height="@dimen/widget_preview_tasks_chip_dot"
+                android:background="@drawable/widget_accent_soft_bg" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/widget_preview_daily_plan_overflow"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="@dimen/widget_preview_tasks_overflow" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/widget_preview_tasks_button_height"
+            android:background="@drawable/widget_button_bg"
+            android:gravity="center"
+            android:text="@string/widget_daily_plan_start_focus"
+            android:textColor="@color/widget_button_text"
+            android:textSize="@dimen/widget_preview_tasks_button_text"
+            android:textStyle="bold" />
+    </LinearLayout>
+</FrameLayout>

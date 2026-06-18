@@ -46,6 +46,13 @@ android {
     }
 }
 
+tasks.withType<Test> {
+    val exportPreviews = providers.environmentVariable("EXPORT_WIDGET_PREVIEWS").orNull
+    if (exportPreviews == "1") {
+        environment("EXPORT_WIDGET_PREVIEWS", "1")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
