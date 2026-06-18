@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.AudioLines
 import com.composables.icons.lucide.ListTodo
 import com.composables.icons.lucide.Crown
-import com.composables.icons.lucide.LayoutGrid
+import com.composables.icons.lucide.Layers
 import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Sparkles
@@ -182,8 +182,8 @@ private fun paywallPerks(reason: PremiumUpsellReason): List<PaywallPerk> {
             PaywallPerk(R.string.premium_perk_sounds) {
                 Icon(Lucide.AudioLines, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
             },
-            PaywallPerk(R.string.premium_perk_widgets) {
-                Icon(Lucide.LayoutGrid, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
+            PaywallPerk(R.string.premium_perk_scenes) {
+                Icon(Lucide.Layers, null, tint = tokens.lockedText, modifier = Modifier.size(18.dp))
             },
         )
     }
