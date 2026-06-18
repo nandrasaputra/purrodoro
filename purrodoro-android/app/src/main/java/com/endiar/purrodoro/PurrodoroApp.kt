@@ -84,7 +84,6 @@ import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
 import com.endiar.purrodoro.model.glassTreatmentFor
-import com.endiar.purrodoro.sync.LogoutDecision
 import com.endiar.purrodoro.sync.SyncModule
 import com.endiar.purrodoro.sync.SyncStatusStore
 import com.endiar.purrodoro.sync.canSync
@@ -114,6 +113,7 @@ import com.endiar.purrodoro.ui.homeSuggestion
 import com.endiar.purrodoro.ui.interruptedRemainingMinutes
 import com.endiar.purrodoro.ui.remainingFocusSessionsAfterCurrent
 import com.endiar.purrodoro.ui.auth.LoginSheet
+import com.endiar.purrodoro.ui.auth.LogoutConfirmSheet
 import com.endiar.purrodoro.ui.onboarding.OnboardingScreen
 import com.endiar.purrodoro.ui.todayFocusMetrics
 import com.endiar.purrodoro.model.InterruptedFocus
@@ -146,11 +146,13 @@ fun PurrodoroApp(
     onEnableNotifications: () -> Unit = {},
     autoOpenStartFocus: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
     openTab: kotlinx.coroutines.flow.SharedFlow<AppTab>? = null,
+    initialAuthState: AuthState = AuthState.Guest,
+    initialOwnerId: String? = null,
 ) {
-    val authState by authRepository.authState.collectAsStateWithLifecycle(initialValue = AuthState.Guest)
+    val authState by authRepository.authState.collectAsStateWithLifecycle(initialValue = initialAuthState)
 
     val syncSnapshot by SyncStatusStore.snapshot.collectAsStateWithLifecycle()
-    val ownerId by repo.ownerIdFlow.collectAsStateWithLifecycle(initialValue = null)
+    val ownerId by repo.ownerIdFlow.collectAsStateWithLifecycle(initialValue = initialOwnerId)
     val signedInUserId = (authState as? AuthState.SignedIn)?.user?.userId
     val syncEnabled = canSync(signedInUserId, ownerId)
     val syncPresentation = if (syncEnabled) resolveSyncStatusPresentation(syncSnapshot) else null
@@ -255,7 +257,7 @@ fun PurrodoroApp(
     var showHistory by remember { mutableStateOf(false) }
     var showStorage by remember { mutableStateOf(false) }
     var showLoginSheet by remember { mutableStateOf(false) }
-    var showLogoutWarning by remember { mutableStateOf(false) }
+    var showLogoutSheet by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val tutorialController = rememberTutorialController()
@@ -805,7 +807,10 @@ fun PurrodoroApp(
 
     val backdropTime = AppClock.now()
     val homeGreeting = com.endiar.purrodoro.ui.rememberHomeGreeting(backdropTime)
-    val homeDisplayName = resolvedDisplayName(authState, userName)
+    val homeDisplayName = rememberHomeDisplayName(
+        authState = authState,
+        localName = userName,
+    )
     val homeMetrics = todayFocusMetrics(
         sessionRecords = sessionRecords,
         today = LocalDate.now()
@@ -1196,18 +1201,16 @@ fun PurrodoroApp(
                     syncPresentation = syncPresentation,
                     storageUsedLabel = stringResource(R.string.storage_used, formatBytes(storageSummary.totalBytes)),
                     onOpenStorage = { showStorage = true },
-                    onSignOut = {
-                        scope.launch {
-                            // Flush local changes first; only warn when the
-                            // flush failed AND unsynced rows remain.
-                            when (SyncModule.get(context).flushBeforeLogout()) {
-                                LogoutDecision.SignOut -> authRepository.signOut()
-                                LogoutDecision.WarnUnsynced -> showLogoutWarning = true
-                            }
-                        }
-                    },
+                    onSignOut = { showLogoutSheet = true },
                 )
             }
+
+            LogoutConfirmSheet(
+                visible = showLogoutSheet,
+                onDismiss = { showLogoutSheet = false },
+                flushBeforeLogout = { SyncModule.get(context).flushBeforeLogout() },
+                onSignOut = { authRepository.signOut() },
+            )
 
             if (showStorage) {
                 StorageScreen(
@@ -1215,27 +1218,6 @@ fun PurrodoroApp(
                     onBack = { showStorage = false },
                     onRemove = onDeleteDownload,
                     onRemoveAll = onRemoveAllDownloads,
-                )
-            }
-
-            if (showLogoutWarning) {
-                AlertDialog(
-                    onDismissRequest = { showLogoutWarning = false },
-                    title = { Text(stringResource(R.string.logout_unsynced_title)) },
-                    text = { Text(stringResource(R.string.logout_unsynced_body)) },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            showLogoutWarning = false
-                            scope.launch { authRepository.signOut() }
-                        }) {
-                            Text(stringResource(R.string.logout_unsynced_confirm))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showLogoutWarning = false }) {
-                            Text(stringResource(R.string.common_cancel))
-                        }
-                    },
                 )
             }
 
@@ -1544,6 +1526,28 @@ private fun deriveCycleCompleteSnapshot(
         intentEmoji = intentEmoji,
         intentLabel = intentLabel,
     )
+}
+
+/**
+ * Keeps the home greeting stable while Supabase auth hydrates on cold start, but
+ * always adopts the local profile name once the session is confirmed guest.
+ */
+@Composable
+private fun rememberHomeDisplayName(
+    authState: AuthState,
+    localName: String,
+): String {
+    var displayName by remember(localName) {
+        mutableStateOf(resolvedDisplayName(authState, localName))
+    }
+    LaunchedEffect(authState, localName) {
+        when (authState) {
+            is AuthState.SignedIn, AuthState.Guest ->
+                displayName = resolvedDisplayName(authState, localName)
+            AuthState.Loading -> Unit
+        }
+    }
+    return displayName
 }
 
 private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(

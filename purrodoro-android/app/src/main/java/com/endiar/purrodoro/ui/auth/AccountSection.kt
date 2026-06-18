@@ -57,6 +57,7 @@ fun AccountSection(
     modifier: Modifier = Modifier,
 ) {
     when (authState) {
+        AuthState.Loading -> Unit
         AuthState.Guest -> GuestAccountCard(onRequestLogin = onRequestLogin, modifier = modifier)
         is AuthState.SignedIn -> when {
             syncPresentation != null -> SignedInAccountWithSyncCard(

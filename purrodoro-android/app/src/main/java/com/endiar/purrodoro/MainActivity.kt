@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.model.AuthState
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppTab
 import com.endiar.purrodoro.model.AppearanceMode
@@ -33,6 +34,7 @@ import com.endiar.purrodoro.widget.WidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -90,7 +92,14 @@ class MainActivity : ComponentActivity() {
         val authRepository = AuthRepository.get(this)
         SyncModule.get(this) // start the offline-first sync triggers
         val initialAppState = runCatching {
-            kotlinx.coroutines.runBlocking { repo.appState.first() }
+            runBlocking { repo.appState.first() }
+        }.getOrNull()
+        runCatching {
+            runBlocking { authRepository.awaitInitialization() }
+        }
+        val initialAuthState = authRepository.snapshotAuthState()
+        val initialOwnerId = runCatching {
+            runBlocking { repo.currentOwnerId() }
         }.getOrNull()
         TimerNotification.setLanguage(initialAppState?.language?.tag)
         TimerNotification.setNotificationSoundEnabled(
@@ -147,6 +156,8 @@ class MainActivity : ComponentActivity() {
                         onEnableNotifications = ::promptEnableNotifications,
                         autoOpenStartFocus = autoOpenStartFocus,
                         openTab = openTab,
+                        initialAuthState = initialAuthState,
+                        initialOwnerId = initialOwnerId,
                     )
                 }
             }
