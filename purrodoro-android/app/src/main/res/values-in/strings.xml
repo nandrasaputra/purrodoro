@@ -344,6 +344,32 @@
     <string name="storage_empty">Belum ada unduhan</string>
     <string name="storage_empty_hint">Suara yang kamu unduh untuk diputar offline akan muncul di sini.</string>
 
+    <!-- Backup & Restore -->
+    <string name="backup_manage_label">Cadangkan &amp; pulihkan</string>
+    <string name="backup_title">Cadangkan &amp; pulihkan</string>
+    <string name="backup_summary_title">Jaga data kamu tetap aman</string>
+    <string name="backup_summary_body">Simpan salinan tugas, kebiasaan, dan riwayat kamu ke sebuah file, atau pulihkan dari file. File ini tidak dienkripsi — simpan di tempat yang aman.</string>
+    <string name="backup_section_backup">CADANGKAN</string>
+    <string name="backup_section_restore">PULIHKAN</string>
+    <string name="backup_export_label">Simpan file cadangan</string>
+    <string name="backup_export_hint">Pilih lokasi penyimpanan data kamu.</string>
+    <string name="backup_import_label">Pulihkan dari file cadangan</string>
+    <string name="backup_import_hint">Mengganti tugas, kebiasaan, dan pengaturan; menggabungkan riwayat.</string>
+    <string name="backup_restore_blocked_signed_in">Keluar dulu untuk memulihkan cadangan. Memulihkan saat masuk bisa menimpa data akun kamu.</string>
+    <string name="backup_default_filename">purrodoro-cadangan-%1$s.json</string>
+    <string name="backup_confirm_title">Pulihkan cadangan ini?</string>
+    <string name="backup_confirm_body">Ini mengganti tugas, kebiasaan, dan pengaturan saat ini di perangkat ini, dan menggabungkan riwayat dari cadangan. Salinan pengaman data kamu saat ini disimpan lebih dulu.</string>
+    <string name="backup_confirm_action">Pulihkan</string>
+    <string name="backup_working">Memproses…</string>
+    <string name="backup_export_success">Cadangan tersimpan.</string>
+    <string name="backup_export_error">Tidak bisa menyimpan cadangan. Coba lagi.</string>
+    <string name="backup_restore_success">Pemulihan selesai.</string>
+    <string name="backup_restore_error_malformed">File ini bukan cadangan Purrodoro yang valid.</string>
+    <string name="backup_restore_error_version">Cadangan ini dibuat oleh versi Purrodoro yang lebih baru. Perbarui aplikasi untuk memulihkannya.</string>
+    <string name="backup_restore_error_too_large">File ini terlalu besar untuk menjadi cadangan Purrodoro.</string>
+    <string name="backup_restore_error_read">Tidak bisa membaca file cadangan. Data kamu tidak diubah.</string>
+    <string name="backup_restore_error_apply">Pemulihan tidak selesai dengan bersih. Salinan pengaman data kamu sebelumnya tersimpan otomatis.</string>
+
     <string name="music_bloom">Bloom</string>
     <string name="music_bloom_artist">Yasumu</string>
     <string name="music_chill_fm">Chill FM</string>

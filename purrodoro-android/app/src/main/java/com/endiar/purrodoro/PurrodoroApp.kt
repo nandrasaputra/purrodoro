@@ -65,6 +65,7 @@ import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.ui.auth.rememberAccountSwitchGate
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.AppState
+import com.endiar.purrodoro.data.backup.BackupManager
 import com.endiar.purrodoro.model.AuthState
 import com.endiar.purrodoro.model.resolvedDisplayName
 import com.endiar.purrodoro.model.AppClock
@@ -100,6 +101,7 @@ import com.endiar.purrodoro.ui.HistoryScreen
 import com.endiar.purrodoro.ui.HomeScenePickerSheet
 import com.endiar.purrodoro.ui.HomeTimerScreen
 import com.endiar.purrodoro.ui.ProfileScreen
+import com.endiar.purrodoro.ui.BackupRestoreScreen
 import com.endiar.purrodoro.ui.SoundsScreen
 import com.endiar.purrodoro.ui.StorageScreen
 import com.endiar.purrodoro.ui.buildStorageList
@@ -140,7 +142,9 @@ import com.endiar.purrodoro.ui.tutorial.LocalTutorialController
 import com.endiar.purrodoro.ui.tutorial.rememberTutorialController
 import java.time.LocalDate
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PurrodoroApp(
@@ -263,6 +267,7 @@ fun PurrodoroApp(
     var showProfile by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
     var showStorage by remember { mutableStateOf(false) }
+    var showBackupRestore by remember { mutableStateOf(false) }
     var showLoginSheet by remember { mutableStateOf(false) }
     var showLogoutSheet by remember { mutableStateOf(false) }
 
@@ -1210,6 +1215,7 @@ fun PurrodoroApp(
                     syncPresentation = syncPresentation,
                     storageUsedLabel = stringResource(R.string.storage_used, formatBytes(storageSummary.totalBytes)),
                     onOpenStorage = { showStorage = true },
+                    onOpenBackupRestore = { showBackupRestore = true },
                     onSignOut = { showLogoutSheet = true },
                 )
             }
@@ -1227,6 +1233,46 @@ fun PurrodoroApp(
                     onBack = { showStorage = false },
                     onRemove = onDeleteDownload,
                     onRemoveAll = onRemoveAllDownloads,
+                )
+            }
+
+            if (showBackupRestore) {
+                val backupVersionName = remember {
+                    runCatching {
+                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    }.getOrNull() ?: ""
+                }
+                val backupManager = remember(repo, backupVersionName) {
+                    BackupManager(
+                        repo = repo,
+                        appVersionName = backupVersionName,
+                        safetyDir = java.io.File(context.filesDir, "backups"),
+                    )
+                }
+                BackupRestoreScreen(
+                    isGuest = authState is AuthState.Guest,
+                    defaultFileName = stringResource(
+                        R.string.backup_default_filename,
+                        java.time.LocalDate.now().toString(),
+                    ),
+                    onBack = { showBackupRestore = false },
+                    onExport = { uri ->
+                        withContext(Dispatchers.IO) {
+                            backupManager.export(context.contentResolver, uri)
+                        }
+                    },
+                    onRestore = { uri ->
+                        // Best-effort stop of any live timer before replacing data
+                        // so the persisted runtime snapshot can't reference a
+                        // removed task/habit. stop() is async (binder to the
+                        // service); applyRestore also clears the snapshot, and
+                        // restore is gated to guest so a foreground focus session
+                        // overlapping a restore is an edge we accept.
+                        timerConnection.controller.stop()
+                        withContext(Dispatchers.IO) {
+                            backupManager.restore(context.contentResolver, uri)
+                        }
+                    },
                 )
             }
 
@@ -1486,11 +1532,13 @@ fun PurrodoroApp(
             val tutorialOverlayActive = tutorialVisible && tutorialController.visible
             BackHandler(
                 enabled = showStorage ||
+                    showBackupRestore ||
                     showProfile ||
                     showHistory ||
                     tutorialOverlayActive
             ) {
                 when {
+                    showBackupRestore -> showBackupRestore = false
                     showStorage -> showStorage = false
                     showProfile -> {
                         showLoginSheet = false

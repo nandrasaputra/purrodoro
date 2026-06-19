@@ -41,6 +41,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
+import com.composables.icons.lucide.ShieldCheck
 import com.composables.icons.lucide.User
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -119,6 +120,7 @@ fun ProfileScreen(
     syncPresentation: SyncStatusPresentation? = null,
     storageUsedLabel: String = "",
     onOpenStorage: () -> Unit = {},
+    onOpenBackupRestore: () -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
@@ -282,6 +284,13 @@ fun ProfileScreen(
                     label = stringResource(R.string.storage_manage_label),
                     value = storageUsedLabel,
                     onClick = onOpenStorage,
+                )
+                KuroDivider()
+                TappableRow(
+                    icon = Lucide.ShieldCheck,
+                    label = stringResource(R.string.backup_manage_label),
+                    value = "",
+                    onClick = onOpenBackupRestore,
                 )
             }
 
