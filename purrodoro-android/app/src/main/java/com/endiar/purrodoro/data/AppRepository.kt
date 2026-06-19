@@ -20,6 +20,7 @@ import com.endiar.purrodoro.data.local.SessionRecordEntity
 import com.endiar.purrodoro.data.local.TaskEntity
 import com.endiar.purrodoro.data.local.toDomain
 import com.endiar.purrodoro.data.local.toEntity
+import com.endiar.purrodoro.data.backup.RestoreBundle
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.Category
@@ -27,6 +28,7 @@ import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.GlassReadabilityMode
 import com.endiar.purrodoro.model.Habit
+import com.endiar.purrodoro.model.HabitLogState
 import com.endiar.purrodoro.model.HomeScene
 import com.endiar.purrodoro.model.HabitOccurrence
 import com.endiar.purrodoro.model.InterruptedFocus
@@ -383,6 +385,170 @@ class AppRepository(
             // account must pull from scratch.
             removeSyncCheckpoints(prefs)
         }
+    }
+
+    /**
+     * Applies a validated [RestoreBundle] from a Backup & Restore file.
+     *
+     * Semantics (see `docs/superpowers/specs/2026-06-19-data-backup-and-restore-design.md`):
+     *  - **Replace** current-state collections (categories, tasks, habits): rows
+     *    absent from the backup become **dirty tombstones** (soft-delete) so a
+     *    later push propagates the deletion instead of the cloud resurrecting it.
+     *  - **Union** history collections (habit logs, session records, daily
+     *    stamps): existing rows are preserved; backup wins on key collision;
+     *    stamps take `max(existing, imported)` per date.
+     *
+     * All Room mutations run in **one transaction** (all-or-nothing). The
+     * separate DataStore write (prefs + self-healing id counters) follows; a
+     * crash between the two is bounded — counters are derived from the imported
+     * ids, and the in-flight runtime is cleared so nothing references a
+     * replaced task/habit.
+     *
+     * Caller contract: only invoke while **guest / signed-out** and with no
+     * active timer (stop it first). This method is identity-agnostic — it never
+     * touches the [KEY_OWNER_ID] marker.
+     */
+    suspend fun applyRestore(bundle: RestoreBundle) {
+        val db = roomDb
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            // ── Categories (replace) ──────────────────────────────────────────
+            val existingCategories = db.categoryDao().getAllIncludingDeleted()
+            val categoryByLegacy = existingCategories.associateBy { it.legacyId }
+            val categoryUpserts = bundle.categories.map { category ->
+                category.toEntity(
+                    uuid = categoryByLegacy[category.id]?.id ?: newUuid(),
+                    dirty = true,
+                    modifiedAt = now,
+                )
+            }
+            if (categoryUpserts.isNotEmpty()) db.categoryDao().upsert(categoryUpserts)
+            val keptCategoryIds = bundle.categories.map { it.id }.toSet()
+            existingCategories
+                .filter { !it.deleted && it.legacyId !in keptCategoryIds }
+                .forEach { db.categoryDao().softDelete(it.id, now) }
+
+            // ── Tasks (replace) ───────────────────────────────────────────────
+            val categoryUuidByLegacy = db.categoryDao().getAll().associate { it.legacyId to it.id }
+            val existingTasks = db.taskDao().getAllIncludingDeleted()
+            val taskByLegacy = existingTasks.associateBy { it.legacyId }
+            val taskUpserts = bundle.tasks.map { task ->
+                task.toEntity(
+                    uuid = taskByLegacy[task.id]?.id ?: newUuid(),
+                    categoryUuid = task.categoryId?.let { categoryUuidByLegacy[it] },
+                    dirty = true,
+                    modifiedAt = now,
+                )
+            }
+            if (taskUpserts.isNotEmpty()) db.taskDao().upsert(taskUpserts)
+            val keptTaskIds = bundle.tasks.map { it.id }.toSet()
+            existingTasks
+                .filter { !it.deleted && it.legacyId !in keptTaskIds }
+                .forEach { db.taskDao().softDelete(it.id, now) }
+
+            // ── Habits (replace) + logs (union) ───────────────────────────────
+            val existingHabits = db.habitDao().getAllIncludingDeleted()
+            val habitByLegacy = existingHabits.associateBy { it.legacyId }
+            val keptHabitIds = bundle.habits.map { it.id }.toSet()
+            for (habit in bundle.habits) {
+                val habitUuid = habitByLegacy[habit.id]?.id ?: newUuid()
+                db.habitDao().upsert(listOf(habit.toEntity(uuid = habitUuid, dirty = true, modifiedAt = now)))
+                // Union logs: upsert each backup log (backup wins on (habit,date)
+                // collision, resurrecting the existing row id so the unique
+                // index never conflicts); existing logs not in the backup are
+                // left intact.
+                val logUpserts = habit.logs.map { (date, log) ->
+                    val existingId = db.habitLogDao().getByHabitAndDate(habitUuid, date.toString())?.id
+                    val (stateTag, progress) = when (val s = log.state) {
+                        HabitLogState.Completed -> "C" to 0
+                        HabitLogState.Skipped -> "S" to 0
+                        is HabitLogState.Partial -> "P" to s.progress
+                    }
+                    HabitLogEntity(
+                        id = existingId ?: newUuid(),
+                        habitId = habitUuid,
+                        logDateIso = date.toString(),
+                        stateTag = stateTag,
+                        progress = progress,
+                        dirty = true,
+                        locallyModifiedAt = now,
+                        deleted = false,
+                    )
+                }
+                if (logUpserts.isNotEmpty()) db.habitLogDao().upsert(logUpserts)
+            }
+            // Tombstone habits (and their logs) absent from the backup.
+            existingHabits
+                .filter { !it.deleted && it.legacyId !in keptHabitIds }
+                .forEach {
+                    db.habitDao().softDelete(it.id, now)
+                    db.habitLogDao().softDeleteForHabit(it.id, now)
+                }
+
+            // ── Session records (union by legacyId) ───────────────────────────
+            val recordUpserts = bundle.records.map { record ->
+                val existing = db.sessionRecordDao().getByLegacyIdIncludingDeleted(record.id)
+                record.toEntity(uuid = existing?.id ?: newUuid(), dirty = true, modifiedAt = now)
+            }
+            if (recordUpserts.isNotEmpty()) db.sessionRecordDao().upsert(recordUpserts)
+
+            // ── Daily stamps (union, max per date) ────────────────────────────
+            for ((date, count) in bundle.stamps) {
+                val iso = date.toString()
+                val existing = db.dailyStampDao().getByDateIncludingDeleted(iso)
+                val existingCount = if (existing != null && !existing.deleted) existing.count else 0
+                db.dailyStampDao().upsert(
+                    listOf(
+                        DailyStampEntity(
+                            id = existing?.id ?: newUuid(),
+                            stampDateIso = iso,
+                            count = maxOf(existingCount, count),
+                            dirty = true,
+                            locallyModifiedAt = now,
+                            deleted = false,
+                        )
+                    )
+                )
+            }
+
+            // ── Profile sync mirror (name + settings) ─────────────────────────
+            db.profileDao().upsert(
+                ProfileEntity(
+                    displayName = bundle.displayName,
+                    timerSettingsJson = encodeTimerSettings(bundle.timerSettings),
+                    dirty = true,
+                    locallyModifiedAt = now,
+                )
+            )
+        }
+
+        // DataStore writes (separate from the Room transaction by design).
+        dataStore.edit { prefs ->
+            // Device prefs
+            prefs[KEY_APPEARANCE_MODE] = bundle.prefs.appearance.name
+            prefs[KEY_APP_LANGUAGE] = bundle.prefs.language.name
+            prefs[KEY_GLASS_MODE] = bundle.prefs.glass.name
+            prefs[KEY_HOME_SCENE] = bundle.prefs.homeScene.storageName
+            prefs[KEY_SOUND_ID] = bundle.prefs.selectedSoundId
+            prefs[KEY_NOTIFICATION_SOUND] = bundle.prefs.notificationSound
+            // Profile mirror (the values the UI reads)
+            prefs[KEY_USER_NAME] = bundle.displayName
+            prefs[KEY_FOCUS_MIN] = bundle.timerSettings.focusMinutes
+            prefs[KEY_SHORT_MIN] = bundle.timerSettings.shortBreakMinutes
+            prefs[KEY_LONG_MIN] = bundle.timerSettings.longBreakMinutes
+            prefs[KEY_AUTO_START_NEXT_SESSION] = bundle.timerSettings.autoStartNextSession
+            prefs[KEY_CYCLE_SIZE] = bundle.timerSettings.focusSessionsPerCycle
+            // Self-healing id counters (next id is above the max imported id).
+            prefs[KEY_NEXT_TASK_ID] = (bundle.tasks.maxOfOrNull { it.id } ?: 0) + 1
+            prefs[KEY_NEXT_CATEGORY_ID] = (bundle.categories.maxOfOrNull { it.id } ?: 0) + 1
+            prefs[KEY_NEXT_HABIT_ID] = (bundle.habits.maxOfOrNull { it.id } ?: 0) + 1
+            // Clear in-flight runtime so nothing references a replaced task/habit.
+            prefs.remove(KEY_RUNTIME_SNAPSHOT)
+            prefs.remove(KEY_PENDING_CYCLE_ACK)
+            prefs.remove(KEY_INTERRUPTED_FOCUS)
+            prefs.remove(KEY_SELECTED_CATEGORY_ID)
+        }
+        notifyLocalWrite()
     }
 
     /**
