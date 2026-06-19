@@ -132,11 +132,13 @@
     <string name="account_switch_cancel">Cancel</string>
     <string name="logout_unsynced_title">Some changes aren\'t backed up yet</string>
     <string name="logout_unsynced_body">We couldn\'t sync your latest updates. They\'ll stay on this device, but may not come with you if someone else signs in here.</string>
+    <string name="logout_unsynced_info_pending">Latest edits haven\'t reached the cloud yet</string>
     <string name="logout_unsynced_confirm">Sign out anyway</string>
     <string name="logout_unsynced_dismiss">Keep syncing</string>
     <string name="logout_confirm_title">Sign out of Purrodoro?</string>
-    <string name="logout_confirm_body">Your habits and focus stay on this phone. Cloud backup pauses until you sign in again.</string>
-    <string name="logout_confirm_footnote">You can sign back in with Google anytime.</string>
+    <string name="logout_confirm_body">Signing out pauses cloud sync. Your local data stays safe on this device.</string>
+    <string name="logout_confirm_info_local">Tasks and habits stay on this device</string>
+    <string name="logout_confirm_footnote">Sign back in with Google anytime</string>
     <string name="logout_confirm_action">Sign out</string>
     <string name="logout_sheet_cat_cd">Purrodoro resting — your data stays on this phone</string>
     <string name="logout_signing_out">Signing out…</string>

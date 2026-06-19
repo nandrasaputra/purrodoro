@@ -1,18 +1,27 @@
 package com.endiar.purrodoro.ui.auth
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,12 +31,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.composables.icons.lucide.Cloud
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Smartphone
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.sync.LogoutDecision
 import com.endiar.purrodoro.ui.components.KuroPrimaryButton
@@ -114,69 +127,31 @@ private fun ConfirmStep(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = KuroSpacing.sm, bottom = KuroSpacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.logout_confirm_title),
-            style = KuroType.headingScreen.copy(
-                fontFamily = NunitoFamily,
-                fontWeight = FontWeight.SemiBold,
-            ),
-            color = tokens.textPrimary,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(KuroSpacing.sm))
-        Text(
-            text = stringResource(R.string.logout_confirm_body),
-            style = KuroType.bodyPrimary,
-            color = tokens.textSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = 300.dp),
-        )
-        Spacer(modifier = Modifier.height(KuroSpacing.xs))
-        Text(
-            text = stringResource(R.string.logout_confirm_footnote),
-            style = KuroType.labelMeta,
-            color = tokens.textMuted,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = 300.dp),
-        )
-        Spacer(modifier = Modifier.height(KuroSpacing.xxl))
-        Image(
-            painter = painterResource(id = R.drawable.cat_logout_rest),
-            contentDescription = stringResource(R.string.logout_sheet_cat_cd),
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxWidth(0.68f)
-                .height(92.dp),
-        )
-        Spacer(modifier = Modifier.height(KuroSpacing.lg))
-        KuroPrimaryButton(
-            text = stringResource(R.string.logout_confirm_action),
-            onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(KuroSpacing.sm))
-        Text(
-            text = stringResource(R.string.common_cancel),
-            style = KuroType.labelStrong,
-            color = tokens.accent,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                    onClick = onCancel,
-                )
-                .padding(vertical = KuroSpacing.xs),
-        )
-    }
+    LogoutSheetScaffold(
+        title = stringResource(R.string.logout_confirm_title),
+        body = stringResource(R.string.logout_confirm_body),
+        infoRows = {
+            LogoutInfoRow(
+                icon = { Icon(Lucide.Smartphone, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                text = stringResource(R.string.logout_confirm_info_local),
+            )
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            LogoutInfoRow(
+                icon = {
+                    GoogleBrandIcon(
+                        modifier = Modifier.size(18.dp),
+                        contentDescription = null,
+                    )
+                },
+                text = stringResource(R.string.logout_confirm_footnote),
+            )
+        },
+        primaryText = stringResource(R.string.logout_confirm_action),
+        onPrimary = onConfirm,
+        primaryDestructive = true,
+        secondaryText = stringResource(R.string.common_cancel),
+        onSecondary = onCancel,
+    )
 }
 
 @Composable
@@ -184,60 +159,167 @@ private fun UnsyncedStep(
     onKeepSyncing: () -> Unit,
     onSignOutAnyway: () -> Unit,
 ) {
+    LogoutSheetScaffold(
+        title = stringResource(R.string.logout_unsynced_title),
+        body = stringResource(R.string.logout_unsynced_body),
+        infoRows = {
+            LogoutInfoRow(
+                icon = { Icon(Lucide.Cloud, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                text = stringResource(R.string.logout_unsynced_info_pending),
+            )
+        },
+        primaryText = stringResource(R.string.logout_unsynced_dismiss),
+        onPrimary = onKeepSyncing,
+        primaryDestructive = false,
+        secondaryText = stringResource(R.string.logout_unsynced_confirm),
+        onSecondary = onSignOutAnyway,
+        secondaryDestructive = true,
+    )
+}
+
+@Composable
+private fun LogoutSheetScaffold(
+    title: String,
+    body: String,
+    infoRows: @Composable () -> Unit,
+    primaryText: String,
+    onPrimary: () -> Unit,
+    primaryDestructive: Boolean,
+    secondaryText: String,
+    onSecondary: () -> Unit,
+    secondaryDestructive: Boolean = false,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = KuroSpacing.sm, bottom = KuroSpacing.lg),
+            .padding(top = KuroSpacing.xs, bottom = KuroSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.logout_unsynced_title),
+            text = title,
             style = KuroType.headingScreen.copy(
                 fontFamily = NunitoFamily,
                 fontWeight = FontWeight.SemiBold,
             ),
             color = tokens.textPrimary,
             textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 320.dp),
         )
         Spacer(modifier = Modifier.height(KuroSpacing.sm))
         Text(
-            text = stringResource(R.string.logout_unsynced_body),
+            text = body,
             style = KuroType.bodyPrimary,
             color = tokens.textSecondary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = 300.dp),
+            modifier = Modifier.widthIn(max = 320.dp),
         )
-        Spacer(modifier = Modifier.height(KuroSpacing.xxl))
-        Image(
-            painter = painterResource(id = R.drawable.cat_logout_rest),
-            contentDescription = stringResource(R.string.logout_sheet_cat_cd),
-            contentScale = ContentScale.Fit,
+        Spacer(modifier = Modifier.height(KuroSpacing.md))
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.68f)
-                .height(92.dp),
-        )
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                .background(tokens.pageBackground.copy(alpha = 0.55f))
+                .border(1.dp, tokens.borderSoft, RoundedCornerShape(KuroSpacing.radiusMd))
+                .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+        ) {
+            infoRows()
+        }
         Spacer(modifier = Modifier.height(KuroSpacing.lg))
-        KuroPrimaryButton(
-            text = stringResource(R.string.logout_unsynced_dismiss),
-            onClick = onKeepSyncing,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(KuroSpacing.sm))
-        Text(
-            text = stringResource(R.string.logout_unsynced_confirm),
-            style = KuroType.labelStrong,
-            color = tokens.destructive,
-            textAlign = TextAlign.Center,
+        Box(
             modifier = Modifier
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                    onClick = onSignOutAnyway,
-                )
-                .padding(vertical = KuroSpacing.xs),
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+                .background(tokens.accentSoft.copy(alpha = 0.35f))
+                .padding(horizontal = KuroSpacing.lg, vertical = KuroSpacing.md),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.cat_logout_rest),
+                contentDescription = stringResource(R.string.logout_sheet_cat_cd),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth(0.72f)
+                    .height(112.dp),
+            )
+        }
+        Spacer(modifier = Modifier.height(KuroSpacing.lg))
+        if (primaryDestructive) {
+            LogoutDestructiveButton(
+                text = primaryText,
+                onClick = onPrimary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            KuroPrimaryButton(
+                text = primaryText,
+                onClick = onPrimary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        TextButton(
+            onClick = onSecondary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = KuroSpacing.xs),
+        ) {
+            Text(
+                text = secondaryText,
+                style = KuroType.labelStrong,
+                color = if (secondaryDestructive) tokens.destructive else tokens.textSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LogoutInfoRow(
+    icon: @Composable () -> Unit,
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(tokens.accentSoft.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
+        Text(
+            text = text,
+            style = KuroType.bodySecondary.copy(fontWeight = FontWeight.Medium),
+            color = tokens.textPrimary,
+            modifier = Modifier.weight(1f),
         )
+    }
+}
+
+@Composable
+private fun LogoutDestructiveButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(56.dp),
+        shape = RoundedCornerShape(KuroSpacing.radiusMd),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = tokens.destructive,
+            contentColor = tokens.interactiveText,
+        ),
+    ) {
+        Text(text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -248,18 +330,18 @@ private fun SigningOutStep() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = KuroSpacing.lg, bottom = KuroSpacing.xxl),
+            .padding(top = KuroSpacing.xxl, bottom = KuroSpacing.xxxl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(32.dp),
             color = tokens.accent,
-            strokeWidth = 2.dp,
+            strokeWidth = 2.5.dp,
         )
         Spacer(modifier = Modifier.height(KuroSpacing.md))
         Text(
             text = stringResource(R.string.logout_signing_out),
-            style = KuroType.bodyPrimary,
+            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.Medium),
             color = tokens.textSecondary,
             textAlign = TextAlign.Center,
         )

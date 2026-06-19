@@ -131,7 +131,11 @@
     <string name="account_switch_cancel">Batal</string>
     <string name="logout_unsynced_title">Keluar tanpa sinkronisasi?</string>
     <string name="logout_unsynced_body">Beberapa perubahan terbaru belum tersinkron ke cloud. Perubahan itu tetap ada di perangkat ini, tetapi bisa hilang jika akun lain masuk di sini.</string>
+    <string name="logout_unsynced_info_pending">Perubahan terbaru belum sampai ke cloud</string>
     <string name="logout_unsynced_confirm">Tetap keluar</string>
+    <string name="logout_confirm_body">Keluar akan menjeda sinkronisasi cloud. Data lokal tetap aman di perangkat ini.</string>
+    <string name="logout_confirm_info_local">Tugas dan kebiasaan tetap di perangkat ini</string>
+    <string name="logout_confirm_footnote">Masuk lagi dengan Google kapan saja</string>
 
     <!-- Sync status (Profile, signed-in only) -->
     <string name="settings_section_sync">SINKRONISASI</string>
