@@ -354,6 +354,32 @@
     <string name="storage_empty">No downloads yet</string>
     <string name="storage_empty_hint">Sounds you download for offline play will show up here.</string>
 
+    <!-- Backup & Restore -->
+    <string name="backup_manage_label">Backup &amp; restore</string>
+    <string name="backup_title">Backup &amp; restore</string>
+    <string name="backup_summary_title">Keep your data safe</string>
+    <string name="backup_summary_body">Save a copy of your tasks, habits, and history to a file, or restore from one. The file is not encrypted — keep it somewhere private.</string>
+    <string name="backup_section_backup">BACKUP</string>
+    <string name="backup_section_restore">RESTORE</string>
+    <string name="backup_export_label">Save a backup file</string>
+    <string name="backup_export_hint">Choose where to save your data.</string>
+    <string name="backup_import_label">Restore from a backup file</string>
+    <string name="backup_import_hint">Replaces tasks, habits, and settings; merges in any history.</string>
+    <string name="backup_restore_blocked_signed_in">Sign out to restore a backup. Restoring while signed in could overwrite your account data.</string>
+    <string name="backup_default_filename">purrodoro-backup-%1$s.json</string>
+    <string name="backup_confirm_title">Restore this backup?</string>
+    <string name="backup_confirm_body">This replaces your current tasks, habits, and settings on this device, and merges in the backup\'s history. A safety copy of your current data is saved first.</string>
+    <string name="backup_confirm_action">Restore</string>
+    <string name="backup_working">Working…</string>
+    <string name="backup_export_success">Backup saved.</string>
+    <string name="backup_export_error">Couldn\'t save the backup. Please try again.</string>
+    <string name="backup_restore_success">Restore complete.</string>
+    <string name="backup_restore_error_malformed">This file isn\'t a valid Purrodoro backup.</string>
+    <string name="backup_restore_error_version">This backup was made by a newer version of Purrodoro. Update the app to restore it.</string>
+    <string name="backup_restore_error_too_large">This file is too large to be a Purrodoro backup.</string>
+    <string name="backup_restore_error_read">Couldn\'t read the backup file. Your data was not changed.</string>
+    <string name="backup_restore_error_apply">The restore didn\'t finish cleanly. A safety copy of your previous data was saved automatically.</string>
+
     <string name="music_bloom">Bloom</string>
     <string name="music_bloom_artist">Yasumu</string>
     <string name="music_chill_fm">Chill FM</string>
