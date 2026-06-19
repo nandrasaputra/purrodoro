@@ -80,7 +80,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -269,7 +268,11 @@ fun HomeTimerScreen(
                 .align(Alignment.TopCenter)
                 .offset(y = -statusBarTop),
         ) {
-            HomeStickyBar(onOpenProfile = onOpenProfile, topInset = statusBarTop)
+            HomeStickyBar(
+                userName = userName,
+                onOpenProfile = onOpenProfile,
+                topInset = statusBarTop,
+            )
         }
 
     }
@@ -277,11 +280,13 @@ fun HomeTimerScreen(
 
 @Composable
 private fun HomeStickyBar(
+    userName: String,
     onOpenProfile: () -> Unit,
     topInset: Dp = 0.dp,
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val displayName = userName.trim().ifBlank { stringResource(R.string.home_default_name) }
     // Uses the dock surface so the top bar + bottom dock read as one "app
     // chrome" plane, clearly distinct from both the page background and the
     // content cards. A soft shadow + hairline give it lift off the content.
@@ -303,11 +308,9 @@ private fun HomeStickyBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.app_name),
+                text = displayName,
                 color = tokens.textPrimary,
-                fontSize = 22.sp,
-                lineHeight = 26.sp,
-                fontWeight = FontWeight.SemiBold,
+                style = KuroType.headingScreen,
                 fontFamily = NunitoFamily,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -337,60 +340,57 @@ private fun HomeHeader(
         LocalDate.now().format(DateTimeFormatter.ofPattern("MMM d"))
     }
     // Fall back to a warm, generic greeting target until the user sets a name
-    // in Settings, so the 37sp header line is never empty.
+    // in Settings, so the headingDisplay line is never empty.
     val displayName = userName.trim().ifBlank { stringResource(R.string.home_default_name) }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
+            .padding(bottom = KuroSpacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
                     Text(
                         text = greeting.salutation,
                         color = tokens.textSecondary,
-                        style = KuroType.bodySecondary,
-                        lineHeight = 17.sp
+                        style = KuroType.bodyPrimary,
+                        fontFamily = NunitoFamily,
                     )
                     Text(
                         text = displayName,
                         color = tokens.textPrimary,
-                        fontSize = 37.sp,
-                        lineHeight = 40.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = KuroType.headingDisplay,
                         fontFamily = NunitoFamily,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 LeafSprig(
                     modifier = Modifier
-                        .padding(start = 10.dp, top = 18.dp)
+                        .padding(start = KuroSpacing.sm)
+                        .padding(top = 14.dp)
                         .size(23.dp, 18.dp),
-                    veinColor = tokens.textPrimary.copy(alpha = 0.30f)
+                    veinColor = tokens.textPrimary.copy(alpha = 0.30f),
                 )
             }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = dateLabel,
-                color = tokens.accent,
-                fontSize = 15.sp,
-                lineHeight = 18.sp,
-                fontWeight = FontWeight.Normal,
-                fontStyle = FontStyle.Italic,
-                fontFamily = NunitoFamily
-            )
-            Spacer(Modifier.height(5.dp))
             Text(
                 text = greeting.encouragement,
                 color = tokens.textSecondary,
-                style = KuroType.bodySecondary,
-                lineHeight = 18.sp,
+                style = KuroType.headingCard,
+                fontFamily = NunitoFamily,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = dateLabel,
+                color = tokens.textSecondary,
+                style = KuroType.labelMeta,
+                fontFamily = NunitoFamily,
             )
         }
         Spacer(Modifier.width(KuroSpacing.md))
