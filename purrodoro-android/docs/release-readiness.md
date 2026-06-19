@@ -8,6 +8,11 @@ Android app (`com.endiar.purrodoro`).
 >
 > Scope: Android only. Verified by building `assembleRelease` and running
 > `testDebugUnitTest` locally.
+>
+> A full-codebase **security review** was run on **2026-06-19** (Android +
+> Supabase + tools). Findings are folded into the sections below — see blockers
+> §7 (premium bypass), should-fix §8 (public premium audio), and §4 (auto-backup,
+> now also flagged for the privacy angle).
 
 ---
 
@@ -83,19 +88,27 @@ unverified.
 
 ## Should-fix before release
 
-### 4. Auto-backup can corrupt the encrypted session  ·  medium (correctness)
+### 4. Auto-backup can corrupt the encrypted session (and backs up sensitive data)  ·  medium (correctness + privacy)
 
 `AndroidManifest.xml` has `allowBackup="true"` and
-`res/xml/data_extraction_rules.xml` enables `<cloud-backup/>`. This backs up the
-`EncryptedSharedPreferences` file, but its decryption key lives in the
-device-bound Android Keystore and is **not** restored on a new device. After a
-device-transfer restore, reading that prefs file can throw and crash on launch.
+`res/xml/data_extraction_rules.xml` enables `<cloud-backup/>` with no exclusions
+(`backup_rules.xml` is effectively empty). Two problems:
+
+- **Correctness/auth:** this backs up the `EncryptedSharedPreferences` file
+  (`purrodoro_auth_session`), but its decryption key lives in the device-bound
+  Android Keystore and is **not** restored on a new device. After a
+  device-transfer restore, reading that prefs file can throw and crash on launch
+  or force a sign-out loop.
+- **Privacy (security review, 2026-06-19):** the same default also silently
+  backs up the Room DB, DataStore prefs, and plaintext safety backups under
+  `files/backups/` (tasks, habits, session history) to the user's Google account
+  with no in-app opt-in beyond the OS backup toggle.
 
 **Action (pick one):**
-- Exclude the encrypted-session prefs from backup (and likely the Room DB, since
-  it is account-owned and re-synced from the server), **or**
-- Wrap the session decrypt in a reset-on-failure fallback (clear + treat as
-  signed-out), **or**
+- Exclude the encrypted-session prefs (and the plaintext `files/backups/` dir and
+  likely the account-owned Room DB, since it re-syncs from the server) from
+  backup, **and** add a reset-on-failure fallback for session decrypt (clear +
+  treat as signed-out), **or**
 - Set `allowBackup="false"` if device-transfer of local data is not a goal.
 
 ### 5. No crash reporting / analytics  ·  medium (operability)
@@ -119,6 +132,55 @@ is currently empty and the app uses libraries that need them:
 - `kotlinx.serialization` (`@Serializable` models / DTOs)
 - Room
 
+### 7. Premium entitlement is unlocked client-side with no verification  ·  high (security/monetization)
+
+> Source: security review, 2026-06-19.
+
+The release paywall's upgrade action grants premium locally with no Play Billing
+purchase or server verification — any user can unlock all premium gates
+(soundscapes, home scenes, task/habit caps) for free.
+
+```1442:1446:purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
+                    onUpgrade = {
+                        scope.launch {
+                            repo.setIsPremium(true)
+                            showPremiumSheet = false
+                        }
+```
+
+The debug `PremiumOverride` is correctly isolated to `src/debug/`; this path is
+in the **main** source set and ships in release. `docs/PRODUCT.md` lists billing
+as "later," so this is not exploitable for revenue today — but it becomes a
+**hard blocker the moment premium becomes a paid feature.**
+
+**Action:** gate the upgrade on Play Billing (purchase + restore + receipt/server
+entitlement validation, or a signed entitlement from the backend). Until billing
+ships, remove/disable the release upgrade CTA or show "coming soon" without
+mutating `isPremium`.
+
+### 8. Premium cloud audio is publicly downloadable (paywall is UI-only)  ·  medium (security/monetization)
+
+> Source: security review, 2026-06-19.
+
+`supabase/migrations/0004_soundscape_catalog.sql` creates a **public** Storage
+bucket (`soundscape-audio`) and a public-read policy on active catalog rows
+(including `is_premium=true` rows and their `file_path`). The client builds
+plain public URLs:
+
+```67:68:purrodoro-android/app/src/main/java/com/endiar/purrodoro/audio/TrackDownloadManager.kt
+            val response = httpClient.get(
+                "$baseUrl/storage/v1/object/public/soundscape-audio/${track.filePath}"
+```
+
+So premium remote tracks can be enumerated and downloaded anonymously without the
+app or a purchase — the paywall is enforced only in the UI. (Bundled APK audio is
+always extractable; this finding is specific to **cloud** premium content.)
+
+**Action:** make the bucket private and serve short-lived signed URLs tied to an
+authenticated user with a verified premium entitlement (Edge Function or Storage
+policy on `auth.uid()` + entitlement claim). Optionally omit `file_path` from
+anonymous catalog responses.
+
 ---
 
 ## Minor / housekeeping
@@ -139,11 +201,13 @@ is currently empty and the app uses libraries that need them:
 - [ ] Verify production Google sign-in end-to-end
 - [ ] Run NAN-57 (Claim/Keep/Drop) on device
 - [ ] Run NAN-65 (two-device sync matrix)
-- [ ] Fix auto-backup vs. encrypted-session restore (exclude or reset-on-failure)
+- [ ] Fix auto-backup: exclude encrypted session + `files/backups/` (+ Room DB), add reset-on-failure decrypt, or set `allowBackup="false"`
 - [ ] Integrate crash reporting
 - [ ] Switch to AAB; enable R8 + `shrinkResources`; add ProGuard keep rules
 - [ ] Confirm `app-release.aab` is signed and installs from a clean device
 - [ ] Update stale auth-stub docs (`PRODUCT.md`, `pending-actions.md`)
+- [ ] Gate premium upgrade on Play Billing + server entitlement (or disable the release CTA) — §7
+- [ ] Move premium cloud audio to a private bucket with signed URLs + entitlement checks — §8
 
 ---
 
