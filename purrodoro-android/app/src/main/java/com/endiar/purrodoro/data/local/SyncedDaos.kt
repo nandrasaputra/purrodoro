@@ -112,6 +112,10 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE deleted = 0")
     suspend fun getAll(): List<HabitEntity>
 
+    /** Write-path helper: includes tombstones so unique legacyIds can be resurrected. */
+    @Query("SELECT * FROM habits")
+    suspend fun getAllIncludingDeleted(): List<HabitEntity>
+
     /** Sync helper: marks every live row for re-push (account claim/keep upload). */
     @Query("UPDATE habits SET dirty = 1, locallyModifiedAt = :now WHERE deleted = 0")
     suspend fun markAllDirty(now: Long)
