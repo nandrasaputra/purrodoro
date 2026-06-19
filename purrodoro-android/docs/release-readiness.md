@@ -75,14 +75,14 @@ Google Cloud Console for package `com.endiar.purrodoro`.
 both release SHA-1s to the Google Cloud Android OAuth client, and confirm the
 Supabase Google provider uses the Web client ID + secret.
 
-### 3. On-device + multi-device QA not executed  ·  high
+### 3. Multi-device sync QA not executed  ·  high
 
-The auth Claim/Keep/Drop matrix (NAN-57) and the 9-scenario two-device sync
-matrix (NAN-65) are documented in `pending-actions.md` but not yet run. Sync
-correctness (LWW conflicts, tombstones, process-death mid-sync) should not ship
-unverified.
+NAN-57 (Claim/Keep/Drop auth matrix) **passed 2026-06-19** on emulator — see
+`pending-actions.md`. The 9-scenario two-device sync matrix (NAN-65) is still
+open. Sync correctness (LWW conflicts, tombstones, process-death mid-sync) should
+not ship unverified.
 
-**Action:** execute NAN-57 and NAN-65 on real devices before launch.
+**Action:** execute NAN-65 on two devices (or device + emulator) before launch.
 
 ---
 
@@ -199,7 +199,7 @@ anonymous catalog responses.
 - [ ] Enroll in Play App Signing
 - [ ] Register release + Play App Signing SHA-1s with Google OAuth Android client
 - [ ] Verify production Google sign-in end-to-end
-- [ ] Run NAN-57 (Claim/Keep/Drop) on device
+- [x] Run NAN-57 (Claim/Keep/Drop) on device — **2026-06-19**, emulator
 - [ ] Run NAN-65 (two-device sync matrix)
 - [ ] Fix auto-backup: exclude encrypted session + `files/backups/` (+ Room DB), add reset-on-failure decrypt, or set `allowBackup="false"`
 - [ ] Integrate crash reporting

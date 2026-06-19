@@ -5,37 +5,39 @@ Branch: `feature/offline-first-sync` (22 commits, 253 unit tests green, Supabase
 
 ---
 
-## Blockers — must be done before sign-in works
+## Done
 
-### NAN-56 · Configure Google OAuth clients + Supabase Google provider (~15 min, manual)
+### ✅ NAN-56 · Configure Google OAuth clients + Supabase Google provider
 
-1. Run `./gradlew signingReport` in `purrodoro-android/` and note the **debug SHA-1**.
-2. **Google Cloud Console** → Credentials → create two OAuth clients:
-   - **Web** client ID (for the `signInWithIdToken` exchange with Supabase)
-   - **Android** client ID — package `com.endiar.purrodoro` + debug SHA-1 (lets Credential Manager surface the account picker; not referenced in code)
-3. **Supabase dashboard** → project `birjkyerhokqdzhdfgpt` → Authentication → Providers → Google:
-   - Enable, paste the **Web client ID** and its secret
-   - Keep **anonymous sign-in OFF**
-4. Paste the Web client ID into `app/src/main/java/com/endiar/purrodoro/auth/SupabaseConfig.kt`:
-   ```kotlin
-   const val GOOGLE_WEB_CLIENT_ID = "<your-web-client-id>.apps.googleusercontent.com"
-   ```
-   `isGoogleConfigured` flips `true` automatically and the "not configured" error in `LoginSheet` goes away.
+**Verified 2026-06-19** — debug build signs in with Google end-to-end.
+
+- Web client ID in `SupabaseConfig.kt`; Supabase Google provider enabled.
+- Android OAuth client registered for debug SHA-1 + `com.endiar.purrodoro`.
+- **Still open for Play Store:** register release + Play App Signing SHA-1s (see
+  `release-readiness.md` §2).
+
+### ✅ NAN-57 · On-device auth verification
+
+**Verified 2026-06-19** on emulator (`sdk_gphone64_arm64`) with two Google accounts
+(`leftlucia@gmail.com`, `nandra.saputrass@gmail.com`).
+
+| Scenario | Result |
+|---|---|
+| **Claim** | ✅ Guest task kept; `ownerId` tagged to account A |
+| **Keep** | ✅ Guest edits kept; re-login as A — no switch dialog |
+| **Drop** | ✅ Confirm switch → local data cleared; `ownerId` → B |
+| **Drop cancelled** | ✅ Cancel → data and `ownerId` unchanged |
+| **Session persistence** | ✅ `force-stop` + relaunch → still signed in |
 
 ---
 
-## Verification — once NAN-56 is done
+## Blockers — remaining
 
-### NAN-57 · On-device auth verification (two Google accounts needed)
+*(none for debug sign-in; release OAuth SHA-1s tracked in `release-readiness.md`)*
 
-| Scenario | Steps | Expected |
-|---|---|---|
-| **Claim** | Fresh install → create tasks/habits → sign in as account A | Data kept, `ownerId = A` |
-| **Keep** | Sign out → edit as guest → sign back in as A | Edits kept, no confirm dialog |
-| **Drop** | With A's data, sign in as B → confirm | A's data cleared (name, tasks, timer stopped), device prefs kept, `ownerId = B` |
-| **Drop cancelled** | Same, but cancel the dialog | Data untouched, session reverted, `ownerId` still A |
+---
 
-Also verify: encrypted session survives process death (kill app → relaunch → still signed in).
+## Verification — remaining
 
 ### NAN-65 · Two-device QA matrix
 
