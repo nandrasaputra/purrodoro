@@ -160,26 +160,28 @@ mutating `isPremium`.
 
 ### 8. Premium cloud audio is publicly downloadable (paywall is UI-only)  ·  medium (security/monetization)
 
-> Source: security review, 2026-06-19.
+> Source: security review, 2026-06-19 (updated 2026-06-20 for R2).
 
-`supabase/migrations/0004_soundscape_catalog.sql` creates a **public** Storage
-bucket (`soundscape-audio`) and a public-read policy on active catalog rows
-(including `is_premium=true` rows and their `file_path`). The client builds
-plain public URLs:
+Cloud soundscape MP3s live in a **public-read Cloudflare R2** bucket
+(`purrodoro-soundscapes`). Catalog rows in `soundscape_tracks` (including
+`is_premium=true`) expose `file_path`; the client builds plain public URLs:
 
-```67:68:purrodoro-android/app/src/main/java/com/endiar/purrodoro/audio/TrackDownloadManager.kt
-            val response = httpClient.get(
-                "$baseUrl/storage/v1/object/public/soundscape-audio/${track.filePath}"
+```109:113:purrodoro-android/app/src/main/java/com/endiar/purrodoro/audio/TrackDownloadManager.kt
+    internal fun downloadUrl(filePath: String): String {
+        val base = audioPublicBaseUrl.trimEnd('/')
+        val path = filePath.trimStart('/')
+        return "$base/$path"
+    }
 ```
 
-So premium remote tracks can be enumerated and downloaded anonymously without the
-app or a purchase — the paywall is enforced only in the UI. (Bundled APK audio is
-always extractable; this finding is specific to **cloud** premium content.)
+`audioPublicBaseUrl` is `SoundscapeConfig.R2_PUBLIC_URL`. So premium remote tracks
+can be enumerated and downloaded anonymously without the app or a purchase — the
+paywall is enforced only in the UI. (Bundled APK audio is always extractable;
+this finding is specific to **cloud** premium content.)
 
 **Action:** make the bucket private and serve short-lived signed URLs tied to an
-authenticated user with a verified premium entitlement (Edge Function or Storage
-policy on `auth.uid()` + entitlement claim). Optionally omit `file_path` from
-anonymous catalog responses.
+authenticated user with a verified premium entitlement (Cloudflare Worker or
+similar). Optionally omit `file_path` from anonymous catalog responses.
 
 ---
 

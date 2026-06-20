@@ -32,11 +32,11 @@ SAMPLE_RATE=44100
 CHANNELS=2
 
 TRACKS=(
-  "cafe:ambience_cafe.mp3"
-  "fireplace:ambience_fireplace.mp3"
-  "forest:ambience_forest.mp3"
-  "sea-wave:ambience_sea_wave.mp3"
-  "winter-wind:ambience_winter_wind.mp3"
+  "cafe:l_amb_cafe.mp3"
+  "fireplace:l_amb_fireplace.mp3"
+  "forest:l_amb_forest.mp3"
+  "sea-wave:l_amb_sea_wave.mp3"
+  "winter-wind:l_amb_winter_wind.mp3"
 )
 
 resolve_input() {
@@ -73,7 +73,7 @@ mean_volume_db() {
 }
 
 encode_rain() {
-  local input out_name="ambience_rain.mp3"
+  local input out_name="l_amb_rain.mp3"
   local looped="$OUT/.${out_name}.looped.wav"
   local trimmed="$OUT/.${out_name}.trimmed.wav"
   local final="$OUT/$out_name"
@@ -115,8 +115,8 @@ print(max(128, int(target * 8 / d * 0.96 / 1000)))
   done
 
   rm -f "$looped" "$trimmed" \
-    "$RAW/ambience_rain.wav" "$RAW/ambience_rain.ogg" \
-    "$OUT/ambience_rain.wav" "$OUT/ambience_rain.ogg"
+    "$RAW/l_amb_rain.wav" "$RAW/l_amb_rain.ogg" \
+    "$OUT/l_amb_rain.wav" "$OUT/l_amb_rain.ogg"
   cp "$final" "$RAW/$out_name"
 
   bytes="$(stat -f%z "$final" 2>/dev/null || stat -c%s "$final")"

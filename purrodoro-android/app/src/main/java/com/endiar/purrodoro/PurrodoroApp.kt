@@ -235,7 +235,7 @@ fun PurrodoroApp(
     var soundscapeMixMusicId by remember(appState.soundscapeMixMusicId) {
         mutableStateOf(appState.soundscapeMixMusicId)
     }
-    var ambienceVolume by rememberSaveable { mutableStateOf(0.25f) }
+    var ambienceVolume by rememberSaveable { mutableStateOf(0.30f) }
     var musicVolume by rememberSaveable { mutableStateOf(0.50f) }
     var showPremiumSheet by rememberSaveable { mutableStateOf(false) }
     var premiumUpsellTrigger by remember { mutableStateOf(PremiumUpsellTrigger()) }
@@ -634,6 +634,7 @@ fun PurrodoroApp(
     }
 
     fun addMusicToMix(track: MusicOption) {
+        if (track.audio == null) return
         soundscapeMixMusicId = track.id
         persistSoundscapeMix()
         playingMusicId = track.id

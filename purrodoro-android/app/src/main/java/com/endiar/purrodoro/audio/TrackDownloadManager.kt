@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.update
 class TrackDownloadManager(
     context: Context,
     private val httpClient: HttpClient,
-    private val baseUrl: String,
+    private val audioPublicBaseUrl: String,
 ) {
 
     private val dir = File(context.applicationContext.filesDir, "soundscapes")
@@ -64,9 +64,7 @@ class TrackDownloadManager(
         val tmp = File(dir, "${target.name}.part")
         setState(track.id, DownloadState.Downloading(0f))
         val result = runCatching {
-            val response = httpClient.get(
-                "$baseUrl/storage/v1/object/public/soundscape-audio/${track.filePath}"
-            ) {
+            val response = httpClient.get(downloadUrl(track.filePath)) {
                 onDownload { bytesSentTotal, contentLength ->
                     val total = contentLength ?: track.fileSizeBytes
                     if (total > 0) {
@@ -106,5 +104,11 @@ class TrackDownloadManager(
 
     private fun setState(id: Int, state: DownloadState) {
         _states.update { it + (id to state) }
+    }
+
+    internal fun downloadUrl(filePath: String): String {
+        val base = audioPublicBaseUrl.trimEnd('/')
+        val path = filePath.trimStart('/')
+        return "$base/$path"
     }
 }

@@ -228,7 +228,7 @@
         <item quantity="other">%1$d sesi fokus selesai</item>
     </plurals>
     <string name="cycle_v1_title">Siklus selesai</string>
-    <string name="cycle_v1_body">Satu siklus penuh sudah kamu lewati. Beristirahatlah sejenak — kamu pantas mendapatkannya.</string>
+    <string name="cycle_v1_body">Satu siklus penuh sudah kamu lewati. Beristirahatlah sejenak. Kamu pantas mendapatkannya.</string>
     <string name="cycle_v2_title">Kerja bagus</string>
     <string name="cycle_v2_body">Kamu menyelesaikan satu siklus Pomodoro penuh. Istirahatlah sebelum yang berikutnya.</string>
     <string name="cycle_v3_title">Selesai sudah</string>
@@ -241,8 +241,8 @@
     <string name="cycle_duration_hours">%1$d jam</string>
     <string name="cycle_duration_hours_minutes">%1$d jam %2$d menit</string>
     <string name="cycle_streak_multi">🔥 Streak %1$d hari</string>
-    <string name="cycle_streak_day_one_new">Hari ke-1 — awal yang bagus</string>
-    <string name="cycle_streak_day_one_back">Selamat datang kembali — hari ke-1</string>
+    <string name="cycle_streak_day_one_new">Hari ke-1. Awal yang bagus</string>
+    <string name="cycle_streak_day_one_back">Selamat datang kembali. Hari ke-1</string>
     <string name="cycle_free_focus_eyebrow">Fokus bebas</string>
     <string name="cycle_free_focus_subtitle">Kamu hadir</string>
     <string name="cycle_confetti_cd">Konfeti perayaan</string>
@@ -352,7 +352,7 @@
     <string name="backup_manage_label">Cadangkan &amp; pulihkan</string>
     <string name="backup_title">Cadangkan &amp; pulihkan</string>
     <string name="backup_summary_title">Jaga data kamu tetap aman</string>
-    <string name="backup_summary_body">Simpan salinan tugas, kebiasaan, dan riwayat kamu ke sebuah file, atau pulihkan dari file. File ini tidak dienkripsi — simpan di tempat yang aman.</string>
+    <string name="backup_summary_body">Simpan salinan tugas, kebiasaan, dan riwayat kamu ke sebuah file, atau pulihkan dari file. File ini tidak dienkripsi. Simpan di tempat yang aman.</string>
     <string name="backup_section_backup">CADANGKAN</string>
     <string name="backup_section_restore">PULIHKAN</string>
     <string name="backup_export_label">Simpan file cadangan</string>
@@ -374,12 +374,14 @@
     <string name="backup_restore_error_read">Tidak bisa membaca file cadangan. Data kamu tidak diubah.</string>
     <string name="backup_restore_error_apply">Pemulihan tidak selesai dengan bersih. Salinan pengaman data kamu sebelumnya tersimpan otomatis.</string>
 
-    <string name="music_bloom">Bloom</string>
-    <string name="music_bloom_artist">Yasumu</string>
-    <string name="music_chill_fm">Chill FM</string>
-    <string name="music_chill_fm_artist">Dope Cat</string>
-    <string name="music_midnight_whisper">Midnight Whisper</string>
-    <string name="music_midnight_whisper_artist">Matrika</string>
+    <!-- Bundled lo-fi (local) -->
+    <string name="lofi_local_artist"></string>
+    <string name="l_desk_lamp_rain_name">Desk Lamp Rain</string>
+    <string name="l_mosswood_morning_name">Mosswood Morning</string>
+    <string name="l_paper_skies_name">Paper Skies</string>
+    <string name="l_quiet_window_code_name">Quiet Window Code</string>
+    <string name="l_sore_di_pendopo_name">Sore di Pendopo</string>
+    <string name="l_sudirman_rain_loop_name">Sudirman Rain Loop</string>
     <string name="sound_pill_playing">Diputar</string>
     <string name="sound_pill_selected">Dipilih</string>
     <string name="sound_pill_premium">Premium</string>
@@ -405,8 +407,8 @@
     <string name="premium_cap_habits">Lebih banyak kebiasaan</string>
     <string name="premium_cap_active_tasks_title">Batas tugas aktif tercapai</string>
     <string name="premium_cap_habits_title">Batas kebiasaan tercapai</string>
-    <string name="premium_cap_active_tasks_body">Paket gratis mencakup hingga %1$d tugas aktif. Tandai selesai atau hapus satu untuk menambah lagi—atau buka Premium untuk tugas aktif tanpa batas.</string>
-    <string name="premium_cap_habits_body">Paket gratis mencakup hingga %1$d kebiasaan. Hapus satu untuk menambah lagi—atau buka Premium untuk kebiasaan tanpa batas.</string>
+    <string name="premium_cap_active_tasks_body">Paket gratis mencakup hingga %1$d tugas aktif. Tandai selesai atau hapus satu untuk menambah lagi, atau buka Premium untuk tugas aktif tanpa batas.</string>
+    <string name="premium_cap_habits_body">Paket gratis mencakup hingga %1$d kebiasaan. Hapus satu untuk menambah lagi, atau buka Premium untuk kebiasaan tanpa batas.</string>
     <string name="premium_cap_perk_unlimited_tasks">Tugas aktif tanpa batas</string>
     <string name="premium_cap_perk_unlimited_habits">Kebiasaan tanpa batas</string>
     <string name="free_tier_active_tasks_count">%1$d/%2$d aktif</string>
@@ -535,9 +537,9 @@
     <string name="tasks_marked_done">Tugas ditandai selesai</string>
     <string name="tasks_open_focus">Buka fokus</string>
     <string name="tasks_focus_with_kuro">Fokus bareng Purrodoro</string>
-    <string name="tasks_helper_open">Pomodoro ini sedang berjalan — ketuk untuk kembali ke sana.</string>
+    <string name="tasks_helper_open">Pomodoro ini sedang berjalan. Ketuk untuk kembali ke sana.</string>
     <string name="tasks_helper_blocked">Sudah ada Pomodoro yang berjalan. Selesaikan atau hentikan dulu untuk fokus ke tugas ini.</string>
-    <string name="tasks_helper_start">Kita siapkan fokusnya bareng — mulai kapan pun kamu siap.</string>
+    <string name="tasks_helper_start">Kita siapkan fokusnya bareng. Mulai kapan pun kamu siap.</string>
     <string name="tasks_helper_completed">Tugas ini sudah selesai. Hapus centangnya kalau mau fokus lagi.</string>
     <string name="tasks_priority">Prioritas</string>
     <string name="tasks_category">Kategori</string>
@@ -617,7 +619,7 @@
     <string name="habits_not_scheduled">Tidak dijadwalkan hari ini · %1$s</string>
     <string name="habits_open_focus">Buka fokus</string>
     <string name="habits_focus_with_kuro">Fokus bareng Purrodoro</string>
-    <string name="habits_helper_open">Pomodoro ini sedang berjalan — ketuk untuk kembali ke sana.</string>
+    <string name="habits_helper_open">Pomodoro ini sedang berjalan. Ketuk untuk kembali ke sana.</string>
     <string name="habits_helper_blocked">Sudah ada Pomodoro yang berjalan. Selesaikan atau hentikan dulu untuk fokus ke kebiasaan ini.</string>
     <string name="habits_helper_start">Fokuskan satu Pomodoro untuk kebiasaan ini saat kamu siap.</string>
     <string name="habits_helper_completed">Kamu sudah menyelesaikan kebiasaan ini hari ini.</string>
@@ -642,7 +644,7 @@
     <string name="notif_break_complete_title">Istirahat selesai</string>
     <string name="notif_break_complete_body">Siap untuk sesi fokus lagi?</string>
     <string name="notif_cycle_complete_title">Siklus selesai</string>
-    <string name="notif_cycle_complete_body">Kerja bagus — siklus Pomodoro-mu selesai</string>
+    <string name="notif_cycle_complete_body">Kerja bagus. Siklus Pomodoro-mu selesai</string>
     <string name="notif_timer_stopped_title">Timer dihentikan</string>
     <string name="notif_timer_stopped_body">Sesi berakhir lebih awal</string>
     <string name="notif_segment_focus">Fokus</string>

@@ -103,7 +103,7 @@ import com.endiar.purrodoro.ui.theme.kuroTokens
 import com.endiar.purrodoro.ui.theme.luminance
 import kotlin.math.roundToInt
 
-private const val VOLUME_SNAP_STEPS = 4
+private const val VOLUME_SNAP_STEPS = 10
 private const val SOUNDSCAPE_VINYL_SPIN_MS = 4_000
 private const val SOUNDSCAPE_EQ_CYCLE_MS = 520
 /** Per-bar height at rest (fraction of [maxBarHeight]). */
@@ -944,6 +944,7 @@ private fun musicTileClick(
     track.locked -> { { onMusicSelected(track) } }
     track.remote?.downloadState is DownloadState.Downloading -> { {} }
     track.remote?.downloadState == DownloadState.NotDownloaded -> { { onDownloadTrack(track.id) } }
+    track.audio == null -> { {} }
     else -> { { if (isPlaying) onMusicToggle(track) else onMusicSelected(track) } }
 }
 
@@ -1845,7 +1846,7 @@ private fun SoundscapeVolumeStepRow(
                         .background(activeFill),
                 )
             }
-            // Snap marks — 0 / 25 / 50 / 75 / 100 % (matches [snapVolume] steps).
+            // Snap marks every 10% — 0, 10, …, 100 (matches [snapVolume]).
             repeat(VOLUME_SNAP_STEPS + 1) { index ->
                 val snapFraction = index / VOLUME_SNAP_STEPS.toFloat()
                 val tickCenter = maxTravel * snapFraction + thumbWidth / 2

@@ -2,7 +2,7 @@
   {
     "kind": "ambience",
     "localId": 1,
-    "rawResource": "ambience_rain",
+    "rawResource": "l_amb_rain",
     "symbol": "Rain",
     "defaultPremium": false,
     "sortOrder": 10,
@@ -11,7 +11,7 @@
   {
     "kind": "ambience",
     "localId": 2,
-    "rawResource": "ambience_cafe",
+    "rawResource": "l_amb_cafe",
     "symbol": "Cafe",
     "defaultPremium": false,
     "sortOrder": 20,
@@ -20,16 +20,16 @@
   {
     "kind": "ambience",
     "localId": 3,
-    "rawResource": "ambience_fireplace",
+    "rawResource": "l_amb_fireplace",
     "symbol": "Fire",
-    "defaultPremium": true,
+    "defaultPremium": false,
     "sortOrder": 30,
     "stringKeys": { "name": "sound_fire_name", "description": "sound_fire_desc" }
   },
   {
     "kind": "ambience",
     "localId": 4,
-    "rawResource": "ambience_forest",
+    "rawResource": "l_amb_forest",
     "symbol": "Forest",
     "defaultPremium": true,
     "sortOrder": 40,
@@ -38,16 +38,16 @@
   {
     "kind": "ambience",
     "localId": 5,
-    "rawResource": "ambience_sea_wave",
+    "rawResource": "l_amb_sea_wave",
     "symbol": "Wave",
-    "defaultPremium": true,
+    "defaultPremium": false,
     "sortOrder": 50,
     "stringKeys": { "name": "sound_sea_wave_name", "description": "sound_sea_wave_desc" }
   },
   {
     "kind": "ambience",
     "localId": 6,
-    "rawResource": "ambience_winter_wind",
+    "rawResource": "l_amb_winter_wind",
     "symbol": "Wind",
     "defaultPremium": true,
     "sortOrder": 60,
@@ -56,25 +56,49 @@
   {
     "kind": "music",
     "localId": 1,
-    "rawResource": "lofi_bloom_yasumu",
+    "rawResource": "l_lofi_desk_lamp_rain",
     "defaultPremium": false,
     "sortOrder": 10,
-    "stringKeys": { "name": "music_bloom", "artist": "music_bloom_artist" }
+    "stringKeys": { "name": "l_desk_lamp_rain_name", "artist": "lofi_local_artist" }
   },
   {
     "kind": "music",
     "localId": 2,
-    "rawResource": "lofi_chill_fm_dope_cat",
+    "rawResource": "l_lofi_mosswood_morning",
     "defaultPremium": false,
     "sortOrder": 20,
-    "stringKeys": { "name": "music_chill_fm", "artist": "music_chill_fm_artist" }
+    "stringKeys": { "name": "l_mosswood_morning_name", "artist": "lofi_local_artist" }
   },
   {
     "kind": "music",
     "localId": 3,
-    "rawResource": "lofi_midnight_whisper_matrika",
-    "defaultPremium": true,
+    "rawResource": "l_lofi_paper_skies",
+    "defaultPremium": false,
     "sortOrder": 30,
-    "stringKeys": { "name": "music_midnight_whisper", "artist": "music_midnight_whisper_artist" }
+    "stringKeys": { "name": "l_paper_skies_name", "artist": "lofi_local_artist" }
+  },
+  {
+    "kind": "music",
+    "localId": 4,
+    "rawResource": "l_lofi_quiet_window_code",
+    "defaultPremium": false,
+    "sortOrder": 40,
+    "stringKeys": { "name": "l_quiet_window_code_name", "artist": "lofi_local_artist" }
+  },
+  {
+    "kind": "music",
+    "localId": 5,
+    "rawResource": "l_lofi_sore_di_pendopo",
+    "defaultPremium": true,
+    "sortOrder": 50,
+    "stringKeys": { "name": "l_sore_di_pendopo_name", "artist": "lofi_local_artist" }
+  },
+  {
+    "kind": "music",
+    "localId": 6,
+    "rawResource": "l_lofi_sudirman_rain_loop",
+    "defaultPremium": true,
+    "sortOrder": 60,
+    "stringKeys": { "name": "l_sudirman_rain_loop_name", "artist": "lofi_local_artist" }
   }
 ]

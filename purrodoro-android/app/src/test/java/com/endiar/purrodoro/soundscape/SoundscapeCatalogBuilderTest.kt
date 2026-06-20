@@ -13,12 +13,12 @@ import org.junit.Test
 class SoundscapeCatalogBuilderTest {
 
     private val rainDefault = BundledTrackDefault(
-        kind = "ambience", localId = 1, rawResource = "ambience_rain",
+        kind = "ambience", localId = 1, rawResource = "l_amb_rain",
         nameRes = R.string.sound_rain_name, subtitleRes = R.string.sound_rain_desc,
         symbol = "Rain", defaultPremium = false, sortOrder = 10,
     )
     private val cafeDefault = BundledTrackDefault(
-        kind = "ambience", localId = 2, rawResource = "ambience_cafe",
+        kind = "ambience", localId = 2, rawResource = "l_amb_cafe",
         nameRes = R.string.sound_cafe_name, subtitleRes = R.string.sound_cafe_desc,
         symbol = "Cafe", defaultPremium = false, sortOrder = 20,
     )
@@ -30,7 +30,7 @@ class SoundscapeCatalogBuilderTest {
         sort: Int = 0,
     ) = SoundscapeBundledEntity(
         kind = "ambience", localId = localId, name = "", artist = "", symbol = "",
-        rawResource = "ambience_rain", isPremium = premium, sortOrder = sort, isActive = active,
+        rawResource = "l_amb_rain", isPremium = premium, sortOrder = sort, isActive = active,
     )
 
     private fun remote(id: Int) = SoundscapeTrackEntity(
@@ -51,7 +51,7 @@ class SoundscapeCatalogBuilderTest {
             bundledDefaults = listOf(rainDefault, cafeDefault),
         )
         assertEquals(listOf(1, 2), options.map { it.id })
-        assertEquals(AudioSource.Bundled(R.raw.ambience_rain), options[0].audio)
+        assertEquals(AudioSource.Bundled(R.raw.l_amb_rain), options[0].audio)
         assertNull(options[0].remote)
     }
 
@@ -155,7 +155,7 @@ class SoundscapeCatalogBuilderTest {
             subtitleFor = { _, _ -> "sub" },
             bundledDefaults = listOf(rainDefault),
         )
-        assertEquals(AudioSource.Bundled(R.raw.ambience_rain), options.single().audio)
+        assertEquals(AudioSource.Bundled(R.raw.l_amb_rain), options.single().audio)
     }
 
     @Test
@@ -174,6 +174,26 @@ class SoundscapeCatalogBuilderTest {
     }
 
     @Test
+    fun `bundled music keeps row with null audio when raw resource missing`() {
+        val unmapped = BundledTrackDefault(
+            "music", 1, "does_not_exist",
+            R.string.l_desk_lamp_rain_name, R.string.lofi_local_artist, "", false, 10,
+        )
+        val options = SoundscapeCatalogBuilder.buildMusicOptions(
+            bundledRows = emptyList(),
+            remoteRows = emptyList(),
+            downloadStates = emptyMap(),
+            localPaths = emptyMap(),
+            nameFor = { _, _ -> "name" },
+            subtitleFor = { _, _ -> "artist" },
+            bundledDefaults = listOf(unmapped),
+        )
+        assertEquals(1, options.size)
+        assertEquals(1, options.single().id)
+        assertNull(options.single().audio)
+    }
+
+    @Test
     fun `bundled tracks render before remote tracks`() {
         val options = SoundscapeCatalogBuilder.buildMusicOptions(
             bundledRows = emptyList(),
@@ -184,8 +204,8 @@ class SoundscapeCatalogBuilderTest {
             subtitleFor = { _, _ -> "Yasumu" },
             bundledDefaults = listOf(
                 BundledTrackDefault(
-                    "music", 1, "lofi_bloom_yasumu",
-                    R.string.music_bloom, R.string.music_bloom_artist, "", false, 10,
+                    "music", 1, "l_lofi_desk_lamp_rain",
+                    R.string.l_desk_lamp_rain_name, R.string.lofi_local_artist, "", false, 10,
                 ),
             ),
         )

@@ -1,4 +1,5 @@
-import { supabase, publicAudioUrl, STORAGE_BUCKET } from './supabase';
+import { supabase } from './supabase';
+import { publicAudioUrl, uploadAudio } from './r2';
 import type { BundledTrack, RemoteTrack, TrackKind } from './types';
 
 const REMOTE_ID_FLOOR = 100;
@@ -54,10 +55,7 @@ async function addRemoteTrack(form: HTMLFormElement, existing: RemoteTrack[]) {
   if (!file || file.size === 0) throw new Error('Choose an MP3 file');
   const filePath = `${folderFor(kind)}/${file.name}`;
 
-  const { error: upErr } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(filePath, file, { upsert: true, contentType: 'audio/mpeg' });
-  if (upErr) throw upErr;
+  await uploadAudio(filePath, file);
 
   const id = await nextRemoteId(existing);
   const { error: insErr } = await supabase.from('soundscape_tracks').insert({
@@ -128,7 +126,7 @@ function renderRemotePanel(container: HTMLElement, tracks: RemoteTrack[]) {
 
   container.append(
     el('h2', { textContent: 'Remote tracks (soundscape_tracks)' }),
-    el('p', { className: 'hint', textContent: 'Bytes in Supabase Storage; downloaded on demand. Soft-delete via the visible toggle.' }),
+    el('p', { className: 'hint', textContent: 'Catalog in Supabase; MP3 bytes on Cloudflare R2. Soft-delete via the visible toggle.' }),
     form,
     table,
   );

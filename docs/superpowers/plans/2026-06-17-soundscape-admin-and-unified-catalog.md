@@ -4,11 +4,18 @@
 
 **Goal:** Add a debug-only local web admin for soundscape assets and unify the Android app's local vs remote catalog model so visibility, premium, and download state are handled consistently.
 
-**Architecture:** Remote tracks stay in `soundscape_tracks` (id ≥ 100) with existing download flow. Local (APK) tracks get a new Supabase table `soundscape_bundled_catalog` keyed by `(kind, local_id)` for visibility/premium/order only. Android fetches both catalogs on startup, caches remote + bundled rows in Room, and builds `MusicOption`/`SoundOption` lists via a pure `SoundscapeCatalogBuilder` instead of hardcoded lists in `PurrodoroApp.kt`. A Vite + TypeScript SPA in `tools/soundscape-admin/` uses the service role key for CRUD and Storage uploads.
+**Architecture:** Remote tracks stay in `soundscape_tracks` (id ≥ 100) with existing download flow; audio bytes are served from **Cloudflare R2**. Local (APK) tracks use `soundscape_bundled_catalog` keyed by `(kind, local_id)` for visibility/premium/order only. Android fetches both catalogs on startup, caches remote + bundled rows in Room, and builds `MusicOption`/`SoundOption` lists via `SoundscapeCatalogBuilder`. The admin SPA (`tools/soundscape-admin/`) uses the Supabase service role for Postgres and R2 credentials for uploads.
 
-**Tech Stack:** Supabase (Postgres + Storage), Kotlin/Room/Jetpack Compose, Vite/TypeScript, `@supabase/supabase-js`, JUnit4/Robolectric.
+**Tech Stack:** Supabase Postgres, Cloudflare R2, Kotlin/Room/Jetpack Compose, Vite/TypeScript, `@supabase/supabase-js`, `@aws-sdk/client-s3`, JUnit4/Robolectric.
 
 **Source spec:** `docs/superpowers/specs/2026-06-17-soundscape-admin-design.md`
+
+> **Post-plan updates (2026-06):** Soundscape filenames use kind prefixes —
+> local APK: `l_amb_*` / `l_lofi_*`; cloud R2: `amb_*` / `lofi_*`. **Audio bytes
+> moved to Cloudflare R2** (`purrodoro-soundscapes`); Postgres catalog only in
+> Supabase. Android downloads via `SoundscapeConfig.R2_PUBLIC_URL`; admin uploads
+> via `src/r2.ts`. See `docs/CLOUD_ASSET_MANAGEMENT.md` and migrations
+> `0006`–`0011` (cloud lo-fi seed: ids 100–119).
 
 ---
 
@@ -1125,7 +1132,9 @@ export interface BundledTrack {
 }
 ```
 
-- [ ] **Step 2: Supabase client**
+- [ ] **Step 2: Supabase + R2 clients**
+
+Postgres catalog (`src/supabase.ts`):
 
 ```typescript
 import { createClient } from '@supabase/supabase-js';
@@ -1138,10 +1147,27 @@ if (!url || !key) {
 }
 
 export const supabase = createClient(url, key);
-export const STORAGE_BUCKET = 'soundscape-audio';
-export const publicAudioUrl = (filePath: string) =>
-  `${url}/storage/v1/object/public/${STORAGE_BUCKET}/${filePath}`;
 ```
+
+Audio bytes (`src/r2.ts` — S3-compatible upload + public preview URL):
+
+```typescript
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+
+export const R2_BUCKET = 'purrodoro-soundscapes';
+
+export function publicAudioUrl(filePath: string): string {
+  const base = import.meta.env.VITE_R2_PUBLIC_URL.replace(/\/$/, '');
+  return `${base}/${filePath.replace(/^\//, '')}`;
+}
+
+export async function uploadAudio(filePath: string, file: File): Promise<void> {
+  // PutObjectCommand to R2 endpoint — see tools/soundscape-admin/src/r2.ts
+}
+```
+
+Env: `VITE_R2_ACCOUNT_ID`, `VITE_R2_ACCESS_KEY_ID`, `VITE_R2_SECRET_ACCESS_KEY`,
+`VITE_R2_PUBLIC_URL` (see `.env.example`).
 
 - [ ] **Step 3: Implement `main.ts` UI**
 
@@ -1151,7 +1177,7 @@ Build a single-page admin with two sections:
 - `loadRemoteTracks()`: `supabase.from('soundscape_tracks').select('*').order('sort_order')`
 - Table columns: id, kind, name, active, premium, sort, file_path, size, actions
 - Toggle `is_active` / `is_premium` via update
-- **Add form:** pick kind, name, artist/symbol, premium, sort, file input → upload to `soundscape-audio/{lofi|ambience}/filename.mp3` → insert row with next id ≥ 100
+- **Add form:** pick kind, name, artist/symbol, premium, sort, file input → upload to R2 (`lofi/` or `ambience/` prefix) → insert Postgres row with next id ≥ 100
 - **Preview:** `<audio controls src={publicAudioUrl(file_path)}>`
 - **Soft delete:** set `is_active = false`
 

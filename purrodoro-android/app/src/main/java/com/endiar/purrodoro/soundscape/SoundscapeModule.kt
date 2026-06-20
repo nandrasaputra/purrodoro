@@ -2,7 +2,7 @@ package com.endiar.purrodoro.soundscape
 
 import android.content.Context
 import com.endiar.purrodoro.audio.TrackDownloadManager
-import com.endiar.purrodoro.auth.SupabaseConfig
+import com.endiar.purrodoro.soundscape.SoundscapeConfig
 import com.endiar.purrodoro.auth.SupabaseModule
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
 import io.ktor.client.HttpClient
@@ -43,7 +43,7 @@ object SoundscapeModule {
             downloadManager = TrackDownloadManager(
                 context = appContext,
                 httpClient = HttpClient(OkHttp),
-                baseUrl = SupabaseConfig.URL,
+                audioPublicBaseUrl = SoundscapeConfig.R2_PUBLIC_URL,
             ),
         )
     }

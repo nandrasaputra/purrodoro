@@ -8,7 +8,9 @@ Cloud soundscapes are managed manually via Supabase Dashboard + SQL. Bundled (AP
 
 ## Product model
 
-Every track in the Sounds sheet is either **local** (bytes in APK) or **remote** (bytes in Supabase Storage, downloaded on demand).
+Every track in the Sounds sheet is either **local** (bytes in APK) or **remote**
+(bytes in Cloudflare R2, downloaded on demand). Catalog metadata for remote
+tracks lives in Supabase Postgres (`soundscape_tracks`).
 
 | Concern | Local | Remote |
 |---|---|---|
@@ -26,7 +28,7 @@ Every track in the Sounds sheet is either **local** (bytes in APK) or **remote**
 
 `public.soundscape_tracks` (ids ≥ 100) maps cloud MP3s + metadata:
 
-- `file_path` → Storage object
+- `file_path` → R2 object key (e.g. `lofi/lofi_cedar_rain_study.mp3`)
 - `is_active` → visibility
 - `is_premium` → lock
 - `sort_order` → section order
@@ -35,7 +37,7 @@ Every track in the Sounds sheet is either **local** (bytes in APK) or **remote**
 
 `public.soundscape_bundled_catalog` keyed by `(kind, local_id)`:
 
-- `raw_resource` → APK `R.raw.*` stem (e.g. `ambience_rain`)
+- `raw_resource` → APK `R.raw.*` stem (e.g. `l_amb_rain`, `l_lofi_desk_lamp_rain`)
 - `is_active` → visibility (see note below)
 - `is_premium` → lock
 - `sort_order` → section order
@@ -55,15 +57,16 @@ rows (active and inactive) — the table's RLS allows public read of every row
 
 ### Repo manifest
 
-`tools/soundscape-admin/bundled-manifest.json` documents the APK mapping (raw file, string resource keys, default premium). Used to seed the DB and validate `res/raw/` parity.
+`tools/soundscape-admin/bundled-manifest.json` documents the APK mapping (raw file, string resource keys, default premium). Used to seed the DB and validate `res/raw/` parity. Filename prefixes: **`l_amb_*`** / **`l_lofi_*`** (local APK), **`amb_*`** / **`lofi_*`** (cloud R2) — see `docs/CLOUD_ASSET_MANAGEMENT.md`.
 
 ## Debug admin web app
 
 Local-only SPA at `tools/soundscape-admin/`:
 
-- **Remote panel:** list (incl. inactive), add (upload MP3 + insert row), edit metadata, toggle visibility/premium, soft-delete, preview/play
+- **Remote panel:** list (incl. inactive), add (upload MP3 to R2 + insert Postgres row), edit metadata, toggle visibility/premium, soft-delete, preview/play
 - **Local panel:** list APK-mapped tracks, edit visibility/premium/order (no upload)
-- Auth: Supabase **service role** key in `.env.local` (gitignored)
+- Auth: Supabase **service role** key + Cloudflare R2 **write** credentials in
+  `.env` / `.env.local` (gitignored)
 
 Not deployed publicly; not shipped in the app. **Dev-server only** — never
 `npm run build`/serve `dist/`, since Vite inlines `VITE_*` env vars (the
