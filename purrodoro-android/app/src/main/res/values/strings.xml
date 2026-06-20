@@ -140,7 +140,7 @@
     <string name="logout_confirm_info_local">Tasks and habits stay on this device</string>
     <string name="logout_confirm_footnote">Sign back in with Google anytime</string>
     <string name="logout_confirm_action">Sign out</string>
-    <string name="logout_sheet_cat_cd">Purrodoro resting — your data stays on this phone</string>
+    <string name="logout_sheet_cat_cd">Purrodoro resting. Your data stays on this phone</string>
     <string name="logout_signing_out">Signing out…</string>
 
     <!-- Sync status (Profile, signed-in only) -->
@@ -236,7 +236,7 @@
         <item quantity="other">%1$d focus sessions completed</item>
     </plurals>
     <string name="cycle_v1_title">Cycle complete</string>
-    <string name="cycle_v1_body">That\'s a full cycle behind you. Take a moment — you earned it.</string>
+    <string name="cycle_v1_body">That\'s a full cycle behind you. Take a moment. You earned it.</string>
     <string name="cycle_v2_title">Nicely done</string>
     <string name="cycle_v2_body">You finished a full Pomodoro cycle. Rest before the next one.</string>
     <string name="cycle_v3_title">That\'s a wrap</string>
@@ -249,8 +249,8 @@
     <string name="cycle_duration_hours">%1$d hr</string>
     <string name="cycle_duration_hours_minutes">%1$d hr %2$d min</string>
     <string name="cycle_streak_multi">🔥 %1$d-day streak</string>
-    <string name="cycle_streak_day_one_new">Day 1 — great start</string>
-    <string name="cycle_streak_day_one_back">You\'re back — day 1</string>
+    <string name="cycle_streak_day_one_new">Day 1. Great start</string>
+    <string name="cycle_streak_day_one_back">You\'re back. Day 1</string>
     <string name="cycle_free_focus_eyebrow">Free focus</string>
     <string name="cycle_free_focus_subtitle">You showed up</string>
     <string name="cycle_confetti_cd">Celebration confetti</string>
@@ -360,7 +360,7 @@
     <string name="backup_manage_label">Backup &amp; restore</string>
     <string name="backup_title">Backup &amp; restore</string>
     <string name="backup_summary_title">Keep your data safe</string>
-    <string name="backup_summary_body">Save a copy of your tasks, habits, and history to a file, or restore from one. The file is not encrypted — keep it somewhere private.</string>
+    <string name="backup_summary_body">Save a copy of your tasks, habits, and history to a file, or restore from one. The file is not encrypted. Keep it somewhere private.</string>
     <string name="backup_section_backup">BACKUP</string>
     <string name="backup_section_restore">RESTORE</string>
     <string name="backup_export_label">Save a backup file</string>
@@ -382,12 +382,14 @@
     <string name="backup_restore_error_read">Couldn\'t read the backup file. Your data was not changed.</string>
     <string name="backup_restore_error_apply">The restore didn\'t finish cleanly. A safety copy of your previous data was saved automatically.</string>
 
-    <string name="music_bloom">Bloom</string>
-    <string name="music_bloom_artist">Yasumu</string>
-    <string name="music_chill_fm">Chill FM</string>
-    <string name="music_chill_fm_artist">Dope Cat</string>
-    <string name="music_midnight_whisper">Midnight Whisper</string>
-    <string name="music_midnight_whisper_artist">Matrika</string>
+    <!-- Bundled lo-fi (local) -->
+    <string name="lofi_local_artist"></string>
+    <string name="l_desk_lamp_rain_name">Desk Lamp Rain</string>
+    <string name="l_mosswood_morning_name">Mosswood Morning</string>
+    <string name="l_paper_skies_name">Paper Skies</string>
+    <string name="l_quiet_window_code_name">Quiet Window Code</string>
+    <string name="l_sore_di_pendopo_name">Sore di Pendopo</string>
+    <string name="l_sudirman_rain_loop_name">Sudirman Rain Loop</string>
     <string name="sound_pill_playing">Playing</string>
     <string name="sound_pill_selected">Selected</string>
     <string name="sound_pill_premium">Premium</string>
@@ -413,8 +415,8 @@
     <string name="premium_cap_habits">More habits</string>
     <string name="premium_cap_active_tasks_title">Active task limit reached</string>
     <string name="premium_cap_habits_title">Habit limit reached</string>
-    <string name="premium_cap_active_tasks_body">Your free plan includes up to %1$d active tasks. Mark one done or remove it to add another—or unlock Premium for unlimited tasks.</string>
-    <string name="premium_cap_habits_body">Your free plan includes up to %1$d habits. Remove one to add another—or unlock Premium for unlimited habits.</string>
+    <string name="premium_cap_active_tasks_body">Your free plan includes up to %1$d active tasks. Mark one done or remove it to add another, or unlock Premium for unlimited tasks.</string>
+    <string name="premium_cap_habits_body">Your free plan includes up to %1$d habits. Remove one to add another, or unlock Premium for unlimited habits.</string>
     <string name="premium_cap_perk_unlimited_tasks">Unlimited active tasks</string>
     <string name="premium_cap_perk_unlimited_habits">Unlimited habits</string>
     <string name="free_tier_active_tasks_count">%1$d/%2$d active</string>
@@ -545,9 +547,9 @@
     <string name="tasks_marked_done">Task marked done</string>
     <string name="tasks_open_focus">Open focus</string>
     <string name="tasks_focus_with_kuro">Focus with Purrodoro</string>
-    <string name="tasks_helper_open">This Pomodoro is in progress — tap to jump back to it.</string>
+    <string name="tasks_helper_open">This Pomodoro is in progress. Tap to jump back to it.</string>
     <string name="tasks_helper_blocked">A Pomodoro is already running. Finish or stop it to focus on this task.</string>
-    <string name="tasks_helper_start">We\'ll set up the focus together — start when you\'re ready.</string>
+    <string name="tasks_helper_start">We\'ll set up the focus together. Start when you\'re ready.</string>
     <string name="tasks_helper_completed">This task is already done. Uncheck it to focus on it again.</string>
     <string name="tasks_priority">Priority</string>
     <string name="tasks_category">Category</string>
@@ -627,7 +629,7 @@
     <string name="habits_not_scheduled">Not scheduled today · %1$s</string>
     <string name="habits_open_focus">Open focus</string>
     <string name="habits_focus_with_kuro">Focus with Purrodoro</string>
-    <string name="habits_helper_open">This Pomodoro is in progress — tap to jump back to it.</string>
+    <string name="habits_helper_open">This Pomodoro is in progress. Tap to jump back to it.</string>
     <string name="habits_helper_blocked">A Pomodoro is already running. Finish or stop it to focus on this habit.</string>
     <string name="habits_helper_start">Focus a Pomodoro on this habit when you\'re ready.</string>
     <string name="habits_helper_completed">You already completed this habit today.</string>
@@ -652,7 +654,7 @@
     <string name="notif_break_complete_title">Break complete</string>
     <string name="notif_break_complete_body">Ready for another focus session?</string>
     <string name="notif_cycle_complete_title">Cycle complete</string>
-    <string name="notif_cycle_complete_body">Nice work — your Pomodoro cycle is done</string>
+    <string name="notif_cycle_complete_body">Nice work. Your Pomodoro cycle is done</string>
     <string name="notif_timer_stopped_title">Timer stopped</string>
     <string name="notif_timer_stopped_body">Session ended early</string>
     <string name="notif_segment_focus">Focus</string>
@@ -676,8 +678,8 @@
     <string name="widget_daily_plan_label">Purrodoro Tasks</string>
     <string name="widget_daily_plan_description">Today\'s habits and tasks as quick taps, with Purrodoro cheering you on.</string>
     <string name="widget_daily_plan_title">Purrodoro Tasks</string>
-    <string name="widget_daily_plan_empty">All clear — enjoy a calm focus</string>
-    <string name="widget_daily_plan_overflow">+%1$d more waiting — tap to see them</string>
+    <string name="widget_daily_plan_empty">All clear. Enjoy a calm focus</string>
+    <string name="widget_daily_plan_overflow">+%1$d more waiting. Tap to see them</string>
     <string name="widget_daily_plan_start_focus">Start Focus</string>
     <string name="widget_streak_hero_label">Purrodoro Streak</string>
     <string name="widget_streak_hero_description">Keep your focus streak alive with a little help from Purrodoro.</string>
@@ -690,7 +692,7 @@
     <string name="widget_stat_streak">streak</string>
     <string name="widget_stat_habits">habits</string>
     <string name="widget_stat_tasks">tasks</string>
-    <string name="widget_preview_daily_plan_overflow">+3 more waiting — tap to see them</string>
+    <string name="widget_preview_daily_plan_overflow">+3 more waiting. Tap to see them</string>
     <string name="widget_preview_dashboard_greeting">Good morning</string>
     <string name="widget_preview_dashboard_subtitle">Purrodoro\'s ready when you are</string>
     <string name="widget_preview_dashboard_focus_stat">🎯 0 focus</string>

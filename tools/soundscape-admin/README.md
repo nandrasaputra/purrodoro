@@ -5,34 +5,34 @@ release: the **remote** cloud catalog (`soundscape_tracks`) and the **local**
 APK override table (`soundscape_bundled_catalog`).
 
 > ⚠️ **Security — dev-server only.** This tool uses the Supabase **service role
-> key**, which bypasses RLS (full read/write on every table). Vite inlines any
-> `VITE_*` env var into the client bundle at build time, so **never run
-> `npm run build` / serve `dist/`** — that would ship the key in plaintext JS.
-> Use `npm run dev` locally only. Keep the key in `.env.local` (gitignored) and
-> never commit it.
+> key** and R2 **write credentials**, which bypass normal access controls. Vite
+> inlines any `VITE_*` env var into the client bundle at build time, so **never
+> run `npm run build` / serve `dist/`** — that would ship secrets in plaintext
+> JS. Use `npm run dev` locally only. Keep secrets in `.env` / `.env.local`
+> (gitignored) and never commit them.
 
 ## Prerequisites
 
 - Node 20+
-- The Supabase **service role** key (Supabase dashboard → Project Settings → API)
+- Supabase **service role** key (dashboard → Project Settings → API)
+- Cloudflare R2 **read/write** API token scoped to `purrodoro-soundscapes`
 
 ## Setup
 
 ```bash
 cd tools/soundscape-admin
-cp .env.example .env.local      # then paste your service role key
+cp .env.example .env.local   # paste Supabase + R2 credentials
 npm install
-npm run dev                     # http://localhost:5173
+npm run dev                  # http://localhost:5173
 ```
 
 ## Remote workflow (cloud tracks, ids ≥ 100)
 
-- **Add:** pick kind, fill name/artist/symbol/sort, choose an MP3 → it uploads to
-  `soundscape-audio/{lofi|ambience}/<filename>` and inserts a row with the next
-  free id ≥ 100.
-- **Toggle visible / lock:** flips `is_active` / `is_premium`.
+- **Add:** pick kind, fill name/artist/symbol/sort, choose an MP3 → uploads to
+  **Cloudflare R2** at `{lofi|ambience}/<filename>` and inserts a Postgres row.
+- **Toggle visible / lock:** flips `is_active` / `is_premium` in Supabase.
 - **Soft-delete:** set the track to hidden (the visible toggle). Don't reuse ids.
-- **Preview:** the inline `<audio>` plays the public Storage URL.
+- **Preview:** inline `<audio>` plays the public R2 URL.
 
 ## Local workflow (APK-bundled tracks)
 
@@ -40,9 +40,6 @@ The audio ships inside the APK; this table only **overrides** metadata. You can
 edit `is_active` (visibility), `is_premium` (lock), and `sort_order`. You cannot
 upload or delete bytes here.
 
-- Hiding a bundled track: set `is_active = false`. The app reads inactive rows so
-  it can tell "hidden" apart from "not yet seeded" (a brand-new APK track with no
-  row stays visible by default).
-
 The source-of-truth mapping of APK raw files ↔ string keys is
-[`bundled-manifest.json`](./bundled-manifest.json), which also seeds the DB table.
+[`bundled-manifest.json`](./bundled-manifest.json). See `docs/CLOUD_ASSET_MANAGEMENT.md`
+for the `l_amb_*` / `l_lofi_*` (APK) vs `amb_*` / `lofi_*` (R2) naming table.

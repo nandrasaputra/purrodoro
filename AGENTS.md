@@ -6,6 +6,9 @@ the source docs for detail.
 - **Product reference:** [`docs/PRODUCT.md`](docs/PRODUCT.md)
 - **Android release readiness:** [`purrodoro-android/docs/release-readiness.md`](purrodoro-android/docs/release-readiness.md)
 - **Design specs:** [`docs/superpowers/specs/`](docs/superpowers/specs/)
+- **Soundscape assets:** Postgres catalog + **Cloudflare R2** audio (`l_amb_*` /
+  `l_lofi_*` local APK, `amb_*` / `lofi_*` cloud); see
+  [`docs/CLOUD_ASSET_MANAGEMENT.md`](docs/CLOUD_ASSET_MANAGEMENT.md)
 
 ## Testing (Android)
 

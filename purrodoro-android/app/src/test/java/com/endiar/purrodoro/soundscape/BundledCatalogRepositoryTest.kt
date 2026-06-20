@@ -43,7 +43,7 @@ class BundledCatalogRepositoryTest {
         name = "",
         artist = "",
         symbol = "Rain",
-        rawResource = "ambience_rain",
+        rawResource = "l_amb_rain",
         isPremium = false,
         sortOrder = localId,
         isActive = true,

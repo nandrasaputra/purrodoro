@@ -23,7 +23,7 @@ data class SoundscapeTrackEntity(
     val name: String,
     val artist: String,
     val symbol: String,
-    val filePath: String,      // object path inside the soundscape-audio bucket
+    val filePath: String,      // R2 object key, e.g. lofi/lofi_rainy_window.mp3
     val fileSizeBytes: Long,
     val isPremium: Boolean,
     val sortOrder: Int,

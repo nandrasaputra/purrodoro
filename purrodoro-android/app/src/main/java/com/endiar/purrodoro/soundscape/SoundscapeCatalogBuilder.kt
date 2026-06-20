@@ -15,9 +15,12 @@ import com.endiar.purrodoro.model.SoundOption
  * and left-join the cached DB row by (kind, localId). A missing row keeps the
  * default and stays visible (a freshly-bundled track not yet seeded must never
  * silently disappear); an inactive row (`isActive == false`) hides its default.
- * Non-blank `name` / `artist` / `symbol` on the row override the string-res
- * defaults. Bundled tracks always render before remote tracks.
- */
+     * Non-blank `name` / `artist` / `symbol` on the row override the string-res
+     * defaults. Bundled tracks always render before remote tracks.
+     *
+     * Bundled music with an unresolvable `res/raw` stem is kept in the list with
+     * `audio = null` so a stale catalog row never crashes startup.
+     */
 object SoundscapeCatalogBuilder {
 
     fun buildAmbienceOptions(
@@ -64,13 +67,13 @@ object SoundscapeCatalogBuilder {
         bundledDefaults: List<BundledTrackDefault> = BundledTrackRegistry.defaults,
     ): List<MusicOption> {
         val bundled = mergeBundled("music", bundledRows, bundledDefaults)
-            .mapNotNull { (def, row) ->
-                val resId = rawResIdFor(row, def) ?: return@mapNotNull null
+            .map { (def, row) ->
+                val resId = rawResIdFor(row, def)
                 MusicOption(
                     id = def.localId,
                     name = row?.name?.takeIf { it.isNotBlank() } ?: nameFor(row, def),
                     artist = row?.artist?.takeIf { it.isNotBlank() } ?: subtitleFor(row, def),
-                    audio = AudioSource.Bundled(resId),
+                    audio = resId?.let { AudioSource.Bundled(it) },
                     locked = row?.isPremium ?: def.defaultPremium,
                     remote = null,
                 )
