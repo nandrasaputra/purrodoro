@@ -30,14 +30,15 @@ object SoundscapeCatalogBuilder {
         bundledDefaults: List<BundledTrackDefault> = BundledTrackRegistry.defaults,
     ): List<SoundOption> {
         val bundled = mergeBundled("ambience", bundledRows, bundledDefaults)
-            .map { (def, row) ->
+            .mapNotNull { (def, row) ->
+                val resId = rawResIdFor(row, def) ?: return@mapNotNull null
                 SoundOption(
                     id = def.localId,
                     name = row?.name?.takeIf { it.isNotBlank() } ?: nameFor(row, def),
                     description = row?.artist?.takeIf { it.isNotBlank() } ?: subtitleFor(row, def),
                     locked = row?.isPremium ?: def.defaultPremium,
                     symbol = row?.symbol?.takeIf { it.isNotBlank() } ?: def.symbol,
-                    audio = AudioSource.Bundled(rawResIdFor(row, def)),
+                    audio = AudioSource.Bundled(resId),
                     remote = null,
                 )
             }
@@ -63,12 +64,13 @@ object SoundscapeCatalogBuilder {
         bundledDefaults: List<BundledTrackDefault> = BundledTrackRegistry.defaults,
     ): List<MusicOption> {
         val bundled = mergeBundled("music", bundledRows, bundledDefaults)
-            .map { (def, row) ->
+            .mapNotNull { (def, row) ->
+                val resId = rawResIdFor(row, def) ?: return@mapNotNull null
                 MusicOption(
                     id = def.localId,
                     name = row?.name?.takeIf { it.isNotBlank() } ?: nameFor(row, def),
                     artist = row?.artist?.takeIf { it.isNotBlank() } ?: subtitleFor(row, def),
-                    audio = AudioSource.Bundled(rawResIdFor(row, def)),
+                    audio = AudioSource.Bundled(resId),
                     locked = row?.isPremium ?: def.defaultPremium,
                     remote = null,
                 )
@@ -108,8 +110,8 @@ object SoundscapeCatalogBuilder {
             .sortedBy { (def, row) -> row?.sortOrder ?: def.sortOrder }
     }
 
-    private fun rawResIdFor(row: SoundscapeBundledEntity?, def: BundledTrackDefault): Int =
-        BundledTrackRegistry.rawResId(row?.rawResource?.takeIf { it.isNotBlank() } ?: def.rawResource)
+    private fun rawResIdFor(row: SoundscapeBundledEntity?, def: BundledTrackDefault): Int? =
+        BundledTrackRegistry.resolveRawResId(row?.rawResource, def.rawResource)
 
     private fun stateFor(row: SoundscapeTrackEntity, states: Map<Int, DownloadState>): DownloadState =
         states[row.id] ?: DownloadState.NotDownloaded
