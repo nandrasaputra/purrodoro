@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "upload-thumbnails": "node scripts/upload-thumbnails.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.830.0",

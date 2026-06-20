@@ -1,7 +1,5 @@
 package com.endiar.purrodoro.ui
 
-import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,7 +57,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
@@ -1516,9 +1513,11 @@ private fun AmbienceTile(
                     .border(borderWidth, borderColor, RoundedCornerShape(KuroSpacing.radiusMd)),
                 contentAlignment = Alignment.Center,
             ) {
-                Image(
-                    painter = painterResource(ambienceIconRes(sound.id)),
-                    contentDescription = null,
+                SoundscapeAmbienceThumbnail(
+                    trackId = sound.id,
+                    thumbnailPath = sound.remote?.thumbnailPath,
+                    audioFilePath = sound.remote?.filePath,
+                    cacheVersion = sound.remote?.cacheVersion ?: 0L,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
@@ -1556,21 +1555,30 @@ private fun AmbienceTile(
             )
         }
         Text(
-            text = if (downloadState == DownloadState.NotDownloaded) {
-                stringResource(
-                    R.string.soundscape_download_size,
-                    "%.1f".format((sound.remote?.fileSizeBytes ?: 0L) / 1_000_000f),
-                )
-            } else {
-                tileLabel
-            },
+            text = tileLabel.ifBlank { sound.name },
             color = tokens.textPrimary,
-            style = KuroType.labelMeta,
+            style = KuroType.labelMeta.copy(
+                fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.SemiBold,
+            ),
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
         )
+        if (downloadState == DownloadState.NotDownloaded) {
+            Text(
+                text = stringResource(
+                    R.string.soundscape_download_size,
+                    "%.1f".format((sound.remote?.fileSizeBytes ?: 0L) / 1_000_000f),
+                ),
+                color = tokens.textMuted,
+                style = KuroType.labelMeta,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         when {
             showRemoveDownload && downloadState == DownloadState.Downloaded -> {
                 IconButton(onClick = { onDeleteDownload(sound.id) }) {
@@ -1640,7 +1648,7 @@ private fun LofiVinylTile(
                 )
             }
             LofiVinylDisc(
-                trackId = track.id,
+                track = track,
                 isSpinning = isPlaying,
                 modifier = Modifier.size(vinylSize),
             )
@@ -1880,21 +1888,22 @@ private fun SoundscapeVolumeStepRow(
 
 @Composable
 private fun LofiVinylDisc(
-    trackId: Int,
+    track: MusicOption,
     isSpinning: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val spinAngle = rememberSoundscapeVinylSpinAngle(
-        label = "lofiVinylSpin_$trackId",
+        label = "lofiVinylSpin_${track.id}",
         isSpinning = isSpinning,
     )
-    Image(
-        painter = painterResource(lofiVinylDiscRes(trackId)),
-        contentDescription = null,
+    SoundscapeVinylDisc(
+        trackId = track.id,
+        thumbnailPath = track.remote?.thumbnailPath,
+        audioFilePath = track.remote?.filePath,
+        cacheVersion = track.remote?.cacheVersion ?: 0L,
         modifier = modifier
             .rotate(spinAngle)
             .clip(CircleShape),
-        contentScale = ContentScale.Crop,
     )
 }
 
@@ -1914,23 +1923,4 @@ private fun SoundscapePlayingChip() {
             fontFamily = NunitoFamily,
         )
     }
-}
-
-@DrawableRes
-private fun ambienceIconRes(soundId: Int): Int = when (soundId) {
-    1 -> R.drawable.soundscape_ambience_rain
-    2 -> R.drawable.soundscape_ambience_cafe
-    3 -> R.drawable.soundscape_ambience_fireplace
-    4 -> R.drawable.soundscape_ambience_forest
-    5 -> R.drawable.soundscape_ambience_sea_wave
-    6 -> R.drawable.soundscape_ambience_winter_wind
-    else -> R.drawable.soundscape_ambience_rain
-}
-
-@DrawableRes
-private fun lofiVinylDiscRes(trackId: Int): Int = when (trackId) {
-    1 -> R.drawable.soundscape_vinyl_soft_piano
-    2 -> R.drawable.soundscape_vinyl_chill_hop
-    3 -> R.drawable.soundscape_vinyl_midnight_jazz
-    else -> R.drawable.soundscape_vinyl_base
 }

@@ -1,0 +1,49 @@
+{
+  "spec": "384x384 WebP, q82. Cloud keys mirror audio file_path with .webp extension.",
+  "bundled_apk": {
+    "ambience": [
+      { "localId": 1, "name": "Rainy Window", "rawResource": "l_amb_rain", "drawable": "soundscape_ambience_rain" },
+      { "localId": 2, "name": "Cafe Purr", "rawResource": "l_amb_cafe", "drawable": "soundscape_ambience_cafe" },
+      { "localId": 3, "name": "Fireplace", "rawResource": "l_amb_fireplace", "drawable": "soundscape_ambience_fireplace" },
+      { "localId": 4, "name": "Forest Nap", "rawResource": "l_amb_forest", "drawable": "soundscape_ambience_forest" },
+      { "localId": 5, "name": "Ocean Shore", "rawResource": "l_amb_sea_wave", "drawable": "soundscape_ambience_sea_wave" },
+      { "localId": 6, "name": "Winter Wind", "rawResource": "l_amb_winter_wind", "drawable": "soundscape_ambience_winter_wind" }
+    ],
+    "music": [
+      { "localId": 1, "name": "Desk Lamp Rain", "rawResource": "l_lofi_desk_lamp_rain", "drawable": "soundscape_music_desk_lamp_rain" },
+      { "localId": 2, "name": "Mosswood Morning", "rawResource": "l_lofi_mosswood_morning", "drawable": "soundscape_music_mosswood_morning" },
+      { "localId": 3, "name": "Paper Skies", "rawResource": "l_lofi_paper_skies", "drawable": "soundscape_music_paper_skies" },
+      { "localId": 4, "name": "Quiet Window Code", "rawResource": "l_lofi_quiet_window_code", "drawable": "soundscape_music_quiet_window_code" },
+      { "localId": 5, "name": "Sore di Pendopo", "rawResource": "l_lofi_sore_di_pendopo", "drawable": "soundscape_music_sore_di_pendopo" },
+      { "localId": 6, "name": "Sudirman Rain Loop", "rawResource": "l_lofi_sudirman_rain_loop", "drawable": "soundscape_music_sudirman_rain_loop" }
+    ]
+  },
+  "cloud_r2_staging": {
+    "ambience": [
+      { "id": 120, "name": "Storm", "r2_key": "ambience/amb_storm.webp", "local_file": "ambience/amb_storm.webp" },
+      { "id": 121, "name": "Night Crickets", "r2_key": "ambience/amb_night_cricket.webp", "local_file": "ambience/amb_night_cricket.webp" }
+    ],
+    "music": [
+      { "id": 100, "name": "Cedar Rain Study", "r2_key": "lofi/lofi_cedar_rain_study.webp" },
+      { "id": 101, "name": "Cloud Garden Drift", "r2_key": "lofi/lofi_cloud_garden_drift.webp" },
+      { "id": 102, "name": "Kacapi Rain Drift", "r2_key": "lofi/lofi_kacapi_rain_drift.webp" },
+      { "id": 103, "name": "Last Page Of Summer", "r2_key": "lofi/lofi_last_page_of_summer.webp" },
+      { "id": 104, "name": "Last Train Glow", "r2_key": "lofi/lofi_last_train_glow.webp" },
+      { "id": 105, "name": "Midnight Platform", "r2_key": "lofi/lofi_midnight_platform.webp" },
+      { "id": 106, "name": "Midnight Rain Grid", "r2_key": "lofi/lofi_midnight_rain_grid.webp" },
+      { "id": 107, "name": "Moonlit Glass", "r2_key": "lofi/lofi_moonlit_glass.webp" },
+      { "id": 108, "name": "Paper Crane Study", "r2_key": "lofi/lofi_paper_crane_study.webp" },
+      { "id": 109, "name": "Paper Cup Evening", "r2_key": "lofi/lofi_paper_cup_evening.webp" },
+      { "id": 110, "name": "Paper Lantern Drift", "r2_key": "lofi/lofi_paper_lantern_drift.webp" },
+      { "id": 111, "name": "Rain On Glass", "r2_key": "lofi/lofi_rain_on_glass.webp" },
+      { "id": 112, "name": "Rain On Washi", "r2_key": "lofi/lofi_rain_on_washi.webp" },
+      { "id": 113, "name": "Rain Window Atlas", "r2_key": "lofi/lofi_rain_window_atlas.webp" },
+      { "id": 114, "name": "Rainy Compiler", "r2_key": "lofi/lofi_rainy_compiler.webp" },
+      { "id": 115, "name": "Rainy Window Code", "r2_key": "lofi/lofi_rainy_window_code.webp" },
+      { "id": 116, "name": "Sky Between Clouds", "r2_key": "lofi/lofi_sky_between_clouds.webp" },
+      { "id": 117, "name": "Soft Loop Atlas", "r2_key": "lofi/lofi_soft_loop_atlas.webp" },
+      { "id": 118, "name": "Sunlit Window Postcards", "r2_key": "lofi/lofi_sunlit_window_postcards.webp" },
+      { "id": 119, "name": "Velvet Study Room", "r2_key": "lofi/lofi_velvet_study_room.webp" }
+    ]
+  }
+}

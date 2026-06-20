@@ -25,7 +25,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SoundscapeTrackEntity::class,
         SoundscapeBundledEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class PurrodoroDatabase : RoomDatabase() {
@@ -108,6 +108,15 @@ abstract class PurrodoroDatabase : RoomDatabase() {
             }
         }
 
+        /** v6 adds cloud thumbnail_path to the soundscape_track cache. */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `soundscape_track` ADD COLUMN `thumbnailPath` TEXT NOT NULL DEFAULT ''",
+                )
+            }
+        }
+
         @Volatile private var INSTANCE: PurrodoroDatabase? = null
 
         fun get(context: Context): PurrodoroDatabase =
@@ -116,7 +125,7 @@ abstract class PurrodoroDatabase : RoomDatabase() {
                     context.applicationContext,
                     PurrodoroDatabase::class.java,
                     "purrodoro.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build().also { INSTANCE = it }
             }
     }

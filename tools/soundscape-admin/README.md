@@ -28,8 +28,11 @@ npm run dev                  # http://localhost:5173
 
 ## Remote workflow (cloud tracks, ids ≥ 100)
 
-- **Add:** pick kind, fill name/artist/symbol/sort, choose an MP3 → uploads to
-  **Cloudflare R2** at `{lofi|ambience}/<filename>` and inserts a Postgres row.
+- **Add:** pick kind, fill name/artist/symbol/sort, choose an MP3 (and optional
+  WebP/PNG thumbnail) → uploads to **Cloudflare R2** and inserts a Postgres row.
+  `thumbnail_path` defaults to the MP3 stem with `.webp`.
+- **Thumbnails:** each remote row shows a preview, R2 object path, and a per-row
+  **Upload thumb** control to replace the image without re-uploading audio.
 - **Toggle visible / lock:** flips `is_active` / `is_premium` in Supabase.
 - **Soft-delete:** set the track to hidden (the visible toggle). Don't reuse ids.
 - **Preview:** inline `<audio>` plays the public R2 URL.

@@ -20,7 +20,13 @@ fun SoundscapeTrackEntity.toMusicOption(
     artist = artist,
     audio = localPath?.let { AudioSource.LocalFile(it) },
     locked = isPremium,
-    remote = RemoteTrackInfo(fileSizeBytes = fileSizeBytes, downloadState = downloadState),
+    remote = RemoteTrackInfo(
+        fileSizeBytes = fileSizeBytes,
+        downloadState = downloadState,
+        thumbnailPath = SoundscapeConfig.thumbnailKey(thumbnailPath, filePath),
+        filePath = filePath,
+        cacheVersion = updatedAtMillis,
+    ),
 )
 
 fun SoundscapeTrackEntity.toSoundOption(
@@ -33,5 +39,11 @@ fun SoundscapeTrackEntity.toSoundOption(
     locked = isPremium,
     symbol = symbol,
     audio = localPath?.let { AudioSource.LocalFile(it) },
-    remote = RemoteTrackInfo(fileSizeBytes = fileSizeBytes, downloadState = downloadState),
+    remote = RemoteTrackInfo(
+        fileSizeBytes = fileSizeBytes,
+        downloadState = downloadState,
+        thumbnailPath = SoundscapeConfig.thumbnailKey(thumbnailPath, filePath),
+        filePath = filePath,
+        cacheVersion = updatedAtMillis,
+    ),
 )

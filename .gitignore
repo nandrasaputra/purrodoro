@@ -75,8 +75,10 @@ Pods/
 **/.worktrees
 
 # ──────────────────────────────────────────────────────────────
-# Soundscape debug admin (tools/soundscape-admin)
+# Generated sample PNGs (not shipped; WebP staging lives under thumbnails/)
+assets/soundscape/samples/
 # ──────────────────────────────────────────────────────────────
 tools/soundscape-admin/node_modules/
+tools/soundscape-admin/.env
 tools/soundscape-admin/.env.local
 tools/soundscape-admin/dist/
