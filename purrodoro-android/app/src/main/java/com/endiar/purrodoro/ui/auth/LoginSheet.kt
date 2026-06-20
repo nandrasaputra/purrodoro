@@ -221,7 +221,7 @@ fun LoginSheet(
 }
 
 @Composable
-private fun GoogleSignInButton(
+internal fun GoogleSignInButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {

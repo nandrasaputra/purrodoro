@@ -121,6 +121,8 @@ fun ProfileScreen(
     storageUsedLabel: String = "",
     onOpenStorage: () -> Unit = {},
     onOpenBackupRestore: () -> Unit = {},
+    isPremium: Boolean = false,
+    onOpenPremium: () -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
@@ -169,6 +171,8 @@ fun ProfileScreen(
                 onRequestLogin = onRequestLogin,
                 onSignOut = onSignOut,
                 syncPresentation = if (syncEnabled) syncPresentation else null,
+                isPremium = isPremium,
+                onOpenPremium = onOpenPremium,
             )
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))

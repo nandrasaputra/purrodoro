@@ -51,6 +51,8 @@ data class AuthUser(
     val email: String?,
     val displayName: String?,
     val provider: AuthProvider,
+    /** Google / OIDC profile photo when the provider supplies one. */
+    val avatarUrl: String? = null,
 )
 
 sealed class AuthState {

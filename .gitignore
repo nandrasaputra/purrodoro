@@ -77,6 +77,8 @@ Pods/
 # ──────────────────────────────────────────────────────────────
 # Generated sample PNGs (not shipped; WebP staging lives under thumbnails/)
 assets/soundscape/samples/
+# Source PNGs staged for WebP conversion (shipped copies live in res/drawable/)
+assets/profile_*_banner.png
 # ──────────────────────────────────────────────────────────────
 tools/soundscape-admin/node_modules/
 tools/soundscape-admin/.env

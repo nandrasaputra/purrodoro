@@ -61,6 +61,21 @@ val PremiumBadgeGradientTopDark = Color(0xFFA894D8)
 val PremiumBadgeGradientBottomDark = Color(0xFF7B4FBF)
 val PremiumBadgeText = Color(0xFFFFFFFF)
 
+/** Golden accent in the premium aurora ring (lavender → gold → purple). */
+val PremiumAuroraGold = Color(0xFFFFD766)
+
+/** Subtle lavender wash behind premium member cards. */
+val PremiumMemberCardWashLight = Color(0xFFF3EDFF)
+val PremiumMemberCardWashDark = Color(0xFF1E1830)
+
+/** Free tier pill on Profile — muted counterpart to Starry Pill. */
+val FreeBadgeFillLight = Color(0xFFF0EBF5)
+val FreeBadgeBorderLight = Color(0xFFD8CCE8)
+val FreeBadgeTextLight = Color(0xFF5C4A42)
+val FreeBadgeFillDark = Color(0xFF2A2438)
+val FreeBadgeBorderDark = Color(0xFF4A4060)
+val FreeBadgeTextDark = Color(0xFFD4CCE8)
+
 // ── Sound icon tile palette (per-sound-id × scheme) ────────────────────────
 // Light mode fills (id 1=Rainy Window, 2=Cafe, 3=Forest, 4=Fire, 5=Keys)
 val TileRainLight = Blush

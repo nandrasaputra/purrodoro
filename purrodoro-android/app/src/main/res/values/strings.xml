@@ -115,6 +115,7 @@
     <string name="account_sign_in_title">Sign in to Purrodoro</string>
     <string name="account_sign_in_subtitle">Save habits and journey across devices</string>
     <string name="account_default_name">Purrodoro friend</string>
+    <string name="account_avatar_cd">Profile picture for %1$s</string>
     <string name="account_signed_in_with_google">Signed in with Google</string>
     <string name="account_signed_in_generic">Signed in</string>
     <string name="account_sign_out">Sign out</string>
@@ -419,6 +420,71 @@
     <string name="premium_cap_habits_body">Your free plan includes up to %1$d habits. Remove one to add another, or unlock Premium for unlimited habits.</string>
     <string name="premium_cap_perk_unlimited_tasks">Unlimited active tasks</string>
     <string name="premium_cap_perk_unlimited_habits">Unlimited habits</string>
+
+    <!-- Premium profile + discovery screen -->
+    <string name="premium_member_title">Purrodoro Premium</string>
+    <string name="premium_member_subtitle">Thank you for supporting cozy focus</string>
+    <string name="premium_member_view_benefits">View benefits</string>
+
+    <!-- Profile identity card (unified account + tier) -->
+    <string name="profile_free_badge">Free</string>
+    <string name="profile_free_badge_cd">%1$s plan</string>
+    <string name="profile_upgrade_heading">Upgrade to Premium to access…</string>
+    <string name="profile_explore_premium">Explore Premium</string>
+    <string name="profile_premium_banner_cd">Premium member banner</string>
+    <string name="profile_free_banner_cd">Profile banner</string>
+    <string name="profile_benefit_sounds">Every ambience &amp; lo-fi</string>
+    <string name="profile_benefit_scenes">Premium home scenes</string>
+    <string name="profile_benefit_tasks">Unlimited active tasks</string>
+    <string name="profile_benefit_habits">Unlimited habits</string>
+
+    <string name="premium_spotlight_title">Unlock Purrodoro Premium</string>
+    <string name="premium_spotlight_subtitle">Soundscapes, cozy scenes &amp; more</string>
+    <string name="premium_spotlight_compare_sounds_from">Rain + Cafe</string>
+    <string name="premium_spotlight_compare_sounds_to">All sounds</string>
+    <string name="premium_spotlight_compare_scenes_from">Room only</string>
+    <string name="premium_spotlight_compare_scenes_to">4 home scenes</string>
+    <string name="premium_spotlight_compare_tasks_from">%1$d active tasks</string>
+    <string name="premium_spotlight_compare_tasks_to">Unlimited</string>
+    <string name="premium_spotlight_cta">Discover Premium</string>
+    <string name="premium_one_time_hint">One-time purchase · No subscription</string>
+
+    <!-- Premium login gate (guest → sign in before Premium) -->
+    <string name="premium_login_title">Sign in to unlock Premium</string>
+    <string name="premium_login_subtitle">Premium is linked to your account so your unlock and focus data follow you in the cloud.</string>
+    <string name="premium_login_perk_sync_data">Tasks &amp; habits sync across devices</string>
+    <string name="premium_login_perk_journey">Journey &amp; focus history stay backed up</string>
+    <string name="premium_login_perk_devices">Pick up where you left off on any device</string>
+    <string name="premium_login_dismiss">Maybe later</string>
+
+    <string name="premium_screen_title">Purrodoro Premium</string>
+    <string name="premium_screen_headline_discover">Unlock the full cozy focus toolkit</string>
+    <string name="premium_screen_headline_member">Thanks for supporting Purrodoro</string>
+    <string name="premium_screen_body_discover">Premium adds depth to every Pomodoro — richer soundscapes, new home scenes, and room to grow your tasks and habits.</string>
+    <string name="premium_screen_body_member">You have full access to every Premium perk below. Your cat is very grateful.</string>
+    <string name="premium_screen_price_placeholder">One-time unlock · price coming soon</string>
+    <string name="premium_screen_cta_subscribe">Unlock Premium</string>
+    <string name="premium_screen_active_label">Premium active</string>
+    <string name="premium_story_sounds_title">Every soundscape</string>
+    <string name="premium_story_sounds_body">Layer ambience and lo-fi — forest, fire, midnight whisper, and more.</string>
+    <string name="premium_story_scenes_title">Cozy home scenes</string>
+    <string name="premium_story_scenes_body">Swap the Room backdrop for Café, Library, or Park — day and night.</string>
+    <string name="premium_story_headroom_title">More room to grow</string>
+    <string name="premium_story_headroom_body">Free includes %1$d active tasks and %2$d habits. Premium removes both caps.</string>
+    <string name="premium_compare_section_title">Free vs Premium</string>
+    <string name="premium_compare_sounds">Soundscapes</string>
+    <string name="premium_compare_sounds_free">Rain + Cafe</string>
+    <string name="premium_compare_sounds_premium">All tracks</string>
+    <string name="premium_compare_scenes">Home scenes</string>
+    <string name="premium_compare_scenes_free">Room</string>
+    <string name="premium_compare_scenes_premium">All 4 scenes</string>
+    <string name="premium_compare_tasks">Active tasks</string>
+    <string name="premium_compare_tasks_free">Up to %1$d</string>
+    <string name="premium_compare_habits">Habits</string>
+    <string name="premium_compare_habits_free">Up to %1$d</string>
+    <string name="premium_compare_unlimited">Unlimited</string>
+    <string name="premium_compare_journey">Journey &amp; stats</string>
+    <string name="premium_compare_included">Included</string>
     <string name="free_tier_active_tasks_count">%1$d/%2$d active</string>
     <string name="free_tier_habits_count">%1$d/%2$d habits</string>
     <string name="free_tier_cap_cd">%1$d of %2$d used on free plan</string>

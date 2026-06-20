@@ -16,6 +16,7 @@ finish, skip-to-end) differs.
 | **Freemium model (design)** | [`docs/superpowers/specs/2026-06-07-freemium-model-design.md`](superpowers/specs/2026-06-07-freemium-model-design.md) — original gating architecture; some limits below supersede it |
 | **Freemium rollout (plan)** | [`docs/superpowers/plans/2026-06-07-freemium-model.md`](superpowers/plans/2026-06-07-freemium-model.md) |
 | **Premium badge UI** | [`purrodoro-android/docs/premium-badge.md`](../purrodoro-android/docs/premium-badge.md) — Starry Pill lock affordance |
+| **Premium branding (visual)** | This doc → [Premium branding](#premium-branding-visual-identity) — Aurora Ring, profile card, mascot |
 | **Soundscape catalog (cloud)** | [`docs/superpowers/specs/2026-06-17-soundscape-admin-design.md`](superpowers/specs/2026-06-17-soundscape-admin-design.md), [`docs/superpowers/plans/2026-06-17-soundscape-admin-and-unified-catalog.md`](superpowers/plans/2026-06-17-soundscape-admin-and-unified-catalog.md) |
 | **Cloud assets** | [`docs/CLOUD_ASSET_MANAGEMENT.md`](CLOUD_ASSET_MANAGEMENT.md) |
 | **Design system (locked tokens)** | [`docs/DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) |
@@ -325,6 +326,150 @@ one opens `PremiumUpsellSheet`. Selection persists device-local in DataStore
 - Design (partially superseded on caps/Journey/widgets): [`superpowers/specs/2026-06-07-freemium-model-design.md`](superpowers/specs/2026-06-07-freemium-model-design.md)
 - Implementation plan: [`superpowers/plans/2026-06-07-freemium-model.md`](superpowers/plans/2026-06-07-freemium-model.md)
 - Premium badge: [`purrodoro-android/docs/premium-badge.md`](../purrodoro-android/docs/premium-badge.md)
+
+### Premium branding (visual identity)
+
+Premium status is communicated through a **single visual language** — not
+separate marketing chrome per screen. Locked content uses the **Starry Pill**
+badge; active membership uses the **Aurora Ring** and (on Profile) a
+consolidated **identity card** with the same aurora stroke as home.
+
+> Implementation: `ProfileIdentityCard`, `KuroPremiumAvatarFrame`,
+> `Modifier.premiumAuroraOutline`, `KuroAccountAvatar`, `AccountAvatarStore`,
+> `PremiumProfileCards.kt`, `AccountSection.kt`. Banner drawables:
+> `res/drawable/profile_premium_banner.webp`, `profile_free_banner.webp`.
+> Mascot reference: `assets/mascot_description.md`, `res/drawable/cat_mascot.webp`.
+
+#### Aurora Ring (home + profile avatar)
+
+The **Aurora Ring** is the primary “you are Premium” signal. It wraps circular
+avatars on:
+
+| Surface | Free | Premium |
+|---|---|---|
+| **Home** top-left profile chip (`CatAvatar`) | Plain circle, `cardBorder` stroke | `KuroPremiumAvatarFrame` |
+| **Profile** unified card avatar | Plain circle or Google photo | Same frame + `premium_star_sparkle` accent at bottom-right |
+
+**Avatar photo:** When Google sign-in supplies a profile picture URL
+(Supabase `user_metadata.avatar_url` / `picture`), the app downloads and caches
+it in `AccountAvatarStore` and shows it on **Home**, **Profile**, and
+**onboarding** welcome. Falls back to the display-name initial when no photo
+exists. Cache is keyed by auth `userId`; cleared on account switch (Drop).
+
+**Stroke:** 2dp circular sweep gradient — lavender (`PremiumBadgeGradientTop`) →
+gold (`PremiumAuroraGold` `#FFD766`) → purple (`PremiumBadgeGradientBottom`) →
+gold → lavender. Dark mode uses `PremiumBadgeGradientTopDark` /
+`PremiumBadgeGradientBottomDark`.
+
+**Star accent:** `premium_star_sparkle` at bottom-right of the ring (same asset
+as Starry Pill). Decorative; meaning is carried by the ring + Premium pill on
+Profile.
+
+Home and Profile **must use the same ring** — do not fork a second premium
+avatar treatment.
+
+#### Aurora outline (premium profile card border)
+
+Premium members get the **same sweep gradient** as a **1.5dp rounded-rect
+stroke** around the consolidated Profile identity card (`premiumAuroraOutline`).
+This matches the home avatar ring so membership feels consistent whether the
+user is on Home or Profile.
+
+| State | Card border |
+|---|---|
+| **Premium** | Aurora sweep outline on the unified card (`radiusLg`) |
+| **Free** | Standard `cardBorder` — no aurora |
+
+Do **not** use a flat gold or purple solid border for premium cards.
+
+#### Profile — Option A unified identity card (target layout)
+
+Profile merges premium status and account into **one card** (no separate
+`PremiumMemberCard` stacked above `AccountSection`).
+
+**Premium (signed in):**
+
+```
+┌─ aurora outline (same sweep as home avatar) ─────────────┐
+│ [dark starry banner — profile_premium_banner.webp]        │
+│ (photo)★  Name · email · Google      │ [sync panel]     │
+│ Premium pill (Starry Pill)                                │
+│ View benefits ›                    Sign out               │
+└───────────────────────────────────────────────────────────┘
+```
+
+- Banner: `profile_premium_banner.webp` (starry night + star-eye cat).
+- Card: `premiumAuroraOutline` — lavender → gold → purple sweep (matches home).
+- Avatar: Google photo when cached, else initial — inside `KuroPremiumAvatarFrame` + star accent.
+- **No benefit grid** on premium Profile (benefits live on `PremiumScreen` discovery).
+- Footer: **View benefits ›** (left) + **Sign out** (right).
+
+**Free (signed in)** — same card skeleton as premium; only styling and content differ:
+
+```
+┌─ cardBorder (no aurora) ─────────────────────────────────┐
+│ [soft lavender banner — profile_free_banner.webp]         │
+│ (photo)  Name · email · Google       │ [sync panel]       │
+│ Free pill (muted)                                         │
+│ heading: "Upgrade to Premium to access…"                  │
+│ unlock-icon benefit chips 2×2                             │
+│ [Explore Premium] (shimmer CTA)    Sign out             │
+└───────────────────────────────────────────────────────────┘
+```
+
+- Banner: `profile_free_banner.webp` (lavender paw prints + cat peek).
+- Card: standard `cardBorder` only.
+- Avatar: Google photo when cached, else plain initial circle — no aurora ring, no star.
+- Badge: muted **Free** pill (`KuroFreeBadge`) — never `KuroPremiumBadge` on a free account.
+- Heading above grid: **"Upgrade to Premium to access…"**
+- Grid: static **2×2** unlock-icon chips (sounds, scenes, tasks, habits) — not horizontally scrollable.
+- Footer: **Explore Premium** shimmer pill (left) + **Sign out** (right). No purchase-price
+  hint on Profile until Play Billing ships.
+
+**Guest:** same free card pattern; identity row is the guest sign-in CTA instead
+of Google account details. Premium discovery still requires sign-in first
+(`PremiumLoginRequiredSheet`).
+
+#### Starry Pill (locked content — not membership)
+
+Use `KuroPremiumBadge()` only for **locked** tiles and rows when
+`locked && !isPremium`. See [`premium-badge.md`](../purrodoro-android/docs/premium-badge.md).
+Do not use Starry Pill to mean “user is already Premium” — that is Aurora Ring +
+Premium pill on Profile.
+
+#### Mascot usage
+
+The Purrodoro cat is **cartoonized** — short arms and legs, **mouthless**,
+walks **upright on two legs** (not on all fours). Cream body, brown forehead and
+cheek stripes, large round black eyes, pink blush, thick striped tail. Source:
+`cat_mascot.webp`, `assets/mascot_description.md`.
+
+| Context | Mascot role |
+|---|---|
+| Premium profile banner | `profile_premium_banner.webp` (starry night + star-eye cat) |
+| Free profile banner | `profile_free_banner.webp` (lavender paw prints + cat peek) |
+| Signed-in avatar (Home / Profile / onboarding) | Google photo when available, else **initial**; premium adds `KuroPremiumAvatarFrame` on Home + Profile |
+| Premium discovery hero | `cat_mascot.webp` on `PremiumScreen` |
+
+Source art: keep lossless PNGs out of git (`assets/profile_*_banner.png`); ship WebP in `res/drawable/`.
+Compose drawables: `res/drawable/profile_premium_banner.webp`, `profile_free_banner.webp`.
+Benefit chip unlock glyph: `res/drawable/ic_profile_benefit_unlock.xml`.
+
+#### Color tokens (premium branding)
+
+| Token | Hex | Role |
+|---|---|---|
+| `PremiumBadgeGradientTop` | `#9B7FCC` | Aurora / pill light top |
+| `PremiumBadgeGradientBottom` | `#6B43AA` | Aurora / pill light bottom |
+| `PremiumAuroraGold` | `#FFD766` | Gold stops in aurora sweep |
+| `PremiumMemberCardWashLight` | `#F3EDFF` | Premium card fill (light) |
+| `PremiumMemberCardWashDark` | `#1E1830` | Premium card fill (dark) |
+
+#### Premium discovery screen
+
+Full-screen hub (`PremiumScreen`) for benefits, compare table, and subscribe
+CTA. Opened from Profile “View benefits”, free upsell CTA, and contextual locks.
+Guests are routed to `PremiumLoginRequiredSheet` before discovery.
 
 ---
 
