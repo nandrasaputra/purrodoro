@@ -51,7 +51,22 @@ object BundledTrackRegistry {
         "lofi_midnight_whisper_matrika" to R.raw.lofi_midnight_whisper_matrika,
     )
 
+    /** Lookup a bundled `res/raw` id, or null when [rawResource] is unknown. */
+    fun rawResIdOrNull(rawResource: String): Int? =
+        rawByName[rawResource.trim()]
+
+    /**
+     * Resolve audio for a bundled track. Tries the catalog/server [requested] name
+     * first (trimmed), then the APK registry [fallback]. Handles stale catalog rows
+     * that reference renamed or not-yet-shipped raw files without crashing.
+     */
+    fun resolveRawResId(requested: String?, fallback: String): Int? {
+        val override = requested?.trim()?.takeIf { it.isNotEmpty() }
+        return override?.let { rawResIdOrNull(it) } ?: rawResIdOrNull(fallback)
+    }
+
     @RawRes
     fun rawResId(rawResource: String): Int =
-        rawByName[rawResource] ?: error("Unknown bundled raw resource: $rawResource")
+        rawResIdOrNull(rawResource)
+            ?: error("Unknown bundled raw resource: $rawResource")
 }

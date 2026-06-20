@@ -134,6 +134,46 @@ class SoundscapeCatalogBuilderTest {
     }
 
     @Test
+    fun `unknown catalog rawResource falls back to registry default`() {
+        val row = SoundscapeBundledEntity(
+            kind = "ambience",
+            localId = 1,
+            name = "",
+            artist = "",
+            symbol = "",
+            rawResource = "stale_server_name",
+            isPremium = false,
+            sortOrder = 10,
+            isActive = true,
+        )
+        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
+            bundledRows = listOf(row),
+            remoteRows = emptyList(),
+            downloadStates = emptyMap(),
+            localPaths = emptyMap(),
+            nameFor = { _, _ -> "name" },
+            subtitleFor = { _, _ -> "sub" },
+            bundledDefaults = listOf(rainDefault),
+        )
+        assertEquals(AudioSource.Bundled(R.raw.ambience_rain), options.single().audio)
+    }
+
+    @Test
+    fun `bundled track omitted when no raw resource resolves`() {
+        val unmappedDefault = rainDefault.copy(rawResource = "does_not_exist")
+        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
+            bundledRows = emptyList(),
+            remoteRows = emptyList(),
+            downloadStates = emptyMap(),
+            localPaths = emptyMap(),
+            nameFor = { _, _ -> "name" },
+            subtitleFor = { _, _ -> "sub" },
+            bundledDefaults = listOf(unmappedDefault, cafeDefault),
+        )
+        assertEquals(listOf(2), options.map { it.id })
+    }
+
+    @Test
     fun `bundled tracks render before remote tracks`() {
         val options = SoundscapeCatalogBuilder.buildMusicOptions(
             bundledRows = emptyList(),
