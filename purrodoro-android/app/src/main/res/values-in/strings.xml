@@ -114,6 +114,7 @@
     <string name="account_sign_in_title">Masuk ke Purrodoro</string>
     <string name="account_sign_in_subtitle">Simpan kebiasaan dan perjalanan di semua perangkat</string>
     <string name="account_default_name">Teman Purrodoro</string>
+    <string name="account_avatar_cd">Foto profil %1$s</string>
     <string name="account_signed_in_with_google">Masuk dengan Google</string>
     <string name="account_signed_in_generic">Sudah masuk</string>
     <string name="account_sign_out">Keluar</string>
@@ -411,6 +412,71 @@
     <string name="premium_cap_habits_body">Paket gratis mencakup hingga %1$d kebiasaan. Hapus satu untuk menambah lagi, atau buka Premium untuk kebiasaan tanpa batas.</string>
     <string name="premium_cap_perk_unlimited_tasks">Tugas aktif tanpa batas</string>
     <string name="premium_cap_perk_unlimited_habits">Kebiasaan tanpa batas</string>
+
+    <!-- Premium profile + discovery screen -->
+    <string name="premium_member_title">Purrodoro Premium</string>
+    <string name="premium_member_subtitle">Terima kasih sudah mendukung fokus yang nyaman</string>
+    <string name="premium_member_view_benefits">Lihat manfaat</string>
+
+    <!-- Profile identity card (unified account + tier) -->
+    <string name="profile_free_badge">Gratis</string>
+    <string name="profile_free_badge_cd">Paket %1$s</string>
+    <string name="profile_upgrade_heading">Upgrade ke Premium untuk mengakses…</string>
+    <string name="profile_explore_premium">Jelajahi Premium</string>
+    <string name="profile_premium_banner_cd">Banner anggota Premium</string>
+    <string name="profile_free_banner_cd">Banner profil</string>
+    <string name="profile_benefit_sounds">Semua ambience &amp; lo-fi</string>
+    <string name="profile_benefit_scenes">Suasana rumah Premium</string>
+    <string name="profile_benefit_tasks">Tugas aktif tanpa batas</string>
+    <string name="profile_benefit_habits">Kebiasaan tanpa batas</string>
+
+    <string name="premium_spotlight_title">Buka Purrodoro Premium</string>
+    <string name="premium_spotlight_subtitle">Soundscape, suasana rumah &amp; lainnya</string>
+    <string name="premium_spotlight_compare_sounds_from">Hujan + Kafe</string>
+    <string name="premium_spotlight_compare_sounds_to">Semua suara</string>
+    <string name="premium_spotlight_compare_scenes_from">Kamar saja</string>
+    <string name="premium_spotlight_compare_scenes_to">4 suasana</string>
+    <string name="premium_spotlight_compare_tasks_from">%1$d tugas aktif</string>
+    <string name="premium_spotlight_compare_tasks_to">Tanpa batas</string>
+    <string name="premium_spotlight_cta">Jelajahi Premium</string>
+    <string name="premium_one_time_hint">Beli sekali · Tanpa langganan</string>
+
+    <!-- Premium login gate (guest → sign in before Premium) -->
+    <string name="premium_login_title">Masuk untuk membuka Premium</string>
+    <string name="premium_login_subtitle">Premium terhubung ke akunmu agar unlock dan data fokus ikut tersimpan di cloud.</string>
+    <string name="premium_login_perk_sync_data">Tugas &amp; kebiasaan sinkron di semua perangkat</string>
+    <string name="premium_login_perk_journey">Perjalanan &amp; riwayat fokus tetap ter-backup</string>
+    <string name="premium_login_perk_devices">Lanjutkan di perangkat mana pun</string>
+    <string name="premium_login_dismiss">Nanti saja</string>
+
+    <string name="premium_screen_title">Purrodoro Premium</string>
+    <string name="premium_screen_headline_discover">Buka toolkit fokus yang lebih lengkap</string>
+    <string name="premium_screen_headline_member">Terima kasih sudah mendukung Purrodoro</string>
+    <string name="premium_screen_body_discover">Premium menambah kedalaman di setiap Pomodoro — soundscape lebih kaya, suasana rumah baru, dan ruang untuk tugas &amp; kebiasaan.</string>
+    <string name="premium_screen_body_member">Kamu punya akses penuh ke semua manfaat Premium di bawah. Kucingmu sangat berterima kasih.</string>
+    <string name="premium_screen_price_placeholder">Beli sekali · harga segera hadir</string>
+    <string name="premium_screen_cta_subscribe">Buka Premium</string>
+    <string name="premium_screen_active_label">Premium aktif</string>
+    <string name="premium_story_sounds_title">Semua soundscape</string>
+    <string name="premium_story_sounds_body">Campur ambience dan lo-fi — hutan, api, bisikan tengah malam, dan lainnya.</string>
+    <string name="premium_story_scenes_title">Suasana rumah nyaman</string>
+    <string name="premium_story_scenes_body">Ganti latar Kamar dengan Kafe, Perpustakaan, atau Taman — siang dan malam.</string>
+    <string name="premium_story_headroom_title">Lebih banyak ruang</string>
+    <string name="premium_story_headroom_body">Gratis mencakup %1$d tugas aktif dan %2$d kebiasaan. Premium menghapus kedua batas.</string>
+    <string name="premium_compare_section_title">Gratis vs Premium</string>
+    <string name="premium_compare_sounds">Soundscape</string>
+    <string name="premium_compare_sounds_free">Hujan + Kafe</string>
+    <string name="premium_compare_sounds_premium">Semua trek</string>
+    <string name="premium_compare_scenes">Suasana rumah</string>
+    <string name="premium_compare_scenes_free">Kamar</string>
+    <string name="premium_compare_scenes_premium">4 suasana</string>
+    <string name="premium_compare_tasks">Tugas aktif</string>
+    <string name="premium_compare_tasks_free">Hingga %1$d</string>
+    <string name="premium_compare_habits">Kebiasaan</string>
+    <string name="premium_compare_habits_free">Hingga %1$d</string>
+    <string name="premium_compare_unlimited">Tanpa batas</string>
+    <string name="premium_compare_journey">Perjalanan &amp; statistik</string>
+    <string name="premium_compare_included">Termasuk</string>
     <string name="free_tier_active_tasks_count">%1$d/%2$d aktif</string>
     <string name="free_tier_habits_count">%1$d/%2$d kebiasaan</string>
     <string name="free_tier_cap_cd">%1$d dari %2$d terpakai di paket gratis</string>

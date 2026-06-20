@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -65,7 +66,7 @@ private const val ShimmerDurationMs = 2400
 /** Secondary star twinkle — offset phase from shimmer. */
 private const val StarTwinkleDurationMs = 1600
 
-private data class PremiumBadgeMotion(
+internal data class PremiumBadgeMotion(
     val shimmerProgress: Float,
     val starScale: Float,
     val starAlpha: Float,
@@ -147,6 +148,30 @@ private fun PremiumBadgeChrome(
     contentAlignment: Alignment = Alignment.TopStart,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    PremiumShimmerSurface(
+        modifier = modifier,
+        shape = shape,
+        contentDescription = contentDescription,
+        motion = motion,
+        contentAlignment = contentAlignment,
+        content = content,
+    )
+}
+
+/**
+ * Purple gradient surface with badge shimmer + optional star twinkle motion.
+ * Shared by [KuroPremiumBadge] and profile/discovery premium CTAs.
+ */
+@Composable
+internal fun PremiumShimmerSurface(
+    modifier: Modifier = Modifier,
+    shape: Shape,
+    motion: PremiumBadgeMotion = rememberPremiumBadgeMotion(),
+    contentDescription: String? = null,
+    onClick: (() -> Unit)? = null,
+    contentAlignment: Alignment = Alignment.Center,
+    content: @Composable BoxScope.() -> Unit,
+) {
     val dark = isDarkColorScheme()
     val gradient = Brush.verticalGradient(
         colors = listOf(
@@ -165,7 +190,16 @@ private fun PremiumBadgeChrome(
                 spotColor = PremiumBadgeGradientBottom.copy(alpha = 0.45f),
             )
             .clip(shape)
-            .semantics { this.contentDescription = contentDescription },
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            )
+            .then(
+                if (contentDescription != null) {
+                    Modifier.semantics { this.contentDescription = contentDescription }
+                } else {
+                    Modifier
+                }
+            ),
         contentAlignment = contentAlignment,
     ) {
         Box(modifier = Modifier.matchParentSize().background(gradient))
@@ -180,7 +214,7 @@ private fun PremiumBadgeChrome(
 }
 
 @Composable
-private fun PremiumBadgeStar(
+internal fun PremiumBadgeStar(
     size: Dp,
     motion: PremiumBadgeMotion,
 ) {
@@ -201,7 +235,7 @@ private fun PremiumBadgeStar(
 }
 
 @Composable
-private fun rememberPremiumBadgeMotion(): PremiumBadgeMotion {
+internal fun rememberPremiumBadgeMotion(): PremiumBadgeMotion {
     val reduceMotion = rememberReduceMotionEnabled()
     val shimmerTransition = rememberInfiniteTransition(label = "premiumBadgeShimmer")
     val shimmerProgress by shimmerTransition.animateFloat(

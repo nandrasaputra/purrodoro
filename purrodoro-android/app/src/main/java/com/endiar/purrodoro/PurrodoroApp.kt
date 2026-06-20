@@ -60,6 +60,7 @@ import com.endiar.purrodoro.soundscape.SoundscapeCatalogBuilder
 import com.endiar.purrodoro.soundscape.toMusicOption
 import com.endiar.purrodoro.soundscape.toSoundOption
 import com.endiar.purrodoro.model.DownloadState
+import com.endiar.purrodoro.auth.AccountAvatarStore
 import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.ui.auth.rememberAccountSwitchGate
@@ -67,6 +68,7 @@ import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.AppState
 import com.endiar.purrodoro.data.backup.BackupManager
 import com.endiar.purrodoro.model.AuthState
+import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.model.resolvedDisplayName
 import com.endiar.purrodoro.model.AppClock
 import com.endiar.purrodoro.model.AppTab
@@ -109,6 +111,8 @@ import com.endiar.purrodoro.ui.formatBytes
 import com.endiar.purrodoro.ui.SoundscapeSheetStickyFooter
 import com.endiar.purrodoro.ui.soundscapeSavedMixLabel
 import com.endiar.purrodoro.ui.StartFocusPrefill
+import com.endiar.purrodoro.ui.PremiumAccessRequest
+import com.endiar.purrodoro.ui.PremiumScreen
 import com.endiar.purrodoro.ui.PremiumUpsellSheet
 import com.endiar.purrodoro.ui.PremiumUpsellTrigger
 import com.endiar.purrodoro.ui.StartFocusSheet
@@ -119,6 +123,7 @@ import com.endiar.purrodoro.ui.interruptedRemainingMinutes
 import com.endiar.purrodoro.ui.remainingFocusSessionsAfterCurrent
 import com.endiar.purrodoro.ui.auth.LoginSheet
 import com.endiar.purrodoro.ui.auth.LogoutConfirmSheet
+import com.endiar.purrodoro.ui.auth.PremiumLoginRequiredSheet
 import com.endiar.purrodoro.ui.onboarding.OnboardingScreen
 import com.endiar.purrodoro.ui.todayFocusMetrics
 import com.endiar.purrodoro.model.InterruptedFocus
@@ -163,6 +168,7 @@ fun PurrodoroApp(
     val syncSnapshot by SyncStatusStore.snapshot.collectAsStateWithLifecycle()
     val ownerId by repo.ownerIdFlow.collectAsStateWithLifecycle(initialValue = initialOwnerId)
     val signedInUserId = (authState as? AuthState.SignedIn)?.user?.userId
+    val signedInAvatarUrl = (authState as? AuthState.SignedIn)?.user?.avatarUrl
     val syncEnabled = canSync(signedInUserId, ownerId)
     val syncPresentation = if (syncEnabled) resolveSyncStatusPresentation(syncSnapshot) else null
 
@@ -223,6 +229,11 @@ fun PurrodoroApp(
 
     val context = LocalContext.current
 
+    LaunchedEffect(signedInUserId, signedInAvatarUrl) {
+        val userId = signedInUserId ?: return@LaunchedEffect
+        AccountAvatarStore.get(context).sync(userId, signedInAvatarUrl)
+    }
+
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
     val displayHomeScene = effectiveHomeScene(appState.homeScene, isPremium)
 
@@ -265,6 +276,9 @@ fun PurrodoroApp(
     var isFocusMode by rememberSaveable { mutableStateOf(false) }
     var focusStartPending by rememberSaveable { mutableStateOf(false) }
     var showProfile by remember { mutableStateOf(false) }
+    var showPremiumScreen by remember { mutableStateOf(false) }
+    var showPremiumLoginSheet by remember { mutableStateOf(false) }
+    var pendingPremiumRequest by remember { mutableStateOf<PremiumAccessRequest?>(null) }
     var showHistory by remember { mutableStateOf(false) }
     var showStorage by remember { mutableStateOf(false) }
     var showBackupRestore by remember { mutableStateOf(false) }
@@ -431,9 +445,40 @@ fun PurrodoroApp(
         return newId
     }
 
+    fun fulfillPremiumAccess(request: PremiumAccessRequest) {
+        when (request) {
+            PremiumAccessRequest.Discovery -> showPremiumScreen = true
+            is PremiumAccessRequest.Upsell -> {
+                premiumUpsellTrigger = request.trigger
+                showPremiumSheet = true
+            }
+        }
+    }
+
+    fun requestPremiumAccess(request: PremiumAccessRequest) {
+        if (authState is AuthState.Guest) {
+            pendingPremiumRequest = request
+            showPremiumLoginSheet = true
+            return
+        }
+        fulfillPremiumAccess(request)
+    }
+
     fun showPremiumCapPaywall(trigger: PremiumUpsellTrigger) {
-        premiumUpsellTrigger = trigger
-        showPremiumSheet = true
+        requestPremiumAccess(PremiumAccessRequest.Upsell(trigger))
+    }
+
+    suspend fun completeSignIn(user: AuthUser): AccountManager.Result {
+        val previousOwnerId = repo.currentOwnerId()
+        val result = accountManager.onSignedIn(
+            incomingUserId = user.userId,
+            confirmDrop = { accountSwitchGate.confirmDrop() },
+            onBeforeClear = { timerConnection.controller.stop() },
+        )
+        if (result == AccountManager.Result.Dropped && previousOwnerId != null) {
+            AccountAvatarStore.get(context).delete(previousOwnerId)
+        }
+        return result
     }
 
     fun tryCreateTask(
@@ -890,6 +935,7 @@ fun PurrodoroApp(
                         suggestionFocusMinutes = settings.focusMinutes,
                         greeting = homeGreeting,
                         userName = homeDisplayName,
+                        accountUserId = signedInUserId,
                         todayMetrics = homeMetrics,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
@@ -966,6 +1012,7 @@ fun PurrodoroApp(
                         activeFocusType = runtimeState?.focusType ?: FocusType.Empty,
                         homeScene = displayHomeScene,
                         onChangeHomeScene = { showHomeScenePicker = true },
+                        isPremium = isPremium,
                     )
 
                     AppTab.Todo -> TodoScreen(
@@ -1218,6 +1265,21 @@ fun PurrodoroApp(
                     onOpenStorage = { showStorage = true },
                     onOpenBackupRestore = { showBackupRestore = true },
                     onSignOut = { showLogoutSheet = true },
+                    isPremium = isPremium,
+                    onOpenPremium = { requestPremiumAccess(PremiumAccessRequest.Discovery) },
+                )
+            }
+
+            if (showPremiumScreen && authState !is AuthState.Guest) {
+                PremiumScreen(
+                    isPremium = isPremium,
+                    onBack = { showPremiumScreen = false },
+                    onSubscribe = {
+                        scope.launch {
+                            repo.setIsPremium(true)
+                            showPremiumScreen = false
+                        }
+                    },
                 )
             }
 
@@ -1283,16 +1345,8 @@ fun PurrodoroApp(
                     onDismiss = { showLoginSheet = false },
                     onSignedIn = { user ->
                         scope.launch {
-                            val result = accountManager.onSignedIn(
-                                incomingUserId = user.userId,
-                                confirmDrop = { accountSwitchGate.confirmDrop() },
-                                onBeforeClear = { timerConnection.controller.stop() },
-                            )
-                            when (result) {
+                            when (completeSignIn(user)) {
                                 AccountManager.Result.DropCancelled ->
-                                    // User refused to clear the other account's data;
-                                    // undo the sign-in so a session never outlives a
-                                    // different account's on-device data.
                                     authRepository.signOut()
                                 else ->
                                     user.displayName?.trim()?.takeIf { it.isNotBlank() }
@@ -1303,6 +1357,34 @@ fun PurrodoroApp(
                     },
                     onContinueAsGuest = { showLoginSheet = false },
                     fallbackDisplayName = userName,
+                )
+            }
+
+            if (showPremiumLoginSheet) {
+                PremiumLoginRequiredSheet(
+                    authRepository = authRepository,
+                    onDismiss = {
+                        showPremiumLoginSheet = false
+                        pendingPremiumRequest = null
+                    },
+                    onSignedIn = { user ->
+                        scope.launch {
+                            val pending = pendingPremiumRequest
+                            pendingPremiumRequest = null
+                            when (completeSignIn(user)) {
+                                AccountManager.Result.DropCancelled ->
+                                    authRepository.signOut()
+                                else -> {
+                                    user.displayName?.trim()?.takeIf { it.isNotBlank() }
+                                        ?.let { persistUserName(it) }
+                                    if (pending != null) {
+                                        fulfillPremiumAccess(pending)
+                                    }
+                                }
+                            }
+                            showPremiumLoginSheet = false
+                        }
+                    },
                 )
             }
 
@@ -1436,7 +1518,7 @@ fun PurrodoroApp(
                 )
             }
 
-            if (showPremiumSheet && !isPremium) {
+            if (showPremiumSheet && !isPremium && authState !is AuthState.Guest) {
                 PremiumUpsellSheet(
                     trigger = premiumUpsellTrigger,
                     onDismiss = { showPremiumSheet = false },
@@ -1499,8 +1581,11 @@ fun PurrodoroApp(
                         playingMusicId = playingMusicId,
                         onAmbienceSelected = { sound ->
                             if (sound.locked && !isPremium) {
-                                premiumUpsellTrigger = PremiumUpsellTrigger.lockedSound(sound.name)
-                                showPremiumSheet = true
+                                requestPremiumAccess(
+                                    PremiumAccessRequest.Upsell(
+                                        PremiumUpsellTrigger.lockedSound(sound.name),
+                                    ),
+                                )
                             } else {
                                 addAmbienceToMix(sound)
                             }
@@ -1510,8 +1595,11 @@ fun PurrodoroApp(
                         },
                         onMusicSelected = { track ->
                             if (track.locked && !isPremium) {
-                                premiumUpsellTrigger = PremiumUpsellTrigger.lockedSound(track.name)
-                                showPremiumSheet = true
+                                requestPremiumAccess(
+                                    PremiumAccessRequest.Upsell(
+                                        PremiumUpsellTrigger.lockedSound(track.name),
+                                    ),
+                                )
                             } else {
                                 addMusicToMix(track)
                             }
@@ -1530,15 +1618,25 @@ fun PurrodoroApp(
             // Full-screen overlays (not Dialog sheets) need explicit back handling.
             // Nested sheets/dialogs dismiss themselves via KuroAdaptiveBottomSheet / Dialog.
             // Focus mode handles its own back stack in FocusModeOverlay.
+            // Child overlays (Premium discovery on Profile) must dismiss before their parent.
             val tutorialOverlayActive = tutorialVisible && tutorialController.visible
             BackHandler(
-                enabled = showStorage ||
+                enabled = showPremiumScreen ||
+                    showPremiumLoginSheet ||
+                    showLoginSheet ||
+                    showStorage ||
                     showBackupRestore ||
                     showProfile ||
                     showHistory ||
                     tutorialOverlayActive
             ) {
                 when {
+                    showPremiumScreen -> showPremiumScreen = false
+                    showPremiumLoginSheet -> {
+                        showPremiumLoginSheet = false
+                        pendingPremiumRequest = null
+                    }
+                    showLoginSheet -> showLoginSheet = false
                     showBackupRestore -> showBackupRestore = false
                     showStorage -> showStorage = false
                     showProfile -> {

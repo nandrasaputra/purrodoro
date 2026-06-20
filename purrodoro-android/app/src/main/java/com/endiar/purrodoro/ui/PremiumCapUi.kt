@@ -38,6 +38,12 @@ data class PremiumUpsellTrigger(
     }
 }
 
+/** What to open after a guest signs in from the premium login gate. */
+sealed interface PremiumAccessRequest {
+    data object Discovery : PremiumAccessRequest
+    data class Upsell(val trigger: PremiumUpsellTrigger) : PremiumAccessRequest
+}
+
 /**
  * Subtle free-tier usage label under Tasks / Habits titles.
  * Hidden for premium users ([visible] = false).

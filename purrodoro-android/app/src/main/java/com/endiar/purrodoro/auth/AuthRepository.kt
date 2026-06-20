@@ -132,6 +132,7 @@ internal fun UserInfo.toAuthUser(): AuthUser {
         (meta?.get(key) as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
 
     val displayName = metaString("full_name") ?: metaString("name")
+    val avatarUrl = resolveAvatarUrl(meta)
     val providerTag = appMetadata?.get("provider")?.jsonPrimitive?.contentOrNull
 
     return AuthUser(
@@ -139,5 +140,12 @@ internal fun UserInfo.toAuthUser(): AuthUser {
         email = email?.takeIf { it.isNotBlank() },
         displayName = displayName,
         provider = AuthProvider.fromStorageTag(providerTag),
+        avatarUrl = avatarUrl,
     )
 }
+
+/** Supabase/Google user_metadata keys that may carry a profile photo URL. */
+internal fun resolveAvatarUrl(meta: Map<String, kotlinx.serialization.json.JsonElement>?): String? =
+    listOf("avatar_url", "picture", "avatar").firstNotNullOfOrNull { key ->
+        (meta?.get(key) as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+    }

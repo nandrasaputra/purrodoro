@@ -51,7 +51,6 @@ import com.composables.icons.lucide.Pause
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Timer
-import com.composables.icons.lucide.User
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -102,6 +101,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.draw.scale
+import com.endiar.purrodoro.ui.designsystem.KuroAccountAvatarContent
+import com.endiar.purrodoro.ui.designsystem.KuroPremiumAvatarFrame
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.designsystem.pressScale
@@ -127,6 +128,7 @@ fun HomeTimerScreen(
     activeFocusType: FocusType = FocusType.Empty,
     greeting: HomeGreeting,
     userName: String = "",
+    accountUserId: String? = null,
     todayMetrics: TodayFocusMetrics,
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
@@ -148,6 +150,7 @@ fun HomeTimerScreen(
     musicVolume: Float = 0.50f,
     homeScene: HomeScene = HomeScene.Room,
     onChangeHomeScene: () -> Unit = {},
+    isPremium: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
@@ -189,7 +192,9 @@ fun HomeTimerScreen(
             HomeHeader(
                 greeting = greeting,
                 userName = userName,
+                accountUserId = accountUserId,
                 onOpenProfile = onOpenProfile,
+                isPremium = isPremium,
                 modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
             )
             if (isStarted) {
@@ -270,7 +275,9 @@ fun HomeTimerScreen(
         ) {
             HomeStickyBar(
                 userName = userName,
+                accountUserId = accountUserId,
                 onOpenProfile = onOpenProfile,
+                isPremium = isPremium,
                 topInset = statusBarTop,
             )
         }
@@ -281,7 +288,9 @@ fun HomeTimerScreen(
 @Composable
 private fun HomeStickyBar(
     userName: String,
+    accountUserId: String?,
     onOpenProfile: () -> Unit,
+    isPremium: Boolean = false,
     topInset: Dp = 0.dp,
     modifier: Modifier = Modifier,
 ) {
@@ -317,7 +326,13 @@ private fun HomeStickyBar(
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(KuroSpacing.md))
-            CatAvatar(onClick = onOpenProfile, size = 48.dp)
+            CatAvatar(
+                onClick = onOpenProfile,
+                size = 48.dp,
+                isPremium = isPremium,
+                userId = accountUserId,
+                displayName = displayName,
+            )
         }
         Box(
             modifier = Modifier
@@ -332,7 +347,9 @@ private fun HomeStickyBar(
 private fun HomeHeader(
     greeting: HomeGreeting,
     userName: String,
+    accountUserId: String? = null,
     onOpenProfile: () -> Unit = {},
+    isPremium: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -394,7 +411,13 @@ private fun HomeHeader(
             )
         }
         Spacer(Modifier.width(KuroSpacing.md))
-        CatAvatar(onClick = onOpenProfile, modifier = Modifier.align(Alignment.Top))
+        CatAvatar(
+            onClick = onOpenProfile,
+            isPremium = isPremium,
+            userId = accountUserId,
+            displayName = displayName,
+            modifier = Modifier.align(Alignment.Top),
+        )
     }
 }
 
@@ -1353,43 +1376,61 @@ private fun FullCycleDots(
 private fun CatAvatar(
     onClick: () -> Unit = {},
     size: Dp = 52.dp,
+    isPremium: Boolean = false,
+    userId: String? = null,
+    displayName: String = "",
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val openProfileLabel = stringResource(R.string.home_open_profile_cd)
-    // Scale the inner padding + status dot with the avatar so the compact
-    // sticky-bar variant stays proportional to the full header one.
-    val innerPadding = size * (6f / 64f)
     val dotSize = size * (16f / 64f)
-    Box(
-        modifier = modifier
-            .size(size)
-            .clickable(onClick = onClick, onClickLabel = openProfileLabel)
-    ) {
+
+    val avatarContent: @Composable () -> Unit = {
+        KuroAccountAvatarContent(
+            userId = userId,
+            displayName = displayName,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+
+    if (isPremium) {
+        KuroPremiumAvatarFrame(
+            size = size,
+            modifier = modifier.clickable(onClick = onClick, onClickLabel = openProfileLabel),
+            content = {
+                Box(
+                    modifier = Modifier.matchParentSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    avatarContent()
+                }
+            },
+        )
+    } else {
         Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(CircleShape)
-                .background(tokens.cardFill)
-                .border(1.dp, tokens.cardBorder, CircleShape)
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center
+            modifier = modifier
+                .size(size)
+                .clickable(onClick = onClick, onClickLabel = openProfileLabel),
         ) {
-            Icon(
-                imageVector = Lucide.User,
-                contentDescription = openProfileLabel,
-                tint = tokens.accent,
-                modifier = Modifier.fillMaxSize(0.7f)
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(CircleShape)
+                    .background(tokens.cardFill)
+                    .border(1.dp, tokens.cardBorder, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                avatarContent()
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(dotSize)
+                    .clip(CircleShape)
+                    .background(tokens.accent)
+                    .border(2.dp, tokens.pageBackground, CircleShape),
             )
         }
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .size(dotSize)
-                .clip(CircleShape)
-                .background(tokens.accent)
-                .border(2.dp, tokens.pageBackground, CircleShape)
-        )
     }
 }
 
