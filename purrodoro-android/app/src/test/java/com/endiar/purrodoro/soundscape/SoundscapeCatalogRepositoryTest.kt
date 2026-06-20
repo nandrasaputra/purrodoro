@@ -44,6 +44,7 @@ class SoundscapeCatalogRepositoryTest {
         artist = "Artist",
         symbol = "",
         filePath = "lofi/track_$id.mp3",
+        thumbnailPath = "lofi/track_$id.webp",
         fileSizeBytes = 2_000_000,
         isPremium = false,
         sortOrder = id,

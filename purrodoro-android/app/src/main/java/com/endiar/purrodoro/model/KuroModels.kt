@@ -96,6 +96,12 @@ sealed interface DownloadState {
 data class RemoteTrackInfo(
     val fileSizeBytes: Long,
     val downloadState: DownloadState,
+    /** R2 object key for the tile thumbnail, e.g. lofi/lofi_rainy_window.webp */
+    val thumbnailPath: String = "",
+    /** R2 object key for the MP3, used to derive a thumbnail when [thumbnailPath] is blank. */
+    val filePath: String = "",
+    /** Catalog updated_at millis — versions on-disk thumbnail cache entries. */
+    val cacheVersion: Long = 0L,
 )
 
 data class SoundOption(

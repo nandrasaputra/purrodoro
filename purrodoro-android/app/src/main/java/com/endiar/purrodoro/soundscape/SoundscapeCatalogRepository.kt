@@ -43,6 +43,7 @@ private fun SoundscapeTrackDto.toEntity() = SoundscapeTrackEntity(
     artist = artist,
     symbol = symbol,
     filePath = filePath,
+    thumbnailPath = thumbnailPath,
     fileSizeBytes = fileSizeBytes,
     isPremium = isPremium,
     sortOrder = sortOrder,

@@ -17,6 +17,7 @@ data class SoundscapeTrackDto(
     @SerialName("artist") val artist: String,
     @SerialName("symbol") val symbol: String,
     @SerialName("file_path") val filePath: String,
+    @SerialName("thumbnail_path") val thumbnailPath: String = "",
     @SerialName("file_size_bytes") val fileSizeBytes: Long,
     @SerialName("is_premium") val isPremium: Boolean,
     @SerialName("sort_order") val sortOrder: Int,

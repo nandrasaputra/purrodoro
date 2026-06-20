@@ -5,8 +5,6 @@ import com.endiar.purrodoro.audio.TrackDownloadManager
 import com.endiar.purrodoro.soundscape.SoundscapeConfig
 import com.endiar.purrodoro.auth.SupabaseModule
 import com.endiar.purrodoro.data.local.PurrodoroDatabase
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
 
 /**
  * Process-wide singletons for the cloud soundscape catalog: the Postgrest-
@@ -22,6 +20,7 @@ object SoundscapeModule {
         val catalogRepository: SoundscapeCatalogRepository,
         val bundledCatalogRepository: BundledCatalogRepository,
         val downloadManager: TrackDownloadManager,
+        val thumbnailLoader: SoundscapeThumbnailLoader,
     )
 
     fun get(context: Context): Holder =
@@ -31,6 +30,7 @@ object SoundscapeModule {
 
     private fun build(appContext: Context): Holder {
         val db = PurrodoroDatabase.get(appContext)
+        val httpClient = SoundscapeHttp.createKtorClient()
         return Holder(
             catalogRepository = SoundscapeCatalogRepository(
                 api = SupabaseSoundscapeCatalogApi(SupabaseModule.get(appContext)),
@@ -42,8 +42,13 @@ object SoundscapeModule {
             ),
             downloadManager = TrackDownloadManager(
                 context = appContext,
-                httpClient = HttpClient(OkHttp),
+                httpClient = httpClient,
                 audioPublicBaseUrl = SoundscapeConfig.R2_PUBLIC_URL,
+            ),
+            thumbnailLoader = SoundscapeThumbnailLoader(
+                context = appContext,
+                httpClient = httpClient,
+                publicBaseUrl = SoundscapeConfig.R2_PUBLIC_URL,
             ),
         )
     }

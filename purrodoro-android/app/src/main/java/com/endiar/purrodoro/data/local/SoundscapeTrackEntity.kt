@@ -24,6 +24,7 @@ data class SoundscapeTrackEntity(
     val artist: String,
     val symbol: String,
     val filePath: String,      // R2 object key, e.g. lofi/lofi_rainy_window.mp3
+    val thumbnailPath: String = "", // R2 object key, e.g. lofi/lofi_rainy_window.webp
     val fileSizeBytes: Long,
     val isPremium: Boolean,
     val sortOrder: Int,

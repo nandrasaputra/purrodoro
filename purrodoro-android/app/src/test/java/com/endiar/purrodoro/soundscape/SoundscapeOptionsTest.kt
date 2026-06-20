@@ -17,11 +17,33 @@ class SoundscapeOptionsTest {
         artist = "Artist $id",
         symbol = "Wave",
         filePath = "x/$id.mp3",
+        thumbnailPath = "x/$id.webp",
         fileSizeBytes = 2_000_000,
         isPremium = true,
         sortOrder = 0,
         updatedAtMillis = 1_000,
     )
+
+    @Test
+    fun `cloud entity carries thumbnail path on remote info`() {
+        val option = entity(100, "music").toMusicOption(
+            downloadState = DownloadState.NotDownloaded,
+            localPath = null,
+        )
+        assertEquals("x/100.webp", option.remote?.thumbnailPath)
+        assertEquals("x/100.mp3", option.remote?.filePath)
+        assertEquals(1_000L, option.remote?.cacheVersion)
+    }
+
+    @Test
+    fun `thumbnail path falls back to audio stem when catalog path is blank`() {
+        val row = entity(100, "music").copy(thumbnailPath = "")
+        val option = row.toMusicOption(
+            downloadState = DownloadState.NotDownloaded,
+            localPath = null,
+        )
+        assertEquals("x/100.webp", option.remote?.thumbnailPath)
+    }
 
     @Test
     fun `music entity maps to a locked cloud MusicOption`() {

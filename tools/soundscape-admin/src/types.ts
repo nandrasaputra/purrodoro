@@ -7,6 +7,7 @@ export interface RemoteTrack {
   artist: string;
   symbol: string;
   file_path: string;
+  thumbnail_path: string;
   file_size_bytes: number;
   is_premium: boolean;
   sort_order: number;

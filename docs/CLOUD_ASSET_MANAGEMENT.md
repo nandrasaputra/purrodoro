@@ -62,6 +62,7 @@ name            text       track title
 artist          text       music: artist name; ambience: short description under the name
 symbol          text       ambience only: symbol label the UI renders on the tile
 file_path       text       object key in R2, e.g. 'lofi/lofi_rainy_window.mp3'
+thumbnail_path  text       R2 object key for tile art, e.g. 'lofi/lofi_rainy_window.webp'
 file_size_bytes bigint     exact file size in bytes
 is_premium      boolean    true = locked behind Purrodoro Premium
 sort_order      int        ascending position within its section
@@ -77,6 +78,9 @@ updated_at      timestamptz auto-maintained; bump to force re-download
   lands around 2–3 MB).
 - Use **lowercase snake_case** filenames with kind prefixes (see table below):
   `lofi/lofi_rainy_window.mp3`, `ambience/amb_ocean_waves.mp3`.
+- Pair each MP3 with a **384×384 WebP thumbnail** at the same path stem:
+  `lofi/lofi_rainy_window.webp`. Set `thumbnail_path` in the catalog row (the
+  admin tool derives it automatically from the MP3 filename).
 - The track must **loop seamlessly** — trim so the end joins cleanly to the start.
 - Note the exact byte size for `file_size_bytes`:
 
