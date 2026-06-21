@@ -19,10 +19,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.data.AppState
 import com.endiar.purrodoro.model.AuthState
-import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppTab
-import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.sync.SyncModule
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
@@ -39,7 +38,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 
 class MainActivity : ComponentActivity() {
 
@@ -91,6 +89,8 @@ class MainActivity : ComponentActivity() {
         val repo = AppRepository.get(this)
         val authRepository = AuthRepository.get(this)
         SyncModule.get(this) // start the offline-first sync triggers
+        // Block until the first app-state snapshot so theme, locale, and the home
+        // hero scene match persisted values on frame 1 (no Room→saved-scene flash).
         val initialAppState = runCatching {
             runBlocking { repo.appState.first() }
         }.getOrNull()
@@ -119,17 +119,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val repo = AppRepository.get(this)
             val authRepository = AuthRepository.get(this)
-            val appearanceMode by repo.appState
-                .map { it.appearanceMode }
-                .collectAsStateWithLifecycle(
-                    initialValue = initialAppState?.appearanceMode ?: AppearanceMode.Light,
-                )
-
-            val language by repo.appState
-                .map { it.language }
-                .collectAsStateWithLifecycle(
-                    initialValue = initialAppState?.language ?: AppLanguage.System,
-                )
+            val appState by repo.appState.collectAsStateWithLifecycle(
+                initialValue = initialAppState ?: AppState.loadingPlaceholder(),
+            )
+            val appearanceMode = appState.appearanceMode
+            val language = appState.language
 
             val systemInDark = isSystemInDarkTheme()
             val isDark = appearanceMode.isDark(systemInDark)
@@ -158,6 +152,7 @@ class MainActivity : ComponentActivity() {
                         openTab = openTab,
                         initialAuthState = initialAuthState,
                         initialOwnerId = initialOwnerId,
+                        initialAppState = initialAppState,
                     )
                 }
             }

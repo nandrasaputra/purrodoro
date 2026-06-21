@@ -927,18 +927,19 @@ private fun SoundscapeLayerStatusRow(
 
 /**
  * Resolves a music tile tap, gating cloud tracks on their download state:
- * locked tracks always route through [onMusicSelected] (premium sheet), a
+ * locked tracks route to [onMusicSelected] (premium sheet) for free users; a
  * download in flight is ignored, a not-downloaded track starts its download,
  * and a bundled/downloaded track plays or toggles as before.
  */
-private fun musicTileClick(
+internal fun musicTileClick(
     track: MusicOption,
     isPlaying: Boolean,
+    isPremium: Boolean,
     onMusicSelected: (MusicOption) -> Unit,
     onMusicToggle: (MusicOption) -> Unit,
     onDownloadTrack: (Int) -> Unit,
 ): () -> Unit = when {
-    track.locked -> { { onMusicSelected(track) } }
+    track.locked && !isPremium -> { { onMusicSelected(track) } }
     track.remote?.downloadState is DownloadState.Downloading -> { {} }
     track.remote?.downloadState == DownloadState.NotDownloaded -> { { onDownloadTrack(track.id) } }
     track.audio == null -> { {} }
@@ -946,14 +947,15 @@ private fun musicTileClick(
 }
 
 /** Ambience counterpart of [musicTileClick]. */
-private fun ambienceTileClick(
+internal fun ambienceTileClick(
     sound: SoundOption,
     isPlaying: Boolean,
+    isPremium: Boolean,
     onAmbienceSelected: (SoundOption) -> Unit,
     onAmbienceToggle: (SoundOption) -> Unit,
     onDownloadTrack: (Int) -> Unit,
 ): () -> Unit = when {
-    sound.locked -> { { onAmbienceSelected(sound) } }
+    sound.locked && !isPremium -> { { onAmbienceSelected(sound) } }
     sound.remote?.downloadState is DownloadState.Downloading -> { {} }
     sound.remote?.downloadState == DownloadState.NotDownloaded -> { { onDownloadTrack(sound.id) } }
     else -> { { if (isPlaying) onAmbienceToggle(sound) else onAmbienceSelected(sound) } }
@@ -971,6 +973,7 @@ fun SoundsScreen(
     onAmbienceToggle: (SoundOption) -> Unit,
     onMusicSelected: (MusicOption) -> Unit,
     onMusicToggle: (MusicOption) -> Unit,
+    isPremium: Boolean = false,
     modifier: Modifier = Modifier,
     onDownloadTrack: (Int) -> Unit = {},
     onDeleteDownload: (Int) -> Unit = {},
@@ -1020,6 +1023,7 @@ fun SoundsScreen(
             SoundscapeExpandedAmbienceGrid(
                 options = ambienceOptions,
                 playingAmbienceId = playingAmbienceId,
+                isPremium = isPremium,
                 onAmbienceSelected = onAmbienceSelected,
                 onAmbienceToggle = onAmbienceToggle,
                 onDownloadTrack = onDownloadTrack,
@@ -1037,6 +1041,7 @@ fun SoundsScreen(
                         onClick = ambienceTileClick(
                             sound = sound,
                             isPlaying = isPlaying,
+                            isPremium = isPremium,
                             onAmbienceSelected = onAmbienceSelected,
                             onAmbienceToggle = onAmbienceToggle,
                             onDownloadTrack = onDownloadTrack,
@@ -1056,6 +1061,7 @@ fun SoundsScreen(
             SoundscapeExpandedLofiGrid(
                 options = musicOptions,
                 playingMusicId = playingMusicId,
+                isPremium = isPremium,
                 onMusicSelected = onMusicSelected,
                 onMusicToggle = onMusicToggle,
                 onDownloadTrack = onDownloadTrack,
@@ -1072,6 +1078,7 @@ fun SoundsScreen(
                         onClick = musicTileClick(
                             track = track,
                             isPlaying = isPlaying,
+                            isPremium = isPremium,
                             onMusicSelected = onMusicSelected,
                             onMusicToggle = onMusicToggle,
                             onDownloadTrack = onDownloadTrack,
@@ -1273,6 +1280,7 @@ private fun SoundscapeSheetPlayPauseButton(
 private fun SoundscapeExpandedAmbienceGrid(
     options: List<SoundOption>,
     playingAmbienceId: Int?,
+    isPremium: Boolean,
     onAmbienceSelected: (SoundOption) -> Unit,
     onAmbienceToggle: (SoundOption) -> Unit,
     modifier: Modifier = Modifier,
@@ -1294,6 +1302,7 @@ private fun SoundscapeExpandedAmbienceGrid(
                         onClick = ambienceTileClick(
                             sound = sound,
                             isPlaying = isPlaying,
+                            isPremium = isPremium,
                             onAmbienceSelected = onAmbienceSelected,
                             onAmbienceToggle = onAmbienceToggle,
                             onDownloadTrack = onDownloadTrack,
@@ -1311,6 +1320,7 @@ private fun SoundscapeExpandedAmbienceGrid(
 private fun SoundscapeExpandedLofiGrid(
     options: List<MusicOption>,
     playingMusicId: Int?,
+    isPremium: Boolean,
     onMusicSelected: (MusicOption) -> Unit,
     onMusicToggle: (MusicOption) -> Unit,
     modifier: Modifier = Modifier,
@@ -1331,6 +1341,7 @@ private fun SoundscapeExpandedLofiGrid(
                         onClick = musicTileClick(
                             track = track,
                             isPlaying = isPlaying,
+                            isPremium = isPremium,
                             onMusicSelected = onMusicSelected,
                             onMusicToggle = onMusicToggle,
                             onDownloadTrack = onDownloadTrack,

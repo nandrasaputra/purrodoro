@@ -203,6 +203,7 @@ similar). Optionally omit `file_path` from anonymous catalog responses.
 - [ ] Verify production Google sign-in end-to-end
 - [x] Run NAN-57 (Claim/Keep/Drop) on device — **2026-06-19**, emulator
 - [ ] Run NAN-65 (two-device sync matrix)
+- [ ] Cold-start home hero: force-stop app, reopen with each saved `HomeScene` (Room, Café, Library, Park); no flash back to Room — use premium debug override for premium scenes
 - [ ] Fix auto-backup: exclude encrypted session + `files/backups/` (+ Room DB), add reset-on-failure decrypt, or set `allowBackup="false"`
 - [ ] Integrate crash reporting
 - [ ] Switch to AAB; enable R8 + `shrinkResources`; add ProGuard keep rules
