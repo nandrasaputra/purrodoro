@@ -49,6 +49,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.NotebookPen
 import com.composables.icons.lucide.Pause
 import com.composables.icons.lucide.Play
+import com.composables.icons.lucide.SkipForward
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Timer
 import androidx.compose.material3.AlertDialog
@@ -69,6 +70,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
@@ -107,6 +109,8 @@ import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.designsystem.pressScale
 import com.endiar.purrodoro.ui.theme.Mint
+import com.endiar.purrodoro.ui.theme.Mint
+import com.endiar.purrodoro.ui.theme.Lavender
 import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import com.endiar.purrodoro.ui.theme.luminance
@@ -569,15 +573,10 @@ private fun ActiveHero(
     onMuteSoundscape: () -> Unit = {},
     autoCompleteMessage: String? = null,
 ) {
-    // The timer card (and tip) are pulled upward with a negative offset, which
-    // is purely visual — the Column still reserves the un-offset height, leaving
-    // an equal band of empty space beneath the visible content before the next
-    // section. We reclaim most of that band but deliberately leave ~20dp (lg) so
-    // "Today's Focus" reads as a separate section rather than crowding the hero.
-    // The visible gap below works out to (childOffset + columnSpacing - trim):
-    // tip present → (24 + 12 - 16) = 20dp; no tip → (32 + 12 - 24) = 20dp, so the
-    // active states match the 20dp break the idle state already uses.
-    val deadSpace = if (autoCompleteMessage != null) 16.dp else 24.dp
+    // The compact timer card (and tip) are pulled upward with a negative offset,
+    // which is purely visual — the Column still reserves the un-offset height.
+    // Reclaim most of that band but leave ~20dp (lg) before "Today's Focus".
+    val deadSpace = if (autoCompleteMessage != null) 8.dp else 12.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -608,20 +607,18 @@ private fun ActiveHero(
             onOpenSoundscape = onOpenSoundscape,
             onMuteSoundscape = onMuteSoundscape,
             modifier = Modifier
-                .offset(y = (-32).dp)
+                .offset(y = (-24).dp)
                 .padding(horizontal = 12.dp)
         )
-        // The tip rides up by -24.dp so its top edge sits just under the
-        // timer card (the card itself is offset by -32.dp). Without this
-        // shift the tip lands well below the visual bottom of the card and
-        // gets clipped by the floating dock on shorter screens. The message
-        // is intentionally short so it fits on one line and the tip stays
-        // a compact, non-obtrusive 44.dp pill.
+    // The tip rides up so its top edge sits just under the compact timer
+    // card (the card itself is offset by -24.dp). Without this shift the
+    // tip lands below the visual bottom of the card and gets clipped by
+    // the floating dock on shorter screens.
         if (autoCompleteMessage != null) {
             AutoCompleteTip(
                 message = autoCompleteMessage,
                 modifier = Modifier
-                    .offset(y = (-24).dp)
+                    .offset(y = (-16).dp)
                     .padding(horizontal = 12.dp),
             )
         }
@@ -655,9 +652,6 @@ private fun ActiveTimerCard(
     var showStopConfirmDialog by remember { mutableStateOf(false) }
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
-    // Pause pulse animation. Uses a symmetric ease-in-out (sine-like) curve so
-    // the breathing has no mechanical "catch" at the turnaround when RepeatMode
-    // reverses — ambient loops should feel continuous at both ends.
     val infiniteTransition = rememberInfiniteTransition(label = "pausePulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -670,101 +664,98 @@ private fun ActiveTimerCard(
     )
     val timeAlpha = if (currentTimerState == TimerState.Paused) pulseAlpha else 1f
 
+    val (displayEmoji, displayTitle) = when {
+        activeFocusType == FocusType.Habit && activeTask != null -> {
+            val parts = activeTask.title.split(" ", limit = 2)
+            if (parts.size == 2) parts[0] to parts[1] else null to activeTask.title
+        }
+        activeTask != null -> null to activeTask.title
+        // No concrete task: title IS the timer state label (free focus / bare break)
+        else -> null to timerModeLabel(timerMode)
+    }
+
+    val modeLabel = timerModeLabel(timerMode)
+    val intentLabel = if (activeFocusType != FocusType.Empty) focusTypeLabel(activeFocusType) else null
+
+    // Show subtitle only when title is NOT already the timer mode label (i.e. there's
+    // a concrete task/habit/note occupying the title line). Combine mode + intent so
+    // both are always visible: "Focus · Task", "Short Break · Habit", etc.
+    val hasConcreteTitle = activeTask != null
+    val subtitle: String? = if (hasConcreteTitle) {
+        if (intentLabel != null) "$modeLabel · $intentLabel" else modeLabel
+    } else {
+        // Title is already the mode label — show intent alone if available, else nothing.
+        intentLabel
+    }
+
+    val fullTitleForA11y = when {
+        activeTask != null -> activeTask.title
+        else -> modeLabel
+    }
     HomeCardSurface(modifier = modifier, color = tokens.cardFill) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
         ) {
-            // Title: keep task/habit name; only show rawTitle for empty/simple-note focus
-            val (displayEmoji, displayTitle) = when {
-                activeFocusType == FocusType.Habit && activeTask != null -> {
-                    val parts = activeTask.title.split(" ", limit = 2)
-                    if (parts.size == 2) parts[0] to parts[1] else null to activeTask.title
-                }
-                activeTask != null -> null to activeTask.title
-                isBreak -> null to stringResource(R.string.home_taking_a_break)
-                else -> null to timerModeLabel(timerMode)
-            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
             ) {
-                FocusTypeIcon(focusType = activeFocusType, emojiOverride = displayEmoji)
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics {
+                            contentDescription = buildString {
+                                append(fullTitleForA11y)
+                                subtitle?.let { append(", $it") }
+                            }
+                        },
+                ) {
                     Text(
                         text = displayTitle,
                         color = tokens.textPrimary,
                         style = KuroType.headingCard,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    val subtitle = when {
-                        isBreak -> timerModeLabel(timerMode)
-                        activeFocusType == FocusType.Empty -> null
-                        else -> focusTypeLabel(activeFocusType)
-                    }
                     if (subtitle != null) {
                         Text(
                             text = subtitle,
                             color = tokens.textSecondary,
-                            style = KuroType.labelStrong
+                            style = KuroType.labelStrong,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
+                Text(
+                    text = formatSeconds(remainingSeconds),
+                    color = tokens.textPrimary.copy(alpha = timeAlpha),
+                    style = KuroType.displayTimerCompact,
+                    fontFamily = NunitoFamily,
+                    maxLines = 1,
+                )
+                CompactPauseButton(
+                    isRunning = isRunning,
+                    onClick = onStartPause,
+                )
             }
-            // Large centered serif timer
-            Text(
-                text = formatSeconds(remainingSeconds),
-                color = tokens.textPrimary.copy(alpha = timeAlpha),
-                fontSize = 72.sp,
-                lineHeight = 76.sp,
-                fontWeight = FontWeight.Normal,
-                fontFamily = NunitoFamily,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text(
-                text = stringResource(R.string.home_remaining),
-                color = tokens.textSecondary,
-                style = KuroType.labelStrong,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            FullCycleDots(
+            CompactCycleProgressBar(
                 cycleItems = cycleItems,
                 cycleIndex = cycleIndex,
-                currentTimerState = currentTimerState
+                currentTimerState = currentTimerState,
+                isBreak = isBreak,
+                isLongBreak = currentType is SessionItemType.LongBreak,
             )
-            OpenFocusModeRow(onClick = onEnterFocusMode)
-            ActiveFocusButton(
-                isRunning = isRunning,
-                onClick = onStartPause,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = {
+            ActiveSessionActionChips(
+                isBreak = isBreak,
+                onEnterFocusMode = onEnterFocusMode,
+                onSkip = onSkip,
+                onStop = {
                     if (isFocus) showStopConfirmDialog = true else onStop()
-                }) {
-                    Icon(
-                        imageVector = Lucide.CircleStop,
-                        contentDescription = null,
-                        tint = tokens.textSecondary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(Modifier.width(5.dp))
-                    Text(stringResource(R.string.home_stop_session), color = tokens.textSecondary, fontWeight = FontWeight.Bold)
-                }
-                if (isBreak) {
-                    TextButton(onClick = onSkip) {
-                        Text(stringResource(R.string.home_skip_break), color = tokens.textSecondary, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
+                },
+            )
         }
     }
 
@@ -799,6 +790,204 @@ private fun ActiveTimerCard(
             },
             containerColor = tokens.cardFill,
             shape = RoundedCornerShape(KuroSpacing.xl)
+        )
+    }
+}
+
+@Composable
+private fun ActiveSessionActionChips(
+    isBreak: Boolean,
+    onEnterFocusMode: () -> Unit,
+    onSkip: () -> Unit,
+    onStop: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val focusModeLabel = stringResource(R.string.home_focus_mode_chip)
+    val openFocusModeLabel = stringResource(R.string.home_open_focus_mode)
+    val skipChipLabel = stringResource(R.string.home_skip_chip)
+    val skipBreakLabel = stringResource(R.string.home_skip_break)
+    val stopChipLabel = stringResource(R.string.home_stop_chip)
+    val stopSessionLabel = stringResource(R.string.home_stop_session)
+
+    // Plain Row — FlowRow has an ABI mismatch with the bundled foundation runtime
+    // (same reason TodoScreen avoids it). Short chip labels fit on a single line.
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedSessionChip(
+            onClick = onEnterFocusMode,
+            icon = Lucide.Leaf,
+            label = focusModeLabel,
+            contentDescription = openFocusModeLabel,
+            iconTint = tokens.accent,
+            labelColor = tokens.textPrimary,
+        )
+        if (isBreak) {
+            OutlinedSessionChip(
+                onClick = onSkip,
+                icon = Lucide.SkipForward,
+                label = skipChipLabel,
+                contentDescription = skipBreakLabel,
+                iconTint = tokens.textSecondary,
+                labelColor = tokens.textSecondary,
+            )
+        }
+        OutlinedSessionChip(
+            onClick = onStop,
+            icon = Lucide.CircleStop,
+            label = stopChipLabel,
+            contentDescription = stopSessionLabel,
+            iconTint = tokens.textSecondary,
+            labelColor = tokens.textSecondary,
+        )
+    }
+}
+
+@Composable
+private fun OutlinedSessionChip(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    label: String,
+    contentDescription: String,
+    iconTint: Color,
+    labelColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
+    Row(
+        modifier = modifier
+            .pressScale(interactionSource, pressedScale = 0.98f)
+            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusPill))
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            )
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm)
+            .semantics { this.contentDescription = contentDescription },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = label,
+            color = labelColor,
+            style = KuroType.labelStrong,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun CompactCycleProgressBar(
+    cycleItems: List<TimerSessionItem>,
+    cycleIndex: Int,
+    currentTimerState: TimerState,
+    isBreak: Boolean,
+    isLongBreak: Boolean,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val focusIndices = cycleItems.mapIndexedNotNull { index, item ->
+        if (item.type is SessionItemType.Focus) index else null
+    }
+    if (focusIndices.isEmpty()) return
+
+    val breakTint = if (isLongBreak) Lavender else Mint
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        focusIndices.forEach { originalIndex ->
+            val isActive = originalIndex == cycleIndex && currentTimerState != TimerState.Idle
+            val isPast = originalIndex < cycleIndex
+            val segmentHeight by animateDpAsState(
+                targetValue = if (isActive) 5.dp else 4.dp,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                label = "cycleSegmentHeight",
+            )
+            val segmentColor by animateColorAsState(
+                targetValue = when {
+                    isActive && isBreak -> breakTint
+                    isActive -> tokens.accent
+                    isPast -> tokens.accent.copy(alpha = 0.55f)
+                    else -> tokens.segmentedTrack
+                },
+                animationSpec = tween(durationMillis = 260, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)),
+                label = "cycleSegmentColor",
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(segmentHeight)
+                    .clip(RoundedCornerShape(KuroSpacing.radiusSm))
+                    .background(segmentColor),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactPauseButton(
+    isRunning: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val interactionSource = remember { MutableInteractionSource() }
+    val iconPop = remember { Animatable(1f) }
+    var popInitialized by remember { mutableStateOf(false) }
+    LaunchedEffect(isRunning) {
+        if (popInitialized) {
+            iconPop.snapTo(0.7f)
+            iconPop.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+            )
+        }
+        popInitialized = true
+    }
+    val pauseLabel = stringResource(
+        if (isRunning) R.string.home_pause_focus else R.string.home_resume_focus,
+    )
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .pressScale(interactionSource, pressedScale = 0.94f)
+            .clip(CircleShape)
+            .background(tokens.accent)
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null,
+            )
+            .semantics { contentDescription = pauseLabel },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (isRunning) Lucide.Pause else Lucide.Play,
+            contentDescription = null,
+            tint = tokens.accentOn,
+            modifier = Modifier
+                .size(20.dp)
+                .scale(iconPop.value),
         )
     }
 }
@@ -1138,129 +1327,26 @@ private fun HomePrimaryButton(
 }
 
 @Composable
-private fun OpenFocusModeRow(onClick: () -> Unit) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    val interactionSource = remember { MutableInteractionSource() }
-    Row(
-        modifier = Modifier
-            .pressScale(interactionSource, pressedScale = 0.98f)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
-            .clickable(
-                onClick = onClick,
-                interactionSource = interactionSource,
-                indication = null,
-            )
-            .padding(horizontal = KuroSpacing.md, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Lucide.Leaf,
-            contentDescription = null,
-            tint = tokens.accent,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = stringResource(R.string.home_open_focus_mode),
-            color = tokens.textPrimary,
-            style = KuroType.bodyPrimary,
-            modifier = Modifier.weight(1f)
-        )
-        Icon(
-            imageVector = Lucide.ChevronRight,
-            contentDescription = null,
-            tint = tokens.textSecondary,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
-@Composable
-private fun ActiveFocusButton(
-    isRunning: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    val interactionSource = remember { MutableInteractionSource() }
-    // Punctuate the play↔pause flip with a quick scale-pop on the glyph so the
-    // state change registers as a deliberate beat, not a silent icon swap.
-    // Skips the first composition so it doesn't fire on initial render.
-    val iconPop = remember { Animatable(1f) }
-    var popInitialized by remember { mutableStateOf(false) }
-    LaunchedEffect(isRunning) {
-        if (popInitialized) {
-            iconPop.snapTo(0.7f)
-            iconPop.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium,
-                ),
-            )
-        }
-        popInitialized = true
-    }
-    Row(
-        modifier = modifier
-            .pressScale(interactionSource, pressedScale = 0.97f)
-            .height(58.dp)
-            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
-            .background(tokens.accent)
-            .clickable(
-                onClick = onClick,
-                interactionSource = interactionSource,
-                indication = null,
-            )
-            .padding(start = 8.dp, end = 24.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(42.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.25f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (isRunning) Lucide.Pause else Lucide.Play,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier
-                    .size(22.dp)
-                    .scale(iconPop.value)
-            )
-        }
-        Spacer(Modifier.width(14.dp))
-        Text(
-            text = if (isRunning) stringResource(R.string.home_pause_focus) else stringResource(R.string.home_resume_focus),
-            color = Color.White,
-            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.ExtraBold)
-        )
-    }
-}
-
-@Composable
 private fun FocusTypeIcon(
     focusType: FocusType,
     emojiOverride: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    size: Dp = 46.dp,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val cornerRadius = size * (14f / 46f)
+    val glyphSize = size * (22f / 46f)
     Box(
         modifier = modifier
-            .size(46.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .size(size)
+            .clip(RoundedCornerShape(cornerRadius))
             .background(tokens.accentSoft),
         contentAlignment = Alignment.Center
     ) {
         if (emojiOverride != null) {
             Text(
                 text = emojiOverride,
-                fontSize = 22.sp,
+                fontSize = glyphSize.value.sp,
             )
         } else {
             val icon = when (focusType) {
@@ -1273,7 +1359,7 @@ private fun FocusTypeIcon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = tokens.accent,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(glyphSize),
             )
         }
     }
@@ -1320,57 +1406,6 @@ fun rememberHomeGreeting(time: LocalTime): HomeGreeting {
     }
 }
 
-
-@Composable
-private fun FullCycleDots(
-    cycleItems: List<TimerSessionItem>,
-    cycleIndex: Int,
-    currentTimerState: TimerState
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    // Collect original indices of focus-only items
-    val focusIndices = cycleItems.mapIndexedNotNull { index, item ->
-        if (item.type is SessionItemType.Focus) index else null
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        focusIndices.forEach { originalIndex ->
-            val isActive = originalIndex == cycleIndex && currentTimerState != TimerState.Idle
-            val isPast = originalIndex < cycleIndex
-            // State change = scale + colour. The active dot springs up with a
-            // light settle (Playful-light, matching pressScale) while the fill
-            // eases between calm tokens, so progress reads as a soft "fill"
-            // rather than a hard flip when a focus segment completes.
-            val dotSize by animateDpAsState(
-                targetValue = if (isActive) 13.dp else 10.dp,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMediumLow,
-                ),
-                label = "cycleDotSize",
-            )
-            val dotColor by animateColorAsState(
-                targetValue = when {
-                    isActive -> tokens.accent
-                    isPast -> tokens.accent.copy(alpha = 0.55f)
-                    else -> tokens.cardBorder
-                },
-                animationSpec = tween(durationMillis = 260, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)),
-                label = "cycleDotColor",
-            )
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 5.dp)
-                    .size(dotSize)
-                    .clip(CircleShape)
-                    .background(dotColor)
-            )
-        }
-    }
-}
 
 @Composable
 private fun CatAvatar(

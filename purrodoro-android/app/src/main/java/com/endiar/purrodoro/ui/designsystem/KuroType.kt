@@ -8,6 +8,9 @@ object KuroType {
     /** Timer countdown digit */
     val displayTimer = TextStyle(fontSize = 48.sp, fontWeight = FontWeight.Bold)
 
+    /** Inline timer on the compact active-session home card */
+    val displayTimerCompact = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Bold, lineHeight = 34.sp)
+
     /** Screen title, e.g. "Tasks" */
     val headingScreen = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold)
 
