@@ -176,13 +176,16 @@
     <string name="home_start_focus">Mulai Fokus</string>
     <string name="home_autocomplete_task">Selesaikan Pomodoro ini dan Purrodoro akan mencentangnya.</string>
     <string name="home_autocomplete_habit">Selesaikan Pomodoro ini dan Purrodoro akan mencatatnya hari ini.</string>
-    <string name="home_taking_a_break">Sedang istirahat</string>
+    <string name="home_taking_a_break">Istirahat</string>
     <string name="home_remaining">tersisa</string>
     <string name="home_open_focus_mode">Buka Mode Fokus</string>
+    <string name="home_focus_mode_chip">Mode fokus</string>
     <string name="home_pause_focus">Jeda Fokus</string>
     <string name="home_resume_focus">Lanjutkan Fokus</string>
     <string name="home_stop_session">Hentikan sesi</string>
+    <string name="home_stop_chip">Stop</string>
     <string name="home_skip_break">Lewati istirahat</string>
+    <string name="home_skip_chip">Lewati</string>
     <string name="home_stop_title">Mau istirahat?</string>
     <string name="home_stop_body">Waktu fokusmu sejauh ini tetap dihitung.</string>
     <string name="home_stop_confirm">Hentikan dulu</string>
