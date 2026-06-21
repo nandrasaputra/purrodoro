@@ -182,13 +182,16 @@
     <string name="home_start_focus">Start Focus</string>
     <string name="home_autocomplete_task">Finish this Pomodoro and Purrodoro ticks it off.</string>
     <string name="home_autocomplete_habit">Finish this Pomodoro and Purrodoro logs it today.</string>
-    <string name="home_taking_a_break">Taking a break</string>
+    <string name="home_taking_a_break">On break</string>
     <string name="home_remaining">remaining</string>
     <string name="home_open_focus_mode">Open Focus Mode</string>
+    <string name="home_focus_mode_chip">Focus mode</string>
     <string name="home_pause_focus">Pause Focus</string>
     <string name="home_resume_focus">Resume Focus</string>
     <string name="home_stop_session">Stop session</string>
+    <string name="home_stop_chip">Stop</string>
     <string name="home_skip_break">Skip break</string>
+    <string name="home_skip_chip">Skip</string>
     <string name="home_stop_title">Taking a break?</string>
     <string name="home_stop_body">Your focus time so far will still be counted.</string>
     <string name="home_stop_confirm">Stop for now</string>
