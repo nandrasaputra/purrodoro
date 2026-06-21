@@ -1,12 +1,15 @@
 package com.endiar.purrodoro.ui.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,8 +23,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.composables.icons.lucide.Bell
 import com.composables.icons.lucide.ChevronDown
+import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.Languages
 import com.composables.icons.lucide.Lucide
 import androidx.compose.material3.Button
@@ -29,30 +35,40 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationManagerCompat
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.auth.AccountManager
 import com.endiar.purrodoro.auth.AuthRepository
@@ -68,9 +84,17 @@ import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import kotlinx.coroutines.launch
 
+private enum class OnboardingStep {
+    Welcome,
+    Notifications,
+}
+
+private val OnboardingHeroHeight = 300.dp
+
 /**
- * First-run gate: sign in with Google or continue as guest. Product walkthrough
- * is handled afterward by the spotlight tips on Home.
+ * First-run gate: sign in with Google or continue as guest, then optional
+ * notification permission. Product walkthrough is handled afterward by the
+ * spotlight tips on Home.
  */
 @Composable
 fun OnboardingScreen(
@@ -82,17 +106,42 @@ fun OnboardingScreen(
     onComplete: () -> Unit,
     onPersistUserName: (String) -> Unit = {},
     onWelcomeGuestChoice: suspend () -> Unit = {},
+    onRequestNotificationPermission: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val authState by authRepository.authState.collectAsStateWithLifecycle(initialValue = AuthState.Guest)
     val isWelcomeSignedIn = authState is AuthState.SignedIn
     val scope = rememberCoroutineScope()
+    var step by remember { mutableStateOf(OnboardingStep.Welcome) }
     var showLoginSheet by remember { mutableStateOf(false) }
     var isGoogleSignInInProgress by remember { mutableStateOf(false) }
     var isAuthHandoffInProgress by remember { mutableStateOf(false) }
     var linkedSignInUserId by remember { mutableStateOf<String?>(null) }
+    var notificationsEnabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
     val isAuthBusy = isGoogleSignInInProgress || isAuthHandoffInProgress
+
+    BackHandler(enabled = step == OnboardingStep.Notifications) {
+        step = OnboardingStep.Welcome
+    }
+
+    DisposableEffect(lifecycleOwner, step) {
+        if (step != OnboardingStep.Notifications) {
+            return@DisposableEffect onDispose { }
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationsEnabled =
+                    NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     suspend fun completeSignInHandoff(user: AuthUser): Boolean {
         if (linkedSignInUserId == user.userId) return true
@@ -119,10 +168,14 @@ fun OnboardingScreen(
         }
     }
 
+    fun advanceAfterAuthChoice() {
+        showLoginSheet = false
+        step = OnboardingStep.Notifications
+    }
+
     suspend fun finishSignedIn(user: AuthUser) {
         if (completeSignInHandoff(user)) {
-            showLoginSheet = false
-            onComplete()
+            advanceAfterAuthChoice()
         } else {
             showLoginSheet = false
         }
@@ -131,7 +184,7 @@ fun OnboardingScreen(
     suspend fun finishAsGuest() {
         linkedSignInUserId = null
         onWelcomeGuestChoice()
-        onComplete()
+        advanceAfterAuthChoice()
     }
 
     Box(
@@ -146,44 +199,100 @@ fun OnboardingScreen(
             OnboardingTopBar(
                 language = language,
                 onUpdateLanguage = onUpdateLanguage,
+                showBack = step == OnboardingStep.Notifications,
+                onBack = { step = OnboardingStep.Welcome },
             )
 
-            Column(
+            OnboardingStepIndicator(
+                current = step,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = KuroSpacing.xl),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                WelcomePage(
-                    signedInUser = (authState as? AuthState.SignedIn)?.user,
-                )
-            }
+                    .padding(bottom = KuroSpacing.sm),
+            )
 
-            OnboardingAuthActions(
-                welcomeSignedIn = isWelcomeSignedIn,
-                enabled = !isAuthBusy,
-                onPrimary = {
-                    when {
-                        isWelcomeSignedIn -> scope.launch {
-                            val user = (authState as AuthState.SignedIn).user
-                            if (completeSignInHandoff(user)) {
-                                onComplete()
+            when (step) {
+                OnboardingStep.Welcome -> {
+                    OnboardingStepLayout(
+                        eyebrow = stringResource(R.string.onboarding_welcome_to),
+                        brandHeadline = "Purrodoro",
+                        heroHeight = if (isWelcomeSignedIn) 260.dp else OnboardingHeroHeight,
+                        heroContent = {
+                            Image(
+                                painter = painterResource(id = R.drawable.cat_onboarding_pomodoro),
+                                contentDescription = stringResource(R.string.onboarding_welcome_cat_cd),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                alignment = Alignment.Center,
+                            )
+                        },
+                        title = stringResource(R.string.onboarding_welcome_title),
+                        subtitle = stringResource(
+                            if (isWelcomeSignedIn) {
+                                R.string.onboarding_welcome_signed_in_body
+                            } else {
+                                R.string.onboarding_welcome_subtitle
+                            },
+                        ),
+                        belowSubtitle = {
+                            val signedInUser = (authState as? AuthState.SignedIn)?.user
+                            if (signedInUser != null) {
+                                Spacer(Modifier.height(KuroSpacing.lg))
+                                WelcomeSignedInCard(user = signedInUser)
                             }
-                        }
-                        else -> showLoginSheet = true
-                    }
-                },
-                onSecondary = { scope.launch { finishAsGuest() } },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = KuroSpacing.xl,
-                        end = KuroSpacing.xl,
-                        bottom = KuroSpacing.lg,
-                    ),
-            )
+                        },
+                    )
+
+                    OnboardingAuthActions(
+                        welcomeSignedIn = isWelcomeSignedIn,
+                        enabled = !isAuthBusy,
+                        onPrimary = {
+                            when {
+                                isWelcomeSignedIn -> scope.launch {
+                                    val user = (authState as AuthState.SignedIn).user
+                                    if (completeSignInHandoff(user)) {
+                                        advanceAfterAuthChoice()
+                                    }
+                                }
+                                else -> showLoginSheet = true
+                            }
+                        },
+                        onSecondary = { scope.launch { finishAsGuest() } },
+                        modifier = onboardingBottomActionsModifier(),
+                    )
+                }
+
+                OnboardingStep.Notifications -> {
+                    OnboardingStepLayout(
+                        eyebrow = null,
+                        brandHeadline = null,
+                        heroHeight = OnboardingHeroHeight,
+                        heroContent = {
+                            AndroidNotificationPreview(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(horizontal = KuroSpacing.lg),
+                            )
+                        },
+                        title = stringResource(R.string.onboarding_track_title),
+                        subtitle = stringResource(R.string.onboarding_track_subtitle),
+                        belowSubtitle = null,
+                    )
+
+                    OnboardingNotificationActions(
+                        notificationsEnabled = notificationsEnabled,
+                        enabled = !isAuthBusy,
+                        onPrimary = {
+                            if (notificationsEnabled) {
+                                onComplete()
+                            } else {
+                                onRequestNotificationPermission()
+                            }
+                        },
+                        onNotNow = onComplete,
+                        modifier = onboardingBottomActionsModifier(),
+                    )
+                }
+            }
         }
 
         if (isAuthBusy) {
@@ -216,19 +325,138 @@ fun OnboardingScreen(
     }
 }
 
+private fun onboardingBottomActionsModifier() = Modifier
+    .fillMaxWidth()
+    .padding(
+        start = KuroSpacing.xl,
+        end = KuroSpacing.xl,
+        bottom = KuroSpacing.lg,
+    )
+
+@Composable
+private fun ColumnScope.OnboardingStepLayout(
+    eyebrow: String?,
+    brandHeadline: String?,
+    heroHeight: Dp,
+    heroContent: @Composable BoxScope.() -> Unit,
+    title: String,
+    subtitle: String,
+    belowSubtitle: @Composable (() -> Unit)? = null,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .padding(horizontal = KuroSpacing.xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        if (!eyebrow.isNullOrBlank()) {
+            Text(
+                text = eyebrow,
+                color = tokens.textSecondary,
+                style = KuroType.labelStrong,
+            )
+        }
+        if (!brandHeadline.isNullOrBlank()) {
+            Text(
+                text = brandHeadline,
+                color = tokens.textPrimary,
+                fontFamily = NunitoFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 56.sp,
+                lineHeight = 60.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+        Spacer(Modifier.height(KuroSpacing.lg))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(heroHeight)
+                .clip(RoundedCornerShape(KuroSpacing.radiusLg))
+                .background(tokens.activeCardFill),
+            content = heroContent,
+        )
+
+        Spacer(Modifier.height(KuroSpacing.lg))
+
+        Text(
+            text = title,
+            color = tokens.textPrimary,
+            fontFamily = NunitoFamily,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 24.sp,
+            lineHeight = 28.sp,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(KuroSpacing.xs))
+        Text(
+            text = subtitle,
+            color = tokens.textSecondary,
+            style = KuroType.bodySecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 320.dp),
+        )
+        belowSubtitle?.invoke()
+    }
+}
+
+@Composable
+private fun OnboardingStepIndicator(
+    current: OnboardingStep,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OnboardingStep.entries.forEach { step ->
+            val active = step == current
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = KuroSpacing.xs)
+                    .size(if (active) 8.dp else 6.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (active) tokens.accent else tokens.cardBorder.copy(alpha = 0.7f),
+                    ),
+            )
+        }
+    }
+}
+
 @Composable
 private fun OnboardingTopBar(
     language: AppLanguage,
     onUpdateLanguage: (AppLanguage) -> Unit,
+    showBack: Boolean,
+    onBack: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = KuroSpacing.xxxl)
             .padding(horizontal = KuroSpacing.md),
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (showBack) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Lucide.ChevronLeft,
+                    contentDescription = stringResource(R.string.common_back),
+                    tint = MaterialTheme.colorScheme.kuroTokens.textSecondary,
+                )
+            }
+        } else {
+            Spacer(Modifier.size(48.dp))
+        }
+
         OnboardingLanguageSelector(
             language = language,
             onSelect = onUpdateLanguage,
@@ -310,73 +538,6 @@ private fun onboardingPickerLanguageLabel(option: AppLanguage): String = when (o
 }
 
 @Composable
-private fun WelcomePage(signedInUser: AuthUser?) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-    val isSignedIn = signedInUser != null
-    Text(
-        text = stringResource(R.string.onboarding_welcome_to),
-        color = tokens.textSecondary,
-        style = KuroType.labelStrong,
-    )
-    Text(
-        text = "Purrodoro",
-        color = tokens.textPrimary,
-        fontFamily = NunitoFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 56.sp,
-        lineHeight = 60.sp,
-        textAlign = TextAlign.Center,
-    )
-    Spacer(Modifier.height(KuroSpacing.lg))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(if (isSignedIn) 260.dp else 340.dp)
-            .clip(RoundedCornerShape(KuroSpacing.radiusLg))
-            .background(tokens.activeCardFill),
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.cat_onboarding_pomodoro),
-            contentDescription = stringResource(R.string.onboarding_welcome_cat_cd),
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alignment = Alignment.Center,
-        )
-    }
-
-    Spacer(Modifier.height(if (isSignedIn) KuroSpacing.md else KuroSpacing.lg))
-
-    Text(
-        text = stringResource(R.string.onboarding_welcome_title),
-        color = tokens.textPrimary,
-        fontFamily = NunitoFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 28.sp,
-        textAlign = TextAlign.Center,
-    )
-    Spacer(Modifier.height(KuroSpacing.xs))
-    Text(
-        text = stringResource(
-            if (isSignedIn) {
-                R.string.onboarding_welcome_signed_in_body
-            } else {
-                R.string.onboarding_welcome_subtitle
-            },
-        ),
-        color = tokens.textSecondary,
-        style = KuroType.bodySecondary,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.widthIn(max = 320.dp),
-    )
-    if (signedInUser != null) {
-        Spacer(Modifier.height(KuroSpacing.lg))
-        WelcomeSignedInCard(user = signedInUser)
-    }
-}
-
-@Composable
 private fun WelcomeSignedInCard(user: AuthUser) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
@@ -398,6 +559,99 @@ private fun WelcomeSignedInCard(user: AuthUser) {
     }
 }
 
+/**
+ * Collapsed Android notification row: app icon, header line, title, body, expand affordance.
+ */
+@Composable
+private fun AndroidNotificationPreview(modifier: Modifier = Modifier) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val surfaceColor = tokens.cardFill
+    val headerColor = tokens.textMuted
+    val titleColor = tokens.textPrimary
+    val bodyColor = tokens.textSecondary
+    val shape = RoundedCornerShape(24.dp)
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 6.dp,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.12f),
+                spotColor = Color.Black.copy(alpha = 0.12f),
+            ),
+        shape = shape,
+        color = surfaceColor,
+        tonalElevation = 1.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = KuroSpacing.md, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(tokens.accent),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(R.mipmap.ic_launcher_monochrome),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(18.dp),
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(tokens.interactiveText),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.onboarding_notif_meta),
+                        color = headerColor,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        imageVector = Lucide.ChevronDown,
+                        contentDescription = null,
+                        tint = headerColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.onboarding_notif_title),
+                    color = titleColor,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.onboarding_notif_body),
+                    color = bodyColor,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun OnboardingAuthActions(
     welcomeSignedIn: Boolean,
@@ -409,7 +663,7 @@ private fun OnboardingAuthActions(
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val showGoogleSignIn = !welcomeSignedIn
     val primaryLabel = if (welcomeSignedIn) {
-        stringResource(R.string.onboarding_cta_continue)
+        stringResource(R.string.onboarding_cta_next)
     } else {
         stringResource(R.string.onboarding_cta_sign_in)
     }
@@ -419,6 +673,72 @@ private fun OnboardingAuthActions(
         stringResource(R.string.onboarding_cta_continue_as_guest)
     }
 
+    OnboardingBottomActions(
+        modifier = modifier,
+        primaryLabel = primaryLabel,
+        secondaryLabel = secondaryLabel,
+        enabled = enabled,
+        onPrimary = onPrimary,
+        onSecondary = onSecondary,
+        primaryLeading = if (showGoogleSignIn) {
+            {
+                GoogleBrandIcon(
+                    modifier = Modifier.size(20.dp),
+                    onColoredButton = true,
+                )
+                Spacer(Modifier.width(KuroSpacing.sm))
+            }
+        } else {
+            null
+        },
+        primaryColors = ButtonDefaults.buttonColors(
+            containerColor = tokens.interactiveFill,
+            contentColor = tokens.interactiveText,
+        ),
+    )
+}
+
+@Composable
+private fun OnboardingNotificationActions(
+    notificationsEnabled: Boolean,
+    enabled: Boolean,
+    onPrimary: () -> Unit,
+    onNotNow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val primaryLabel = if (notificationsEnabled) {
+        stringResource(R.string.onboarding_cta_get_started)
+    } else {
+        stringResource(R.string.onboarding_cta_turn_on_notifications)
+    }
+
+    OnboardingBottomActions(
+        modifier = modifier,
+        primaryLabel = primaryLabel,
+        secondaryLabel = stringResource(R.string.onboarding_cta_not_now),
+        enabled = enabled,
+        onPrimary = onPrimary,
+        onSecondary = onNotNow,
+        primaryColors = ButtonDefaults.buttonColors(
+            containerColor = tokens.interactiveFill,
+            contentColor = tokens.interactiveText,
+        ),
+    )
+}
+
+@Composable
+private fun OnboardingBottomActions(
+    primaryLabel: String,
+    secondaryLabel: String,
+    enabled: Boolean,
+    onPrimary: () -> Unit,
+    onSecondary: () -> Unit,
+    modifier: Modifier = Modifier,
+    primaryLeading: (@Composable () -> Unit)? = null,
+    primaryColors: androidx.compose.material3.ButtonColors,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -430,21 +750,14 @@ private fun OnboardingAuthActions(
                 .fillMaxWidth()
                 .height(52.dp),
             shape = RoundedCornerShape(KuroSpacing.radiusPill),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = tokens.interactiveFill,
-                contentColor = tokens.interactiveText,
-            ),
+            colors = primaryColors,
         ) {
-            if (showGoogleSignIn) {
+            if (primaryLeading != null) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    GoogleBrandIcon(
-                        modifier = Modifier.size(20.dp),
-                        onColoredButton = true,
-                    )
-                    Spacer(Modifier.width(KuroSpacing.sm))
+                    primaryLeading()
                     Text(
                         text = primaryLabel,
                         style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),

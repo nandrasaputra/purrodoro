@@ -25,6 +25,16 @@ captures
 **/.kotlin
 
 # ──────────────────────────────────────────────────────────────
+# Android — release signing (never commit secrets or keystores)
+# ──────────────────────────────────────────────────────────────
+keystore.properties
+**/keystore.properties
+!keystore.properties.example
+!**/keystore.properties.example
+*.jks
+*.keystore
+
+# ──────────────────────────────────────────────────────────────
 # Android — IntelliJ / Android Studio (.idea)
 # ──────────────────────────────────────────────────────────────
 .idea/caches
