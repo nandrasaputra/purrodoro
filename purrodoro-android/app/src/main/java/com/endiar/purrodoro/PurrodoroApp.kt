@@ -162,6 +162,7 @@ fun PurrodoroApp(
     openTab: kotlinx.coroutines.flow.SharedFlow<AppTab>? = null,
     initialAuthState: AuthState = AuthState.Guest,
     initialOwnerId: String? = null,
+    initialAppState: AppState? = null,
 ) {
     val authState by authRepository.authState.collectAsStateWithLifecycle(initialValue = initialAuthState)
 
@@ -173,18 +174,7 @@ fun PurrodoroApp(
     val syncPresentation = if (syncEnabled) resolveSyncStatusPresentation(syncSnapshot) else null
 
     val appState by repo.appState.collectAsStateWithLifecycle(
-        initialValue = AppState(
-            glassReadabilityMode = GlassReadabilityMode.Adaptive,
-            selectedSoundId = 1,
-            completedSessions = 0,
-            settings = TimerSettings(),
-            nextTaskId = 1,
-            stamps = emptyMap(),
-            tasks = listOf(),
-            categories = listOf(),
-            nextCategoryId = 1,
-            selectedCategoryId = null
-        )
+        initialValue = initialAppState ?: AppState.loadingPlaceholder(),
     )
 
     val runtimeState by timerConnection.state.collectAsStateWithLifecycle(initialValue = null)
@@ -1579,6 +1569,7 @@ fun PurrodoroApp(
                         playingAmbienceId = playingAmbienceId,
                         selectedMusicId = soundscapeMixMusicId,
                         playingMusicId = playingMusicId,
+                        isPremium = isPremium,
                         onAmbienceSelected = { sound ->
                             if (sound.locked && !isPremium) {
                                 requestPremiumAccess(

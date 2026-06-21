@@ -164,7 +164,12 @@ delete or Cloudflare dashboard) to save storage.
 
 ## Edit metadata (no audio change)
 
-Renaming, re-describing, re-ordering, or toggling premium is a plain update:
+Renaming, re-describing, re-ordering, or toggling premium is a plain update.
+**Prefer the [debug admin](#debug-admin-recommended)** lock toggle (`premium` /
+`free`) for `is_premium` on live tracks — it writes through the service role and
+bumps `updated_at` for you.
+
+SQL (dashboard or migration) still works:
 
 ```sql
 update public.soundscape_tracks
@@ -179,6 +184,18 @@ re-fetched only if it wasn't already downloaded. (If you want to avoid any re-do
 note that metadata-only edits still bump `updated_at`; the client keys the local file on
 `updated_at`, so a metadata edit **will** trigger a re-download. Batch metadata edits
 when you can.)
+
+### `is_premium` — seed vs live catalog
+
+| Layer | Role |
+|---|---|
+| **SQL migrations** (`0011`, `0012`, …) | Initial row insert when a track is first added to the repo. Values can go stale. |
+| **Postgres `soundscape_tracks`** | **Source of truth** for what ships to clients after launch. |
+| **Debug admin** (`tools/soundscape-admin/`) | Preferred way to flip `is_premium` / `is_active` / `sort_order` without hand-written SQL. |
+| **Android app** | Reads `is_premium` on each cold start (full catalog refresh). Maps to `locked` on the tile. Free users tap → paywall; **premium users** tap a not-yet-downloaded cloud track → download, then play. |
+
+Clients do **not** hot-reload the catalog while the app stays open — relaunch (or
+force-stop) after an admin change so the Sounds sheet reflects the new lock state.
 
 ---
 
@@ -205,14 +222,23 @@ in the admin tool — they must match the enabled public bucket URL.
 
 1. Relaunch the app → the track appears in the Sounds sheet after the bundled ones, with
    a cloud badge + size.
-2. Tap → progress ring → badge clears → tap again plays it; it loops.
-3. Airplane mode + relaunch → catalog still listed (Room cache); downloaded track still
+2. **Free tier:** tap a `is_premium = true` track → premium upsell (no download).
+3. **Premium tier:** tap a not-downloaded cloud track → progress ring → badge clears →
+   tap again plays it; it loops.
+4. Airplane mode + relaunch → catalog still listed (Room cache); downloaded track still
    plays.
-4. Expanded grid → trash icon removes the download; tile returns to the cloud badge.
-5. After a soft-remove + relaunch, confirm the local file is gone:
+5. Expanded grid → trash icon removes the download; tile returns to the cloud badge.
+6. After a soft-remove + relaunch, confirm the local file is gone:
    ```bash
    adb shell run-as com.endiar.purrodoro ls files/soundscapes
    ```
+
+**Verify premium flag (anon read):**
+
+```bash
+curl "$PROJECT_URL/rest/v1/soundscape_tracks?id=eq.120&select=id,name,is_premium,is_active" \
+  -H "apikey: $SUPABASE_PUBLISHABLE_KEY"
+```
 
 ---
 
@@ -243,6 +269,10 @@ catalogs from one screen:
   row, toggle visibility/premium, soft-delete, and preview playback.
 - **Local tracks** (`soundscape_bundled_catalog`): edit visibility/premium/order
   for APK-bundled tracks (no byte upload — audio ships in `res/raw`).
+
+The **lock** column toggles `is_premium` (`premium` ↔ `free`) and bumps
+`updated_at`. That is the normal workflow for cloud tracks such as Storm — no
+migration or hand-written SQL required after the row exists.
 
 See the tool's [README](../tools/soundscape-admin/README.md) for setup. It is
 **dev-server only** — uses the Supabase service role key and R2 write credentials;
@@ -291,21 +321,33 @@ Source of truth: [`BundledTrackRegistry.kt`](../purrodoro-android/app/src/main/j
 After renaming bundled stems, run migrations `0007`–`0009` on Supabase so
 `soundscape_bundled_catalog.raw_resource` stays in sync.
 
-### Cloud lo-fi seed (current)
+### Cloud lo-fi seed (migration defaults)
 
 Twenty cloud lo-fi tracks ship as R2 objects under `lofi/lofi_*.mp3` with
 catalog rows **ids 100–119** (migration `0011_seed_cloud_lofi_catalog.sql`).
-All are free (`is_premium = false`) with `sort_order` 10–200. The six APK-bundled
-lo-fi tracks (ids 1–6) are separate and are **not** duplicated in the cloud catalog.
+The migration seeds them all as **free** (`is_premium = false`) with
+`sort_order` 10–200. **Live `is_premium` may differ** — check Postgres or the
+admin tool. The six APK-bundled lo-fi tracks (ids 1–6) are separate and are
+**not** duplicated in the cloud catalog.
 
-### Cloud ambience seed (current)
+### Cloud ambience (migration defaults + live)
 
 Two cloud ambience tracks ship as R2 objects under `ambience/amb_*.mp3` with
 catalog rows **ids 120–121** (migration `0012_seed_cloud_ambience_catalog.sql`):
 
-| id | name | symbol | R2 key |
-|---|---|---|---|
-| 120 | Storm | Storm | `ambience/amb_storm.mp3` |
-| 121 | Night Crickets | Cricket | `ambience/amb_night_cricket.mp3` |
+| id | name | symbol | R2 key | Migration seed `is_premium` |
+|---|---|---|---|---|
+| 120 | Storm | Storm | `ambience/amb_storm.mp3` | `false` |
+| 121 | Night Crickets | Cricket | `ambience/amb_night_cricket.mp3` | `false` |
 
-Both are free and appear after the six bundled ambience tiles on the Sounds sheet.
+They appear after the six bundled ambience tiles on the Sounds sheet. **Do not
+treat the migration seed as product policy** — use the admin **lock** toggle
+(or SQL) to set premium/free per track.
+
+**Live catalog (checked 2026-06-21):** Storm **premium**, Night Crickets **free**.
+Re-check anytime:
+
+```bash
+curl "https://birjkyerhokqdzhdfgpt.supabase.co/rest/v1/soundscape_tracks?id=in.(120,121)&select=id,name,is_premium" \
+  -H "apikey: $SUPABASE_PUBLISHABLE_KEY"
+```

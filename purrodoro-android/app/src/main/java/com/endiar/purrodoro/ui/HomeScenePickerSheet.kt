@@ -123,7 +123,7 @@ private fun HomeSceneOptionRow(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
-            if (locked) {
+            if (scene.isPremiumOnly) {
                 KuroPremiumBadge(
                     modifier = Modifier
                         .align(Alignment.TopEnd)

@@ -79,7 +79,23 @@ data class AppState(
     val nextHabitId: Int = 1,
     val interruptedFocus: InterruptedFocus? = null,
     val homeScene: HomeScene = HomeScene.Room,
-)
+) {
+    companion object {
+        /** Placeholder until [AppRepository.appState] emits; previews/tests only when no preload. */
+        fun loadingPlaceholder() = AppState(
+            glassReadabilityMode = GlassReadabilityMode.Adaptive,
+            selectedSoundId = 1,
+            completedSessions = 0,
+            settings = TimerSettings(),
+            nextTaskId = 1,
+            stamps = emptyMap(),
+            tasks = emptyList(),
+            categories = emptyList(),
+            nextCategoryId = 1,
+            selectedCategoryId = null,
+        )
+    }
+}
 
 
 class AppRepository(
