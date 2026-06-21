@@ -96,8 +96,8 @@
     <string name="onboarding_rhythm_your_week">Your week</string>
     <string name="onboarding_rhythm_preview">Preview</string>
     <string name="onboarding_rhythm_quote">Consistency is your quiet superpower.</string>
-    <string name="onboarding_track_title">Stay on track</string>
-    <string name="onboarding_track_subtitle">Soft chimes when focus and breaks end. Nothing else.</string>
+    <string name="onboarding_track_title">Never watch the clock</string>
+    <string name="onboarding_track_subtitle">Purrodoro gives you a soft nudge when each session ends — so you can be fully present until then.</string>
     <string name="onboarding_track_body">We recommend turning these on so you can fully drift into focus and trust Purrodoro to bring you back.</string>
     <string name="onboarding_notif_title">Focus complete</string>
     <string name="onboarding_notif_body">Take a short break. Your next session is queued.</string>

@@ -354,6 +354,7 @@ fun PurrodoroApp(
                     repo.setOwnerId(null)
                 }
             },
+            onRequestNotificationPermission = onEnableNotifications,
         )
         return
     }
