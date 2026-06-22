@@ -1,14 +1,14 @@
 package com.endiar.purrodoro.debug
 
 import android.app.Activity
-import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.core.content.ContextCompat
+import com.endiar.purrodoro.PurrodoroApplication
 import com.endiar.purrodoro.model.AppClock
 
-class KuroDebugApplication : Application() {
+class KuroDebugApplication : PurrodoroApplication() {
     override fun onCreate() {
         super.onCreate()
         val debugRepo = DebugRepository.init(this)
