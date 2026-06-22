@@ -1,5 +1,11 @@
 # Freemium Model Implementation Plan
 
+> **⚠️ Historical plan (2026-06-07).** Gating described here was largely implemented
+> with different caps and surfaces than originally specified. **Current product
+> limits and monetization:** [`docs/PRODUCT.md`](../../PRODUCT.md) → Monetization
+> (**monthly/yearly subscription**, not one-time purchase). Remaining work is Play
+> Billing subscriptions + paywall copy cleanup.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add the freemium gating foundation (a centralized `PremiumFeature` registry + `PremiumGate` helper), a reusable paywall sheet, and wire the first two concrete gates — premium sounds and the soft caps on categories (3) and habits (5).

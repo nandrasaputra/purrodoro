@@ -113,10 +113,9 @@ not ship unverified.
 
 ### 5. No crash reporting / analytics  ·  medium (operability)
 
-No Crashlytics / Sentry / Bugsnag is wired. Production crashes would be
-invisible.
-
-**Action:** integrate a crash reporter before launch.
+~~No Crashlytics / Sentry / Bugsnag is wired.~~ **Resolved 2026-06-22:** Firebase
+Crashlytics is integrated (`PurrodoroApplication`, `google-services.json` committed).
+Confirm release-symbol upload after R8 is enabled.
 
 ### 6. R8 disabled; shipping APK instead of AAB  ·  medium
 
@@ -134,29 +133,30 @@ is currently empty and the app uses libraries that need them:
 
 ### 7. Premium entitlement is unlocked client-side with no verification  ·  high (security/monetization)
 
-> Source: security review, 2026-06-19.
+> Source: security review, 2026-06-19. Product model: **monthly + yearly subscriptions**
+> (see `docs/PRODUCT.md` → Monetization) — not a one-time purchase.
 
-The release paywall's upgrade action grants premium locally with no Play Billing
-purchase or server verification — any user can unlock all premium gates
-(soundscapes, home scenes, task/habit caps) for free.
+The release paywall's upgrade/subscribe action grants premium locally with no Play
+Billing subscription check — any user can unlock all premium gates (soundscapes,
+home scenes, task/habit caps) for free.
 
-```1442:1446:purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
+```1543:1547:purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
                     onUpgrade = {
                         scope.launch {
                             repo.setIsPremium(true)
                             showPremiumSheet = false
-                        }
 ```
 
-The debug `PremiumOverride` is correctly isolated to `src/debug/`; this path is
-in the **main** source set and ships in release. `docs/PRODUCT.md` lists billing
-as "later," so this is not exploitable for revenue today — but it becomes a
-**hard blocker the moment premium becomes a paid feature.**
+(Same stub on `PremiumScreen.onSubscribe`.)
 
-**Action:** gate the upgrade on Play Billing (purchase + restore + receipt/server
-entitlement validation, or a signed entitlement from the backend). Until billing
-ships, remove/disable the release upgrade CTA or show "coming soon" without
-mutating `isPremium`.
+The debug `PremiumOverride` is correctly isolated to `src/debug/`; this path is
+in the **main** source set and ships in release.
+
+**Action:** gate upgrade on **Play Billing subscriptions** (`ProductType.SUBS`):
+monthly + yearly base plans, purchase + **restore on startup**, acknowledge
+purchases, and set `isPremium` only while an active subscription (or trial) exists.
+Optional later: Play Developer API / RTDN server check. Until billing ships, disable
+the release CTA or show "coming soon" without mutating `isPremium`.
 
 ### 8. Premium cloud audio is publicly downloadable (paywall is UI-only)  ·  medium (security/monetization)
 
@@ -205,11 +205,11 @@ similar). Optionally omit `file_path` from anonymous catalog responses.
 - [ ] Run NAN-65 (two-device sync matrix)
 - [ ] Cold-start home hero: force-stop app, reopen with each saved `HomeScene` (Room, Café, Library, Park); no flash back to Room — use premium debug override for premium scenes
 - [ ] Fix auto-backup: exclude encrypted session + `files/backups/` (+ Room DB), add reset-on-failure decrypt, or set `allowBackup="false"`
-- [ ] Integrate crash reporting
+- [x] Integrate crash reporting — **Firebase Crashlytics**, 2026-06-22
 - [ ] Switch to AAB; enable R8 + `shrinkResources`; add ProGuard keep rules
 - [ ] Confirm `app-release.aab` is signed and installs from a clean device
 - [ ] Update stale auth-stub docs (`PRODUCT.md`, `pending-actions.md`)
-- [ ] Gate premium upgrade on Play Billing + server entitlement (or disable the release CTA) — §7
+- [ ] Gate premium on Play Billing **subscriptions** (monthly + yearly) + restore — §7
 - [ ] Move premium cloud audio to a private bucket with signed URLs + entitlement checks — §8
 
 ---

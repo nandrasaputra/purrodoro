@@ -171,4 +171,6 @@ source of truth so sound tiles, widgets, and upsell stay consistent.
 
 - Premium upsell sheet: `PremiumUpsellSheet.kt`, `premium_sheet_header.webp`
 - Premium gating: `PurrodoroApp.kt` → `showPremiumSheet` / `PremiumUpsellTrigger`
+- **Entitlement (target):** active Google Play **subscription** (monthly or yearly) —
+  see `docs/PRODUCT.md` → Monetization. Today: local `isPremium` stub until Play Billing ships.
 - Debug premium override: Dev Tools → **Premium Override**

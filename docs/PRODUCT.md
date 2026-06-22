@@ -13,8 +13,7 @@ finish, skip-to-end) differs.
 
 | Topic | Document |
 |---|---|
-| **Freemium model (design)** | [`docs/superpowers/specs/2026-06-07-freemium-model-design.md`](superpowers/specs/2026-06-07-freemium-model-design.md) — original gating architecture; some limits below supersede it |
-| **Freemium rollout (plan)** | [`docs/superpowers/plans/2026-06-07-freemium-model.md`](superpowers/plans/2026-06-07-freemium-model.md) |
+| **Freemium / Premium (subscriptions)** | This doc → [Monetization](#monetization-in-progress) — monthly & yearly plans; Play Billing not wired yet |
 | **Premium badge UI** | [`purrodoro-android/docs/premium-badge.md`](../purrodoro-android/docs/premium-badge.md) — Starry Pill lock affordance |
 | **Premium branding (visual)** | This doc → [Premium branding](#premium-branding-visual-identity) — Aurora Ring, profile card, mascot |
 | **Soundscape catalog (cloud)** | [`docs/superpowers/specs/2026-06-17-soundscape-admin-design.md`](superpowers/specs/2026-06-17-soundscape-admin-design.md), [`docs/superpowers/plans/2026-06-17-soundscape-admin-and-unified-catalog.md`](superpowers/plans/2026-06-17-soundscape-admin-and-unified-catalog.md) |
@@ -238,28 +237,48 @@ data class SessionRecord(
 
 ## Monetization (in progress)
 
-Purrodoro uses a **freemium** model built around a **one-time unlock**
-("Purrodoro Premium"). **No subscriptions.** Play Billing / StoreKit is not wired
-yet — the paywall CTA currently flips a local `isPremium` flag; real purchase
-flow is a separate, later spec.
+Purrodoro is **freemium**: the core Pomodoro loop is free; **Purrodoro Premium** is a
+**paid subscription** (monthly and yearly plans, priced low). There is **no one-time
+lifetime unlock.**
 
-**Philosophy:** generous free core loop (timer, cycles, focus mode, Journey,
-categories, notifications, light/dark appearance). Premium sells soundscape depth,
-higher task/habit headroom, and (planned) extra home-screen widgets.
+**Target billing (Android):** Google Play **subscriptions** via Play Billing Library
+(`ProductType.SUBS`) — one subscription product (e.g. `purrodoro_premium`) with
+**monthly** and **yearly** base plans. Optional **free trial** on one or both plans
+(copy in the upsell sheet currently references a 7-day trial as a placeholder).
 
-### Entitlement source
+**Not shipped yet:** Play Billing is not wired. The paywall CTA still flips a local
+`isPremium` flag (`AppRepository.setIsPremium`) with no purchase or subscription
+check. That stub must be replaced before monetization goes live.
+
+**Philosophy:** generous free core (timer, cycles, focus mode, Journey, categories,
+notifications, light/dark appearance, all home-screen widgets). Premium sells
+soundscape depth, higher task/habit headroom, and extra home hero scenes — at a
+**low subscription price** rather than a large upfront cost.
+
+### Entitlement (target vs today)
+
+**Target (when Play Billing ships):** `isPremium` means the user has an **active**
+Google Play subscription (monthly or yearly), including any configured free-trial
+period. When the subscription expires, is cancelled, or is not renewed → premium
+gates return. The app re-checks owned subscriptions on cold start and on billing
+updates (`queryPurchasesAsync` for `SUBS`).
+
+**Today (stub):** a device-local DataStore boolean set manually by the paywall CTA.
 
 ```kotlin
 val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 ```
 
-- **`appState.isPremium`** — DataStore flag (`AppRepository.setIsPremium`).
+- **`appState.isPremium`** — DataStore flag (`AppRepository.setIsPremium`); **not**
+  tied to Play yet and **must not** be treated as permanent once billing ships.
 - **`PremiumOverride`** — debug-only toggle in Dev Tools; ignored in release builds.
-- Persists across account switch (device-local, not synced). See
-  [`premium-badge.md`](../purrodoro-android/docs/premium-badge.md) for lock UI.
+- Premium entitlement is **device-local** (not synced via Supabase) — same Google
+  account on a new device restores via **Play subscription restore**, not cloud sync.
+  See [`premium-badge.md`](../purrodoro-android/docs/premium-badge.md) for lock UI.
 
 Cap logic lives in [`PremiumGate`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/model/PremiumGate.kt).
 Paywall UI: [`PremiumUpsellSheet`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumUpsellSheet.kt),
+discovery: [`PremiumScreen`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumScreen.kt),
 cap labels: [`PremiumCapUi`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumCapUi.kt).
 
 ### Free vs premium (current product)
@@ -317,15 +336,20 @@ one opens `PremiumUpsellSheet`. Selection persists device-local in DataStore
 
 ### Still to build
 
-- Play Billing one-time purchase + restore
-- Widget picker restriction (2 free / 6 premium)
-- Paywall copy cleanup (one-time price; remove stale subscription placeholder strings; no mascot poses perk)
+- **Play Billing subscriptions** — monthly + yearly base plans, purchase flow, restore
+  on startup, acknowledge purchases, manage-subscription link; replace `setIsPremium`
+  stub; drive `isPremium` from active subscription state
+- **Paywall copy cleanup** — remove stale **one-time** strings (`premium_one_time_hint`,
+  `premium_screen_price_placeholder`); show live prices from Play `ProductDetails`
+- **Optional:** Real-time developer notifications / server entitlement check (not
+  required for v1 client-side subscription query)
+- **Premium cloud audio** — private R2 bucket + signed URLs (paywall is UI-only today;
+  see `release-readiness.md` §8)
 
 ### Reference documents
 
-- Design (partially superseded on caps/Journey/widgets): [`superpowers/specs/2026-06-07-freemium-model-design.md`](superpowers/specs/2026-06-07-freemium-model-design.md)
-- Implementation plan: [`superpowers/plans/2026-06-07-freemium-model.md`](superpowers/plans/2026-06-07-freemium-model.md)
 - Premium badge: [`purrodoro-android/docs/premium-badge.md`](../purrodoro-android/docs/premium-badge.md)
+- Android release / billing blockers: [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
 ### Premium branding (visual identity)
 
@@ -423,8 +447,8 @@ Profile merges premium status and account into **one card** (no separate
 - Badge: muted **Free** pill (`KuroFreeBadge`) — never `KuroPremiumBadge` on a free account.
 - Heading above grid: **"Upgrade to Premium to access…"**
 - Grid: static **2×2** unlock-icon chips (sounds, scenes, tasks, habits) — not horizontally scrollable.
-- Footer: **Explore Premium** shimmer pill (left) + **Sign out** (right). No purchase-price
-  hint on Profile until Play Billing ships.
+- Footer: **Explore Premium** shimmer pill (left) + **Sign out** (right). Subscription
+  pricing comes from Play on `PremiumScreen`; Profile does not duplicate plan prices.
 
 **Guest:** same free card pattern; identity row is the guest sign-in CTA instead
 of Google account details. Premium discovery still requires sign-in first
@@ -467,9 +491,11 @@ Benefit chip unlock glyph: `res/drawable/ic_profile_benefit_unlock.xml`.
 
 #### Premium discovery screen
 
-Full-screen hub (`PremiumScreen`) for benefits, compare table, and subscribe
-CTA. Opened from Profile “View benefits”, free upsell CTA, and contextual locks.
-Guests are routed to `PremiumLoginRequiredSheet` before discovery.
+Full-screen hub (`PremiumScreen`) for benefits, compare table, and **subscribe**
+CTA (monthly / yearly plan picker once Play Billing ships). Opened from Profile
+“View benefits”, free upsell CTA, and contextual locks. Guests are routed to
+`PremiumLoginRequiredSheet` before discovery. Prices and trial terms must come
+from Google Play — not hard-coded one-time copy.
 
 ---
 
