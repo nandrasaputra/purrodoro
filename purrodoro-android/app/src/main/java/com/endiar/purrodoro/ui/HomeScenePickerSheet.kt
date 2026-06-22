@@ -50,6 +50,7 @@ fun HomeScenePickerSheet(
     isPremium: Boolean,
     onDismiss: () -> Unit,
     onSelect: (HomeScene) -> Unit,
+    onPremiumSceneAttempt: (String) -> Unit,
 ) {
     KuroAdaptiveBottomSheet(
         onDismiss = onDismiss,
@@ -71,11 +72,20 @@ fun HomeScenePickerSheet(
             Spacer(modifier = Modifier.height(KuroSpacing.lg))
             HomeScene.entries.forEachIndexed { index, scene ->
                 if (index > 0) Spacer(modifier = Modifier.height(KuroSpacing.sm))
+                val locked = !canSelectHomeScene(scene, isPremium)
+                val title = stringResource(scene.titleRes())
                 HomeSceneOptionRow(
                     scene = scene,
+                    title = title,
                     selected = scene == selected,
-                    locked = !canSelectHomeScene(scene, isPremium),
-                    onClick = { onSelect(scene) },
+                    locked = locked,
+                    onClick = {
+                        if (locked) {
+                            onPremiumSceneAttempt(title)
+                        } else {
+                            onSelect(scene)
+                        }
+                    },
                 )
             }
             Spacer(modifier = Modifier.height(KuroSpacing.md))
@@ -86,13 +96,13 @@ fun HomeScenePickerSheet(
 @Composable
 private fun HomeSceneOptionRow(
     scene: HomeScene,
+    title: String,
     selected: Boolean,
     locked: Boolean,
     onClick: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
-    val title = stringResource(scene.titleRes())
     val rowCd = stringResource(R.string.home_scene_option_cd, title)
     val shape = RoundedCornerShape(KuroSpacing.radiusSm)
     Row(

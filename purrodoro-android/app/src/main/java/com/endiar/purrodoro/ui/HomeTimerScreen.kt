@@ -104,6 +104,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.draw.scale
 import com.endiar.purrodoro.ui.designsystem.KuroAccountAvatarContent
+import com.endiar.purrodoro.ui.designsystem.KuroGuestAvatarContent
 import com.endiar.purrodoro.ui.designsystem.KuroPremiumAvatarFrame
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
@@ -1418,14 +1419,17 @@ private fun CatAvatar(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val openProfileLabel = stringResource(R.string.home_open_profile_cd)
-    val dotSize = size * (16f / 64f)
 
     val avatarContent: @Composable () -> Unit = {
-        KuroAccountAvatarContent(
-            userId = userId,
-            displayName = displayName,
-            modifier = Modifier.fillMaxSize(),
-        )
+        if (userId == null) {
+            KuroGuestAvatarContent(modifier = Modifier.fillMaxSize())
+        } else {
+            KuroAccountAvatarContent(
+                userId = userId,
+                displayName = displayName,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 
     if (isPremium) {
@@ -1445,26 +1449,13 @@ private fun CatAvatar(
         Box(
             modifier = modifier
                 .size(size)
+                .clip(CircleShape)
+                .background(tokens.cardFill)
+                .border(1.dp, tokens.cardBorder, CircleShape)
                 .clickable(onClick = onClick, onClickLabel = openProfileLabel),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(CircleShape)
-                    .background(tokens.cardFill)
-                    .border(1.dp, tokens.cardBorder, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                avatarContent()
-            }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(dotSize)
-                    .clip(CircleShape)
-                    .background(tokens.accent)
-                    .border(2.dp, tokens.pageBackground, CircleShape),
-            )
+            avatarContent()
         }
     }
 }

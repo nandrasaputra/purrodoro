@@ -23,6 +23,7 @@ import com.endiar.purrodoro.ui.theme.kuroTokens
 /** Why the premium paywall opened — drives title, body, and perk rows. */
 sealed interface PremiumUpsellReason {
     data class LockedSound(val featureName: String) : PremiumUpsellReason
+    data class LockedScene(val sceneName: String) : PremiumUpsellReason
     data object ActiveTaskCap : PremiumUpsellReason
     data object HabitCap : PremiumUpsellReason
     data object Generic : PremiumUpsellReason
@@ -33,6 +34,7 @@ data class PremiumUpsellTrigger(
 ) {
     companion object {
         fun lockedSound(name: String) = PremiumUpsellTrigger(PremiumUpsellReason.LockedSound(name))
+        fun lockedScene(name: String) = PremiumUpsellTrigger(PremiumUpsellReason.LockedScene(name))
         val activeTaskCap = PremiumUpsellTrigger(PremiumUpsellReason.ActiveTaskCap)
         val habitCap = PremiumUpsellTrigger(PremiumUpsellReason.HabitCap)
     }

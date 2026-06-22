@@ -119,7 +119,7 @@
     <string name="account_signed_in_generic">Sudah masuk</string>
     <string name="account_sign_out">Keluar</string>
     <string name="login_sheet_title">Masuk</string>
-    <string name="login_sheet_subtitle">Cara yang lebih tenang untuk menjaga ritual fokusmu.</string>
+    <string name="login_sheet_subtitle">Cadangkan tugas, kebiasaan, dan riwayat fokus di semua perangkat.</string>
     <string name="login_sheet_cat_cd">Purrodoro si kucing melambai</string>
     <string name="login_continue_with_google">Lanjutkan dengan Google</string>
     <string name="login_continue_as_guest">Lanjut sebagai tamu</string>
@@ -172,7 +172,7 @@
     <string name="greeting_evening_encouragement">Mari jadikan malam ini bermakna.</string>
 
     <!-- Home -->
-    <string name="home_default_name">teman</string>
+    <string name="home_default_name">Teman Purro</string>
     <string name="home_start_focus">Mulai Fokus</string>
     <string name="home_autocomplete_task">Selesaikan Pomodoro ini dan Purrodoro akan mencentangnya.</string>
     <string name="home_autocomplete_habit">Selesaikan Pomodoro ini dan Purrodoro akan mencatatnya hari ini.</string>
@@ -398,6 +398,7 @@
     <string name="premium_sheet_title">Buat fokus terasa ajaib</string>
     <string name="premium_sheet_title_locked">%1$s adalah Premium</string>
     <string name="premium_sheet_subtitle">Premium mengubah setiap Pomodoro jadi momen istirahat kecil. Kucingmu memilih ini untukmu.</string>
+    <string name="premium_sheet_subtitle_locked">Buka Premium untuk menggunakannya di sesi fokusmu.</string>
     <string name="premium_chip_ambient">Suara Ambien</string>
     <string name="premium_chip_lofi">Lo-fi Vinyl</string>
     <string name="premium_chip_widgets">Widget Ekstra</string>
@@ -407,6 +408,11 @@
     <string name="premium_sheet_price_hint">Mulai $2,99/bulan · uji coba gratis 7 hari</string>
     <string name="premium_sheet_cta">Mulai Premium</string>
     <string name="premium_sheet_dismiss">Nanti saja</string>
+    <string name="premium_guest_unlock_header_cd">Kuro menyambutmu untuk masuk dan membuka Premium</string>
+    <string name="premium_guest_title_locked">%1$s adalah Premium</string>
+    <string name="premium_guest_title_feature">Ini fitur Premium</string>
+    <string name="premium_guest_body">Masuk dengan Google untuk membuka Premium di akunmu.</string>
+    <string name="premium_guest_body_locked">Masuk dengan Google untuk menggunakannya di akunmu.</string>
     <string name="premium_cap_active_tasks">Lebih banyak tugas aktif</string>
     <string name="premium_cap_habits">Lebih banyak kebiasaan</string>
     <string name="premium_cap_active_tasks_title">Batas tugas aktif tercapai</string>
@@ -445,12 +451,8 @@
     <string name="premium_one_time_hint">Beli sekali · Tanpa langganan</string>
 
     <!-- Premium login gate (guest → sign in before Premium) -->
-    <string name="premium_login_title">Masuk untuk membuka Premium</string>
-    <string name="premium_login_subtitle">Premium terhubung ke akunmu agar unlock dan data fokus ikut tersimpan di cloud.</string>
-    <string name="premium_login_perk_sync_data">Tugas &amp; kebiasaan sinkron di semua perangkat</string>
-    <string name="premium_login_perk_journey">Perjalanan &amp; riwayat fokus tetap ter-backup</string>
-    <string name="premium_login_perk_devices">Lanjutkan di perangkat mana pun</string>
-    <string name="premium_login_dismiss">Nanti saja</string>
+    <string name="premium_login_discover_title">Jelajahi Premium</string>
+    <string name="premium_login_discover_subtitle">Masuk dengan Google untuk melihat isinya dan membukanya di akunmu.</string>
 
     <string name="premium_screen_title">Purrodoro Premium</string>
     <string name="premium_screen_headline_discover">Buka toolkit fokus yang lebih lengkap</string>

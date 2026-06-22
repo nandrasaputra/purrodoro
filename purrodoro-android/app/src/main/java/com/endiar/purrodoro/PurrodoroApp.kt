@@ -128,7 +128,6 @@ import com.endiar.purrodoro.ui.onboarding.OnboardingScreen
 import com.endiar.purrodoro.ui.todayFocusMetrics
 import com.endiar.purrodoro.model.InterruptedFocus
 import com.endiar.purrodoro.model.effectiveHomeScene
-import com.endiar.purrodoro.model.canSelectHomeScene
 import com.endiar.purrodoro.model.effectiveTarget
 import com.endiar.purrodoro.model.progressOn
 import com.endiar.purrodoro.ui.components.CycleCompleteDialog
@@ -447,12 +446,21 @@ fun PurrodoroApp(
     }
 
     fun requestPremiumAccess(request: PremiumAccessRequest) {
-        if (authState is AuthState.Guest) {
-            pendingPremiumRequest = request
-            showPremiumLoginSheet = true
-            return
+        when (request) {
+            PremiumAccessRequest.Discovery -> {
+                if (authState is AuthState.Guest) {
+                    pendingPremiumRequest = request
+                    showPremiumLoginSheet = true
+                } else {
+                    fulfillPremiumAccess(request)
+                }
+            }
+            is PremiumAccessRequest.Upsell -> {
+                premiumUpsellTrigger = request.trigger
+                pendingPremiumRequest = request
+                showPremiumSheet = true
+            }
         }
-        fulfillPremiumAccess(request)
     }
 
     fun showPremiumCapPaywall(trigger: PremiumUpsellTrigger) {
@@ -1509,32 +1517,59 @@ fun PurrodoroApp(
                 )
             }
 
-            if (showPremiumSheet && !isPremium && authState !is AuthState.Guest) {
-                PremiumUpsellSheet(
-                    trigger = premiumUpsellTrigger,
-                    onDismiss = { showPremiumSheet = false },
-                    onUpgrade = {
-                        scope.launch {
-                            repo.setIsPremium(true)
-                            showPremiumSheet = false
-                        }
-                    },
-                )
-            }
-
             if (showHomeScenePicker) {
                 HomeScenePickerSheet(
                     selected = appState.homeScene,
                     isPremium = isPremium,
                     onDismiss = { showHomeScenePicker = false },
                     onSelect = { scene ->
-                        if (!canSelectHomeScene(scene, isPremium)) {
-                            showHomeScenePicker = false
-                            showPremiumCapPaywall(PremiumUpsellTrigger())
-                        } else {
-                            scope.launch { repo.setHomeScene(scene) }
-                            showHomeScenePicker = false
+                        scope.launch { repo.setHomeScene(scene) }
+                        showHomeScenePicker = false
+                    },
+                    onPremiumSceneAttempt = { sceneName ->
+                        showPremiumCapPaywall(PremiumUpsellTrigger.lockedScene(sceneName))
+                    },
+                )
+            }
+
+            if (showPremiumSheet && !isPremium) {
+                val isGuest = authState is AuthState.Guest
+                PremiumUpsellSheet(
+                    trigger = premiumUpsellTrigger,
+                    onDismiss = {
+                        showPremiumSheet = false
+                        pendingPremiumRequest = null
+                    },
+                    onUpgrade = {
+                        scope.launch {
+                            repo.setIsPremium(true)
+                            showPremiumSheet = false
+                            pendingPremiumRequest = null
                         }
+                    },
+                    isGuest = isGuest,
+                    authRepository = if (isGuest) authRepository else null,
+                    onGuestSignedIn = if (isGuest) {
+                        { user ->
+                            scope.launch {
+                                val pending = pendingPremiumRequest
+                                when (completeSignIn(user)) {
+                                    AccountManager.Result.DropCancelled ->
+                                        authRepository.signOut()
+                                    else -> {
+                                        user.displayName?.trim()?.takeIf { it.isNotBlank() }
+                                            ?.let { persistUserName(it) }
+                                        showPremiumSheet = false
+                                        if (pending != null) {
+                                            pendingPremiumRequest = null
+                                            fulfillPremiumAccess(pending)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        null
                     },
                 )
             }
