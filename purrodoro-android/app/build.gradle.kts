@@ -1,6 +1,9 @@
 import java.io.FileInputStream
 import java.util.Properties
 
+val googleServicesFile = file("google-services.json")
+val firebaseEnabled = googleServicesFile.exists()
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -117,4 +120,16 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+}
+
+if (firebaseEnabled) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
+    apply(plugin = libs.plugins.firebase.crashlytics.get().pluginId)
+} else {
+    logger.lifecycle(
+        "google-services.json not found — Firebase Crashlytics plugins skipped. " +
+            "Copy google-services.json.example after registering the app in Firebase Console."
+    )
 }
