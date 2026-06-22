@@ -120,7 +120,7 @@
     <string name="account_signed_in_generic">Signed in</string>
     <string name="account_sign_out">Sign out</string>
     <string name="login_sheet_title">Sign in</string>
-    <string name="login_sheet_subtitle">A calmer way to keep your focus ritual.</string>
+    <string name="login_sheet_subtitle">Back up tasks, habits, and focus history across devices.</string>
     <string name="login_sheet_cat_cd">Purrodoro the cat waving hello</string>
     <string name="login_continue_with_google">Continue with Google</string>
     <string name="login_continue_as_guest">Continue as guest</string>
@@ -178,7 +178,7 @@
     <string name="greeting_evening_encouragement">Let\'s make this evening meaningful.</string>
 
     <!-- Home -->
-    <string name="home_default_name">friend</string>
+    <string name="home_default_name">Purro Friend</string>
     <string name="home_start_focus">Start Focus</string>
     <string name="home_autocomplete_task">Finish this Pomodoro and Purrodoro ticks it off.</string>
     <string name="home_autocomplete_habit">Finish this Pomodoro and Purrodoro logs it today.</string>
@@ -406,6 +406,7 @@
     <string name="premium_sheet_title">Make focus feel magical</string>
     <string name="premium_sheet_title_locked">%1$s is Premium</string>
     <string name="premium_sheet_subtitle">Premium turns every Pomodoro into a little retreat. Your cat picked these just for you.</string>
+    <string name="premium_sheet_subtitle_locked">Unlock Premium to use it in your focus sessions.</string>
     <string name="premium_chip_ambient">Ambient Sounds</string>
     <string name="premium_chip_lofi">Lo-fi Vinyl</string>
     <string name="premium_chip_widgets">Extra Widgets</string>
@@ -415,6 +416,11 @@
     <string name="premium_sheet_price_hint">From $2.99/month · 7-day free trial</string>
     <string name="premium_sheet_cta">Start Premium</string>
     <string name="premium_sheet_dismiss">Maybe later</string>
+    <string name="premium_guest_unlock_header_cd">Kuro welcoming you to sign in for Premium</string>
+    <string name="premium_guest_title_locked">%1$s is Premium</string>
+    <string name="premium_guest_title_feature">This is a Premium feature</string>
+    <string name="premium_guest_body">Sign in with Google to unlock Premium on your account.</string>
+    <string name="premium_guest_body_locked">Sign in with Google to use it on your account.</string>
     <string name="premium_cap_active_tasks">More active tasks</string>
     <string name="premium_cap_habits">More habits</string>
     <string name="premium_cap_active_tasks_title">Active task limit reached</string>
@@ -453,12 +459,8 @@
     <string name="premium_one_time_hint">One-time purchase · No subscription</string>
 
     <!-- Premium login gate (guest → sign in before Premium) -->
-    <string name="premium_login_title">Sign in to unlock Premium</string>
-    <string name="premium_login_subtitle">Premium is linked to your account so your unlock and focus data follow you in the cloud.</string>
-    <string name="premium_login_perk_sync_data">Tasks &amp; habits sync across devices</string>
-    <string name="premium_login_perk_journey">Journey &amp; focus history stay backed up</string>
-    <string name="premium_login_perk_devices">Pick up where you left off on any device</string>
-    <string name="premium_login_dismiss">Maybe later</string>
+    <string name="premium_login_discover_title">Explore Premium</string>
+    <string name="premium_login_discover_subtitle">Sign in with Google to see what\'s included and unlock on your account.</string>
 
     <string name="premium_screen_title">Purrodoro Premium</string>
     <string name="premium_screen_headline_discover">Unlock the full cozy focus toolkit</string>

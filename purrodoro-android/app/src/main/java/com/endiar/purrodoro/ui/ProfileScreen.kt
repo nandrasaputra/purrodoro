@@ -191,6 +191,15 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(KuroSpacing.xl))
             }
 
+            if (!notificationsEnabled) {
+                NotificationsSettingsSection(
+                    notificationsEnabled = notificationsEnabled,
+                    notificationSoundEnabled = notificationSoundEnabled,
+                    onUpdateNotificationSound = onUpdateNotificationSound,
+                    onRequestEnableNotifications = onRequestEnableNotifications,
+                )
+            }
+
             KuroSectionHeader(title = stringResource(R.string.settings_section_timer))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
@@ -233,23 +242,14 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
-            KuroSectionHeader(title = stringResource(R.string.settings_section_notifications))
-            Spacer(modifier = Modifier.height(KuroSpacing.sm))
-            if (!notificationsEnabled) {
-                NotificationPermissionHero(onAllow = onRequestEnableNotifications)
-                Spacer(modifier = Modifier.height(KuroSpacing.md))
-            }
-            KuroCard(modifier = Modifier.fillMaxWidth()) {
-                ToggleRow(
-                    icon = Lucide.Bell,
-                    label = stringResource(R.string.settings_notif_sound_label),
-                    subtitle = stringResource(R.string.settings_notif_sound_subtitle),
-                    checked = notificationSoundEnabled,
-                    onCheckedChange = onUpdateNotificationSound,
+            if (notificationsEnabled) {
+                NotificationsSettingsSection(
+                    notificationsEnabled = notificationsEnabled,
+                    notificationSoundEnabled = notificationSoundEnabled,
+                    onUpdateNotificationSound = onUpdateNotificationSound,
+                    onRequestEnableNotifications = onRequestEnableNotifications,
                 )
             }
-
-            Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
             KuroSectionHeader(title = stringResource(R.string.settings_section_appearance))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
@@ -397,6 +397,31 @@ private fun appearanceModeLabel(mode: AppearanceMode): String = when (mode) {
 
 private fun languageLabel(language: AppLanguage, systemLabel: String): String =
     if (language == AppLanguage.System) systemLabel else language.label
+
+@Composable
+private fun NotificationsSettingsSection(
+    notificationsEnabled: Boolean,
+    notificationSoundEnabled: Boolean,
+    onUpdateNotificationSound: (Boolean) -> Unit,
+    onRequestEnableNotifications: () -> Unit,
+) {
+    KuroSectionHeader(title = stringResource(R.string.settings_section_notifications))
+    Spacer(modifier = Modifier.height(KuroSpacing.sm))
+    if (!notificationsEnabled) {
+        NotificationPermissionHero(onAllow = onRequestEnableNotifications)
+        Spacer(modifier = Modifier.height(KuroSpacing.md))
+    }
+    KuroCard(modifier = Modifier.fillMaxWidth()) {
+        ToggleRow(
+            icon = Lucide.Bell,
+            label = stringResource(R.string.settings_notif_sound_label),
+            subtitle = stringResource(R.string.settings_notif_sound_subtitle),
+            checked = notificationSoundEnabled,
+            onCheckedChange = onUpdateNotificationSound,
+        )
+    }
+    Spacer(modifier = Modifier.height(KuroSpacing.xl))
+}
 
 @Composable
 private fun ProfileNameRow(

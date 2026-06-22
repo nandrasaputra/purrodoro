@@ -1,6 +1,5 @@
 package com.endiar.purrodoro.ui.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,8 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,6 +28,7 @@ import com.endiar.purrodoro.sync.SyncStatusPresentation
 import com.endiar.purrodoro.ui.ProfileIdentityCard
 import com.endiar.purrodoro.ui.components.KuroCard
 import com.endiar.purrodoro.ui.designsystem.KuroAccountAvatar
+import com.endiar.purrodoro.ui.designsystem.KuroGuestAvatarContent
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.kuroTokens
@@ -76,12 +74,7 @@ private fun GuestAccountCard(
                 .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.cat_profile_guest_icon),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(44.dp),
-            )
+            KuroGuestAvatarContent(modifier = Modifier.size(44.dp))
             Spacer(modifier = Modifier.width(KuroSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

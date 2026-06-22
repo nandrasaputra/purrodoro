@@ -155,7 +155,7 @@ fun LoginSheet(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.widthIn(max = 280.dp),
             )
-            Spacer(modifier = Modifier.height(KuroSpacing.xxl))
+            Spacer(modifier = Modifier.height(KuroSpacing.lg))
             Image(
                 painter = painterResource(id = R.drawable.cat_login_wave),
                 contentDescription = stringResource(R.string.login_sheet_cat_cd),
