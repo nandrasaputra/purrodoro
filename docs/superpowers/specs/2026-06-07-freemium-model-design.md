@@ -2,18 +2,27 @@
 
 _Date: 2026-06-07_
 
+> **⚠️ Partially superseded (2026-06-22).** This document captured early gating
+> architecture. **Do not use it for monetization or current free/premium limits.**
+>
+> **Current source of truth:** [`docs/PRODUCT.md`](../../PRODUCT.md) → Monetization.
+>
+> Key corrections since this spec was written:
+> - Premium is a **monthly + yearly subscription** (low price), **not** a one-time unlock.
+> - **Journey / stats** and **all widgets** are free; tasks/habits use **10** soft caps
+>   (not 3 categories / 5 habits); task **categories** are uncapped.
+> - Play Billing subscriptions are planned but **not wired**; `isPremium` is still a local stub.
+
 ## Summary
 
-Introduce a **freemium** model to Purrodoro built around a **one-time unlock**
-("Purrodoro Premium"). The free tier keeps the entire core daily loop unblocked;
-Premium sells **polish and depth**. This spec defines the **gating model and lock
-UX** only — actual in-app-purchase billing (Play Billing / StoreKit) is a separate,
+Introduce a **freemium** model to Purrodoro. The free tier keeps the entire core daily loop unblocked;
+Premium sells **polish and depth**. This spec defined the **gating model and lock
+UX** — actual **subscription** billing (Play Billing / StoreKit) is a separate,
 later spec. The whole experience is validated through the existing
 `PremiumOverride` debug toggle.
 
-> Source of truth for the entitlement flag stays:
-> `val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium`
-> (`PurrodoroApp.kt`). This spec does not change how entitlement is sourced.
+> Entitlement (today): `val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium`
+> (`PurrodoroApp.kt`). **Target:** `isPremium` reflects an active Play subscription.
 
 ---
 
@@ -37,16 +46,20 @@ later spec. The whole experience is validated through the existing
 
 ## Monetization model
 
-- **One-time unlock**, single product: "Purrodoro Premium." No subscriptions,
-  no recurring server costs to justify.
+> **Superseded:** see [`docs/PRODUCT.md`](../../PRODUCT.md) → Monetization.
+
+- **Subscription** (monthly + yearly base plans), single product family: "Purrodoro Premium."
+  Priced low; optional free trial. **No one-time lifetime unlock.**
 - **Philosophy:** generous free, polish-and-depth paid. The core loop — timer,
-  cycles, focus mode, unlimited tasks, basic stats, onboarding, notifications,
-  light/dark themes — is never blocked.
+  cycles, focus mode, Journey/stats, notifications,
+  light/dark appearance, widgets — is not paywalled.
 - Locks are never dead ends: every locked affordance explains what Premium adds.
 
 ---
 
 ## What's free vs premium
+
+> **Table below is outdated.** See [`docs/PRODUCT.md`](../../PRODUCT.md) → "Free vs premium (current product)".
 
 | Surface | Free | Premium |
 |---|---|---|
@@ -198,7 +211,8 @@ No change to the entitlement source, DataStore schema, or timer logic.
 
 ## Open follow-ups (separate specs)
 
-- Billing integration: Play Billing (Android) + StoreKit (iOS), restore
-  purchases, the real unlock action behind the paywall CTA.
+- **Billing integration:** Play Billing **subscriptions** (Android) — monthly +
+  yearly plans, restore on startup, acknowledge purchases; StoreKit (iOS) mirror.
+  Drive `isPremium` from active subscription state. See `docs/PRODUCT.md`.
 - iOS gating model mirroring this registry.
-- Any newly authored premium content (sound packs, themes, widgets).
+- Any newly authored premium content (sound packs, scenes).
