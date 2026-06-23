@@ -235,42 +235,46 @@ data class SessionRecord(
 
 ---
 
-## Monetization (in progress)
+## Monetization
 
 Purrodoro is **freemium**: the core Pomodoro loop is free; **Purrodoro Premium** is a
 **paid subscription** (monthly and yearly plans, priced low). There is **no one-time
 lifetime unlock.**
 
-**Target billing (Android):** Google Play **subscriptions** via Play Billing Library
-(`ProductType.SUBS`) — one subscription product (e.g. `purrodoro_premium`) with
-**monthly** and **yearly** base plans. Optional **free trial** on one or both plans
-(copy in the upsell sheet currently references a 7-day trial as a placeholder).
+**Billing (Android):** Google Play **subscriptions** via Play Billing Library 8.x
+(`ProductType.SUBS`) — subscription product `purrodoro_premium` with **monthly** and
+**yearly** base plans (see [`BillingConfig`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/billing/BillingConfig.kt)).
+Optional **free trial** on one or both plans is configured in Play Console.
 
-**Not shipped yet:** Play Billing is not wired. The paywall CTA still flips a local
-`isPremium` flag (`AppRepository.setIsPremium`) with no purchase or subscription
-check. That stub must be replaced before monetization goes live.
+**Shipped (client):** [`BillingManager`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/billing/BillingManager.kt)
+queries owned subscriptions on cold start, app foreground, sign-in, and purchase
+callbacks; acknowledges purchases; drives `AppRepository.setIsPremium` from active
+Play subscriptions only. Paywall UI: [`PremiumScreen`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumScreen.kt),
+[`PremiumUpsellSheet`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumUpsellSheet.kt).
+
+**Still required for monetization go-live:** create `purrodoro_premium` in Play Console,
+upload to **Internal testing**, add license testers, and run purchase QA. Server-side
+verification (Play Developer API / RTDN) and private premium audio URLs remain
+follow-ups — see [`release-readiness.md`](../purrodoro-android/docs/release-readiness.md).
 
 **Philosophy:** generous free core (timer, cycles, focus mode, Journey, categories,
 notifications, light/dark appearance, all home-screen widgets). Premium sells
 soundscape depth, higher task/habit headroom, and extra home hero scenes — at a
 **low subscription price** rather than a large upfront cost.
 
-### Entitlement (target vs today)
+### Entitlement
 
-**Target (when Play Billing ships):** `isPremium` means the user has an **active**
-Google Play subscription (monthly or yearly), including any configured free-trial
-period. When the subscription expires, is cancelled, or is not renewed → premium
-gates return. The app re-checks owned subscriptions on cold start and on billing
-updates (`queryPurchasesAsync` for `SUBS`).
-
-**Today (stub):** a device-local DataStore boolean set manually by the paywall CTA.
+`isPremium` means the user has an **active** Google Play subscription (monthly or
+yearly), including any configured free-trial period. When the subscription expires,
+is cancelled, or is not renewed → premium gates return after the next billing refresh
+(cold start, foreground, sign-in, or purchase callback).
 
 ```kotlin
 val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 ```
 
-- **`appState.isPremium`** — DataStore flag (`AppRepository.setIsPremium`); **not**
-  tied to Play yet and **must not** be treated as permanent once billing ships.
+- **`appState.isPremium`** — DataStore cache written by [`BillingManager`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/billing/BillingManager.kt)
+  from `queryPurchasesAsync` (`SUBS`, including suspended subscriptions).
 - **`PremiumOverride`** — debug-only toggle in Dev Tools; ignored in release builds.
 - Premium entitlement is **device-local** (not synced via Supabase) — same Google
   account on a new device restores via **Play subscription restore**, not cloud sync.
@@ -336,11 +340,10 @@ one opens `PremiumUpsellSheet`. Selection persists device-local in DataStore
 
 ### Still to build
 
-- **Play Billing subscriptions** — monthly + yearly base plans, purchase flow, restore
-  on startup, acknowledge purchases, manage-subscription link; replace `setIsPremium`
-  stub; drive `isPremium` from active subscription state
+- **Play Console setup + purchase QA** — create `purrodoro_premium` (monthly/yearly),
+  internal testing track, license testers, end-to-end subscribe/restore/cancel matrix
 - **Paywall copy cleanup** — remove stale **one-time** strings (`premium_one_time_hint`,
-  `premium_screen_price_placeholder`); show live prices from Play `ProductDetails`
+  `premium_screen_price_placeholder`) where still shown in older surfaces
 - **Optional:** Real-time developer notifications / server entitlement check (not
   required for v1 client-side subscription query)
 - **Premium cloud audio** — private R2 bucket + signed URLs (paywall is UI-only today;

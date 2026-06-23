@@ -449,6 +449,19 @@
     <string name="premium_spotlight_compare_tasks_to">Tanpa batas</string>
     <string name="premium_spotlight_cta">Jelajahi Premium</string>
     <string name="premium_one_time_hint">Beli sekali · Tanpa langganan</string>
+    <string name="premium_screen_price_unavailable">Paket tidak tersedia — instal dari Play Store untuk berlangganan</string>
+    <string name="premium_screen_plan_monthly">Bulanan</string>
+    <string name="premium_screen_plan_yearly">Tahunan</string>
+    <string name="premium_subscription_hint">Batalkan kapan saja di Google Play</string>
+    <string name="premium_restore_purchases">Pulihkan pembelian</string>
+    <string name="premium_manage_subscription">Kelola langganan</string>
+    <string name="billing_error_service_unavailable">Google Play Billing tidak tersedia saat ini. Coba lagi sebentar lagi.</string>
+    <string name="billing_error_subscriptions_unsupported">Langganan tidak didukung di perangkat ini.</string>
+    <string name="billing_error_products_unavailable">Paket Premium belum tersedia. Instal dari Play Store setelah aplikasi dipublikasikan ke pengujian.</string>
+    <string name="billing_error_purchase_failed">Pembelian gagal. Coba lagi atau pulihkan pembelian.</string>
+    <string name="billing_error_launch_failed">Tidak bisa membuka checkout Google Play. Coba lagi.</string>
+    <string name="billing_restore_complete">Premium dipulihkan dari Google Play.</string>
+    <string name="billing_restore_nothing_found">Tidak ada langganan aktif di akun Google Play ini.</string>
 
     <!-- Premium login gate (guest → sign in before Premium) -->
     <string name="premium_login_discover_title">Jelajahi Premium</string>

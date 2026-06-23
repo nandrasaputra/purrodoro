@@ -89,7 +89,9 @@
 # Lottie 6.x ships its own consumer rules inside the AAR — no additions needed.
 # Rule included here as documentation only.
 
-# ── Firebase / Google Services ────────────────────────────────────────────────
+# ── Google Play Billing ───────────────────────────────────────────────────────
+-keep class com.android.vending.billing.** { *; }
+-dontwarn com.android.vending.billing.**
 # Firebase discovers ComponentRegistrar implementations via manifest metadata and
 # reflection (class name strings). R8 must not rename or strip them — otherwise
 # FirebaseCrashlytics.getInstance() throws "component is not present" at launch.
