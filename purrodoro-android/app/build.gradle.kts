@@ -125,6 +125,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
+    implementation(libs.billing.ktx)
 }
 
 if (firebaseEnabled) {

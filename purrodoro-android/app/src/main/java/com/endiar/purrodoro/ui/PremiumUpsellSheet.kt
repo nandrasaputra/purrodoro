@@ -28,6 +28,8 @@ import com.composables.icons.lucide.ListTodo
 import com.composables.icons.lucide.Lucide
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.auth.AuthRepository
+import com.endiar.purrodoro.billing.PremiumPlan
+import com.endiar.purrodoro.billing.SubscriptionOffers
 import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.model.PremiumGate
 import com.endiar.purrodoro.ui.components.KuroPrimaryButton
@@ -40,7 +42,12 @@ import com.endiar.purrodoro.ui.theme.kuroTokens
 fun PremiumUpsellSheet(
     trigger: PremiumUpsellTrigger,
     onDismiss: () -> Unit,
-    onUpgrade: () -> Unit,
+    onUpgrade: (PremiumPlan) -> Unit,
+    subscriptionOffers: SubscriptionOffers,
+    selectedPlan: PremiumPlan,
+    onPlanSelected: (PremiumPlan) -> Unit,
+    purchaseInFlight: Boolean,
+    subscriptionPriceHint: String? = null,
     isGuest: Boolean = false,
     authRepository: AuthRepository? = null,
     onGuestSignedIn: ((AuthUser) -> Unit)? = null,
@@ -77,6 +84,11 @@ fun PremiumUpsellSheet(
         } else {
             PremiumMemberUpsellContent(
                 trigger = trigger,
+                subscriptionOffers = subscriptionOffers,
+                selectedPlan = selectedPlan,
+                onPlanSelected = onPlanSelected,
+                purchaseInFlight = purchaseInFlight,
+                subscriptionPriceHint = subscriptionPriceHint,
                 onDismiss = onDismiss,
                 onUpgrade = onUpgrade,
             )
@@ -87,8 +99,13 @@ fun PremiumUpsellSheet(
 @Composable
 private fun PremiumMemberUpsellContent(
     trigger: PremiumUpsellTrigger,
+    subscriptionOffers: SubscriptionOffers,
+    selectedPlan: PremiumPlan,
+    onPlanSelected: (PremiumPlan) -> Unit,
+    purchaseInFlight: Boolean,
+    subscriptionPriceHint: String?,
     onDismiss: () -> Unit,
-    onUpgrade: () -> Unit,
+    onUpgrade: (PremiumPlan) -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val title = memberPaywallTitle(trigger.reason)
@@ -126,8 +143,16 @@ private fun PremiumMemberUpsellContent(
                 )
             }
             Spacer(modifier = Modifier.height(KuroSpacing.lg))
+            PremiumPlanPicker(
+                selectedPlan = selectedPlan,
+                onPlanSelected = onPlanSelected,
+                subscriptionOffers = subscriptionOffers,
+            )
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
             Text(
-                text = stringResource(R.string.premium_sheet_price_hint),
+                text = subscriptionOffers.priceFor(selectedPlan)
+                    ?: subscriptionPriceHint
+                    ?: stringResource(R.string.premium_sheet_price_hint),
                 style = KuroType.labelMeta,
                 color = tokens.textSecondary,
                 textAlign = TextAlign.Center,
@@ -135,7 +160,8 @@ private fun PremiumMemberUpsellContent(
             Spacer(modifier = Modifier.height(KuroSpacing.md))
             KuroPrimaryButton(
                 text = stringResource(R.string.premium_sheet_cta),
-                onClick = onUpgrade,
+                onClick = { onUpgrade(selectedPlan) },
+                enabled = !purchaseInFlight,
                 modifier = Modifier.fillMaxWidth(),
             )
             TextButton(onClick = onDismiss) {

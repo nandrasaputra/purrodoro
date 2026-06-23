@@ -24,6 +24,9 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,7 +56,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.R
+import android.app.Activity
 import com.endiar.purrodoro.audio.SoundscapeLoopPlayer
+import com.endiar.purrodoro.billing.BillingModule
+import com.endiar.purrodoro.billing.BillingUiEvent
+import com.endiar.purrodoro.billing.PremiumPlan
 import com.endiar.purrodoro.audio.AudioSource
 import com.endiar.purrodoro.soundscape.SoundscapeModule
 import com.endiar.purrodoro.soundscape.SoundscapeCatalogBuilder
@@ -217,6 +224,21 @@ fun PurrodoroApp(
     var notificationSoundEnabled by remember(appState.notificationSoundEnabled) { mutableStateOf(appState.notificationSoundEnabled) }
 
     val context = LocalContext.current
+    val billingManager = remember { BillingModule.get(context).billingManager }
+    val subscriptionOffers by billingManager.offers.collectAsStateWithLifecycle()
+    val purchaseInFlight by billingManager.purchaseInFlight.collectAsStateWithLifecycle()
+    var selectedPremiumPlan by rememberSaveable { mutableStateOf(PremiumPlan.Yearly) }
+    val billingActivity = context as? Activity
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(billingManager) {
+        billingManager.uiEvents.collect { event ->
+            val message = when (event) {
+                is BillingUiEvent.Message -> context.getString(event.resId)
+            }
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     LaunchedEffect(signedInUserId, signedInAvatarUrl) {
         val userId = signedInUserId ?: return@LaunchedEffect
@@ -477,6 +499,7 @@ fun PurrodoroApp(
         if (result == AccountManager.Result.Dropped && previousOwnerId != null) {
             AccountAvatarStore.get(context).delete(previousOwnerId)
         }
+        billingManager.refreshEntitlement()
         return result
     }
 
@@ -1272,13 +1295,14 @@ fun PurrodoroApp(
             if (showPremiumScreen && authState !is AuthState.Guest) {
                 PremiumScreen(
                     isPremium = isPremium,
+                    subscriptionOffers = subscriptionOffers,
+                    selectedPlan = selectedPremiumPlan,
+                    onPlanSelected = { selectedPremiumPlan = it },
+                    purchaseInFlight = purchaseInFlight,
                     onBack = { showPremiumScreen = false },
-                    onSubscribe = {
-                        scope.launch {
-                            repo.setIsPremium(true)
-                            showPremiumScreen = false
-                        }
-                    },
+                    onSubscribe = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
+                    onRestorePurchases = { billingManager.restorePurchases() },
+                    onManageSubscription = { billingManager.openSubscriptionManagement(billingActivity) },
                 )
             }
 
@@ -1536,17 +1560,16 @@ fun PurrodoroApp(
                 val isGuest = authState is AuthState.Guest
                 PremiumUpsellSheet(
                     trigger = premiumUpsellTrigger,
+                    subscriptionOffers = subscriptionOffers,
+                    selectedPlan = selectedPremiumPlan,
+                    onPlanSelected = { selectedPremiumPlan = it },
+                    purchaseInFlight = purchaseInFlight,
+                    subscriptionPriceHint = subscriptionOffers.priceHint,
                     onDismiss = {
                         showPremiumSheet = false
                         pendingPremiumRequest = null
                     },
-                    onUpgrade = {
-                        scope.launch {
-                            repo.setIsPremium(true)
-                            showPremiumSheet = false
-                            pendingPremiumRequest = null
-                        }
-                    },
+                    onUpgrade = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
                     isGuest = isGuest,
                     authRepository = if (isGuest) authRepository else null,
                     onGuestSignedIn = if (isGuest) {
@@ -1681,8 +1704,21 @@ fun PurrodoroApp(
         }
     }
 
-    CompositionLocalProvider(LocalTutorialController provides tutorialController) {
-        KuroFlatSurface(content = surfaceContent)
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
+        containerColor = Color.Transparent,
+    ) { padding ->
+        CompositionLocalProvider(LocalTutorialController provides tutorialController) {
+            KuroFlatSurface(
+                modifier = Modifier.padding(padding),
+                content = surfaceContent,
+            )
+        }
     }
 }
 

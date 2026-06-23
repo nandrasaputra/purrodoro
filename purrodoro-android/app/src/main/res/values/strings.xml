@@ -457,6 +457,19 @@
     <string name="premium_spotlight_compare_tasks_to">Unlimited</string>
     <string name="premium_spotlight_cta">Discover Premium</string>
     <string name="premium_one_time_hint">One-time purchase · No subscription</string>
+    <string name="premium_screen_price_unavailable">Plans unavailable — install from Play Store to subscribe</string>
+    <string name="premium_screen_plan_monthly">Monthly</string>
+    <string name="premium_screen_plan_yearly">Yearly</string>
+    <string name="premium_subscription_hint">Cancel anytime in Google Play</string>
+    <string name="premium_restore_purchases">Restore purchases</string>
+    <string name="premium_manage_subscription">Manage subscription</string>
+    <string name="billing_error_service_unavailable">Google Play billing isn\'t available right now. Try again in a moment.</string>
+    <string name="billing_error_subscriptions_unsupported">Subscriptions aren\'t supported on this device.</string>
+    <string name="billing_error_products_unavailable">Premium plans aren\'t available yet. Install from Play Store after the app is published to testing.</string>
+    <string name="billing_error_purchase_failed">Purchase couldn\'t be completed. Try again or restore purchases.</string>
+    <string name="billing_error_launch_failed">Couldn\'t open Google Play checkout. Try again.</string>
+    <string name="billing_restore_complete">Premium restored from Google Play.</string>
+    <string name="billing_restore_nothing_found">No active subscription found on this Google Play account.</string>
 
     <!-- Premium login gate (guest → sign in before Premium) -->
     <string name="premium_login_discover_title">Explore Premium</string>

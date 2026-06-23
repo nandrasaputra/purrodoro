@@ -131,32 +131,22 @@ is currently empty and the app uses libraries that need them:
 - `kotlinx.serialization` (`@Serializable` models / DTOs)
 - Room
 
-### 7. Premium entitlement is unlocked client-side with no verification  ·  high (security/monetization)
+### 7. Premium entitlement — Play Billing integrated (client-side)  ·  medium (ops + QA)
 
-> Source: security review, 2026-06-19. Product model: **monthly + yearly subscriptions**
-> (see `docs/PRODUCT.md` → Monetization) — not a one-time purchase.
+> Updated **2026-06-23.** Play Billing Library 8.x is wired via
+> [`BillingManager`](../app/src/main/java/com/endiar/purrodoro/billing/BillingManager.kt):
+> subscribe/restore, acknowledgement, foreground + sign-in refresh, user-visible errors,
+> suspended-subscription query. The paywall no longer calls `setIsPremium(true)` directly.
 
-The release paywall's upgrade/subscribe action grants premium locally with no Play
-Billing subscription check — any user can unlock all premium gates (soundscapes,
-home scenes, task/habit caps) for free.
+**Remaining before monetization go-live:**
 
-```1543:1547:purrodoro-android/app/src/main/java/com/endiar/purrodoro/PurrodoroApp.kt
-                    onUpgrade = {
-                        scope.launch {
-                            repo.setIsPremium(true)
-                            showPremiumSheet = false
-```
+- Create subscription `purrodoro_premium` with base plans `monthly` / `yearly` in Play Console
+- Upload to **Internal testing** and add **license testers**
+- Run purchase QA matrix (subscribe, restore, cancel, expiry)
+- Optional later: Play Developer API / RTDN server check (client-only is acceptable for v1)
 
-(Same stub on `PremiumScreen.onSubscribe`.)
-
-The debug `PremiumOverride` is correctly isolated to `src/debug/`; this path is
-in the **main** source set and ships in release.
-
-**Action:** gate upgrade on **Play Billing subscriptions** (`ProductType.SUBS`):
-monthly + yearly base plans, purchase + **restore on startup**, acknowledge
-purchases, and set `isPremium` only while an active subscription (or trial) exists.
-Optional later: Play Developer API / RTDN server check. Until billing ships, disable
-the release CTA or show "coming soon" without mutating `isPremium`.
+**Accepted limitation:** client-only verification — rooted/modded clients can still cheat;
+server entitlement is a follow-up.
 
 ### 8. Premium cloud audio is publicly downloadable (paywall is UI-only)  ·  medium (security/monetization)
 
@@ -206,10 +196,10 @@ similar). Optionally omit `file_path` from anonymous catalog responses.
 - [ ] Cold-start home hero: force-stop app, reopen with each saved `HomeScene` (Room, Café, Library, Park); no flash back to Room — use premium debug override for premium scenes
 - [ ] Fix auto-backup: exclude encrypted session + `files/backups/` (+ Room DB), add reset-on-failure decrypt, or set `allowBackup="false"`
 - [x] Integrate crash reporting — **Firebase Crashlytics**, 2026-06-22
-- [ ] Switch to AAB; enable R8 + `shrinkResources`; add ProGuard keep rules
+- [x] Switch to AAB; enable R8 + `shrinkResources`; add ProGuard keep rules — **2026-06-23**
 - [ ] Confirm `app-release.aab` is signed and installs from a clean device
 - [ ] Update stale auth-stub docs (`PRODUCT.md`, `pending-actions.md`)
-- [ ] Gate premium on Play Billing **subscriptions** (monthly + yearly) + restore — §7
+- [x] Gate premium on Play Billing **subscriptions** (monthly + yearly) + restore — §7 **code shipped 2026-06-23**; Play Console + QA still open
 - [ ] Move premium cloud audio to a private bucket with signed URLs + entitlement checks — §8
 
 ---

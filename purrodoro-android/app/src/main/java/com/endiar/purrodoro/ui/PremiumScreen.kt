@@ -21,7 +21,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +40,8 @@ import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.ListTodo
 import com.composables.icons.lucide.Lucide
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.billing.PremiumPlan
+import com.endiar.purrodoro.billing.SubscriptionOffers
 import com.endiar.purrodoro.model.PremiumGate
 import com.endiar.purrodoro.ui.components.KuroCard
 import com.endiar.purrodoro.ui.designsystem.KuroBackScreenTopBar
@@ -53,8 +57,14 @@ private const val PremiumHeroAspectRatio = 1536f / 1024f
 @Composable
 fun PremiumScreen(
     isPremium: Boolean,
+    subscriptionOffers: SubscriptionOffers,
+    selectedPlan: PremiumPlan,
+    onPlanSelected: (PremiumPlan) -> Unit,
+    purchaseInFlight: Boolean,
     onBack: () -> Unit,
-    onSubscribe: () -> Unit,
+    onSubscribe: (PremiumPlan) -> Unit,
+    onRestorePurchases: () -> Unit,
+    onManageSubscription: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
@@ -75,10 +85,18 @@ fun PremiumScreen(
                     .navigationBarsPadding(),
             ) {
                 if (isPremium) {
-                    PremiumActiveFooter()
+                    PremiumActiveFooter(onManageSubscription = onManageSubscription)
                 } else {
+                    PremiumPlanPicker(
+                        selectedPlan = selectedPlan,
+                        onPlanSelected = onPlanSelected,
+                        subscriptionOffers = subscriptionOffers,
+                    )
+                    Spacer(modifier = Modifier.height(KuroSpacing.sm))
                     Text(
-                        text = stringResource(R.string.premium_screen_price_placeholder),
+                        text = subscriptionOffers.priceFor(selectedPlan)
+                            ?: subscriptionOffers.priceHint
+                            ?: stringResource(R.string.premium_screen_price_unavailable),
                         style = KuroType.labelMeta,
                         color = tokens.textSecondary,
                         textAlign = TextAlign.Center,
@@ -88,10 +106,11 @@ fun PremiumScreen(
                     )
                     PremiumGradientCtaButton(
                         text = stringResource(R.string.premium_screen_cta_subscribe),
-                        onClick = onSubscribe,
+                        onClick = { onSubscribe(selectedPlan) },
+                        enabled = !purchaseInFlight,
                     )
                     Text(
-                        text = stringResource(R.string.premium_one_time_hint),
+                        text = stringResource(R.string.premium_subscription_hint),
                         style = KuroType.labelMeta,
                         color = tokens.textMuted,
                         textAlign = TextAlign.Center,
@@ -99,6 +118,17 @@ fun PremiumScreen(
                             .fillMaxWidth()
                             .padding(top = KuroSpacing.sm),
                     )
+                    TextButton(
+                        onClick = onRestorePurchases,
+                        enabled = !purchaseInFlight,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.premium_restore_purchases),
+                            style = KuroType.bodySecondary,
+                            color = tokens.textSecondary,
+                        )
+                    }
                 }
             }
         },
@@ -342,28 +372,40 @@ private fun PremiumCompareDivider() {
 }
 
 @Composable
-private fun PremiumActiveFooter() {
+private fun PremiumActiveFooter(onManageSubscription: () -> Unit) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(KuroSpacing.radiusPill))
-            .background(tokens.lockedFill)
-            .padding(vertical = KuroSpacing.md),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = Lucide.Check,
-            contentDescription = null,
-            tint = JourneyGreen,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(modifier = Modifier.size(KuroSpacing.sm))
-        Text(
-            text = stringResource(R.string.premium_screen_active_label),
-            style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
-            color = tokens.lockedText,
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(KuroSpacing.radiusPill))
+                .background(tokens.lockedFill)
+                .padding(vertical = KuroSpacing.md),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Lucide.Check,
+                contentDescription = null,
+                tint = JourneyGreen,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.size(KuroSpacing.sm))
+            Text(
+                text = stringResource(R.string.premium_screen_active_label),
+                style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
+                color = tokens.lockedText,
+            )
+        }
+        TextButton(onClick = onManageSubscription) {
+            Text(
+                text = stringResource(R.string.premium_manage_subscription),
+                style = KuroType.bodySecondary,
+                color = tokens.textSecondary,
+            )
+        }
     }
 }
