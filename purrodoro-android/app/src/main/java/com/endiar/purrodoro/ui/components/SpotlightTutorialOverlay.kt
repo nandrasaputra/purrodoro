@@ -35,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,6 +54,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -88,6 +90,8 @@ fun SpotlightTutorialOverlay(
     val density = LocalDensity.current
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val interactionSource = remember { MutableInteractionSource() }
+    var overlayOriginInRoot by remember { mutableStateOf(Offset.Zero) }
+    var overlayOriginReady by remember { mutableStateOf(false) }
 
     BackHandler(onBack = onSkip)
 
@@ -108,12 +112,18 @@ fun SpotlightTutorialOverlay(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
+                overlayOriginInRoot = coordinates.positionInRoot()
+                overlayOriginReady = true
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {},
             )
     ) {
+        if (!overlayOriginReady) return@BoxWithConstraints
+
         val marginPx = with(density) { KuroSpacing.lg.toPx() }
         val gapPx = with(density) { 18.dp.toPx() }
         val arrowHeightPx = with(density) { 14.dp.toPx() }
@@ -121,7 +131,9 @@ fun SpotlightTutorialOverlay(
         val cardWidthPx = with(density) { cardWidth.toPx() }
         val screenWidthPx = with(density) { maxWidth.toPx() }
         val screenHeightPx = with(density) { maxHeight.toPx() }
-        val highlight = targetBounds.inflate(
+        val highlight = targetBounds
+            .translate(-overlayOriginInRoot.x, -overlayOriginInRoot.y)
+            .inflate(
             horizontal = with(density) { spotlightPadding.toPx() },
             vertical = with(density) { spotlightPadding.toPx() },
         )

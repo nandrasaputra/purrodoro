@@ -523,16 +523,19 @@ private fun IdleHero(
             onChangeScene = onChangeHomeScene,
             modifier = Modifier.fillMaxWidth(),
         )
-        HomePrimaryButton(
-            text = stringResource(R.string.home_start_focus),
-            onClick = onRequestStartFocus,
-            icon = true,
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = KuroSpacing.xl)
                 .offset(y = 27.dp)
-                .tutorialAnchor(TutorialTarget.StartFocus)
-        )
+                .tutorialAnchor(TutorialTarget.StartFocus),
+        ) {
+            HomePrimaryButton(
+                text = stringResource(R.string.home_start_focus),
+                onClick = onRequestStartFocus,
+                icon = true,
+            )
+        }
     }
     Spacer(Modifier.height(27.dp))
 }
