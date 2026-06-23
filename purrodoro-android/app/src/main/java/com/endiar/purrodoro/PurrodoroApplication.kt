@@ -18,8 +18,10 @@ open class PurrodoroApplication : Application() {
     }
 
     private fun initCrashlytics() {
-        if (FirebaseApp.getApps(this).isEmpty()) return
-        FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = !isDebuggable
+        runCatching {
+            if (FirebaseApp.getApps(this).isEmpty()) return
+            FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = !isDebuggable
+        }
     }
 
     private val isDebuggable: Boolean

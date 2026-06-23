@@ -28,8 +28,8 @@ android {
         applicationId = "com.endiar.purrodoro"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,11 +52,14 @@ android {
             if (releaseSigning.storeFile?.exists() == true) {
                 signingConfig = releaseSigning
             }
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Bundle native debug symbols for Play Console crash analysis.
+            ndk.debugSymbolLevel = "SYMBOL_TABLE"
         }
     }
     compileOptions {
