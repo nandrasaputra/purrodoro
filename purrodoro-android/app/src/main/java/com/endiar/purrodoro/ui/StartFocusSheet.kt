@@ -824,7 +824,6 @@ private fun StartFocusCreateTaskContent(
             title = title,
             onTitleChange = onTitleChange,
             focusRequester = focusRequester,
-            onSubmitIme = { if (title.trim().isNotEmpty()) onConfirm() },
         )
         KuroMoreOptionsAccordion(
             expanded = moreExpanded,
@@ -1265,7 +1264,9 @@ private fun IntentSection(
             modifier = Modifier.fillMaxWidth(),
         )
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max),
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
             FocusIntent.entries.forEach { option ->
@@ -1274,7 +1275,9 @@ private fun IntentSection(
                     icon = intentIcon(option),
                     selected = option == selected,
                     onClick = { onSelect(option) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
                 )
             }
         }
@@ -1297,13 +1300,14 @@ private fun IntentChip(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(KuroSpacing.radiusMd))
                 .background(fill)
                 .border(1.dp, borderColor, RoundedCornerShape(KuroSpacing.radiusMd))
                 .clickable(onClick = onClick)
                 .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+            verticalArrangement = Arrangement.Center,
         ) {
             Icon(
                 imageVector = icon,
@@ -1311,11 +1315,13 @@ private fun IntentChip(
                 tint = if (selected) tokens.accent else tokens.textSecondary,
                 modifier = Modifier.size(18.dp),
             )
+            Spacer(Modifier.height(KuroSpacing.xs))
             Text(
                 text = label,
                 style = KuroType.labelMeta,
                 color = if (selected) tokens.accent else tokens.textSecondary,
                 textAlign = TextAlign.Center,
+                minLines = 2,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

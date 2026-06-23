@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.composables.icons.lucide.CalendarDays
 import com.composables.icons.lucide.Check
@@ -67,7 +65,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1144,7 +1141,6 @@ internal fun AddTaskSheet(
                         title = title,
                         onTitleChange = { title = it.take(TaskTitleMaxLength) },
                         focusRequester = titleFocusRequester,
-                        onSubmitIme = { if (canSubmit) submit() },
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
@@ -1211,7 +1207,6 @@ internal fun AddTaskTitleField(
     title: String,
     onTitleChange: (String) -> Unit,
     focusRequester: FocusRequester,
-    onSubmitIme: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
@@ -1236,10 +1231,8 @@ internal fun AddTaskTitleField(
             onValueChange = onTitleChange,
             placeholder = stringResource(R.string.tasks_title_placeholder),
             modifier = Modifier.focusRequester(focusRequester),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onSubmitIme() }),
             // Let long titles wrap onto multiple lines instead of scrolling
-            // horizontally. ImeAction.Done still submits (no newline inserted).
+            // horizontally. Keyboard Done dismisses the keyboard only.
             singleLine = false,
         )
     }
@@ -1582,9 +1575,8 @@ private fun DeleteTaskLink(onClick: () -> Unit) {
  * Detail-sheet title with tap-to-edit affordance.
  *
  * Rendered as a large heading in read mode; tapping it swaps in an input
- * field, matching the reference design's clean "no pencil icon" look. The
- * keyboard's Done action commits the edit, and tapping outside dismisses
- * via auto-save in the parent's `saveAndDismiss`.
+ * field, matching the reference design's clean "no pencil icon" look. Keyboard
+ * Done dismisses the keyboard; tap the adjacent Done label to exit edit mode.
  */
 @Composable
 private fun DetailTitle(
@@ -1613,8 +1605,6 @@ private fun DetailTitle(
                     modifier = Modifier
                         .weight(1f)
                         .focusRequester(focusRequester),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { onFinishEdit() }),
                     singleLine = false,
                 )
                 Text(
@@ -2273,6 +2263,13 @@ private fun NextFocusHeroCard(
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val dueLabel = rememberHeroDueLabel(task.dueDate, today)
     val showHighFlag = task.priority == TaskPriority.High
+    val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
+    val (pillLabel, pillIcon) = when {
+        isLive -> stringResource(R.string.tasks_pill_open) to Lucide.Play
+        isStartBlocked -> stringResource(R.string.tasks_pill_finish_first) to Lucide.Lock
+        else -> stringResource(R.string.tasks_pill_start) to Lucide.Play
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2281,104 +2278,91 @@ private fun NextFocusHeroCard(
             .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
             .clickable(onClick = onOpenDetail)
             .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
     ) {
-        Text(
-            text = if (isLive) stringResource(R.string.tasks_now_focusing)
-            else stringResource(R.string.tasks_next_focus),
-            color = tokens.accent,
-            style = KuroType.labelCaption,
-        )
+        // ── Header: label left, cat accent top-right ───────────────────────
         Row(
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
             modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Text(
+                text = if (isLive) stringResource(R.string.tasks_now_focusing)
+                else stringResource(R.string.tasks_next_focus),
+                color = tokens.accent,
+                style = KuroType.labelCaption,
+                modifier = Modifier.weight(1f),
+            )
             Image(
                 painter = painterResource(
-                    id = if (MaterialTheme.colorScheme.background.luminance() <= 0.5f) {
-                        R.drawable.cat_face
-                    } else {
-                        R.drawable.cat_checklist
-                    },
+                    id = if (isDark) R.drawable.cat_face else R.drawable.cat_checklist,
                 ),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .width(92.dp)
-                    .height(72.dp)
+                    .size(40.dp)
                     .then(
-                        if (MaterialTheme.colorScheme.background.luminance() <= 0.5f) {
-                            Modifier
-                                .clip(RoundedCornerShape(KuroSpacing.radiusSm))
-                                .background(tokens.accentSoft)
-                                .padding(KuroSpacing.xs)
-                        } else {
-                            Modifier
-                        },
+                        if (isDark) Modifier
+                            .clip(RoundedCornerShape(KuroSpacing.radiusSm))
+                            .background(tokens.accentSoft)
+                            .padding(KuroSpacing.xs)
+                        else Modifier
                     ),
             )
-            Column(
+        }
+
+        // ── Title row: checkbox + full-width title ─────────────────────────
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            HeroCompletionCheckbox(onToggle = onToggleComplete)
+            Text(
+                text = task.title,
+                color = tokens.textPrimary,
+                style = KuroType.headingCard,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+            )
+        }
+
+        // ── Metadata: category / due / priority ────────────────────────────
+        HeroMetadataRow(
+            categoryName = categoryName,
+            categoryColor = categoryColor ?: tokens.textMuted,
+            dueDate = task.dueDate,
+            dueLabel = dueLabel,
+            isOverdue = task.dueDate?.isBefore(today) == true,
+            showHighFlag = showHighFlag,
+        )
+
+        // ── Footer: duration left, CTA right ──────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
+                modifier = Modifier.weight(1f),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
-                ) {
-                    HeroCompletionCheckbox(onToggle = onToggleComplete)
-                    Text(
-                        text = task.title,
-                        color = tokens.textPrimary,
-                        style = KuroType.headingCard,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                HeroMetadataRow(
-                    categoryName = categoryName,
-                    categoryColor = categoryColor ?: tokens.textMuted,
-                    dueDate = task.dueDate,
-                    dueLabel = dueLabel,
-                    isOverdue = task.dueDate?.isBefore(today) == true,
-                    showHighFlag = showHighFlag,
+                Icon(
+                    imageVector = Lucide.Clock,
+                    contentDescription = null,
+                    tint = tokens.textSecondary,
+                    modifier = Modifier.size(14.dp),
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(
-                            imageVector = Lucide.Clock,
-                            contentDescription = null,
-                            tint = tokens.textSecondary,
-                            modifier = Modifier.size(14.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.tasks_minutes_focus, focusMinutes),
-                            color = tokens.textSecondary,
-                            style = KuroType.labelMeta,
-                        )
-                    }
-                    // Three CTA states: this task is live ("Open"), another
-                    // focus is blocking a new start ("Finish first" — tapping
-                    // surfaces the busy dialog), or a normal "Start".
-                    val (pillLabel, pillIcon) = when {
-                        isLive -> stringResource(R.string.tasks_pill_open) to Lucide.Play
-                        isStartBlocked -> stringResource(R.string.tasks_pill_finish_first) to Lucide.Lock
-                        else -> stringResource(R.string.tasks_pill_start) to Lucide.Play
-                    }
-                    StartPill(
-                        label = pillLabel,
-                        icon = pillIcon,
-                        muted = isStartBlocked,
-                        onClick = if (isLive) onOpenFocus else onStartFocus,
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.tasks_minutes_focus, focusMinutes),
+                    color = tokens.textSecondary,
+                    style = KuroType.labelMeta,
+                )
             }
+            StartPill(
+                label = pillLabel,
+                icon = pillIcon,
+                muted = isStartBlocked,
+                onClick = if (isLive) onOpenFocus else onStartFocus,
+            )
         }
     }
 }
@@ -2521,7 +2505,6 @@ private fun CategoryNameSheet(
             value = name,
             onValueChange = { name = it },
             placeholder = stringResource(R.string.tasks_category_name_placeholder),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         )
         Text(
             text = stringResource(R.string.tasks_category_color),

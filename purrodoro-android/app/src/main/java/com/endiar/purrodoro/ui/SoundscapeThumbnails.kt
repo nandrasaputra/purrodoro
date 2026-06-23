@@ -1,10 +1,14 @@
 package com.endiar.purrodoro.ui
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -15,22 +19,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.soundscape.SoundscapeConfig
 import com.endiar.purrodoro.soundscape.SoundscapeModule
 import com.endiar.purrodoro.soundscape.SoundscapeThumbnailLoader
+import com.endiar.purrodoro.ui.theme.Coral
+import kotlin.math.min
 
-/** Fraction of the vinyl disc diameter used for the cover art circle. */
-private const val VINYL_COVER_FRACTION = 0.86f
-private val VinylRingWidth = 5.dp
-private val VinylRingColor = Color(0xFF141414)
+/** Center label diameter as a fraction of the full disc. */
+private const val VINYL_LABEL_FRACTION = 0.52f
+/** Spindle cap diameter as a fraction of the full disc. */
+private const val VINYL_SPINDLE_FRACTION = 0.07f
+
+private val VinylEdge = Color(0xFF0C0C0C)
+private val VinylMid = Color(0xFF181818)
+private val VinylHighlight = Color(0xFF2C2C2C)
+private val VinylSpindleWell = Color(0xFF241818)
 
 @DrawableRes
 fun bundledAmbienceThumbnailRes(trackId: Int): Int = when (trackId) {
@@ -174,7 +188,52 @@ fun SoundscapeMusicCover(
     )
 }
 
-/** Layered lo-fi vinyl: large center cover + thin black ring. */
+/** Charcoal grooved vinyl plate drawn behind the center label. */
+@Composable
+private fun VinylGroovePlate(modifier: Modifier = Modifier) {
+    val density = LocalDensity.current
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val radius = min(cx, cy)
+        drawCircle(
+            brush = Brush.radialGradient(
+                0f to VinylHighlight,
+                0.55f to VinylMid,
+                1f to VinylEdge,
+                center = Offset(cx, cy),
+                radius = radius,
+            ),
+            radius = radius,
+            center = Offset(cx, cy),
+        )
+        val labelRadius = radius * VINYL_LABEL_FRACTION * 0.5f
+        val grooveInset = with(density) { 2.dp.toPx() }
+        val grooveStart = labelRadius + grooveInset
+        val grooveEnd = radius - grooveInset
+        val grooveCount = 6
+        repeat(grooveCount) { index ->
+            val t = (index + 1f) / (grooveCount + 1f)
+            val grooveRadius = grooveStart + (grooveEnd - grooveStart) * t
+            drawCircle(
+                color = Color.White.copy(alpha = if (index % 2 == 0) 0.075f else 0.04f),
+                radius = grooveRadius,
+                center = Offset(cx, cy),
+                style = Stroke(width = with(density) { 1.dp.toPx() }),
+            )
+        }
+        drawCircle(
+            color = Color.Black.copy(alpha = 0.4f),
+            radius = radius - 0.5f,
+            center = Offset(cx, cy),
+            style = Stroke(width = with(density) { 1.5.dp.toPx() }),
+        )
+    }
+}
+
+/**
+ * Lo-fi vinyl tile: grooved charcoal disc, small center cover label, coral spindle.
+ */
 @Composable
 fun SoundscapeVinylDisc(
     trackId: Int,
@@ -182,23 +241,46 @@ fun SoundscapeVinylDisc(
     audioFilePath: String? = null,
     cacheVersion: Long = 0L,
     modifier: Modifier = Modifier,
-    ringWidth: Dp = VinylRingWidth,
 ) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        SoundscapeMusicCover(
-            trackId = trackId,
-            thumbnailPath = thumbnailPath,
-            audioFilePath = audioFilePath,
-            cacheVersion = cacheVersion,
-            modifier = Modifier
-                .fillMaxSize(VINYL_COVER_FRACTION)
-                .clip(CircleShape),
-        )
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        VinylGroovePlate(Modifier.matchParentSize())
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth(VINYL_LABEL_FRACTION)
+                .aspectRatio(1f)
                 .clip(CircleShape)
-                .border(width = ringWidth, color = VinylRingColor, shape = CircleShape),
-        )
+                .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            SoundscapeMusicCover(
+                trackId = trackId,
+                thumbnailPath = thumbnailPath,
+                audioFilePath = audioFilePath,
+                cacheVersion = cacheVersion,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(VINYL_SPINDLE_FRACTION)
+                .aspectRatio(1f)
+                .clip(CircleShape)
+                .background(Coral)
+                .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(0.38f)
+                    .aspectRatio(1f)
+                    .clip(CircleShape)
+                    .background(VinylSpindleWell),
+            )
+        }
     }
 }

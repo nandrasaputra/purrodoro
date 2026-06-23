@@ -18,9 +18,10 @@ import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.auth.AuthRepository
+import com.endiar.purrodoro.billing.BillingModule
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.AppState
-import com.endiar.purrodoro.model.AuthState
+import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.AppTab
 import com.endiar.purrodoro.sync.SyncModule
 import com.endiar.purrodoro.timer.TimerConnection
@@ -80,20 +81,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleWidgetIntent(intent)
-        // Initial transparent setup; style (light/dark icons) is updated reactively below.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-        )
 
         val repo = AppRepository.get(this)
         val authRepository = AuthRepository.get(this)
         SyncModule.get(this) // start the offline-first sync triggers
+        BillingModule.get(this) // Play Billing: query subs + sync premium entitlement
         // Block until the first app-state snapshot so theme, locale, and the home
         // hero scene match persisted values on frame 1 (no Room→saved-scene flash).
         val initialAppState = runCatching {
             runBlocking { repo.appState.first() }
         }.getOrNull()
+        val systemInDark = (resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val initialIsDark = initialAppState?.appearanceMode?.isDark(systemInDark) ?: systemInDark
+        val (initialStatusBarStyle, initialNavigationBarStyle) = systemBarStyles(initialIsDark)
+        enableEdgeToEdge(
+            statusBarStyle = initialStatusBarStyle,
+            navigationBarStyle = initialNavigationBarStyle,
+        )
         runCatching {
             runBlocking { authRepository.awaitInitialization() }
         }
@@ -128,15 +134,12 @@ class MainActivity : ComponentActivity() {
             val systemInDark = isSystemInDarkTheme()
             val isDark = appearanceMode.isDark(systemInDark)
 
-            // Reactively update status bar icon style so icons are visible in both light and dark.
+            // Reactively update system bar icon style so icons are visible in both light and dark.
             SideEffect {
+                val (statusBarStyle, navigationBarStyle) = systemBarStyles(isDark)
                 enableEdgeToEdge(
-                    statusBarStyle = if (isDark) {
-                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                    } else {
-                        SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
-                    },
-                    navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    statusBarStyle = statusBarStyle,
+                    navigationBarStyle = navigationBarStyle,
                 )
             }
 
@@ -228,6 +231,15 @@ class MainActivity : ComponentActivity() {
                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                     .setData(Uri.fromParts("package", packageName, null))
             )
+        }
+    }
+
+    private fun systemBarStyles(isDark: Boolean): Pair<SystemBarStyle, SystemBarStyle> {
+        val transparent = android.graphics.Color.TRANSPARENT
+        return if (isDark) {
+            SystemBarStyle.dark(transparent) to SystemBarStyle.dark(transparent)
+        } else {
+            SystemBarStyle.light(transparent, transparent) to SystemBarStyle.light(transparent, transparent)
         }
     }
 }
