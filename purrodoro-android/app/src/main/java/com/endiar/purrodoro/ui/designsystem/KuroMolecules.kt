@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.composables.icons.lucide.ArrowLeft
@@ -33,12 +34,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -336,18 +339,28 @@ fun KuroInputField(
     placeholder: String,
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: androidx.compose.foundation.text.KeyboardActions =
-        androidx.compose.foundation.text.KeyboardActions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     singleLine: Boolean = true,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val focusManager = LocalFocusManager.current
+    val resolvedKeyboardOptions = if (keyboardOptions == KeyboardOptions.Default) {
+        KeyboardOptions(imeAction = ImeAction.Done)
+    } else {
+        keyboardOptions
+    }
+    val resolvedKeyboardActions = if (keyboardActions == KeyboardActions.Default) {
+        KeyboardActions(onDone = { focusManager.clearFocus() })
+    } else {
+        keyboardActions
+    }
     TextField(
         value = value,
         onValueChange = onValueChange,
         placeholder = { Text(placeholder, style = KuroType.bodyPrimary, color = tokens.textMuted) },
         singleLine = singleLine,
-        keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions,
+        keyboardOptions = resolvedKeyboardOptions,
+        keyboardActions = resolvedKeyboardActions,
         shape = RoundedCornerShape(KuroSpacing.radiusMd),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = tokens.cardFill,

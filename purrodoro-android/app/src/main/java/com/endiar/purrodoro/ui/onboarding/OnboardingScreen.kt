@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -89,7 +90,9 @@ private enum class OnboardingStep {
     Notifications,
 }
 
-private val OnboardingHeroHeight = 300.dp
+private val OnboardingHeroMaxHeight = 300.dp
+private val OnboardingHeroMinHeight = 120.dp
+private const val OnboardingCompactHeightDp = 640
 
 /**
  * First-run gate: sign in with Google or continue as guest, then optional
@@ -215,7 +218,7 @@ fun OnboardingScreen(
                     OnboardingStepLayout(
                         eyebrow = stringResource(R.string.onboarding_welcome_to),
                         brandHeadline = "Purrodoro",
-                        heroHeight = if (isWelcomeSignedIn) 260.dp else OnboardingHeroHeight,
+                        heroMaxHeight = if (isWelcomeSignedIn) 260.dp else OnboardingHeroMaxHeight,
                         heroContent = {
                             Image(
                                 painter = painterResource(id = R.drawable.cat_onboarding_pomodoro),
@@ -265,7 +268,7 @@ fun OnboardingScreen(
                     OnboardingStepLayout(
                         eyebrow = null,
                         brandHeadline = null,
-                        heroHeight = OnboardingHeroHeight,
+                        heroMaxHeight = OnboardingHeroMaxHeight,
                         heroContent = {
                             AndroidNotificationPreview(
                                 modifier = Modifier
@@ -330,6 +333,7 @@ private fun onboardingBottomActionsModifier() = Modifier
     .padding(
         start = KuroSpacing.xl,
         end = KuroSpacing.xl,
+        top = KuroSpacing.lg,
         bottom = KuroSpacing.lg,
     )
 
@@ -337,20 +341,26 @@ private fun onboardingBottomActionsModifier() = Modifier
 private fun ColumnScope.OnboardingStepLayout(
     eyebrow: String?,
     brandHeadline: String?,
-    heroHeight: Dp,
+    heroMaxHeight: Dp,
     heroContent: @Composable BoxScope.() -> Unit,
     title: String,
     subtitle: String,
     belowSubtitle: @Composable (() -> Unit)? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val compactHeight = LocalConfiguration.current.screenHeightDp < OnboardingCompactHeightDp
+    val brandFontSize = if (compactHeight) 40.sp else 56.sp
+    val brandLineHeight = if (compactHeight) 44.sp else 60.sp
+    val titleFontSize = if (compactHeight) 20.sp else 24.sp
+    val titleLineHeight = if (compactHeight) 24.sp else 28.sp
+    val sectionSpacing = if (compactHeight) KuroSpacing.md else KuroSpacing.lg
+
     Column(
         modifier = Modifier
-            .fillMaxWidth()
             .weight(1f)
+            .fillMaxWidth()
             .padding(horizontal = KuroSpacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
         if (!eyebrow.isNullOrBlank()) {
             Text(
@@ -365,31 +375,34 @@ private fun ColumnScope.OnboardingStepLayout(
                 color = tokens.textPrimary,
                 fontFamily = NunitoFamily,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 56.sp,
-                lineHeight = 60.sp,
+                fontSize = brandFontSize,
+                lineHeight = brandLineHeight,
                 textAlign = TextAlign.Center,
             )
         }
-        Spacer(Modifier.height(KuroSpacing.lg))
+        if (!eyebrow.isNullOrBlank() || !brandHeadline.isNullOrBlank()) {
+            Spacer(Modifier.height(sectionSpacing))
+        }
 
         Box(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .height(heroHeight)
+                .heightIn(min = OnboardingHeroMinHeight, max = heroMaxHeight)
                 .clip(RoundedCornerShape(KuroSpacing.radiusLg))
                 .background(tokens.activeCardFill),
             content = heroContent,
         )
 
-        Spacer(Modifier.height(KuroSpacing.lg))
+        Spacer(Modifier.height(sectionSpacing))
 
         Text(
             text = title,
             color = tokens.textPrimary,
             fontFamily = NunitoFamily,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 24.sp,
-            lineHeight = 28.sp,
+            fontSize = titleFontSize,
+            lineHeight = titleLineHeight,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(KuroSpacing.xs))
@@ -560,7 +573,7 @@ private fun WelcomeSignedInCard(user: AuthUser) {
 }
 
 /**
- * Collapsed Android notification row: app icon, header line, title, body, expand affordance.
+ * Collapsed Android notification row: launcher icon, header line, title, body, expand affordance.
  */
 @Composable
 private fun AndroidNotificationPreview(modifier: Modifier = Modifier) {
@@ -594,16 +607,19 @@ private fun AndroidNotificationPreview(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .size(24.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(tokens.accent),
-                contentAlignment = Alignment.Center,
+                    .clip(CircleShape),
             ) {
                 Image(
-                    painter = painterResource(R.mipmap.ic_launcher_monochrome),
+                    painter = painterResource(R.mipmap.ic_launcher_background),
                     contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(18.dp),
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(tokens.interactiveText),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Image(
+                    painter = painterResource(R.mipmap.ic_launcher_foreground),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
             Column(modifier = Modifier.weight(1f)) {

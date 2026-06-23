@@ -42,7 +42,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -53,12 +54,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -87,6 +86,7 @@ import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadge
 import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadgeCompact
 import com.endiar.purrodoro.ui.designsystem.KuroPill
 import com.endiar.purrodoro.ui.designsystem.KuroPillKind
+import com.endiar.purrodoro.ui.designsystem.KuroMarqueeText
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.tutorial.TutorialTarget
 import com.endiar.purrodoro.ui.tutorial.tutorialAnchor
@@ -278,14 +278,12 @@ fun SoundscapeTransportBar(
                 isPlaying = isPlaying,
                 modifier = Modifier.size(KuroSpacing.journeyMetricIconCircle + KuroSpacing.xs),
             )
-            Text(
+            KuroMarqueeText(
                 text = displayName,
                 color = nameColor,
                 style = KuroType.labelStrong.copy(
                     fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.SemiBold,
                 ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             SoundscapeTransportControlButton(
@@ -1335,20 +1333,28 @@ private fun SoundscapeExpandedLofiGrid(
             Row(horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
                 row.forEach { track ->
                     val isPlaying = track.id == playingMusicId
-                    LofiVinylTile(
-                        track = track,
-                        isPlaying = isPlaying,
-                        onClick = musicTileClick(
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
+                        LofiVinylTile(
                             track = track,
                             isPlaying = isPlaying,
-                            isPremium = isPremium,
-                            onMusicSelected = onMusicSelected,
-                            onMusicToggle = onMusicToggle,
-                            onDownloadTrack = onDownloadTrack,
-                        ),
-                        showRemoveDownload = true,
-                        onDeleteDownload = onDeleteDownload,
-                    )
+                            onClick = musicTileClick(
+                                track = track,
+                                isPlaying = isPlaying,
+                                isPremium = isPremium,
+                                onMusicSelected = onMusicSelected,
+                                onMusicToggle = onMusicToggle,
+                                onDownloadTrack = onDownloadTrack,
+                            ),
+                            showRemoveDownload = true,
+                            onDeleteDownload = onDeleteDownload,
+                        )
+                    }
+                }
+                repeat(3 - row.size) {
+                    Spacer(Modifier.weight(1f))
                 }
             }
         }
@@ -1612,6 +1618,7 @@ private fun LofiVinylTile(
     track: MusicOption,
     isPlaying: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     showRemoveDownload: Boolean = false,
     onDeleteDownload: (Int) -> Unit = {},
 ) {
@@ -1623,7 +1630,9 @@ private fun LofiVinylTile(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
-        modifier = Modifier
+        modifier = modifier
+            .width(haloSize)
+            .padding(top = SoundscapePremiumBadgeHeadroom)
             .clickable(
                 role = Role.Button,
                 onClickLabel = when {
@@ -1637,7 +1646,9 @@ private fun LofiVinylTile(
             ),
     ) {
         Box(
-            modifier = Modifier.size(haloSize),
+            modifier = Modifier
+                .size(haloSize)
+                .graphicsLayer { clip = false },
             contentAlignment = Alignment.Center,
         ) {
             if (isPlaying) {
@@ -1698,7 +1709,7 @@ private fun LofiVinylTile(
             }
         }
         Column(
-            modifier = Modifier.width(haloSize),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
@@ -1907,15 +1918,35 @@ private fun LofiVinylDisc(
         label = "lofiVinylSpin_${track.id}",
         isSpinning = isSpinning,
     )
-    SoundscapeVinylDisc(
-        trackId = track.id,
-        thumbnailPath = track.remote?.thumbnailPath,
-        audioFilePath = track.remote?.filePath,
-        cacheVersion = track.remote?.cacheVersion ?: 0L,
+    Box(
         modifier = modifier
-            .rotate(spinAngle)
-            .clip(CircleShape),
-    )
+            .shadow(
+                elevation = 5.dp,
+                shape = CircleShape,
+                ambientColor = Color.Black.copy(alpha = 0.18f),
+                spotColor = Color.Black.copy(alpha = 0.22f),
+            )
+            .graphicsLayer { clip = false },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    rotationZ = spinAngle
+                    shape = CircleShape
+                    clip = true
+                },
+        ) {
+            SoundscapeVinylDisc(
+                trackId = track.id,
+                thumbnailPath = track.remote?.thumbnailPath,
+                audioFilePath = track.remote?.filePath,
+                cacheVersion = track.remote?.cacheVersion ?: 0L,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
 }
 
 @Composable
