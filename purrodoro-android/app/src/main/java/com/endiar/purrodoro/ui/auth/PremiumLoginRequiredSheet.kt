@@ -10,6 +10,7 @@ import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.ui.PremiumSignInGateContent
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
+import com.endiar.purrodoro.ui.designsystem.LocalKuroSheetDismiss
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.res.stringResource
@@ -30,20 +31,20 @@ fun PremiumLoginRequiredSheet(
     var isSigningIn by remember { mutableStateOf(false) }
 
     KuroAdaptiveBottomSheet(
-        onDismiss = {
-            if (!isSigningIn) onDismiss()
-        },
+        onDismiss = onDismiss,
+        dismissBlocked = isSigningIn,
         horizontalPadding = 0.dp,
         containerColor = tokens.cardFill,
         showCloseButton = true,
     ) {
+        val dismissSheet = LocalKuroSheetDismiss.current
         PremiumSignInGateContent(
             title = stringResource(R.string.premium_login_discover_title),
             body = stringResource(R.string.premium_login_discover_subtitle),
             isSigningIn = isSigningIn,
             authRepository = authRepository,
             onSignedIn = onSignedIn,
-            onDismiss = onDismiss,
+            onDismiss = dismissSheet,
             onSigningInChanged = {
                 isSigningIn = it
                 onSigningInChanged(it)

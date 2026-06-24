@@ -137,6 +137,9 @@
     <string name="logout_confirm_body">Keluar akan menjeda sinkronisasi cloud. Data lokal tetap aman di perangkat ini.</string>
     <string name="logout_confirm_info_local">Tugas dan kebiasaan tetap di perangkat ini</string>
     <string name="logout_confirm_footnote">Masuk lagi dengan Google kapan saja</string>
+    <string name="logout_error_title">Gagal keluar</string>
+    <string name="logout_error_body">Sesi mungkin masih aktif. Periksa koneksi lalu coba lagi.</string>
+    <string name="logout_error_retry">Coba lagi</string>
 
     <!-- Sync status (Profile, signed-in only) -->
     <string name="settings_section_sync">SINKRONISASI</string>

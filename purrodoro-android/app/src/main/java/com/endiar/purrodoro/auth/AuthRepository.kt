@@ -5,7 +5,7 @@ import com.endiar.purrodoro.model.AuthProvider
 import com.endiar.purrodoro.model.AuthState
 import com.endiar.purrodoro.model.AuthUser
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.SignOutScope
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
@@ -24,6 +24,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 /**
  * Real auth backend, backed by Supabase Auth.
@@ -118,10 +119,21 @@ class AuthRepository(private val client: SupabaseClient) {
         }
     }
 
-    suspend fun signOut() {
-        // Clears the Supabase session only; local app data is retained per the
-        // ownership rules (see AccountManager).
-        client.auth.signOut()
+    /**
+     * @return `true` when the on-device session was cleared and the user is guest.
+     */
+    suspend fun signOut(): Boolean {
+        val signedOut = performSignOut(
+            signOutRemote = { client.auth.signOut(SignOutScope.LOCAL) },
+            clearLocalSession = { client.auth.clearSession() },
+            isSignedIn = { currentAuthUser() != null },
+        )
+        if (!signedOut) {
+            runCatching {
+                FirebaseCrashlytics.getInstance().log("auth: sign_out_session_persisted")
+            }
+        }
+        return signedOut
     }
 }
 

@@ -38,8 +38,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -83,6 +85,14 @@ import kotlinx.coroutines.launch
 private val MaxSheetHeightFraction = 0.92f
 private val SheetCornerRadius = 28.dp
 private val CloseButtonSize = 44.dp
+
+/**
+ * Animated dismiss for [KuroAdaptiveBottomSheet]. Content must use this instead of
+ * calling the parent [onDismiss] directly — direct removal strands the Dialog scrim.
+ */
+val LocalKuroSheetDismiss = compositionLocalOf<() -> Unit> {
+    error("LocalKuroSheetDismiss called outside KuroAdaptiveBottomSheet")
+}
 
 private val IntSizeVectorConverter: TwoWayConverter<IntSize, AnimationVector2D> =
     TwoWayConverter(
@@ -163,6 +173,8 @@ fun KuroAdaptiveBottomSheet(
     containerColor: Color? = null,
     scrimColor: Color = Color.Black.copy(alpha = 0.32f),
     showCloseButton: Boolean = false,
+    /** When true, scrim tap / back / close are ignored (e.g. OAuth in flight). */
+    dismissBlocked: Boolean = false,
     footer: (@Composable (scrollOverlay: Float) -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -184,7 +196,7 @@ fun KuroAdaptiveBottomSheet(
     var dismissing by remember { mutableStateOf(false) }
 
     fun dismissAnimated() {
-        if (dismissing) return
+        if (dismissing || dismissBlocked) return
         dismissing = true
         visible = false
     }
@@ -207,6 +219,7 @@ fun KuroAdaptiveBottomSheet(
         scrollState.scrollTo(0)
     }
 
+    CompositionLocalProvider(LocalKuroSheetDismiss provides ::dismissAnimated) {
     Dialog(
         onDismissRequest = ::dismissAnimated,
         properties = DialogProperties(
@@ -393,5 +406,6 @@ fun KuroAdaptiveBottomSheet(
                 }
             }
         }
+    }
     }
 }

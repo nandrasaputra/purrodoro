@@ -147,6 +147,7 @@ import com.endiar.purrodoro.ui.components.focusModeActive
 import com.endiar.purrodoro.ui.components.FocusModeOverlay
 import com.endiar.purrodoro.ui.components.SpotlightTutorialOverlay
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
+import com.endiar.purrodoro.ui.designsystem.LocalKuroSheetDismiss
 import com.endiar.purrodoro.ui.components.glassTokens
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import com.endiar.purrodoro.ui.tutorial.LocalTutorialController
@@ -263,6 +264,9 @@ fun PurrodoroApp(
     var premiumUpsellTrigger by remember { mutableStateOf(PremiumUpsellTrigger()) }
     var showSoundsSheet by rememberSaveable { mutableStateOf(false) }
     var showHomeScenePicker by remember { mutableStateOf(false) }
+    var paywallAfterScenePicker by remember { mutableStateOf<PremiumUpsellTrigger?>(null) }
+    var pendingSceneSelection by remember { mutableStateOf<HomeScene?>(null) }
+    var paywallAfterSoundsSheet by remember { mutableStateOf<PremiumUpsellTrigger?>(null) }
     var hasEverUsedSoundscape by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(
@@ -1545,13 +1549,23 @@ fun PurrodoroApp(
                 HomeScenePickerSheet(
                     selected = appState.homeScene,
                     isPremium = isPremium,
-                    onDismiss = { showHomeScenePicker = false },
-                    onSelect = { scene ->
-                        scope.launch { repo.setHomeScene(scene) }
+                    onDismiss = {
                         showHomeScenePicker = false
+                        pendingSceneSelection?.let { scene ->
+                            pendingSceneSelection = null
+                            scope.launch { repo.setHomeScene(scene) }
+                        }
+                        val deferredPaywall = paywallAfterScenePicker
+                        if (deferredPaywall != null) {
+                            paywallAfterScenePicker = null
+                            requestPremiumAccess(PremiumAccessRequest.Upsell(deferredPaywall))
+                        }
+                    },
+                    onSelect = { scene ->
+                        pendingSceneSelection = scene
                     },
                     onPremiumSceneAttempt = { sceneName ->
-                        showPremiumCapPaywall(PremiumUpsellTrigger.lockedScene(sceneName))
+                        paywallAfterScenePicker = PremiumUpsellTrigger.lockedScene(sceneName)
                     },
                 )
             }
@@ -1568,6 +1582,8 @@ fun PurrodoroApp(
                     onDismiss = {
                         showPremiumSheet = false
                         pendingPremiumRequest = null
+                        paywallAfterScenePicker = null
+                        paywallAfterSoundsSheet = null
                     },
                     onUpgrade = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
                     isGuest = isGuest,
@@ -1575,18 +1591,15 @@ fun PurrodoroApp(
                     onGuestSignedIn = if (isGuest) {
                         { user ->
                             scope.launch {
-                                val pending = pendingPremiumRequest
                                 when (completeSignIn(user)) {
                                     AccountManager.Result.DropCancelled ->
                                         authRepository.signOut()
                                     else -> {
                                         user.displayName?.trim()?.takeIf { it.isNotBlank() }
                                             ?.let { persistUserName(it) }
-                                        showPremiumSheet = false
-                                        if (pending != null) {
-                                            pendingPremiumRequest = null
-                                            fulfillPremiumAccess(pending)
-                                        }
+                                        // Stay on the same sheet — authState flips to SignedIn and
+                                        // PremiumUpsellSheet swaps guest → member content in place.
+                                        pendingPremiumRequest = null
                                     }
                                 }
                             }
@@ -1601,6 +1614,11 @@ fun PurrodoroApp(
                 KuroAdaptiveBottomSheet(
                     onDismiss = {
                         showSoundsSheet = false
+                        val deferredPaywall = paywallAfterSoundsSheet
+                        if (deferredPaywall != null) {
+                            paywallAfterSoundsSheet = null
+                            requestPremiumAccess(PremiumAccessRequest.Upsell(deferredPaywall))
+                        }
                     },
                     horizontalPadding = 0.dp,
                     showCloseButton = true,
@@ -1620,6 +1638,7 @@ fun PurrodoroApp(
                         )
                     },
                 ) {
+                    val dismissSoundsSheet = LocalKuroSheetDismiss.current
                     // Lo-fi + ambience play from bundled res/raw (MP3 loops).
                     SoundsScreen(
                         ambienceOptions = ambienceOptions,
@@ -1631,11 +1650,9 @@ fun PurrodoroApp(
                         isPremium = isPremium,
                         onAmbienceSelected = { sound ->
                             if (sound.locked && !isPremium) {
-                                requestPremiumAccess(
-                                    PremiumAccessRequest.Upsell(
-                                        PremiumUpsellTrigger.lockedSound(sound.name),
-                                    ),
-                                )
+                                paywallAfterSoundsSheet =
+                                    PremiumUpsellTrigger.lockedSound(sound.name)
+                                dismissSoundsSheet()
                             } else {
                                 addAmbienceToMix(sound)
                             }
@@ -1645,11 +1662,9 @@ fun PurrodoroApp(
                         },
                         onMusicSelected = { track ->
                             if (track.locked && !isPremium) {
-                                requestPremiumAccess(
-                                    PremiumAccessRequest.Upsell(
-                                        PremiumUpsellTrigger.lockedSound(track.name),
-                                    ),
-                                )
+                                paywallAfterSoundsSheet =
+                                    PremiumUpsellTrigger.lockedSound(track.name)
+                                dismissSoundsSheet()
                             } else {
                                 addMusicToMix(track)
                             }
