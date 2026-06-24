@@ -36,6 +36,7 @@ import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
+import com.endiar.purrodoro.ui.designsystem.LocalKuroSheetDismiss
 import com.endiar.purrodoro.ui.theme.kuroTokens
 
 @Composable
@@ -63,14 +64,14 @@ fun PremiumUpsellSheet(
     } + if (isGuest) ":guest" else ":signed-in"
 
     KuroAdaptiveBottomSheet(
-        onDismiss = {
-            if (!isSigningIn) onDismiss()
-        },
+        onDismiss = onDismiss,
+        dismissBlocked = isSigningIn,
         horizontalPadding = 0.dp,
         containerColor = tokens.cardFill,
         showCloseButton = true,
         contentKey = contentKey,
     ) {
+        val dismissSheet = LocalKuroSheetDismiss.current
         if (isGuest && authRepository != null && onGuestSignedIn != null) {
             PremiumSignInGateContent(
                 title = guestUnlockTitle(trigger.reason),
@@ -78,7 +79,7 @@ fun PremiumUpsellSheet(
                 isSigningIn = isSigningIn,
                 authRepository = authRepository,
                 onSignedIn = onGuestSignedIn,
-                onDismiss = onDismiss,
+                onDismiss = dismissSheet,
                 onSigningInChanged = { isSigningIn = it },
             )
         } else {
@@ -89,7 +90,7 @@ fun PremiumUpsellSheet(
                 onPlanSelected = onPlanSelected,
                 purchaseInFlight = purchaseInFlight,
                 subscriptionPriceHint = subscriptionPriceHint,
-                onDismiss = onDismiss,
+                onDismiss = dismissSheet,
                 onUpgrade = onUpgrade,
             )
         }

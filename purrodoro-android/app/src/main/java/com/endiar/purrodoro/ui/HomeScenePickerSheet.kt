@@ -41,6 +41,7 @@ import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroPremiumBadge
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
+import com.endiar.purrodoro.ui.designsystem.LocalKuroSheetDismiss
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import java.time.LocalTime
 
@@ -57,6 +58,7 @@ fun HomeScenePickerSheet(
         horizontalPadding = KuroSpacing.lg,
         showCloseButton = true,
     ) {
+        val dismissSheet = LocalKuroSheetDismiss.current
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(R.string.home_scene_picker_title),
@@ -82,8 +84,10 @@ fun HomeScenePickerSheet(
                     onClick = {
                         if (locked) {
                             onPremiumSceneAttempt(title)
+                            dismissSheet()
                         } else {
                             onSelect(scene)
+                            dismissSheet()
                         }
                     },
                 )

@@ -21,6 +21,7 @@ import com.endiar.purrodoro.data.AppRepository
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -29,11 +30,14 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.resume
+
+private const val PurchaseInFlightTimeoutMs = 5 * 60_000L
 
 /**
  * Play Billing client for the Purrodoro Premium subscription.
@@ -64,6 +68,20 @@ class BillingManager(
     val uiEvents: SharedFlow<BillingUiEvent> = _uiEvents.asSharedFlow()
 
     private var productDetails: ProductDetails? = null
+    private var purchaseInFlightTimeoutJob: Job? = null
+
+    private fun setPurchaseInFlight(inFlight: Boolean) {
+        _purchaseInFlight.value = inFlight
+        purchaseInFlightTimeoutJob?.cancel()
+        purchaseInFlightTimeoutJob = null
+        if (inFlight) {
+            purchaseInFlightTimeoutJob = scope.launch {
+                delay(PurchaseInFlightTimeoutMs)
+                _purchaseInFlight.value = false
+                logBilling("purchase_in_flight_timeout")
+            }
+        }
+    }
 
     fun start() {
         scope.launch {
@@ -124,19 +142,19 @@ class BillingManager(
                 .setProductDetailsParamsList(listOf(productDetailsParams))
                 .build()
 
-            _purchaseInFlight.value = true
+            setPurchaseInFlight(true)
             val result = billingClient.launchBillingFlow(activity, flowParams)
             if (result.responseCode != BillingClient.BillingResponseCode.OK) {
                 logBilling("launch_billing_flow code=${result.responseCode}")
                 emitUiEvent(BillingUiEvent.LaunchFailed)
-                _purchaseInFlight.value = false
+                setPurchaseInFlight(false)
             }
         }
     }
 
     fun restorePurchases() {
         scope.launch {
-            _purchaseInFlight.value = true
+            setPurchaseInFlight(true)
             try {
                 if (!ensureConnected()) {
                     emitUiEvent(BillingUiEvent.ServiceUnavailable)
@@ -148,7 +166,7 @@ class BillingManager(
                     false -> emitUiEvent(BillingUiEvent.RestoreNothingFound)
                 }
             } finally {
-                _purchaseInFlight.value = false
+                setPurchaseInFlight(false)
             }
         }
     }
@@ -186,7 +204,7 @@ class BillingManager(
                     }
                 }
             } finally {
-                _purchaseInFlight.value = false
+                setPurchaseInFlight(false)
             }
         }
     }

@@ -143,6 +143,9 @@
     <string name="logout_confirm_action">Sign out</string>
     <string name="logout_sheet_cat_cd">Purrodoro resting. Your data stays on this phone</string>
     <string name="logout_signing_out">Signing out…</string>
+    <string name="logout_error_title">Couldn\'t sign out</string>
+    <string name="logout_error_body">Your session may still be active. Check your connection and try again.</string>
+    <string name="logout_error_retry">Try again</string>
 
     <!-- Sync status (Profile, signed-in only) -->
     <string name="settings_section_sync">SYNC</string>

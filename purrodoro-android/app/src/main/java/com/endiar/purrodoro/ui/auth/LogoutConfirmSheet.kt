@@ -47,6 +47,7 @@ import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
+import com.endiar.purrodoro.ui.designsystem.LocalKuroSheetDismiss
 import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import kotlinx.coroutines.launch
@@ -55,6 +56,7 @@ private enum class LogoutSheetStep {
     Confirm,
     Unsynced,
     SigningOut,
+    Error,
 }
 
 /**
@@ -66,7 +68,7 @@ fun LogoutConfirmSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
     flushBeforeLogout: suspend () -> LogoutDecision,
-    onSignOut: suspend () -> Unit,
+    onSignOut: suspend () -> Boolean,
 ) {
     if (!visible) return
 
@@ -78,13 +80,6 @@ fun LogoutConfirmSheet(
         if (visible) step = LogoutSheetStep.Confirm
     }
 
-    suspend fun finishSignOut() {
-        step = LogoutSheetStep.SigningOut
-        onSignOut()
-        step = LogoutSheetStep.Confirm
-        onDismiss()
-    }
-
     KuroAdaptiveBottomSheet(
         onDismiss = {
             if (step != LogoutSheetStep.SigningOut) {
@@ -92,13 +87,27 @@ fun LogoutConfirmSheet(
                 onDismiss()
             }
         },
+        dismissBlocked = step == LogoutSheetStep.SigningOut,
         horizontalPadding = KuroSpacing.xl,
         containerColor = tokens.cardFill,
         showCloseButton = step != LogoutSheetStep.SigningOut,
     ) {
+        val dismissSheet = LocalKuroSheetDismiss.current
+
+        suspend fun finishSignOut() {
+            step = LogoutSheetStep.SigningOut
+            val signedOut = onSignOut()
+            if (signedOut) {
+                step = LogoutSheetStep.Confirm
+                dismissSheet()
+            } else {
+                step = LogoutSheetStep.Error
+            }
+        }
+
         when (step) {
             LogoutSheetStep.Confirm -> ConfirmStep(
-                onCancel = onDismiss,
+                onCancel = dismissSheet,
                 onConfirm = {
                     scope.launch {
                         step = LogoutSheetStep.SigningOut
@@ -111,13 +120,20 @@ fun LogoutConfirmSheet(
             )
 
             LogoutSheetStep.Unsynced -> UnsyncedStep(
-                onKeepSyncing = onDismiss,
+                onKeepSyncing = dismissSheet,
                 onSignOutAnyway = {
                     scope.launch { finishSignOut() }
                 },
             )
 
             LogoutSheetStep.SigningOut -> SigningOutStep()
+
+            LogoutSheetStep.Error -> ErrorStep(
+                onDismiss = dismissSheet,
+                onRetry = {
+                    scope.launch { finishSignOut() }
+                },
+            )
         }
     }
 }
@@ -151,6 +167,7 @@ private fun ConfirmStep(
         primaryDestructive = true,
         secondaryText = stringResource(R.string.common_cancel),
         onSecondary = onCancel,
+        showInfoBox = true,
     )
 }
 
@@ -174,6 +191,25 @@ private fun UnsyncedStep(
         secondaryText = stringResource(R.string.logout_unsynced_confirm),
         onSecondary = onSignOutAnyway,
         secondaryDestructive = true,
+        showInfoBox = true,
+    )
+}
+
+@Composable
+private fun ErrorStep(
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    LogoutSheetScaffold(
+        title = stringResource(R.string.logout_error_title),
+        body = stringResource(R.string.logout_error_body),
+        infoRows = {},
+        primaryText = stringResource(R.string.logout_error_retry),
+        onPrimary = onRetry,
+        primaryDestructive = true,
+        secondaryText = stringResource(R.string.common_cancel),
+        onSecondary = onDismiss,
+        showInfoBox = false,
     )
 }
 
@@ -188,6 +224,7 @@ private fun LogoutSheetScaffold(
     secondaryText: String,
     onSecondary: () -> Unit,
     secondaryDestructive: Boolean = false,
+    showInfoBox: Boolean,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
@@ -215,16 +252,18 @@ private fun LogoutSheetScaffold(
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 320.dp),
         )
-        Spacer(modifier = Modifier.height(KuroSpacing.md))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-                .background(tokens.pageBackground.copy(alpha = 0.55f))
-                .border(1.dp, tokens.borderSoft, RoundedCornerShape(KuroSpacing.radiusMd))
-                .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
-        ) {
-            infoRows()
+        if (showInfoBox) {
+            Spacer(modifier = Modifier.height(KuroSpacing.md))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                    .background(tokens.pageBackground.copy(alpha = 0.55f))
+                    .border(1.dp, tokens.borderSoft, RoundedCornerShape(KuroSpacing.radiusMd))
+                    .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+            ) {
+                infoRows()
+            }
         }
         Spacer(modifier = Modifier.height(KuroSpacing.lg))
         Box(
