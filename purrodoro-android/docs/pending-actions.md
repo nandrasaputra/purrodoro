@@ -13,9 +13,8 @@ Branch: `feature/offline-first-sync` (22 commits, 253 unit tests green, Supabase
 
 - Web client ID in `SupabaseConfig.kt`; Supabase Google provider enabled.
 - Android OAuth client registered for debug SHA-1 + `com.endiar.purrodoro`.
-- **Release upload-key SHA-1 registered 2026-06-25**; release `installRelease` Google
-  sign-in verified end-to-end.
-- **Still open for Play Store:** Play App Signing SHA-1 (if distributing via Play).
+- **Release upload-key + Play App Signing SHA-1s registered 2026-06-25**; release
+  Google sign-in verified. Signed AAB uploaded to Play Console with Play App Signing.
 
 ### ✅ Release Google sign-in verification
 
@@ -40,7 +39,7 @@ end-to-end after registering the upload-key SHA-1 on the Android OAuth client
 
 ## Blockers — remaining
 
-*(none for sign-in; Play App Signing SHA-1 still open if testing via Play Console)*
+*(none — Play upload + OAuth SHA-1s done 2026-06-25)*
 
 ---
 

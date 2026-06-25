@@ -54,21 +54,15 @@ release engineering and operational readiness — not code quality.
 
 ## Blockers — must be resolved before Play Store release
 
-### 1. No release signing config  ·  high
+### 1. ~~No release signing config~~  ·  resolved
 
-`assembleRelease` emits `app-release-unsigned.apk`. There is no `signingConfig`,
-`storeFile`, or keystore anywhere in the Gradle files. An unsigned artifact
-cannot be uploaded.
-
-**Action:** create a release/upload keystore, add a `signingConfig` (read
-credentials from `local.properties` or environment variables — never commit
-them), and enroll in **Play App Signing**.
+Release/upload keystore + `signingConfig` in Gradle (`keystore.properties`).
+Play App Signing enrolled; first signed AAB uploaded to Play Console (**2026-06-25**).
 
 ### 2. ~~Release Google OAuth client not registered~~  ·  resolved 2026-06-25
 
-Upload-key SHA-1 registered on the Android OAuth client; release Google sign-in
-verified via `installRelease`. **Still do before Play Internal Testing:** add the
-**Play App Signing** SHA-1 from Play Console (differs from upload key).
+Upload-key and **Play App Signing** SHA-1s registered on the Android OAuth client.
+Release Google sign-in verified via `installRelease`.
 
 ### 3. Multi-device sync QA not executed  ·  high
 
@@ -83,28 +77,14 @@ not ship unverified.
 
 ## Should-fix before release
 
-### 4. Auto-backup can corrupt the encrypted session (and backs up sensitive data)  ·  medium (correctness + privacy)
+### 4. ~~Auto-backup can corrupt the encrypted session (and backs up sensitive data)~~  ·  resolved 2026-06-25
 
-`AndroidManifest.xml` has `allowBackup="true"` and
-`res/xml/data_extraction_rules.xml` enables `<cloud-backup/>` with no exclusions
-(`backup_rules.xml` is effectively empty). Two problems:
-
-- **Correctness/auth:** this backs up the `EncryptedSharedPreferences` file
-  (`purrodoro_auth_session`), but its decryption key lives in the device-bound
-  Android Keystore and is **not** restored on a new device. After a
-  device-transfer restore, reading that prefs file can throw and crash on launch
-  or force a sign-out loop.
-- **Privacy (security review, 2026-06-19):** the same default also silently
-  backs up the Room DB, DataStore prefs, and plaintext safety backups under
-  `files/backups/` (tasks, habits, session history) to the user's Google account
-  with no in-app opt-in beyond the OS backup toggle.
-
-**Action (pick one):**
-- Exclude the encrypted-session prefs (and the plaintext `files/backups/` dir and
-  likely the account-owned Room DB, since it re-syncs from the server) from
-  backup, **and** add a reset-on-failure fallback for session decrypt (clear +
-  treat as signed-out), **or**
-- Set `allowBackup="false"` if device-transfer of local data is not a goal.
+~~`AndroidManifest.xml` has `allowBackup="true"` and
+`res/xml/data_extraction_rules.xml` enables `<cloud-backup/>` with no exclusions~~
+**Fixed:** `data_extraction_rules.xml` and `backup_rules.xml` now exclude
+`purrodoro_auth_session`, `purrodoro.db` (+ WAL/SHM), and `files/backups/`
+from cloud backup and device transfer. `EncryptedSessionManager` clears
+unreadable session storage and treats the user as signed-out instead of crashing.
 
 ### 5. No crash reporting / analytics  ·  medium (operability)
 
@@ -182,17 +162,17 @@ similar). Optionally omit `file_path` from anonymous catalog responses.
 
 ## Pre-launch checklist
 
-- [ ] Create release/upload keystore; add `signingConfig` (credentials out of VCS)
-- [ ] Enroll in Play App Signing
-- [ ] Register Play App Signing SHA-1 with Google OAuth Android client (upload key done **2026-06-25**)
+- [x] Create release/upload keystore; add `signingConfig` (credentials out of VCS) — **2026-06-25**
+- [x] Enroll in Play App Signing — **2026-06-25**
+- [x] Register Play App Signing SHA-1 with Google OAuth Android client — **2026-06-25**
 - [x] Verify production Google sign-in end-to-end — **2026-06-25**, release APK
 - [x] Run NAN-57 (Claim/Keep/Drop) on device — **2026-06-19**, emulator
 - [ ] Run NAN-65 (two-device sync matrix)
 - [ ] Cold-start home hero: force-stop app, reopen with each saved `HomeScene` (Room, Café, Library, Park); no flash back to Room — use premium debug override for premium scenes
-- [ ] Fix auto-backup: exclude encrypted session + `files/backups/` (+ Room DB), add reset-on-failure decrypt, or set `allowBackup="false"`
+- [x] Fix auto-backup: exclude encrypted session + `files/backups/` (+ Room DB), add reset-on-failure decrypt — **2026-06-25**
 - [x] Integrate crash reporting — **Firebase Crashlytics**, 2026-06-22
 - [x] Switch to AAB; enable R8 + `shrinkResources`; add ProGuard keep rules — **2026-06-23**
-- [ ] Confirm `app-release.aab` is signed and installs from a clean device
+- [x] Confirm `app-release.aab` is signed and uploaded to Play Console — **2026-06-25**
 - [ ] Update stale auth-stub docs (`PRODUCT.md`, `pending-actions.md`)
 - [x] Gate premium on Play Billing **subscriptions** (monthly + yearly) + restore — §7 **code shipped 2026-06-23**; Play Console + QA still open
 - [ ] Move premium cloud audio to a private bucket with signed URLs + entitlement checks — §8
