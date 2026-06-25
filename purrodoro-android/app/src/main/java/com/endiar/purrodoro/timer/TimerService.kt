@@ -406,7 +406,7 @@ class TimerService : Service() {
             applicationContext, ALARM_REQUEST_CODE, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endsAt, pi)
+        ExactAlarmScheduler.scheduleSegmentEnd(alarmManager, endsAt, pi)
     }
 
     private fun cancelAlarm() {
