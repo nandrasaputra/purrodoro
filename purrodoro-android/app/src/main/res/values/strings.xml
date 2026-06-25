@@ -126,6 +126,7 @@
     <string name="login_continue_as_guest">Continue as guest</string>
     <string name="login_guest_not_backed_up">Saved on this device only. Sign in to back it up.</string>
     <string name="login_error_generic">Couldn\'t sign in. Please try again.</string>
+    <string name="login_error_timed_out">Google sign-in didn\'t complete. Check your connection and try again.</string>
     <string name="login_error_not_configured">Google sign-in isn\'t set up yet.</string>
     <string name="account_switch_title">Switch account?</string>
     <string name="account_switch_message">This device has another account\'s data. Signing in will replace it with your synced data. Continue?</string>

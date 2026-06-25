@@ -89,6 +89,13 @@
 # Lottie 6.x ships its own consumer rules inside the AAR — no additions needed.
 # Rule included here as documentation only.
 
+# ── Credential Manager / Google Identity ─────────────────────────────────────
+# ComposeAuth native Google sign-in uses androidx.credentials + googleid; keep
+# both namespaces so R8 does not strip provider wiring in release builds.
+-keep class androidx.credentials.** { *; }
+-keep class com.google.android.libraries.identity.googleid.** { *; }
+-dontwarn androidx.credentials.**
+
 # ── Google Play Billing ───────────────────────────────────────────────────────
 -keep class com.android.vending.billing.** { *; }
 -dontwarn com.android.vending.billing.**
