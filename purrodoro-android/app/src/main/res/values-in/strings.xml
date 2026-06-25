@@ -61,6 +61,7 @@
     <string name="settings_language_restart_hint">Mengubah bahasa mungkin membuat aplikasi memulai ulang sebentar agar semuanya diperbarui dengan rapi.</string>
     <string name="settings_section_about">TENTANG</string>
     <string name="settings_version">v1.0</string>
+    <string name="settings_privacy_policy">Kebijakan privasi</string>
 
     <!-- Appearance modes -->
     <string name="theme_light">Terang</string>

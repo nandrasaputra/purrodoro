@@ -77,6 +77,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import android.content.Intent
+import android.net.Uri
+import com.endiar.purrodoro.AppLinks
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AuthState
@@ -320,6 +323,17 @@ fun ProfileScreen(
                     }
                     Text(text = stringResource(R.string.settings_version), style = KuroType.bodySecondary, color = tokens.textSecondary)
                 }
+                KuroDivider()
+                TappableRow(
+                    icon = Lucide.ScrollText,
+                    label = stringResource(R.string.settings_privacy_policy),
+                    value = "",
+                    onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.PRIVACY_POLICY)),
+                        )
+                    },
+                )
             }
 
             Spacer(modifier = Modifier.height(KuroSpacing.xxl))

@@ -62,6 +62,7 @@
     <string name="settings_language_restart_hint">Changing language may briefly restart the app so everything updates cleanly.</string>
     <string name="settings_section_about">ABOUT</string>
     <string name="settings_version">v1.0</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
 
     <!-- Appearance modes -->
     <string name="theme_light">Light</string>
