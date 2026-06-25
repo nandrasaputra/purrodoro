@@ -1,7 +1,7 @@
 # Pending Actions
 
-Items remaining before the offline-first sync feature is live end-to-end.
-Branch: `feature/offline-first-sync` (22 commits, 253 unit tests green, Supabase schema applied).
+Items remaining before offline-first sync is verified end-to-end in production.
+Auth, Google sign-in, and sync code are on `main`; open work is QA below.
 
 ---
 
@@ -60,12 +60,6 @@ Test on two physical devices (or device + emulator), same Google account unless 
 | 7 | **Logout flush warning** — go offline, edit, logout → warning shown; online logout → no warning |
 | 8 | **Upgrade path** — install current prod build, create data, install sync build → migration-free fresh Room, first sign-in uploads |
 | 9 | **Process death mid-sync** — kill app during sync → relaunch → no data loss or duplicates |
-
----
-
-## Merge
-
-`feature/offline-first-sync` is unmerged, unpushed, sitting on top of `main` (2 commits ahead of origin/main at branch time). When QA passes, merge or open a PR.
 
 ---
 
