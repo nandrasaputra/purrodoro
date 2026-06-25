@@ -508,33 +508,27 @@ Purrodoro uses **Supabase Auth** as the backend. Login is optional — guests ca
 use the app locally without an account. Profile and app data sync across
 devices only after sign-in.
 
-> **Implementation status (2026-06-09).** Design + ownership model are locked in
+> **Implementation status (updated 2026-06-25).** Design + ownership model are locked in
 > [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](superpowers/specs/2026-06-09-auth-and-account-identity.md).
-> Scope for the first pass narrowed to **Google + local Guest on Android** (Apple
-> + Email deferred; iOS needs Apple before it can ship per 4.8).
+> Scope for the first pass: **Google + local Guest on Android** (Apple + Email
+> deferred; iOS needs Apple before it can ship per 4.8).
 >
-> **Done (Android, merged):** the pure ownership layer + tests —
-> `resolveLoginAction` (Claim/Keep/Drop) and `AuthProvider.Unknown` in
-> `model/AuthState.kt`; `ownerId` marker + `clearAccountOwnedData()` in
-> `AppRepository`; `auth/AccountManager` orchestration (clear-before-stamp so a
-> mid-switch crash can't leak data). Guest is **local-only** (no anonymous auth);
-> account switch **drops** the previous account's local data after a confirm.
+> **Shipped (Android):**
+> - `supabase-kt` + ComposeAuth + Credential Manager; `SupabaseConfig` URL,
+>   publishable key, and Google Web client ID configured.
+> - Real Google sign-in (`rememberSignInWithGoogle` → `signInWithIdToken`);
+>   `authState` derived from Supabase `sessionStatus`.
+> - `EncryptedSessionManager` (Keystore-backed) for the Supabase refresh token.
+> - `LoginSheet` / onboarding → `AuthRepository.resolveSignedInUser` →
+>   `AccountManager.onSignedIn` (Claim / Keep / Drop confirm dialog).
+> - Guest is **local-only** (no anonymous auth); account switch **drops** prior
+>   local data after confirm. Guest "not backed up" notice in login UI.
+> - Release Google sign-in verified; upload + Play App Signing SHA-1s registered
+>   on the Android OAuth client.
+> - Offline-first sync (Room + Supabase) for signed-in users — see sync spec.
 >
-> **Leftover / next steps (device-dependent, not yet wired):**
-> 1. Add `supabase-kt` + ComposeAuth + Credential Manager deps; a `SupabaseClient`
->    configured with the project URL + publishable key.
-> 2. Real Google sign-in (`rememberSignInWithGoogle` → `signInWithIdToken`),
->    replacing the random-UUID stub; derive `authState` from `sessionStatus`.
-> 3. `EncryptedSessionManager` (Keystore-backed) for the Supabase session.
-> 4. Wire `AccountManager.onSignedIn` into the login success path + the Drop
->    confirm dialog and guest "not backed up" notice.
-> 5. **Manual (Google Cloud + Supabase dashboard):** create Google OAuth Web +
->    Android client IDs (needs the app SHA-1) and enable the Google provider.
->
-> `AccountManager` is intentionally **not** wired to the live login path yet — the
-> stub mints a random `user_id` per sign-in, which would make every login look
-> like a different account (a destructive Drop). Wire it only once step 2 returns
-> a stable `user_id`. Data **sync** itself is a separate, later spec.
+> **Remaining:** NAN-65 two-device sync QA matrix (`pending-actions.md`); iOS auth
+> (later).
 
 ### Sign-in options by platform
 

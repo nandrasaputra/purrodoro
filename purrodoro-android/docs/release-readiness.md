@@ -46,10 +46,6 @@ release engineering and operational readiness — not code quality.
   (`EncryptedSessionManager`).
 - **Current SDK targets** — `minSdk 28`, `targetSdk 36`.
 
-> ⚠️ **Doc drift:** `docs/PRODUCT.md` and `purrodoro-android/docs/pending-actions.md`
-> still describe a random-UUID auth *stub*. That is **stale** — auth is now a
-> real Supabase implementation. Update those docs.
-
 ---
 
 ## Blockers — must be resolved before Play Store release
@@ -152,11 +148,8 @@ similar). Optionally omit `file_path` from anonymous catalog responses.
 
 ## Minor / housekeeping
 
-- `versionCode = 1` / `versionName = "1.0"` — fine for a first release; establish
-  a bump process for subsequent uploads.
 - Supabase `URL` + `PUBLISHABLE_KEY` are hardcoded in `SupabaseConfig.kt` —
   acceptable (anon role + RLS), but there is no staging/prod separation.
-- Refresh the stale auth-stub references in `PRODUCT.md` and `pending-actions.md`.
 
 ---
 
@@ -168,12 +161,12 @@ similar). Optionally omit `file_path` from anonymous catalog responses.
 - [x] Verify production Google sign-in end-to-end — **2026-06-25**, release APK
 - [x] Run NAN-57 (Claim/Keep/Drop) on device — **2026-06-19**, emulator
 - [ ] Run NAN-65 (two-device sync matrix)
-- [ ] Cold-start home hero: force-stop app, reopen with each saved `HomeScene` (Room, Café, Library, Park); no flash back to Room — use premium debug override for premium scenes
+- [x] Cold-start home hero: force-stop app, reopen with each saved `HomeScene` (Room, Café, Library, Park); no flash back to Room — **2026-06-25**
 - [x] Fix auto-backup: exclude encrypted session + `files/backups/` (+ Room DB), add reset-on-failure decrypt — **2026-06-25**
 - [x] Integrate crash reporting — **Firebase Crashlytics**, 2026-06-22
 - [x] Switch to AAB; enable R8 + `shrinkResources`; add ProGuard keep rules — **2026-06-23**
 - [x] Confirm `app-release.aab` is signed and uploaded to Play Console — **2026-06-25**
-- [ ] Update stale auth-stub docs (`PRODUCT.md`, `pending-actions.md`)
+- [x] Update stale auth-stub docs (`PRODUCT.md`, `pending-actions.md`) — **2026-06-25**
 - [x] Gate premium on Play Billing **subscriptions** (monthly + yearly) + restore — §7 **code shipped 2026-06-23**; Play Console + QA still open
 - [ ] Move premium cloud audio to a private bucket with signed URLs + entitlement checks — §8
 
