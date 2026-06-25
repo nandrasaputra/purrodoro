@@ -325,7 +325,7 @@ fun ProfileScreen(
                 }
                 KuroDivider()
                 TappableRow(
-                    icon = Lucide.ScrollText,
+                    icon = Lucide.ShieldCheck,
                     label = stringResource(R.string.settings_privacy_policy),
                     value = "",
                     onClick = {
