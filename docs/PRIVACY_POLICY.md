@@ -119,9 +119,10 @@ You can deny notifications or alarm permission; core timing still works while th
 - **Crash logs:** Retained per Firebase Crashlytics default retention (typically ~90 days).
 - **Manual backups:** Files you export stay wherever you save them (Downloads, Drive, etc.).
 
-**To delete cloud data:** Sign in, remove your tasks/habits in the app, then contact us to request full account deletion from Supabase if needed.
+**To delete your account and cloud data:** See our dedicated page:  
+https://nandrasaputra.dev/purrodoro/delete-account
 
-**To delete local data:** Uninstall the app, or clear app storage in Android Settings.
+**To delete local data only:** Uninstall the app, or clear app storage in Android Settings.
 
 ---
 
