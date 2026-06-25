@@ -81,12 +81,16 @@ class ProfileSyncTest {
         displayName: String,
         focusMinutes: Int,
         updatedAt: String,
+        premiumOverrideEnabled: Boolean = false,
+        premiumOverrideActive: Boolean = false,
     ): JsonElement = buildJsonObject {
         put("user_id", "user-1")
         put("display_name", displayName)
         putJsonObject("timer_settings") {
             put("focus_minutes", focusMinutes)
         }
+        put("premium_override_enabled", premiumOverrideEnabled)
+        put("premium_override_active", premiumOverrideActive)
         put("updated_at", updatedAt)
         put("deleted", false)
     }
@@ -111,6 +115,25 @@ class ProfileSyncTest {
         )
         assertNull("server-owned column stripped from the push", pushed["updated_at"])
         assertFalse(db.profileDao().get()!!.dirty)
+    }
+
+    @Test
+    fun `pulled premium override reconciles isPremium`() = runTest {
+        val repo = makeRepo()
+        repo.setPlayPremium(false)
+        api.remote["profiles"] = mutableListOf(
+            profileRow(
+                displayName = "Reviewer",
+                focusMinutes = 25,
+                updatedAt = "2026-06-12T10:00:00+00:00",
+                premiumOverrideEnabled = true,
+                premiumOverrideActive = true,
+            ),
+        )
+
+        buildEngine(repo).syncOnce()
+
+        assertTrue(repo.appState.first().isPremium)
     }
 
     @Test

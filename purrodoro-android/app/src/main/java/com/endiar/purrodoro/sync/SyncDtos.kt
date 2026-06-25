@@ -288,6 +288,8 @@ data class ProfileDto(
     @SerialName("user_id") val userId: String,
     @SerialName("display_name") val displayName: String? = null,
     @SerialName("timer_settings") val timerSettings: JsonElement,
+    @SerialName("premium_override_enabled") val premiumOverrideEnabled: Boolean = false,
+    @SerialName("premium_override_active") val premiumOverrideActive: Boolean = false,
     @SerialName("updated_at") val updatedAt: String? = null,
     @SerialName("deleted") val deleted: Boolean = false,
 )

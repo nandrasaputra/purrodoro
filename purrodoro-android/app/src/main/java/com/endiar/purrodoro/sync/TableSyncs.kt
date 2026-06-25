@@ -188,7 +188,12 @@ internal class ProfileTableSync(
     private val dao: ProfileDao,
     private val userId: suspend () -> String,
     private val inTransaction: TransactionRunner,
-    private val applySyncedPrefs: suspend (displayName: String, timerSettingsJson: String) -> Unit,
+    private val applySyncedPrefs: suspend (
+        displayName: String,
+        timerSettingsJson: String,
+        premiumOverrideEnabled: Boolean,
+        premiumOverrideActive: Boolean,
+    ) -> Unit,
 ) : TableSync {
 
     override val table: String = "profiles"
@@ -249,7 +254,14 @@ internal class ProfileTableSync(
         // commit-to-here gap re-dirtied the row, and its setter already wrote
         // the prefs it wants — overwriting them with the pulled values would
         // flash stale cloud state in the UI until the next pass.
-        if (accepted && dao.get()?.dirty == false) applySyncedPrefs(displayName, settingsJson)
+        if (accepted && dao.get()?.dirty == false) {
+            applySyncedPrefs(
+                displayName,
+                settingsJson,
+                dto.premiumOverrideEnabled,
+                dto.premiumOverrideActive,
+            )
+        }
     }
 
     override suspend fun maxRemoteUpdatedAt(rows: List<JsonElement>): String? = maxUpdatedAtOf(rows)

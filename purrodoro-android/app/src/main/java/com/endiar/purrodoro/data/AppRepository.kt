@@ -20,6 +20,7 @@ import com.endiar.purrodoro.data.local.SessionRecordEntity
 import com.endiar.purrodoro.data.local.TaskEntity
 import com.endiar.purrodoro.data.local.toDomain
 import com.endiar.purrodoro.data.local.toEntity
+import com.endiar.purrodoro.billing.PremiumResolver
 import com.endiar.purrodoro.data.backup.RestoreBundle
 import com.endiar.purrodoro.model.AppLanguage
 import com.endiar.purrodoro.model.AppearanceMode
@@ -116,6 +117,9 @@ class AppRepository(
         private val KEY_CYCLE_SIZE = intPreferencesKey("focus_sessions_per_cycle")
         private val KEY_NEXT_TASK_ID = intPreferencesKey("next_task_id")
         private val KEY_IS_PREMIUM = booleanPreferencesKey("is_premium")
+        private val KEY_PLAY_PREMIUM = booleanPreferencesKey("play_premium")
+        private val KEY_PREMIUM_OVERRIDE_ENABLED = booleanPreferencesKey("premium_override_enabled")
+        private val KEY_PREMIUM_OVERRIDE_ACTIVE = booleanPreferencesKey("premium_override_active")
         private val KEY_RUNTIME_SNAPSHOT = stringPreferencesKey("timer_runtime_snapshot")
         private val KEY_PENDING_CYCLE_ACK = booleanPreferencesKey("pending_cycle_completion_ack")
         private val KEY_NEXT_CATEGORY_ID = intPreferencesKey("next_category_id")
@@ -332,7 +336,12 @@ class AppRepository(
      * clobber a concurrent user edit's prefs with stale cloud state while the
      * edit's row survives as dirty.
      */
-    internal suspend fun applySyncedProfilePrefs(displayName: String, timerSettingsJson: String) {
+    internal suspend fun applySyncedProfilePrefs(
+        displayName: String,
+        timerSettingsJson: String,
+        premiumOverrideEnabled: Boolean = false,
+        premiumOverrideActive: Boolean = false,
+    ) {
         val settings = decodeTimerSettings(timerSettingsJson)
         dataStore.edit { prefs ->
             prefs[KEY_USER_NAME] = displayName.trim()
@@ -341,6 +350,9 @@ class AppRepository(
             prefs[KEY_LONG_MIN] = settings.longBreakMinutes
             prefs[KEY_AUTO_START_NEXT_SESSION] = settings.autoStartNextSession
             prefs[KEY_CYCLE_SIZE] = settings.focusSessionsPerCycle
+            prefs[KEY_PREMIUM_OVERRIDE_ENABLED] = premiumOverrideEnabled
+            prefs[KEY_PREMIUM_OVERRIDE_ACTIVE] = premiumOverrideActive
+            reconcilePremium(prefs)
         }
     }
 
@@ -396,7 +408,10 @@ class AppRepository(
                 // timer settings revert to defaults for the new account
                 KEY_FOCUS_MIN, KEY_SHORT_MIN, KEY_LONG_MIN,
                 KEY_AUTO_START_NEXT_SESSION, KEY_CYCLE_SIZE,
+                // per-account premium override (re-synced on next profile pull)
+                KEY_PREMIUM_OVERRIDE_ENABLED, KEY_PREMIUM_OVERRIDE_ACTIVE,
             ).forEach { prefs.remove(it) }
+            reconcilePremium(prefs)
             // Checkpoints belong to the old account's server state; the next
             // account must pull from scratch.
             removeSyncCheckpoints(prefs)
@@ -729,7 +744,34 @@ class AppRepository(
         }
         notifyLocalWrite()
     }
-    suspend fun setIsPremium(value: Boolean) = dataStore.edit { it[KEY_IS_PREMIUM] = value }
+    suspend fun setIsPremium(value: Boolean) = setPlayPremium(value)
+
+    /** Play Billing subscription cache; reconciled into [KEY_IS_PREMIUM]. */
+    suspend fun setPlayPremium(value: Boolean) = dataStore.edit { prefs ->
+        prefs[KEY_PLAY_PREMIUM] = value
+        reconcilePremium(prefs)
+    }
+
+    /** Clears Supabase admin override (e.g. on sign-out). Play billing unchanged. */
+    suspend fun clearPremiumOverride() = dataStore.edit { prefs ->
+        prefs.remove(KEY_PREMIUM_OVERRIDE_ENABLED)
+        prefs.remove(KEY_PREMIUM_OVERRIDE_ACTIVE)
+        reconcilePremium(prefs)
+    }
+
+    private fun reconcilePremium(prefs: MutablePreferences) {
+        val overrideEnabled = prefs[KEY_PREMIUM_OVERRIDE_ENABLED] ?: false
+        val overrideActive = prefs[KEY_PREMIUM_OVERRIDE_ACTIVE] ?: false
+        val playPremium = (
+            prefs[KEY_PLAY_PREMIUM]
+                ?: if (!overrideEnabled) prefs[KEY_IS_PREMIUM] else null
+            ) ?: false
+        prefs[KEY_IS_PREMIUM] = PremiumResolver.resolve(
+            overrideEnabled = overrideEnabled,
+            overrideActive = overrideActive,
+            playPremium = playPremium,
+        )
+    }
     suspend fun setPendingCycleCompletionAck(value: Boolean) =
         dataStore.edit { it[KEY_PENDING_CYCLE_ACK] = value }
 

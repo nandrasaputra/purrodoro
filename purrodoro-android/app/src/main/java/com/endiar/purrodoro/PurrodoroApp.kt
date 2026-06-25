@@ -246,6 +246,17 @@ fun PurrodoroApp(
         AccountAvatarStore.get(context).sync(userId, signedInAvatarUrl)
     }
 
+    LaunchedEffect(authState) {
+        when (authState) {
+            AuthState.Guest -> {
+                repo.clearPremiumOverride()
+                billingManager.refreshEntitlement()
+            }
+            is AuthState.SignedIn -> billingManager.refreshEntitlement()
+            AuthState.Loading -> Unit
+        }
+    }
+
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
     val displayHomeScene = effectiveHomeScene(appState.homeScene, isPremium)
 

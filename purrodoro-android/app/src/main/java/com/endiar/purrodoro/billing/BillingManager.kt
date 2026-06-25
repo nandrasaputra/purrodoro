@@ -43,7 +43,8 @@ private const val PurchaseInFlightTimeoutMs = 5 * 60_000L
  * Play Billing client for the Purrodoro Premium subscription.
  *
  * Owns product catalog queries, purchase flow launch, acknowledgement, and
- * syncing [AppRepository.setIsPremium] from owned subscriptions.
+ * syncing [AppRepository.setPlayPremium] from owned subscriptions (reconciled
+ * with any Supabase admin override on the signed-in user's profile).
  */
 class BillingManager(
     private val repo: AppRepository,
@@ -282,7 +283,7 @@ class BillingManager(
             is PurchasesQueryOutcome.Success -> {
                 acknowledgePurchases(outcome.purchases)
                 val premium = PremiumEntitlement.hasActivePremium(outcome.purchases)
-                repo.setIsPremium(premium)
+                repo.setPlayPremium(premium)
                 premium
             }
         }
