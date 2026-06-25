@@ -64,16 +64,11 @@ cannot be uploaded.
 credentials from `local.properties` or environment variables — never commit
 them), and enroll in **Play App Signing**.
 
-### 2. Release Google OAuth client not registered  ·  high
+### 2. ~~Release Google OAuth client not registered~~  ·  resolved 2026-06-25
 
-The Google **Android** OAuth client is currently tied to the *debug* SHA-1
-(see `pending-actions.md` · NAN-56). Production sign-in will fail until the
-**release/upload key SHA-1** (and the Play App Signing SHA-1) are registered in
-Google Cloud Console for package `com.endiar.purrodoro`.
-
-**Action:** after creating the release key, run `./gradlew signingReport`, add
-both release SHA-1s to the Google Cloud Android OAuth client, and confirm the
-Supabase Google provider uses the Web client ID + secret.
+Upload-key SHA-1 registered on the Android OAuth client; release Google sign-in
+verified via `installRelease`. **Still do before Play Internal Testing:** add the
+**Play App Signing** SHA-1 from Play Console (differs from upload key).
 
 ### 3. Multi-device sync QA not executed  ·  high
 
@@ -189,8 +184,8 @@ similar). Optionally omit `file_path` from anonymous catalog responses.
 
 - [ ] Create release/upload keystore; add `signingConfig` (credentials out of VCS)
 - [ ] Enroll in Play App Signing
-- [ ] Register release + Play App Signing SHA-1s with Google OAuth Android client
-- [ ] Verify production Google sign-in end-to-end
+- [ ] Register Play App Signing SHA-1 with Google OAuth Android client (upload key done **2026-06-25**)
+- [x] Verify production Google sign-in end-to-end — **2026-06-25**, release APK
 - [x] Run NAN-57 (Claim/Keep/Drop) on device — **2026-06-19**, emulator
 - [ ] Run NAN-65 (two-device sync matrix)
 - [ ] Cold-start home hero: force-stop app, reopen with each saved `HomeScene` (Room, Café, Library, Park); no flash back to Room — use premium debug override for premium scenes

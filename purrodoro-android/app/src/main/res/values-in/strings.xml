@@ -125,6 +125,7 @@
     <string name="login_continue_as_guest">Lanjut sebagai tamu</string>
     <string name="login_guest_not_backed_up">Tersimpan di perangkat ini saja. Masuk untuk mencadangkannya.</string>
     <string name="login_error_generic">Tidak bisa masuk. Coba lagi.</string>
+    <string name="login_error_timed_out">Masuk Google tidak selesai. Periksa koneksi dan coba lagi.</string>
     <string name="login_error_not_configured">Masuk dengan Google belum disiapkan.</string>
     <string name="account_switch_title">Ganti akun?</string>
     <string name="account_switch_message">Perangkat ini berisi data akun lain. Masuk akan menggantinya dengan data tersinkronmu. Lanjutkan?</string>

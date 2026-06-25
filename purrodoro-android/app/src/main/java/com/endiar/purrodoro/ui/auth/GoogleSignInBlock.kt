@@ -24,6 +24,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.auth.AuthRepository
+import com.endiar.purrodoro.auth.AuthDiagnostics
 import com.endiar.purrodoro.auth.SupabaseConfig
 import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -47,6 +48,7 @@ fun GoogleSignInBlock(
     var isSigningIn by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val genericError = stringResource(R.string.login_error_generic)
+    val timedOutError = stringResource(R.string.login_error_timed_out)
     val notConfiguredError = stringResource(R.string.login_error_not_configured)
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -65,6 +67,8 @@ fun GoogleSignInBlock(
                     delay(1500)
                     if (isSigningIn && authRepository.currentAuthUser() == null) {
                         isSigningIn = false
+                        errorMessage = timedOutError
+                        AuthDiagnostics.log("google_sign_in_resume_timeout")
                     }
                 }
             }
@@ -76,20 +80,30 @@ fun GoogleSignInBlock(
     val googleSignIn = authRepository.composeAuth.rememberSignInWithGoogle(
         onResult = { result ->
             when (result) {
-                is NativeSignInResult.Success -> authRepository.resolveSignedInUser { user ->
-                    isSigningIn = false
-                    if (user != null) {
-                        onSignedIn(user)
-                    } else {
-                        errorMessage = genericError
+                is NativeSignInResult.Success -> {
+                    AuthDiagnostics.log("google_sign_in_success")
+                    authRepository.resolveSignedInUser { user ->
+                        isSigningIn = false
+                        if (user != null) {
+                            AuthDiagnostics.log("google_sign_in_resolved", user.userId)
+                            onSignedIn(user)
+                        } else {
+                            AuthDiagnostics.log("google_sign_in_resolve_null")
+                            errorMessage = genericError
+                        }
                     }
                 }
-                is NativeSignInResult.ClosedByUser -> isSigningIn = false
+                is NativeSignInResult.ClosedByUser -> {
+                    AuthDiagnostics.log("google_sign_in_closed")
+                    isSigningIn = false
+                }
                 is NativeSignInResult.Error -> {
+                    AuthDiagnostics.log("google_sign_in_error", result.message)
                     isSigningIn = false
                     errorMessage = result.message ?: genericError
                 }
                 is NativeSignInResult.NetworkError -> {
+                    AuthDiagnostics.log("google_sign_in_network_error", result.message)
                     isSigningIn = false
                     errorMessage = result.message ?: genericError
                 }
