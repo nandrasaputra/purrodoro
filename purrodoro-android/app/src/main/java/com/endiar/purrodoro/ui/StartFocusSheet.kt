@@ -663,6 +663,7 @@ private fun StartFocusConfirmContent(
                 Spacer(Modifier.height(KuroSpacing.md))
                 SelectedIntentSummary(
                     label = task.title,
+                    icon = Lucide.CircleCheck,
                     onChange = { onIntentClick(FocusIntent.Task) },
                 )
             }
@@ -673,6 +674,7 @@ private fun StartFocusConfirmContent(
                 Spacer(Modifier.height(KuroSpacing.md))
                 SelectedIntentSummary(
                     label = "${habit.emoji} ${habit.name}",
+                    icon = Lucide.Leaf,
                     onChange = { onIntentClick(FocusIntent.Habit) },
                 )
             }
@@ -1058,6 +1060,7 @@ private fun StartFocusCreateRow(
 @Composable
 private fun SelectedIntentSummary(
     label: String,
+    icon: ImageVector,
     onChange: () -> Unit,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -1071,14 +1074,29 @@ private fun SelectedIntentSummary(
             .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            style = KuroType.bodyPrimary,
-            color = tokens.textPrimary,
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = KuroSpacing.sm),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tokens.accent,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(KuroSpacing.sm))
+            Text(
+                text = label,
+                style = KuroType.bodyPrimary,
+                color = tokens.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
+        }
         Text(
             text = stringResource(R.string.sheet_change),
             style = KuroType.labelStrong,
@@ -1266,7 +1284,7 @@ private fun IntentSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Max),
+                .height(76.dp),
             horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
         ) {
             FocusIntent.entries.forEach { option ->
@@ -1296,18 +1314,18 @@ private fun IntentChip(
     val fill = if (selected) tokens.accentSoft else tokens.pageBackground
     val borderColor = if (selected) tokens.accent.copy(alpha = 0.35f) else tokens.cardBorder
 
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(fill)
+            .border(1.dp, borderColor, RoundedCornerShape(KuroSpacing.radiusMd))
+            .clickable(onClick = onClick)
+            .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.sm),
+        contentAlignment = Alignment.Center,
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(KuroSpacing.radiusMd))
-                .background(fill)
-                .border(1.dp, borderColor, RoundedCornerShape(KuroSpacing.radiusMd))
-                .clickable(onClick = onClick)
-                .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
         ) {
             Icon(
                 imageVector = icon,
@@ -1315,15 +1333,14 @@ private fun IntentChip(
                 tint = if (selected) tokens.accent else tokens.textSecondary,
                 modifier = Modifier.size(18.dp),
             )
-            Spacer(Modifier.height(KuroSpacing.xs))
             Text(
                 text = label,
                 style = KuroType.labelMeta,
                 color = if (selected) tokens.accent else tokens.textSecondary,
                 textAlign = TextAlign.Center,
-                minLines = 2,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
         if (selected) {
