@@ -85,6 +85,29 @@ class FocusModeMotionTest {
         assertFalse(focusModeActive(isFocusMode = true, runtimeState = null, focusStartPending = false))
     }
 
+    @Test
+    fun `mascot stays phone-sized on narrow band`() {
+        val size = focusModeMascotMaxSize(bandWidthDp = 360f, bandHeightDp = 260f)
+        assertEquals(280f, size.widthDp, 0.1f)
+        assertEquals(200f, size.heightDp, 0.1f)
+    }
+
+    @Test
+    fun `mascot grows on tablet band`() {
+        val size = focusModeMascotMaxSize(bandWidthDp = 900f, bandHeightDp = 480f)
+        assertTrue(size.widthDp > 280f)
+        assertTrue(size.heightDp > 200f)
+        assertEquals(440f, size.widthDp, 0.1f)
+        assertEquals(314.28f, size.heightDp, 0.5f)
+    }
+
+    @Test
+    fun `mascot respects short band height`() {
+        val size = focusModeMascotMaxSize(bandWidthDp = 900f, bandHeightDp = 220f)
+        assertEquals(280f, size.widthDp, 0.1f)
+        assertEquals(200f, size.heightDp, 0.1f)
+    }
+
     private fun runtimeSnapshot(timerState: TimerState): TimerRuntimeState {
         val items = listOf(
             TimerSessionItem(SessionItemType.Focus(25 * 60)),

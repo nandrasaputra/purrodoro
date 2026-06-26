@@ -80,3 +80,33 @@ fun focusModeActive(
     runtimeState: TimerRuntimeState?,
     focusStartPending: Boolean,
 ): Boolean = isFocusMode && focusSessionInFlight(runtimeState, focusStartPending)
+
+/** Width/height caps for the focus-mode mascot illustration (dp). */
+data class FocusModeMascotSize(val widthDp: Float, val heightDp: Float)
+
+private const val FocusModeMascotAspectRatio = 1.4f
+private const val FocusModeMascotMinWidthDp = 280f
+private const val FocusModeMascotMinHeightDp = 200f
+private const val FocusModeMascotMaxWidthDp = 440f
+private const val FocusModeMascotBandWidthFraction = 0.75f
+private const val FocusModeMascotBandHeightFraction = 0.9f
+
+/**
+ * Scales the focus-mode mascot with the flexible center band so phones keep
+ * today's size while tablets get a larger illustration without overflowing.
+ */
+fun focusModeMascotMaxSize(bandWidthDp: Float, bandHeightDp: Float): FocusModeMascotSize {
+    if (bandWidthDp <= 0f || bandHeightDp <= 0f) {
+        return FocusModeMascotSize(FocusModeMascotMinWidthDp, FocusModeMascotMinHeightDp)
+    }
+    val scaleBasis = minOf(bandWidthDp, bandHeightDp * FocusModeMascotAspectRatio)
+    val widthCap = (scaleBasis * FocusModeMascotBandWidthFraction)
+        .coerceIn(FocusModeMascotMinWidthDp, FocusModeMascotMaxWidthDp)
+    val heightCap = minOf(
+        widthCap / FocusModeMascotAspectRatio,
+        bandHeightDp * FocusModeMascotBandHeightFraction,
+    ).coerceAtLeast(FocusModeMascotMinHeightDp)
+    val width = minOf(heightCap * FocusModeMascotAspectRatio, FocusModeMascotMaxWidthDp)
+        .coerceAtLeast(FocusModeMascotMinWidthDp)
+    return FocusModeMascotSize(width, heightCap)
+}

@@ -14,6 +14,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -323,20 +324,24 @@ fun FocusModeOverlay(
             // Mascot lives in the flexible band; soundscape + actions + hint stay
             // in the fixed bottom cluster so the exit hint never clips off-screen
             // on short displays or when the intent pill / subtext are visible.
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
+                val mascotSize = focusModeMascotMaxSize(
+                    bandWidthDp = maxWidth.value,
+                    bandHeightDp = maxHeight.value,
+                )
                 Image(
                     painter = painterResource(id = mascotRes),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .sizeIn(maxWidth = 280.dp, maxHeight = 200.dp)
-                        .fillMaxWidth()
-                        .aspectRatio(1.4f),
+                    modifier = Modifier.size(
+                        width = mascotSize.widthDp.dp,
+                        height = mascotSize.heightDp.dp,
+                    ),
                 )
             }
 
