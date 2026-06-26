@@ -48,7 +48,6 @@ fun PremiumUpsellSheet(
     selectedPlan: PremiumPlan,
     onPlanSelected: (PremiumPlan) -> Unit,
     purchaseInFlight: Boolean,
-    subscriptionPriceHint: String? = null,
     isGuest: Boolean = false,
     authRepository: AuthRepository? = null,
     onGuestSignedIn: ((AuthUser) -> Unit)? = null,
@@ -89,7 +88,6 @@ fun PremiumUpsellSheet(
                 selectedPlan = selectedPlan,
                 onPlanSelected = onPlanSelected,
                 purchaseInFlight = purchaseInFlight,
-                subscriptionPriceHint = subscriptionPriceHint,
                 onDismiss = dismissSheet,
                 onUpgrade = onUpgrade,
             )
@@ -104,7 +102,6 @@ private fun PremiumMemberUpsellContent(
     selectedPlan: PremiumPlan,
     onPlanSelected: (PremiumPlan) -> Unit,
     purchaseInFlight: Boolean,
-    subscriptionPriceHint: String?,
     onDismiss: () -> Unit,
     onUpgrade: (PremiumPlan) -> Unit,
 ) {
@@ -152,8 +149,8 @@ private fun PremiumMemberUpsellContent(
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             Text(
                 text = subscriptionOffers.priceFor(selectedPlan)
-                    ?: subscriptionPriceHint
-                    ?: stringResource(R.string.premium_sheet_price_hint),
+                    ?: subscriptionOffers.priceHint
+                    ?: stringResource(R.string.premium_screen_price_unavailable),
                 style = KuroType.labelMeta,
                 color = tokens.textSecondary,
                 textAlign = TextAlign.Center,
