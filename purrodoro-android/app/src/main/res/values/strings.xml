@@ -418,7 +418,6 @@
     <string name="premium_chip_themes">Custom Themes</string>
     <string name="premium_perk_sounds">Every ambience &amp; lo-fi track</string>
     <string name="premium_perk_scenes">Premium home scenes</string>
-    <string name="premium_sheet_price_hint">From $2.99/month · 7-day free trial</string>
     <string name="premium_sheet_cta">Start Premium</string>
     <string name="premium_sheet_dismiss">Maybe later</string>
     <string name="premium_guest_unlock_header_cd">Kuro welcoming you to sign in for Premium</string>
@@ -452,16 +451,6 @@
     <string name="profile_benefit_tasks">Unlimited active tasks</string>
     <string name="profile_benefit_habits">Unlimited habits</string>
 
-    <string name="premium_spotlight_title">Unlock Purrodoro Premium</string>
-    <string name="premium_spotlight_subtitle">Soundscapes, cozy scenes &amp; more</string>
-    <string name="premium_spotlight_compare_sounds_from">Rain + Cafe</string>
-    <string name="premium_spotlight_compare_sounds_to">All sounds</string>
-    <string name="premium_spotlight_compare_scenes_from">Room only</string>
-    <string name="premium_spotlight_compare_scenes_to">4 home scenes</string>
-    <string name="premium_spotlight_compare_tasks_from">%1$d active tasks</string>
-    <string name="premium_spotlight_compare_tasks_to">Unlimited</string>
-    <string name="premium_spotlight_cta">Discover Premium</string>
-    <string name="premium_one_time_hint">One-time purchase · No subscription</string>
     <string name="premium_screen_price_unavailable">Plans unavailable — install from Play Store to subscribe</string>
     <string name="premium_screen_plan_monthly">Monthly</string>
     <string name="premium_screen_plan_yearly">Yearly</string>
@@ -485,7 +474,6 @@
     <string name="premium_screen_headline_member">Thanks for supporting Purrodoro</string>
     <string name="premium_screen_body_discover">Premium adds depth to every Pomodoro — richer soundscapes, new home scenes, and room to grow your tasks and habits.</string>
     <string name="premium_screen_body_member">You have full access to every Premium perk below. Your cat is very grateful.</string>
-    <string name="premium_screen_price_placeholder">One-time unlock · price coming soon</string>
     <string name="premium_screen_cta_subscribe">Unlock Premium</string>
     <string name="premium_screen_active_label">Premium active</string>
     <string name="premium_story_sounds_title">Every soundscape</string>

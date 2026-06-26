@@ -1590,7 +1590,6 @@ fun PurrodoroApp(
                     selectedPlan = selectedPremiumPlan,
                     onPlanSelected = { selectedPremiumPlan = it },
                     purchaseInFlight = purchaseInFlight,
-                    subscriptionPriceHint = subscriptionOffers.priceHint,
                     onDismiss = {
                         showPremiumSheet = false
                         pendingPremiumRequest = null
