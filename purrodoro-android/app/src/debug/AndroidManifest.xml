@@ -12,13 +12,21 @@
             android:name=".debug.DebugActivity"
             android:exported="false"
             android:label="Purrodoro Dev Tools"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait">
+            <property
+                android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+                android:value="true" />
+        </activity>
 
         <activity
             android:name=".debug.SyncDebugActivity"
             android:exported="false"
             android:label="Sync Debug"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait">
+            <property
+                android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+                android:value="true" />
+        </activity>
 
     </application>
 
