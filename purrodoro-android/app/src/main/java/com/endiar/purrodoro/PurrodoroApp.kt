@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -1730,7 +1731,12 @@ fun PurrodoroApp(
         }
     }
 
+    // Edge-to-edge: we handle status/nav insets manually inside surfaceContent
+    // (statusBarsPadding on tab body, navigationBarsPadding on dock/snackbar).
+    // Scaffold's default contentWindowInsets would stack on top and leave a
+    // cream strip under an opaque status bar.
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -1738,12 +1744,9 @@ fun PurrodoroApp(
             )
         },
         containerColor = Color.Transparent,
-    ) { padding ->
+    ) { _ ->
         CompositionLocalProvider(LocalTutorialController provides tutorialController) {
-            KuroFlatSurface(
-                modifier = Modifier.padding(padding),
-                content = surfaceContent,
-            )
+            KuroFlatSurface(content = surfaceContent)
         }
     }
 }
