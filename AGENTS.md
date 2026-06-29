@@ -44,7 +44,10 @@ The Cloud VM is Linux, so what is runnable differs per component:
   there is no `/dev/kvm`, so `connectedDebugAndroidTest` and running the app GUI
   are not possible here. `./gradlew lintDebug` runs but currently fails on a
   pre-existing `MissingPermission` error in `TimerAlarmReceiver.kt` (not an env
-  issue; no lint baseline is configured).
+  issue; no lint baseline is configured). To preview the actual UI headlessly
+  (no emulator), render it with Robolectric `@GraphicsMode(NATIVE)` and draw the
+  view to a `Bitmap` — see `WidgetPreviewLayoutExportTest` (run with
+  `EXPORT_WIDGET_PREVIEWS=1`) for the pattern.
 - **iOS (`purrodoro-ios`) — not buildable on Linux.** Requires macOS + Xcode;
   skip on the Cloud VM.
 - **Soundscape Admin (`tools/soundscape-admin`) — Vite dev-only web tool.** Needs
