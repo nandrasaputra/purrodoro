@@ -146,24 +146,30 @@ fun OnboardingScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    suspend fun completeSignInHandoff(user: AuthUser): Boolean {
-        if (linkedSignInUserId == user.userId) return true
+    fun advanceAfterAuthChoice() {
+        showLoginSheet = false
+        step = OnboardingStep.Notifications
+    }
+
+    suspend fun completeSignInHandoff(user: AuthUser): AccountManager.Result? {
+        if (linkedSignInUserId == user.userId) return null
         isAuthHandoffInProgress = true
         try {
             val result = accountManager.onSignedIn(
                 incomingUserId = user.userId,
                 confirmDrop = confirmAccountSwitch,
+                deferSync = true,
             )
             return when (result) {
                 AccountManager.Result.DropCancelled -> {
                     authRepository.signOut()
                     linkedSignInUserId = null
-                    false
+                    null
                 }
                 else -> {
                     linkedSignInUserId = user.userId
                     user.displayName?.trim()?.takeIf { it.isNotBlank() }?.let(onPersistUserName)
-                    true
+                    result
                 }
             }
         } finally {
@@ -171,17 +177,27 @@ fun OnboardingScreen(
         }
     }
 
-    fun advanceAfterAuthChoice() {
-        showLoginSheet = false
-        step = OnboardingStep.Notifications
+    suspend fun completeSignInAndAdvance(
+        user: AuthUser,
+        onFailure: () -> Unit = {},
+    ) {
+        when (val result = completeSignInHandoff(user)) {
+            null -> {
+                if (linkedSignInUserId == user.userId) {
+                    advanceAfterAuthChoice()
+                } else {
+                    onFailure()
+                }
+            }
+            else -> {
+                advanceAfterAuthChoice()
+                scope.launch { accountManager.runDeferredSync(result) }
+            }
+        }
     }
 
     suspend fun finishSignedIn(user: AuthUser) {
-        if (completeSignInHandoff(user)) {
-            advanceAfterAuthChoice()
-        } else {
-            showLoginSheet = false
-        }
+        completeSignInAndAdvance(user) { showLoginSheet = false }
     }
 
     suspend fun finishAsGuest() {
@@ -252,9 +268,7 @@ fun OnboardingScreen(
                             when {
                                 isWelcomeSignedIn -> scope.launch {
                                     val user = (authState as AuthState.SignedIn).user
-                                    if (completeSignInHandoff(user)) {
-                                        advanceAfterAuthChoice()
-                                    }
+                                    completeSignInAndAdvance(user)
                                 }
                                 else -> showLoginSheet = true
                             }

@@ -19,12 +19,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,9 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.auth.AuthDiagnostics
@@ -52,8 +48,6 @@ import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
 import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginSheet(
@@ -66,42 +60,29 @@ fun LoginSheet(
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var isSigningIn by remember { mutableStateOf(false) }
+    var signInAttempt by remember { mutableIntStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val genericError = stringResource(R.string.login_error_generic)
     val timedOutError = stringResource(R.string.login_error_timed_out)
     val notConfiguredError = stringResource(R.string.login_error_not_configured)
-    val scope = rememberCoroutineScope()
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(isSigningIn) {
         onSigningInChanged(isSigningIn)
     }
 
-    // Returning from the Google account picker may not deliver a ComposeAuth callback
-    // when the user cancels. Only clear the in-flight gate after resume if no session
-    // was established — keep the loader visible through token exchange on success.
-    DisposableEffect(lifecycleOwner, authRepository) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && isSigningIn) {
-                scope.launch {
-                    delay(300)
-                    if (!isSigningIn) return@launch
-                    if (authRepository.currentAuthUser() != null) return@launch
-                    delay(1500)
-                    if (isSigningIn && authRepository.currentAuthUser() == null) {
-                        isSigningIn = false
-                        errorMessage = timedOutError
-                        AuthDiagnostics.log("google_sign_in_resume_timeout")
-                    }
-                }
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    GoogleSignInResumeTimeoutEffect(
+        authRepository = authRepository,
+        isSigningIn = isSigningIn,
+        signInAttempt = signInAttempt,
+        onTimedOut = {
+            isSigningIn = false
+            errorMessage = timedOutError
+        },
+    )
 
     val googleSignIn = authRepository.composeAuth.rememberSignInWithGoogle(
         onResult = { result ->
+            signInAttempt++
             when (result) {
                 is NativeSignInResult.Success -> {
                     AuthDiagnostics.log("google_sign_in_success")
@@ -111,6 +92,7 @@ fun LoginSheet(
                         // succeeded server-side and the AccountManager handoff must run.
                         isSigningIn = false
                         if (user != null) {
+                            errorMessage = null
                             AuthDiagnostics.log("google_sign_in_resolved", user.userId)
                             onSignedIn(user)
                         } else {
@@ -188,6 +170,7 @@ fun LoginSheet(
                         return@GoogleSignInButton
                     }
                     isSigningIn = true
+                    signInAttempt++
                     googleSignIn.startFlow()
                 },
             )

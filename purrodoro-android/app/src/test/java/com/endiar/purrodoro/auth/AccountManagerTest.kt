@@ -206,4 +206,35 @@ class AccountManagerTest {
         assertTrue("no hooks on cancel", hooks.calls.isEmpty())
         assertEquals("owner unchanged on cancel", "user-A", repo.currentOwnerId())
     }
+
+    @Test
+    fun `deferSync skips hooks until runDeferredSync`() = runTest {
+        val repo = makeRepo()
+        repo.seedTask()
+        val hooks = FakeSyncHooks()
+        val manager = AccountManager(repo, hooks)
+
+        val result = manager.onSignedIn("user-A", confirmDrop = { true }, deferSync = true)
+
+        assertEquals(AccountManager.Result.Claimed, result)
+        assertTrue("no sync during handoff", hooks.calls.isEmpty())
+        manager.runDeferredSync(result)
+        assertEquals(listOf("claimMerge"), hooks.calls)
+    }
+
+    @Test
+    fun `deferSync on keep defers delta sync`() = runTest {
+        val repo = makeRepo()
+        repo.setOwnerId("user-A")
+        repo.seedTask()
+        val hooks = FakeSyncHooks()
+        val manager = AccountManager(repo, hooks)
+
+        val result = manager.onSignedIn("user-A", confirmDrop = { true }, deferSync = true)
+
+        assertEquals(AccountManager.Result.Kept, result)
+        assertTrue(hooks.calls.isEmpty())
+        manager.runDeferredSync(result)
+        assertEquals(listOf("deltaSync"), hooks.calls)
+    }
 }

@@ -84,31 +84,41 @@ class AccountManager(
         incomingUserId: String,
         confirmDrop: suspend () -> Boolean,
         onBeforeClear: suspend () -> Unit = {},
-    ): Result {
-        return when (resolveLoginAction(repo.currentOwnerId(), incomingUserId)) {
-            LoginDataAction.Claim -> {
-                repo.setOwnerId(incomingUserId)
-                // Owner is tagged first so the merge runs as an eligible sync.
-                syncHooks.claimMergeSync()
-                Result.Claimed
+        deferSync: Boolean = false,
+    ): Result = when (resolveLoginAction(repo.currentOwnerId(), incomingUserId)) {
+        LoginDataAction.Claim -> {
+            repo.setOwnerId(incomingUserId)
+            if (!deferSync) runSyncFor(Result.Claimed)
+            Result.Claimed
+        }
+        LoginDataAction.Keep -> {
+            if (!deferSync) runSyncFor(Result.Kept)
+            Result.Kept
+        }
+        LoginDataAction.Drop -> {
+            if (confirmDrop()) {
+                onBeforeClear()
+                repo.clearAccountOwnedData()
+                repo.setOwnerId(incomingUserId) // only after the clear commits
+                if (!deferSync) runSyncFor(Result.Dropped)
+                Result.Dropped
+            } else {
+                Result.DropCancelled
             }
-            LoginDataAction.Keep -> {
-                syncHooks.deltaSync()
-                Result.Kept
-            }
-            LoginDataAction.Drop -> {
-                if (confirmDrop()) {
-                    onBeforeClear()
-                    repo.clearAccountOwnedData()
-                    repo.setOwnerId(incomingUserId) // only after the clear commits
-                    // Data + checkpoints are gone and the new owner is tagged,
-                    // so this pull restores the new account's cloud from scratch.
-                    syncHooks.resetCheckpointsAndPull()
-                    Result.Dropped
-                } else {
-                    Result.DropCancelled
-                }
-            }
+        }
+    }
+
+    /** Runs the sync hook matching a prior [onSignedIn] call made with [deferSync]. */
+    suspend fun runDeferredSync(result: Result) {
+        runSyncFor(result)
+    }
+
+    private suspend fun runSyncFor(result: Result) {
+        when (result) {
+            Result.Claimed -> syncHooks.claimMergeSync()
+            Result.Kept -> syncHooks.deltaSync()
+            Result.Dropped -> syncHooks.resetCheckpointsAndPull()
+            Result.DropCancelled -> Unit
         }
     }
 }
