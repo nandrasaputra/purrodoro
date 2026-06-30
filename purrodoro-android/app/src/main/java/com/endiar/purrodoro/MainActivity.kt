@@ -107,6 +107,14 @@ class MainActivity : ComponentActivity() {
         val initialOwnerId = runCatching {
             runBlocking { repo.currentOwnerId() }
         }.getOrNull()
+        val (initialHasSeenOnboarding, initialHasSeenTutorial) = runCatching {
+            runBlocking {
+                Pair(
+                    repo.hasSeenOnboardingFlow.first(),
+                    repo.hasSeenTutorialFlow.first(),
+                )
+            }
+        }.getOrElse { Pair(true, true) }
         TimerNotification.setLanguage(initialAppState?.language?.tag)
         TimerNotification.setNotificationSoundEnabled(
             applicationContext,
@@ -156,6 +164,8 @@ class MainActivity : ComponentActivity() {
                         initialAuthState = initialAuthState,
                         initialOwnerId = initialOwnerId,
                         initialAppState = initialAppState,
+                        initialHasSeenOnboarding = initialHasSeenOnboarding,
+                        initialHasSeenTutorial = initialHasSeenTutorial,
                     )
                 }
             }

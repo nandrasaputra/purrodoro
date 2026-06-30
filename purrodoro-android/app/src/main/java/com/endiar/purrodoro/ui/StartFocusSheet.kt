@@ -1078,7 +1078,6 @@ private fun SelectedIntentSummary(
             modifier = Modifier
                 .weight(1f)
                 .padding(end = KuroSpacing.sm),
-            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1094,7 +1093,6 @@ private fun SelectedIntentSummary(
                 color = tokens.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
             )
         }
         Text(

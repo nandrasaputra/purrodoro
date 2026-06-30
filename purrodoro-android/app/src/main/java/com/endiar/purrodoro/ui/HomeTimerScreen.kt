@@ -151,7 +151,7 @@ fun HomeTimerScreen(
     onMuteSoundscape: () -> Unit = {},
     playingAmbienceName: String? = null,
     playingMusicName: String? = null,
-    ambienceVolume: Float = 0.30f,
+    ambienceVolume: Float = 0.10f,
     musicVolume: Float = 0.50f,
     homeScene: HomeScene = HomeScene.Room,
     onChangeHomeScene: () -> Unit = {},
