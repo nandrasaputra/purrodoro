@@ -171,6 +171,8 @@ fun PurrodoroApp(
     initialAuthState: AuthState = AuthState.Guest,
     initialOwnerId: String? = null,
     initialAppState: AppState? = null,
+    initialHasSeenOnboarding: Boolean = true,
+    initialHasSeenTutorial: Boolean = true,
 ) {
     val authState by authRepository.authState.collectAsStateWithLifecycle(initialValue = initialAuthState)
 
@@ -190,13 +192,12 @@ fun PurrodoroApp(
     val pendingCycleAck by repo.pendingCycleCompletionAckFlow
         .collectAsStateWithLifecycle(initialValue = false)
 
-    // Default to `true` so returning users never get a flash of onboarding while
-    // DataStore loads. Brand-new users may briefly see Home before the real
-    // `false` value arrives — acceptable for a one-time flow.
+    // Preloaded in MainActivity before setContent so frame 1 matches DataStore
+    // (fresh install → onboarding; returning user → home, no flash).
     val hasSeenOnboarding by repo.hasSeenOnboardingFlow
-        .collectAsStateWithLifecycle(initialValue = true)
+        .collectAsStateWithLifecycle(initialValue = initialHasSeenOnboarding)
     val hasSeenTutorial by repo.hasSeenTutorialFlow
-        .collectAsStateWithLifecycle(initialValue = true)
+        .collectAsStateWithLifecycle(initialValue = initialHasSeenTutorial)
     val cycleCompletionVariant = remember(pendingCycleAck) {
         if (pendingCycleAck) CycleCompletionCopy.variants.random() else null
     }
@@ -270,7 +271,7 @@ fun PurrodoroApp(
     var soundscapeMixMusicId by remember(appState.soundscapeMixMusicId) {
         mutableStateOf(appState.soundscapeMixMusicId)
     }
-    var ambienceVolume by rememberSaveable { mutableStateOf(0.30f) }
+    var ambienceVolume by rememberSaveable { mutableStateOf(0.10f) }
     var musicVolume by rememberSaveable { mutableStateOf(0.50f) }
     var showPremiumSheet by rememberSaveable { mutableStateOf(false) }
     var premiumUpsellTrigger by remember { mutableStateOf(PremiumUpsellTrigger()) }
