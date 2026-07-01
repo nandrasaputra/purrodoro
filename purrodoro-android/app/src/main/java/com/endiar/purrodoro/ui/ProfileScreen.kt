@@ -77,8 +77,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import android.content.Intent
-import android.net.Uri
 import com.endiar.purrodoro.AppLinks
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.model.AppLanguage
@@ -307,7 +305,9 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -327,12 +327,7 @@ fun ProfileScreen(
                 TappableRow(
                     icon = Lucide.ShieldCheck,
                     label = stringResource(R.string.settings_privacy_policy),
-                    value = "",
-                    onClick = {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.PRIVACY_POLICY)),
-                        )
-                    },
+                    onClick = { AppLinks.openExternal(context, AppLinks.PRIVACY_POLICY) },
                 )
             }
 
@@ -511,18 +506,47 @@ private fun ProfileNameRow(
 }
 
 @Composable
-private fun TappableRow(icon: ImageVector, label: String, value: String, onClick: () -> Unit) {
+private fun TappableRow(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    value: String? = null,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = tokens.accent, modifier = Modifier.size(KuroSpacing.lg))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tokens.accent,
+            modifier = Modifier.size(KuroSpacing.lg),
+        )
         Spacer(modifier = Modifier.width(KuroSpacing.md))
-        Text(text = label, style = KuroType.bodyPrimary, color = tokens.textPrimary, modifier = Modifier.weight(1f))
-        Text(text = value, style = KuroType.bodySecondary, color = tokens.textSecondary)
-        Spacer(modifier = Modifier.width(KuroSpacing.xs))
-        Text(text = "›", style = KuroType.chevron, color = tokens.textSecondary)
+        Text(
+            text = label,
+            style = KuroType.bodyPrimary,
+            color = tokens.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        if (!value.isNullOrBlank()) {
+            Text(
+                text = value,
+                style = KuroType.bodySecondary,
+                color = tokens.textSecondary,
+            )
+            Spacer(modifier = Modifier.width(KuroSpacing.xs))
+        }
+        Icon(
+            imageVector = Lucide.ChevronRight,
+            contentDescription = null,
+            tint = tokens.textSecondary,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 

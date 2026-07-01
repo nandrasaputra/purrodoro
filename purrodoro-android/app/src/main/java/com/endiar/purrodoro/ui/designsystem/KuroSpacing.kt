@@ -89,6 +89,8 @@ object KuroSpacing {
     val soundscapeScrollPeek = 28.dp
     /** Single scroll-end inset for any footered bottom sheet (apply once in the sheet shell). */
     val sheetFooterScrollInset = md
+    /** Breathing room below a sticky sheet footer, above the nav-bar inset. */
+    val sheetFooterBottomInset = sm
     /** Lift above the sticky Soundscape controls when content scrolls underneath. */
     val soundscapeStickyFooterElevation = 18.dp
     /** Fade band above the footer edge when scroll content passes under it. */

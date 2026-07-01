@@ -1,6 +1,5 @@
 package com.endiar.purrodoro.ui
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -68,10 +67,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -109,7 +106,6 @@ import com.endiar.purrodoro.ui.designsystem.KuroPremiumAvatarFrame
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.designsystem.pressScale
-import com.endiar.purrodoro.ui.theme.Mint
 import com.endiar.purrodoro.ui.theme.Mint
 import com.endiar.purrodoro.ui.theme.Lavender
 import com.endiar.purrodoro.ui.theme.NunitoFamily
@@ -375,31 +371,21 @@ private fun HomeHeader(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs)) {
-                    Text(
-                        text = greeting.salutation,
-                        color = tokens.textSecondary,
-                        style = KuroType.bodyPrimary,
-                        fontFamily = NunitoFamily,
-                    )
-                    Text(
-                        text = displayName,
-                        color = tokens.textPrimary,
-                        style = KuroType.headingDisplay,
-                        fontFamily = NunitoFamily,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                LeafSprig(
-                    modifier = Modifier
-                        .padding(start = KuroSpacing.sm)
-                        .padding(top = 14.dp)
-                        .size(23.dp, 18.dp),
-                    veinColor = tokens.textPrimary.copy(alpha = 0.30f),
-                )
-            }
+            Text(
+                text = greeting.salutation,
+                color = tokens.textSecondary,
+                style = KuroType.bodyPrimary,
+                fontFamily = NunitoFamily,
+            )
+            Text(
+                text = displayName,
+                color = tokens.textPrimary,
+                style = KuroType.headingDisplay,
+                fontFamily = NunitoFamily,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Text(
                 text = greeting.encouragement,
                 color = tokens.textSecondary,
@@ -407,6 +393,7 @@ private fun HomeHeader(
                 fontFamily = NunitoFamily,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
             Text(
                 text = dateLabel,
@@ -422,37 +409,6 @@ private fun HomeHeader(
             userId = accountUserId,
             displayName = displayName,
             modifier = Modifier.align(Alignment.Top),
-        )
-    }
-}
-
-/** Hand-drawn mint leaf sprig used as a quiet flourish beside the name. */
-@Composable
-private fun LeafSprig(modifier: Modifier = Modifier, veinColor: Color) {
-    Canvas(modifier = modifier) {
-        // Leaf body — a soft pointed oval angled up to the right.
-        val path = androidx.compose.ui.graphics.Path().apply {
-            moveTo(size.width * 0.12f, size.height * 0.86f)
-            cubicTo(
-                size.width * 0.05f, size.height * 0.35f,
-                size.width * 0.45f, size.height * 0.02f,
-                size.width * 0.92f, size.height * 0.10f
-            )
-            cubicTo(
-                size.width * 0.78f, size.height * 0.52f,
-                size.width * 0.55f, size.height * 0.82f,
-                size.width * 0.12f, size.height * 0.86f
-            )
-            close()
-        }
-        drawPath(path = path, color = Mint)
-        // Central vein.
-        drawLine(
-            color = veinColor,
-            start = Offset(size.width * 0.18f, size.height * 0.82f),
-            end = Offset(size.width * 0.86f, size.height * 0.16f),
-            strokeWidth = 1.6f,
-            cap = StrokeCap.Round
         )
     }
 }

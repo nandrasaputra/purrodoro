@@ -64,7 +64,8 @@ import com.endiar.purrodoro.billing.BillingUiEvent
 import com.endiar.purrodoro.billing.PremiumPlan
 import com.endiar.purrodoro.audio.AudioSource
 import com.endiar.purrodoro.soundscape.SoundscapeModule
-import com.endiar.purrodoro.soundscape.SoundscapeCatalogBuilder
+import com.endiar.purrodoro.soundscape.buildLocalizedAmbienceOptions
+import com.endiar.purrodoro.soundscape.buildLocalizedMusicOptions
 import com.endiar.purrodoro.soundscape.toMusicOption
 import com.endiar.purrodoro.soundscape.toSoundOption
 import com.endiar.purrodoro.model.DownloadState
@@ -166,6 +167,7 @@ fun PurrodoroApp(
     timerConnection: TimerConnection,
     requestNotificationPermission: () -> Unit,
     onEnableNotifications: () -> Unit = {},
+    onLanguageChanged: (com.endiar.purrodoro.model.AppLanguage) -> Unit = {},
     autoOpenStartFocus: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
     openTab: kotlinx.coroutines.flow.SharedFlow<AppTab>? = null,
     initialAuthState: AuthState = AuthState.Guest,
@@ -376,6 +378,7 @@ fun PurrodoroApp(
             language = language,
             onUpdateLanguage = { v ->
                 language = v
+                onLanguageChanged(v)
                 scope.launch { repo.setLanguage(v) }
             },
             onComplete = {
@@ -428,7 +431,9 @@ fun PurrodoroApp(
     }
 
     fun persistLanguage(v: com.endiar.purrodoro.model.AppLanguage) {
-        language = v; scope.launch { repo.setLanguage(v) }
+        language = v
+        onLanguageChanged(v)
+        scope.launch { repo.setLanguage(v) }
     }
 
     fun persistUserName(v: String) {
@@ -578,31 +583,25 @@ fun PurrodoroApp(
         }
         persistTasks(tasks.filterNot(toDelete))
     }
-    // Soundscape option lists are built by the pure SoundscapeCatalogBuilder:
-    // the bundled (APK) registry left-joined with cached overrides, plus the
-    // remote cloud catalog. `audio` on a remote option is non-null only once the
-    // file is on disk. Display strings come from strings.xml via the registry's
-    // string-res defaults unless a non-blank override is set on the cached row.
+    // Soundscape option lists merge bundled registry + cloud catalog. Bundled
+    // display strings come from strings.xml via [buildLocalizedAmbienceOptions] /
+    // [buildLocalizedMusicOptions] so they track the active locale.
     val localPaths = remember(catalogTracks) {
         catalogTracks.associate { track ->
             track.id to soundscape.downloadManager.localFile(track).absolutePath
         }
     }
-    val ambienceOptions = SoundscapeCatalogBuilder.buildAmbienceOptions(
+    val ambienceOptions = buildLocalizedAmbienceOptions(
         bundledRows = bundledTracks,
         remoteRows = catalogTracks,
         downloadStates = downloadStates,
         localPaths = localPaths,
-        nameFor = { _, def -> context.getString(def.nameRes) },
-        subtitleFor = { _, def -> context.getString(def.subtitleRes) },
     )
-    val musicOptions = SoundscapeCatalogBuilder.buildMusicOptions(
+    val musicOptions = buildLocalizedMusicOptions(
         bundledRows = bundledTracks,
         remoteRows = catalogTracks,
         downloadStates = downloadStates,
         localPaths = localPaths,
-        nameFor = { _, def -> context.getString(def.nameRes) },
-        subtitleFor = { _, def -> context.getString(def.subtitleRes) },
     )
 
     // Cloud-track download/delete actions, surfaced in the Sounds sheet (Task 8).

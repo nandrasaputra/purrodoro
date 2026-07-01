@@ -13,8 +13,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.auth.AuthRepository
@@ -137,7 +141,13 @@ class MainActivity : ComponentActivity() {
                 initialValue = initialAppState ?: AppState.loadingPlaceholder(),
             )
             val appearanceMode = appState.appearanceMode
-            val language = appState.language
+            var uiLanguage by remember(appState.language) { mutableStateOf(appState.language) }
+            LaunchedEffect(appState.language) {
+                uiLanguage = appState.language
+            }
+            LaunchedEffect(uiLanguage) {
+                TimerNotification.setLanguage(uiLanguage.tag)
+            }
 
             val systemInDark = isSystemInDarkTheme()
             val isDark = appearanceMode.isDark(systemInDark)
@@ -151,7 +161,7 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            KuroLocalizationProvider(language = language) {
+            KuroLocalizationProvider(language = uiLanguage) {
                 PurrodoroTheme(appearanceMode = appearanceMode) {
                     PurrodoroApp(
                         repo = repo,
@@ -159,6 +169,7 @@ class MainActivity : ComponentActivity() {
                         timerConnection = timerConnection,
                         requestNotificationPermission = ::requestNotificationPermissionIfNeeded,
                         onEnableNotifications = ::promptEnableNotifications,
+                        onLanguageChanged = { uiLanguage = it },
                         autoOpenStartFocus = autoOpenStartFocus,
                         openTab = openTab,
                         initialAuthState = initialAuthState,
