@@ -99,6 +99,8 @@
     <string name="onboarding_track_title">Fokus tanpa cek waktu</string>
     <string name="onboarding_track_subtitle">Purrodoro akan memberi tahu saat sesi berakhir — supaya kamu bisa fokus sepenuhnya sampai saat itu.</string>
     <string name="onboarding_track_body">Kami sarankan mengaktifkannya agar kamu bisa larut sepenuhnya dalam fokus dan percaya Purrodoro akan memanggilmu kembali.</string>
+    <string name="onboarding_track_denied_hint">Kamu bisa mengaktifkannya kapan saja di Pengaturan.</string>
+    <string name="onboarding_notifications_granted">Siap</string>
     <string name="onboarding_notif_title">Fokus selesai</string>
     <string name="onboarding_notif_body">Istirahat sebentar. Sesi berikutnya sudah menunggu.</string>
     <string name="onboarding_notif_meta">Purrodoro  ·  sekarang</string>

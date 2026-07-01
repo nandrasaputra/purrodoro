@@ -1,6 +1,9 @@
 package com.endiar.purrodoro.soundscape
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import com.endiar.purrodoro.audio.AudioSource
+import com.endiar.purrodoro.data.local.SoundscapeBundledEntity
 import com.endiar.purrodoro.data.local.SoundscapeTrackEntity
 import com.endiar.purrodoro.model.DownloadState
 import com.endiar.purrodoro.model.MusicOption
@@ -47,3 +50,50 @@ fun SoundscapeTrackEntity.toSoundOption(
         cacheVersion = updatedAtMillis,
     ),
 )
+
+/** Bundled display strings resolve via [stringResource] so locale changes recompose. */
+@Composable
+fun buildLocalizedAmbienceOptions(
+    bundledRows: List<SoundscapeBundledEntity>,
+    remoteRows: List<SoundscapeTrackEntity>,
+    downloadStates: Map<Int, DownloadState>,
+    localPaths: Map<Int, String>,
+): List<SoundOption> {
+    val bundledNames = BundledTrackRegistry.defaults
+        .filter { it.kind == "ambience" }
+        .associate { it.localId to stringResource(it.nameRes) }
+    val bundledSubtitles = BundledTrackRegistry.defaults
+        .filter { it.kind == "ambience" }
+        .associate { it.localId to stringResource(it.subtitleRes) }
+    return SoundscapeCatalogBuilder.buildAmbienceOptions(
+        bundledRows = bundledRows,
+        remoteRows = remoteRows,
+        downloadStates = downloadStates,
+        localPaths = localPaths,
+        nameFor = { _, def -> bundledNames.getValue(def.localId) },
+        subtitleFor = { _, def -> bundledSubtitles.getValue(def.localId) },
+    )
+}
+
+@Composable
+fun buildLocalizedMusicOptions(
+    bundledRows: List<SoundscapeBundledEntity>,
+    remoteRows: List<SoundscapeTrackEntity>,
+    downloadStates: Map<Int, DownloadState>,
+    localPaths: Map<Int, String>,
+): List<MusicOption> {
+    val bundledNames = BundledTrackRegistry.defaults
+        .filter { it.kind == "music" }
+        .associate { it.localId to stringResource(it.nameRes) }
+    val bundledSubtitles = BundledTrackRegistry.defaults
+        .filter { it.kind == "music" }
+        .associate { it.localId to stringResource(it.subtitleRes) }
+    return SoundscapeCatalogBuilder.buildMusicOptions(
+        bundledRows = bundledRows,
+        remoteRows = remoteRows,
+        downloadStates = downloadStates,
+        localPaths = localPaths,
+        nameFor = { _, def -> bundledNames.getValue(def.localId) },
+        subtitleFor = { _, def -> bundledSubtitles.getValue(def.localId) },
+    )
+}

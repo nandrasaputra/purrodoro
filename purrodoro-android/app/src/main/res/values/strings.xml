@@ -100,6 +100,8 @@
     <string name="onboarding_track_title">Never watch the clock</string>
     <string name="onboarding_track_subtitle">Purrodoro gives you a soft nudge when each session ends — so you can be fully present until then.</string>
     <string name="onboarding_track_body">We recommend turning these on so you can fully drift into focus and trust Purrodoro to bring you back.</string>
+    <string name="onboarding_track_denied_hint">You can turn these on anytime in Settings.</string>
+    <string name="onboarding_notifications_granted">You\'re all set</string>
     <string name="onboarding_notif_title">Focus complete</string>
     <string name="onboarding_notif_body">Take a short break. Your next session is queued.</string>
     <string name="onboarding_notif_meta">Purrodoro  ·  now</string>

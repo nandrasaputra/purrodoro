@@ -394,7 +394,7 @@ fun KuroAdaptiveBottomSheet(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = KuroSpacing.xxl),
+                                    .padding(bottom = KuroSpacing.sheetFooterBottomInset),
                             ) {
                                 footer(footerScrollOverlay)
                             }

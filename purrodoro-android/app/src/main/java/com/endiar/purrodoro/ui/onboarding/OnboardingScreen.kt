@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.composables.icons.lucide.Bell
+import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.Languages
@@ -44,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,6 +85,7 @@ import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private enum class OnboardingStep {
@@ -126,7 +129,18 @@ fun OnboardingScreen(
     var notificationsEnabled by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
+    var awaitingPermissionResult by remember { mutableStateOf(false) }
+    var permissionDenied by remember { mutableStateOf(false) }
+    var permissionJustGranted by remember { mutableStateOf(false) }
     val isAuthBusy = isGoogleSignInInProgress || isAuthHandoffInProgress
+
+    LaunchedEffect(permissionJustGranted) {
+        if (permissionJustGranted) {
+            delay(400)
+            permissionJustGranted = false
+            onComplete()
+        }
+    }
 
     BackHandler(enabled = step == OnboardingStep.Notifications) {
         step = OnboardingStep.Welcome
@@ -137,9 +151,22 @@ fun OnboardingScreen(
             return@DisposableEffect onDispose { }
         }
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                notificationsEnabled =
-                    NotificationManagerCompat.from(context).areNotificationsEnabled()
+            if (event != Lifecycle.Event.ON_RESUME) return@LifecycleEventObserver
+            val nowEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            if (awaitingPermissionResult) {
+                awaitingPermissionResult = false
+                notificationsEnabled = nowEnabled
+                if (nowEnabled) {
+                    permissionJustGranted = true
+                } else {
+                    permissionDenied = true
+                }
+            } else if (!notificationsEnabled && nowEnabled) {
+                // Returned from Settings after a deny — user enabled manually.
+                notificationsEnabled = true
+                permissionJustGranted = true
+            } else {
+                notificationsEnabled = nowEnabled
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -292,17 +319,35 @@ fun OnboardingScreen(
                         },
                         title = stringResource(R.string.onboarding_track_title),
                         subtitle = stringResource(R.string.onboarding_track_subtitle),
-                        belowSubtitle = null,
+                        belowSubtitle = if (permissionDenied) {
+                            {
+                                Spacer(Modifier.height(KuroSpacing.sm))
+                                Text(
+                                    text = stringResource(R.string.onboarding_track_denied_hint),
+                                    color = tokens.textMuted,
+                                    style = KuroType.labelMeta,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.widthIn(max = 320.dp),
+                                )
+                            }
+                        } else {
+                            null
+                        },
                     )
 
                     OnboardingNotificationActions(
                         notificationsEnabled = notificationsEnabled,
-                        enabled = !isAuthBusy,
+                        permissionDenied = permissionDenied,
+                        permissionJustGranted = permissionJustGranted,
+                        enabled = !isAuthBusy && !permissionJustGranted,
                         onPrimary = {
-                            if (notificationsEnabled) {
-                                onComplete()
-                            } else {
-                                onRequestNotificationPermission()
+                            when {
+                                permissionJustGranted -> Unit
+                                notificationsEnabled || permissionDenied -> onComplete()
+                                else -> {
+                                    awaitingPermissionResult = true
+                                    onRequestNotificationPermission()
+                                }
                             }
                         },
                         onNotNow = onComplete,
@@ -731,17 +776,21 @@ private fun OnboardingAuthActions(
 @Composable
 private fun OnboardingNotificationActions(
     notificationsEnabled: Boolean,
+    permissionDenied: Boolean,
+    permissionJustGranted: Boolean,
     enabled: Boolean,
     onPrimary: () -> Unit,
     onNotNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val primaryLabel = if (notificationsEnabled) {
-        stringResource(R.string.onboarding_cta_get_started)
-    } else {
-        stringResource(R.string.onboarding_cta_turn_on_notifications)
+    val primaryLabel = when {
+        permissionJustGranted -> stringResource(R.string.onboarding_notifications_granted)
+        notificationsEnabled || permissionDenied ->
+            stringResource(R.string.onboarding_cta_get_started)
+        else -> stringResource(R.string.onboarding_cta_turn_on_notifications)
     }
+    val showGrantedIcon = permissionJustGranted
 
     OnboardingBottomActions(
         modifier = modifier,
@@ -750,6 +799,20 @@ private fun OnboardingNotificationActions(
         enabled = enabled,
         onPrimary = onPrimary,
         onSecondary = onNotNow,
+        primaryLeading = if (showGrantedIcon) {
+            {
+                Icon(
+                    imageVector = Lucide.Check,
+                    contentDescription = null,
+                    tint = tokens.interactiveText,
+                    modifier = Modifier
+                        .padding(end = KuroSpacing.sm)
+                        .size(18.dp),
+                )
+            }
+        } else {
+            null
+        },
         primaryColors = ButtonDefaults.buttonColors(
             containerColor = tokens.interactiveFill,
             contentColor = tokens.interactiveText,
