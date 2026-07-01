@@ -242,9 +242,10 @@ Purrodoro is **freemium**: the core Pomodoro loop is free; **Purrodoro Premium**
 lifetime unlock.**
 
 **Billing (Android):** Google Play **subscriptions** via Play Billing Library 8.x
-(`ProductType.SUBS`) — subscription product `purrodoro_premium` with **monthly** and
-**yearly** base plans (see [`BillingConfig`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/billing/BillingConfig.kt)).
-Optional **free trial** on one or both plans is configured in Play Console.
+(`ProductType.SUBS`) — subscription product `purrodoro_premium` with base plans
+`purrodoro-premium-monthly` / `purrodoro-premium-yearly` and introductory offer
+`purrodoro-premium-yearly-trial` (7-day free trial for new subscribers; see
+[`BillingConfig`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/billing/BillingConfig.kt)).
 
 **Shipped (client):** [`BillingManager`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/billing/BillingManager.kt)
 queries owned subscriptions on cold start, app foreground, sign-in, and purchase

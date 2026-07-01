@@ -408,6 +408,7 @@
     <!-- Premium upsell sheet -->
     <string name="premium_sheet_cat_cd">Purrodoro with starry eyes</string>
     <string name="premium_sheet_header_cd">Premium features illustration</string>
+    <string name="premium_explore_header_cd">Purrodoro Premium hero illustration</string>
     <string name="premium_sheet_title">Make focus feel magical</string>
     <string name="premium_sheet_title_locked">%1$s is Premium</string>
     <string name="premium_sheet_subtitle">Premium turns every Pomodoro into a little retreat. Your cat picked these just for you.</string>
@@ -420,6 +421,7 @@
     <string name="premium_perk_scenes">Premium home scenes</string>
     <string name="premium_sheet_cta">Start Premium</string>
     <string name="premium_sheet_dismiss">Maybe later</string>
+    <string name="premium_sheet_compare_link">See everything Premium includes</string>
     <string name="premium_guest_unlock_header_cd">Kuro welcoming you to sign in for Premium</string>
     <string name="premium_guest_title_locked">%1$s is Premium</string>
     <string name="premium_guest_title_feature">This is a Premium feature</string>
@@ -452,8 +454,35 @@
     <string name="profile_benefit_habits">Unlimited habits</string>
 
     <string name="premium_screen_price_unavailable">Plans unavailable — install from Play Store to subscribe</string>
+    <string name="premium_catalog_loading">Loading plans…</string>
+    <string name="premium_catalog_error">Couldn\'t load plans from Google Play. Check your connection and try again.</string>
+    <string name="premium_catalog_error_title">Plans couldn\'t load</string>
+    <string name="premium_catalog_error_body">Sign in to Google Play on this device, check your connection, then try again below.</string>
+    <string name="premium_catalog_retry">Try again</string>
     <string name="premium_screen_plan_monthly">Monthly</string>
     <string name="premium_screen_plan_yearly">Yearly</string>
+    <string name="premium_plan_trial_badge">%1$s free trial</string>
+    <string name="premium_plan_trial_pill">%1$s free</string>
+    <string name="premium_plan_free_for">Free for %1$s</string>
+    <string name="premium_plan_billed_monthly">Billed monthly</string>
+    <string name="premium_plan_save_vs_monthly">Save %1$d%% vs monthly</string>
+    <string name="premium_plan_best_value">Best value</string>
+    <string name="premium_plan_save_percent">Save %1$d%%</string>
+    <string name="premium_price_per_month">%1$s/mo</string>
+    <string name="premium_price_per_year">%1$s/yr</string>
+    <string name="premium_price_then_yearly">Then %1$s/year</string>
+    <string name="premium_trial_fallback">Free trial</string>
+    <string name="premium_cta_start_trial">Start free trial</string>
+    <string name="premium_screen_what_you_get">What you get</string>
+    <string name="premium_screen_pick_plan">Pick a plan</string>
+    <string name="premium_benefit_tile_sounds">Soundscapes</string>
+    <string name="premium_benefit_tile_scenes">Home scenes</string>
+    <string name="premium_benefit_tile_headroom">No limits</string>
+    <string name="premium_sticky_plan_yearly_trial">Yearly · %1$s free trial</string>
+    <string name="premium_sticky_plan_yearly_trial_fallback">Yearly · free trial</string>
+    <string name="premium_sticky_plan_yearly">Yearly · %1$s/yr</string>
+    <string name="premium_sticky_plan_monthly">Monthly · %1$s/mo</string>
+    <string name="premium_trial_terms">Free trial for new subscribers. Cancel in Google Play before it ends to avoid charges.</string>
     <string name="premium_subscription_hint">Cancel anytime in Google Play</string>
     <string name="premium_restore_purchases">Restore purchases</string>
     <string name="premium_manage_subscription">Manage subscription</string>
@@ -470,9 +499,14 @@
     <string name="premium_login_discover_subtitle">Sign in with Google to see what\'s included and unlock on your account.</string>
 
     <string name="premium_screen_title">Purrodoro Premium</string>
+    <string name="premium_screen_nav_title">Premium</string>
     <string name="premium_screen_headline_discover">Unlock the full cozy focus toolkit</string>
     <string name="premium_screen_headline_member">Thanks for supporting Purrodoro</string>
-    <string name="premium_screen_body_discover">Premium adds depth to every Pomodoro — richer soundscapes, new home scenes, and room to grow your tasks and habits.</string>
+    <string name="premium_screen_trial_subline">%1$s free trial on yearly</string>
+    <string name="premium_screen_body_discover">Richer soundscapes, cozy scenes, and room to grow.</string>
+    <string name="premium_compare_col_free">Free</string>
+    <string name="premium_compare_col_premium">Premium</string>
+    <string name="premium_compare_summary">Every soundscape, home scene, and unlimited tasks &amp; habits.</string>
     <string name="premium_screen_body_member">You have full access to every Premium perk below. Your cat is very grateful.</string>
     <string name="premium_screen_cta_subscribe">Unlock Premium</string>
     <string name="premium_screen_active_label">Premium active</string>
@@ -496,6 +530,22 @@
     <string name="premium_compare_unlimited">Unlimited</string>
     <string name="premium_compare_journey">Journey &amp; stats</string>
     <string name="premium_compare_included">Included</string>
+    <plurals name="premium_trial_period_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="premium_trial_period_weeks">
+        <item quantity="one">%d week</item>
+        <item quantity="other">%d weeks</item>
+    </plurals>
+    <plurals name="premium_trial_period_months">
+        <item quantity="one">%d month</item>
+        <item quantity="other">%d months</item>
+    </plurals>
+    <plurals name="premium_trial_period_years">
+        <item quantity="one">%d year</item>
+        <item quantity="other">%d years</item>
+    </plurals>
     <string name="free_tier_active_tasks_count">%1$d/%2$d active</string>
     <string name="free_tier_habits_count">%1$d/%2$d habits</string>
     <string name="free_tier_cap_cd">%1$d of %2$d used on free plan</string>

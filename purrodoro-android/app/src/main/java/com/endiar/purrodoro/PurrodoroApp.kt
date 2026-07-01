@@ -476,7 +476,11 @@ fun PurrodoroApp(
 
     fun fulfillPremiumAccess(request: PremiumAccessRequest) {
         when (request) {
-            PremiumAccessRequest.Discovery -> showPremiumScreen = true
+            PremiumAccessRequest.Discovery -> {
+                showHomeScenePicker = false
+                pendingSceneSelection = null
+                showPremiumScreen = true
+            }
             is PremiumAccessRequest.Upsell -> {
                 premiumUpsellTrigger = request.trigger
                 showPremiumSheet = true
@@ -1316,6 +1320,8 @@ fun PurrodoroApp(
                     selectedPlan = selectedPremiumPlan,
                     onPlanSelected = { selectedPremiumPlan = it },
                     purchaseInFlight = purchaseInFlight,
+                    onRefreshCatalog = { billingManager.refreshCatalogForPaywall() },
+                    onRetryCatalog = { billingManager.refreshCatalogForPaywall() },
                     onBack = { showPremiumScreen = false },
                     onSubscribe = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
                     onRestorePurchases = { billingManager.restorePurchases() },
@@ -1432,7 +1438,9 @@ fun PurrodoroApp(
             // (frame-perfect parallel). Dock visibility is the inverse of focus mode:
             // appearing = exiting focus (Exit, 400ms, snappier); disappearing = entering focus (Enter, 700ms, deliberate).
             focusTransition.AnimatedVisibility(
-                visible = { active -> !active && !showProfile && !showHistory },
+                visible = { active ->
+                    !active && !showProfile && !showHistory && !showPremiumScreen
+                },
                 enter = slideInVertically(
                     animationSpec = tween(
                         durationMillis = FocusModeMotion.ExitDurationMs,
@@ -1591,6 +1599,8 @@ fun PurrodoroApp(
                     selectedPlan = selectedPremiumPlan,
                     onPlanSelected = { selectedPremiumPlan = it },
                     purchaseInFlight = purchaseInFlight,
+                    onRefreshCatalog = { billingManager.refreshCatalogForPaywall() },
+                    onRetryCatalog = { billingManager.refreshCatalogForPaywall() },
                     onDismiss = {
                         showPremiumSheet = false
                         pendingPremiumRequest = null
@@ -1598,6 +1608,19 @@ fun PurrodoroApp(
                         paywallAfterSoundsSheet = null
                     },
                     onUpgrade = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
+                    onExplorePremium = if (isGuest) {
+                        null
+                    } else {
+                        {
+                            showPremiumSheet = false
+                            showHomeScenePicker = false
+                            pendingSceneSelection = null
+                            pendingPremiumRequest = null
+                            paywallAfterScenePicker = null
+                            paywallAfterSoundsSheet = null
+                            showPremiumScreen = true
+                        }
+                    },
                     isGuest = isGuest,
                     authRepository = if (isGuest) authRepository else null,
                     onGuestSignedIn = if (isGuest) {

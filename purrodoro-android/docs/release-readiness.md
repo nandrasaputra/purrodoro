@@ -111,7 +111,8 @@ is currently empty and the app uses libraries that need them:
 
 **Remaining before monetization go-live:**
 
-- Create subscription `purrodoro_premium` with base plans `monthly` / `yearly` in Play Console
+- Create subscription `purrodoro_premium` with base plans `purrodoro-premium-monthly` /
+  `purrodoro-premium-yearly` and offer `purrodoro-premium-yearly-trial` in Play Console
 - Upload to **Internal testing** and add **license testers**
 - Run purchase QA matrix (subscribe, restore, cancel, expiry)
 - Optional later: Play Developer API / RTDN server check (client-only is acceptable for v1)

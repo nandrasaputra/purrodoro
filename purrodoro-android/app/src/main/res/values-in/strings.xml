@@ -400,6 +400,7 @@
     <!-- Premium upsell sheet -->
     <string name="premium_sheet_cat_cd">Purrodoro dengan mata berbintang</string>
     <string name="premium_sheet_header_cd">Ilustrasi fitur Premium</string>
+    <string name="premium_explore_header_cd">Ilustrasi hero Purrodoro Premium</string>
     <string name="premium_sheet_title">Buat fokus terasa ajaib</string>
     <string name="premium_sheet_title_locked">%1$s adalah Premium</string>
     <string name="premium_sheet_subtitle">Premium mengubah setiap Pomodoro jadi momen istirahat kecil. Kucingmu memilih ini untukmu.</string>
@@ -412,6 +413,7 @@
     <string name="premium_perk_scenes">Latar beranda premium</string>
     <string name="premium_sheet_cta">Mulai Premium</string>
     <string name="premium_sheet_dismiss">Nanti saja</string>
+    <string name="premium_sheet_compare_link">Lihat semua yang didapat Premium</string>
     <string name="premium_guest_unlock_header_cd">Kuro menyambutmu untuk masuk dan membuka Premium</string>
     <string name="premium_guest_title_locked">%1$s adalah Premium</string>
     <string name="premium_guest_title_feature">Ini fitur Premium</string>
@@ -444,8 +446,35 @@
     <string name="profile_benefit_habits">Kebiasaan tanpa batas</string>
 
     <string name="premium_screen_price_unavailable">Paket tidak tersedia — instal dari Play Store untuk berlangganan</string>
+    <string name="premium_catalog_loading">Memuat paket…</string>
+    <string name="premium_catalog_error">Gagal memuat paket dari Google Play. Periksa koneksi lalu coba lagi.</string>
+    <string name="premium_catalog_error_title">Paket gagal dimuat</string>
+    <string name="premium_catalog_error_body">Masuk ke Google Play di perangkat ini, periksa koneksi, lalu coba lagi di bawah.</string>
+    <string name="premium_catalog_retry">Coba lagi</string>
     <string name="premium_screen_plan_monthly">Bulanan</string>
     <string name="premium_screen_plan_yearly">Tahunan</string>
+    <string name="premium_plan_trial_badge">Uji coba gratis %1$s</string>
+    <string name="premium_plan_trial_pill">Gratis %1$s</string>
+    <string name="premium_plan_free_for">Gratis %1$s</string>
+    <string name="premium_plan_billed_monthly">Tagihan bulanan</string>
+    <string name="premium_plan_save_vs_monthly">Hemat %1$d%% vs bulanan</string>
+    <string name="premium_plan_best_value">Nilai terbaik</string>
+    <string name="premium_plan_save_percent">Hemat %1$d%%</string>
+    <string name="premium_price_per_month">%1$s/bln</string>
+    <string name="premium_price_per_year">%1$s/thn</string>
+    <string name="premium_price_then_yearly">Lalu %1$s/tahun</string>
+    <string name="premium_trial_fallback">Uji coba gratis</string>
+    <string name="premium_cta_start_trial">Mulai uji coba gratis</string>
+    <string name="premium_screen_what_you_get">Yang kamu dapatkan</string>
+    <string name="premium_screen_pick_plan">Pilih paket</string>
+    <string name="premium_benefit_tile_sounds">Soundscape</string>
+    <string name="premium_benefit_tile_scenes">Suasana rumah</string>
+    <string name="premium_benefit_tile_headroom">Tanpa batas</string>
+    <string name="premium_sticky_plan_yearly_trial">Tahunan · uji coba gratis %1$s</string>
+    <string name="premium_sticky_plan_yearly_trial_fallback">Tahunan · uji coba gratis</string>
+    <string name="premium_sticky_plan_yearly">Tahunan · %1$s/thn</string>
+    <string name="premium_sticky_plan_monthly">Bulanan · %1$s/bln</string>
+    <string name="premium_trial_terms">Uji coba gratis untuk pelanggan baru. Batalkan di Google Play sebelum berakhir agar tidak dikenai biaya.</string>
     <string name="premium_subscription_hint">Batalkan kapan saja di Google Play</string>
     <string name="premium_restore_purchases">Pulihkan pembelian</string>
     <string name="premium_manage_subscription">Kelola langganan</string>
@@ -462,9 +491,14 @@
     <string name="premium_login_discover_subtitle">Masuk dengan Google untuk melihat isinya dan membukanya di akunmu.</string>
 
     <string name="premium_screen_title">Purrodoro Premium</string>
+    <string name="premium_screen_nav_title">Premium</string>
     <string name="premium_screen_headline_discover">Buka toolkit fokus yang lebih lengkap</string>
     <string name="premium_screen_headline_member">Terima kasih sudah mendukung Purrodoro</string>
-    <string name="premium_screen_body_discover">Premium menambah kedalaman di setiap Pomodoro — soundscape lebih kaya, suasana rumah baru, dan ruang untuk tugas &amp; kebiasaan.</string>
+    <string name="premium_screen_trial_subline">Uji coba gratis %1$s untuk tahunan</string>
+    <string name="premium_screen_body_discover">Soundscape lebih kaya, suasana rumah baru, dan ruang untuk berkembang.</string>
+    <string name="premium_compare_col_free">Gratis</string>
+    <string name="premium_compare_col_premium">Premium</string>
+    <string name="premium_compare_summary">Semua soundscape, suasana rumah, dan tugas &amp; kebiasaan tanpa batas.</string>
     <string name="premium_screen_body_member">Kamu punya akses penuh ke semua manfaat Premium di bawah. Kucingmu sangat berterima kasih.</string>
     <string name="premium_screen_cta_subscribe">Buka Premium</string>
     <string name="premium_screen_active_label">Premium aktif</string>
@@ -488,6 +522,18 @@
     <string name="premium_compare_unlimited">Tanpa batas</string>
     <string name="premium_compare_journey">Perjalanan &amp; statistik</string>
     <string name="premium_compare_included">Termasuk</string>
+    <plurals name="premium_trial_period_days">
+        <item quantity="other">%d hari</item>
+    </plurals>
+    <plurals name="premium_trial_period_weeks">
+        <item quantity="other">%d minggu</item>
+    </plurals>
+    <plurals name="premium_trial_period_months">
+        <item quantity="other">%d bulan</item>
+    </plurals>
+    <plurals name="premium_trial_period_years">
+        <item quantity="other">%d tahun</item>
+    </plurals>
     <string name="free_tier_active_tasks_count">%1$d/%2$d aktif</string>
     <string name="free_tier_habits_count">%1$d/%2$d kebiasaan</string>
     <string name="free_tier_cap_cd">%1$d dari %2$d terpakai di paket gratis</string>

@@ -1,5 +1,6 @@
 package com.endiar.purrodoro.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,8 +11,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.AudioLines
 import com.composables.icons.lucide.Layers
@@ -32,7 +34,6 @@ import com.endiar.purrodoro.billing.PremiumPlan
 import com.endiar.purrodoro.billing.SubscriptionOffers
 import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.model.PremiumGate
-import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
@@ -48,12 +49,19 @@ fun PremiumUpsellSheet(
     selectedPlan: PremiumPlan,
     onPlanSelected: (PremiumPlan) -> Unit,
     purchaseInFlight: Boolean,
+    onRefreshCatalog: () -> Unit,
+    onRetryCatalog: () -> Unit,
+    onExplorePremium: (() -> Unit)? = null,
     isGuest: Boolean = false,
     authRepository: AuthRepository? = null,
     onGuestSignedIn: ((AuthUser) -> Unit)? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var isSigningIn by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        onRefreshCatalog()
+    }
     val contentKey = when (val reason = trigger.reason) {
         is PremiumUpsellReason.LockedSound -> "sound:${reason.featureName}"
         is PremiumUpsellReason.LockedScene -> "scene:${reason.sceneName}"
@@ -62,6 +70,7 @@ fun PremiumUpsellSheet(
         PremiumUpsellReason.Generic -> "generic"
     } + if (isGuest) ":guest" else ":signed-in"
 
+    val isGuestMember = isGuest && authRepository != null && onGuestSignedIn != null
     KuroAdaptiveBottomSheet(
         onDismiss = onDismiss,
         dismissBlocked = isSigningIn,
@@ -69,9 +78,24 @@ fun PremiumUpsellSheet(
         containerColor = tokens.cardFill,
         showCloseButton = true,
         contentKey = contentKey,
+        footer = if (!isGuestMember) {
+            { scrollOverlay ->
+                PremiumSheetStickyFooter(
+                    subscriptionOffers = subscriptionOffers,
+                    selectedPlan = selectedPlan,
+                    purchaseInFlight = purchaseInFlight,
+                    onUpgrade = onUpgrade,
+                    onRetryCatalog = onRetryCatalog,
+                    onDismiss = LocalKuroSheetDismiss.current,
+                    scrollOverlay = scrollOverlay,
+                )
+            }
+        } else {
+            null
+        },
     ) {
         val dismissSheet = LocalKuroSheetDismiss.current
-        if (isGuest && authRepository != null && onGuestSignedIn != null) {
+        if (isGuestMember) {
             PremiumSignInGateContent(
                 title = guestUnlockTitle(trigger.reason),
                 body = guestUnlockBody(trigger.reason),
@@ -87,9 +111,7 @@ fun PremiumUpsellSheet(
                 subscriptionOffers = subscriptionOffers,
                 selectedPlan = selectedPlan,
                 onPlanSelected = onPlanSelected,
-                purchaseInFlight = purchaseInFlight,
-                onDismiss = dismissSheet,
-                onUpgrade = onUpgrade,
+                onExplorePremium = onExplorePremium,
             )
         }
     }
@@ -101,9 +123,7 @@ private fun PremiumMemberUpsellContent(
     subscriptionOffers: SubscriptionOffers,
     selectedPlan: PremiumPlan,
     onPlanSelected: (PremiumPlan) -> Unit,
-    purchaseInFlight: Boolean,
-    onDismiss: () -> Unit,
-    onUpgrade: (PremiumPlan) -> Unit,
+    onExplorePremium: (() -> Unit)?,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val title = memberPaywallTitle(trigger.reason)
@@ -116,7 +136,7 @@ private fun PremiumMemberUpsellContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = KuroSpacing.xl)
-                .padding(top = KuroSpacing.md, bottom = KuroSpacing.lg),
+                .padding(top = KuroSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (useMarketingHeadline) {
@@ -141,36 +161,39 @@ private fun PremiumMemberUpsellContent(
                 )
             }
             Spacer(modifier = Modifier.height(KuroSpacing.lg))
+            if (onExplorePremium != null && shouldShowCompareLink(trigger.reason)) {
+                PremiumSheetCompareLink(onClick = onExplorePremium)
+                Spacer(modifier = Modifier.height(KuroSpacing.sm))
+            }
             PremiumPlanPicker(
                 selectedPlan = selectedPlan,
                 onPlanSelected = onPlanSelected,
                 subscriptionOffers = subscriptionOffers,
             )
-            Spacer(modifier = Modifier.height(KuroSpacing.sm))
-            Text(
-                text = subscriptionOffers.priceFor(selectedPlan)
-                    ?: subscriptionOffers.priceHint
-                    ?: stringResource(R.string.premium_screen_price_unavailable),
-                style = KuroType.labelMeta,
-                color = tokens.textSecondary,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(KuroSpacing.md))
-            KuroPrimaryButton(
-                text = stringResource(R.string.premium_sheet_cta),
-                onClick = { onUpgrade(selectedPlan) },
-                enabled = !purchaseInFlight,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = stringResource(R.string.premium_sheet_dismiss),
-                    style = KuroType.bodySecondary,
-                    color = tokens.textSecondary,
-                )
-            }
         }
     }
+}
+
+@Composable
+private fun PremiumSheetCompareLink(onClick: () -> Unit) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Text(
+        text = stringResource(R.string.premium_sheet_compare_link),
+        style = KuroType.bodySecondary.copy(textDecoration = TextDecoration.Underline),
+        color = tokens.textMuted,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = KuroSpacing.xs),
+    )
+}
+
+private fun shouldShowCompareLink(reason: PremiumUpsellReason): Boolean = when (reason) {
+    PremiumUpsellReason.ActiveTaskCap,
+    PremiumUpsellReason.HabitCap,
+    -> false
+    else -> true
 }
 
 @Composable
