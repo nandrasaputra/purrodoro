@@ -1,15 +1,18 @@
 package com.endiar.purrodoro.ui
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -20,9 +23,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -34,10 +43,14 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Sparkles
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.auth.AuthRepository
+import com.endiar.purrodoro.billing.BillingCatalogState
+import com.endiar.purrodoro.billing.PremiumPlan
+import com.endiar.purrodoro.billing.SubscriptionOffers
 import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.ui.auth.GoogleSignInBlock
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
+import com.endiar.purrodoro.ui.theme.Cocoa
 import com.endiar.purrodoro.ui.theme.Coral
 import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.kuroTokens
@@ -124,6 +137,119 @@ fun PremiumSignInGateContent(
                 onSigningInChanged = onSigningInChanged,
             )
             TextButton(onClick = onDismiss, enabled = !isSigningIn) {
+                Text(
+                    text = stringResource(R.string.premium_sheet_dismiss),
+                    style = KuroType.bodySecondary,
+                    color = tokens.textSecondary,
+                )
+            }
+        }
+    }
+}
+
+/** Sticky paywall footer: gradient CTA + dismiss. Used with [KuroAdaptiveBottomSheet] footer slot. */
+@Composable
+fun PremiumSheetStickyFooter(
+    subscriptionOffers: SubscriptionOffers,
+    selectedPlan: PremiumPlan,
+    purchaseInFlight: Boolean,
+    onUpgrade: (PremiumPlan) -> Unit,
+    onRetryCatalog: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    scrollOverlay: Float = 0f,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
+    val overlay = scrollOverlay.coerceIn(0f, 1f)
+    val footerElevation by animateDpAsState(
+        targetValue = KuroSpacing.soundscapeStickyFooterElevation * overlay,
+        animationSpec = tween(durationMillis = 180),
+        label = "premiumSheetFooterElevation",
+    )
+    val shadowAmbient = if (isDark) {
+        Color.Black.copy(alpha = 0.52f * overlay)
+    } else {
+        Color(0xFF9A7B6A).copy(alpha = 0.38f * overlay)
+    }
+    val shadowSpot = if (isDark) {
+        Color.Black.copy(alpha = 0.62f * overlay)
+    } else {
+        Color(0xFF7A5C4C).copy(alpha = 0.32f * overlay)
+    }
+    val scrimColor = if (isDark) Color.Black else Cocoa
+    val catalogState = subscriptionOffers.catalogState
+    val ctaText = stringResource(
+        when (catalogState) {
+            BillingCatalogState.Unavailable -> R.string.premium_catalog_retry
+            BillingCatalogState.Idle,
+            BillingCatalogState.Loading,
+            -> R.string.premium_catalog_loading
+            BillingCatalogState.Ready ->
+                subscriptionOffers.ctaResId(selectedPlan, forSheet = true)
+        },
+    )
+    val ctaEnabled = when (catalogState) {
+        BillingCatalogState.Unavailable -> !purchaseInFlight
+        BillingCatalogState.Ready -> !purchaseInFlight
+        else -> false
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = footerElevation,
+                shape = RectangleShape,
+                clip = false,
+                ambientColor = shadowAmbient,
+                spotColor = shadowSpot,
+            )
+            .background(tokens.cardFill),
+    ) {
+        if (overlay > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(KuroSpacing.soundscapeStickyFooterScrim)
+                    .align(Alignment.TopCenter)
+                    .offset(y = -KuroSpacing.soundscapeStickyFooterScrim)
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Transparent,
+                                0.55f to scrimColor.copy(alpha = 0.04f * overlay),
+                                1f to scrimColor.copy(alpha = 0.14f * overlay),
+                            ),
+                        ),
+                    ),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = KuroSpacing.xl),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(tokens.cardBorder.copy(alpha = 0.45f + (0.35f * overlay))),
+            )
+            Spacer(modifier = Modifier.height(KuroSpacing.md))
+            PremiumGradientCtaButton(
+                text = ctaText,
+                onClick = {
+                    when (catalogState) {
+                        BillingCatalogState.Unavailable -> onRetryCatalog()
+                        BillingCatalogState.Ready -> onUpgrade(selectedPlan)
+                        else -> Unit
+                    }
+                },
+                enabled = ctaEnabled,
+            )
+            TextButton(onClick = onDismiss) {
                 Text(
                     text = stringResource(R.string.premium_sheet_dismiss),
                     style = KuroType.bodySecondary,

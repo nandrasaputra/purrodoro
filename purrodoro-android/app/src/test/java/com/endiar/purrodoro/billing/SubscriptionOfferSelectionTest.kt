@@ -9,24 +9,24 @@ class SubscriptionOfferSelectionTest {
 
     @Test
     fun prefersBasePlanOfferId() {
-        val selected = selectOfferIdForBasePlan(
+        val selected = selectDefaultOfferIdForBasePlan(
             offers = listOf(
-                "monthly" to "intro-monthly",
-                "monthly" to "monthly",
+                BillingConfig.BASE_PLAN_MONTHLY to "intro-monthly",
+                BillingConfig.BASE_PLAN_MONTHLY to BillingConfig.BASE_PLAN_MONTHLY,
             ),
-            basePlanId = "monthly",
+            basePlanId = BillingConfig.BASE_PLAN_MONTHLY,
         )
-        assertEquals("monthly", selected)
+        assertEquals(BillingConfig.BASE_PLAN_MONTHLY, selected)
     }
 
     @Test
-    fun fallsBackToStableMinOfferId() {
-        val selected = selectOfferIdForBasePlan(
+    fun fallsBackToStableMinOfferIdExcludingTrial() {
+        val selected = selectDefaultOfferIdForBasePlan(
             offers = listOf(
-                "yearly" to "yearly-trial",
-                "yearly" to "yearly-promo",
+                BillingConfig.BASE_PLAN_YEARLY to BillingConfig.OFFER_YEARLY_TRIAL,
+                BillingConfig.BASE_PLAN_YEARLY to "yearly-promo",
             ),
-            basePlanId = "yearly",
+            basePlanId = BillingConfig.BASE_PLAN_YEARLY,
         )
         assertEquals("yearly-promo", selected)
     }
@@ -34,21 +34,21 @@ class SubscriptionOfferSelectionTest {
     @Test
     fun returnsNullWhenBasePlanMissing() {
         assertNull(
-            selectOfferIdForBasePlan(
-                offers = listOf("monthly" to "monthly"),
-                basePlanId = "yearly",
+            selectDefaultOfferIdForBasePlan(
+                offers = listOf(BillingConfig.BASE_PLAN_MONTHLY to BillingConfig.BASE_PLAN_MONTHLY),
+                basePlanId = BillingConfig.BASE_PLAN_YEARLY,
             ),
         )
     }
 
     @Test
     fun prefersBlankOfferIdForDefaultBasePlan() {
-        val selected = selectOfferIdForBasePlan(
+        val selected = selectDefaultOfferIdForBasePlan(
             offers = listOf(
-                "monthly" to "intro-monthly",
-                "monthly" to "",
+                BillingConfig.BASE_PLAN_MONTHLY to "intro-monthly",
+                BillingConfig.BASE_PLAN_MONTHLY to "",
             ),
-            basePlanId = "monthly",
+            basePlanId = BillingConfig.BASE_PLAN_MONTHLY,
         )
         assertEquals("", selected)
     }
@@ -56,6 +56,11 @@ class SubscriptionOfferSelectionTest {
     @Test
     fun subscriptionOfferIdsMatch_treatsNullAsBlank() {
         assertTrue(subscriptionOfferIdsMatch(offerId = null, selectedOfferId = ""))
-        assertTrue(subscriptionOfferIdsMatch(offerId = "monthly", selectedOfferId = "monthly"))
+        assertTrue(
+            subscriptionOfferIdsMatch(
+                offerId = BillingConfig.BASE_PLAN_MONTHLY,
+                selectedOfferId = BillingConfig.BASE_PLAN_MONTHLY,
+            ),
+        )
     }
 }

@@ -87,7 +87,6 @@ class BillingManager(
     fun start() {
         scope.launch {
             if (!ensureConnected()) return@launch
-            refreshCatalog()
             syncEntitlementFromPlay()
         }
     }
@@ -95,8 +94,18 @@ class BillingManager(
     fun refreshOnForeground() {
         scope.launch {
             if (!billingClient.isReady) return@launch
-            refreshCatalog()
             syncEntitlementFromPlay()
+        }
+    }
+
+    /** Re-query Play product details when a premium paywall is shown. */
+    fun refreshCatalogForPaywall() {
+        scope.launch {
+            if (!ensureConnected()) {
+                _offers.value = SubscriptionOffers(catalogState = BillingCatalogState.Unavailable)
+                return@launch
+            }
+            refreshCatalog(paywallRefresh = true)
         }
     }
 
@@ -122,13 +131,17 @@ class BillingManager(
                 emitUiEvent(BillingUiEvent.SubscriptionsUnsupported)
                 return@launch
             }
-            refreshCatalog()
+            if (!_offers.value.isReady) {
+                emitUiEvent(BillingUiEvent.ProductsUnavailable)
+                return@launch
+            }
+            refreshCatalog(paywallRefresh = true)
             val details = productDetails
             if (details == null) {
                 emitUiEvent(BillingUiEvent.ProductsUnavailable)
                 return@launch
             }
-            val offer = details.selectOfferForBasePlan(plan.basePlanId)
+            val offer = details.selectPurchaseOfferForPlan(plan)
             if (offer == null) {
                 logBilling("subscribe_missing_offer plan=${plan.basePlanId}")
                 emitUiEvent(BillingUiEvent.ProductsUnavailable)
@@ -239,7 +252,12 @@ class BillingManager(
         return result.responseCode == BillingClient.BillingResponseCode.OK
     }
 
-    private suspend fun refreshCatalog() {
+    private suspend fun refreshCatalog(paywallRefresh: Boolean = false) {
+        val wasReady = _offers.value.catalogState == BillingCatalogState.Ready
+        if (paywallRefresh || !wasReady) {
+            _offers.value = _offers.value.copy(catalogState = BillingCatalogState.Loading)
+        }
+
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 listOf(
@@ -252,22 +270,29 @@ class BillingManager(
             .build()
 
         val result = runCatching { billingClient.queryProductDetails(params) }.getOrNull()
-        if (result == null) {
-            logBilling("query_product_details_failed")
+        if (result == null ||
+            result.billingResult.responseCode != BillingClient.BillingResponseCode.OK
+        ) {
+            logBilling(
+                "query_product_details_failed code=${result?.billingResult?.responseCode}",
+            )
             productDetails = null
+            if (paywallRefresh || !wasReady) {
+                _offers.value = SubscriptionOffers(catalogState = BillingCatalogState.Unavailable)
+            }
             return
         }
         val details = result.productDetailsList?.firstOrNull()
         if (details == null) {
             logBilling("query_product_details_empty")
             productDetails = null
+            if (paywallRefresh || !wasReady) {
+                _offers.value = SubscriptionOffers(catalogState = BillingCatalogState.Unavailable)
+            }
             return
         }
         productDetails = details
-        _offers.value = SubscriptionOffers(
-            monthlyPrice = details.formattedPriceForBasePlan(BillingConfig.BASE_PLAN_MONTHLY),
-            yearlyPrice = details.formattedPriceForBasePlan(BillingConfig.BASE_PLAN_YEARLY),
-        )
+        _offers.value = details.toSubscriptionOffers()
     }
 
     /**
