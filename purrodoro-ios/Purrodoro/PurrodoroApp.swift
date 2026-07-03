@@ -9,6 +9,8 @@ import SwiftUI
 
 @main
 struct PurrodoroApp: App {
+    @StateObject private var auth = AuthStore()
+    @StateObject private var ownerStore = AccountOwnerStore()
     @StateObject private var engine = TimerEngine()
     @StateObject private var tasks = TaskStore()
     @StateObject private var habits = HabitStore()
@@ -20,6 +22,8 @@ struct PurrodoroApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environmentObject(auth)
+                .environmentObject(ownerStore)
                 .environmentObject(engine)
                 .environmentObject(tasks)
                 .environmentObject(habits)
@@ -28,6 +32,9 @@ struct PurrodoroApp: App {
                 .environmentObject(sounds)
                 .environmentObject(loc)
                 .preferredColorScheme(prefs.appearanceMode.preferredColorScheme)
+                .onOpenURL { url in
+                    _ = auth.handleOpenURL(url)
+                }
                 .onAppear {
                     engine.onFocusSessionCompleted = { [weak tasks, weak habits, weak history] minutes in
                         // Capture the active intent name before crediting: a task

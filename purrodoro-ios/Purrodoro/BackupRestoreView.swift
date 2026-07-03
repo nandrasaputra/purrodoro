@@ -10,6 +10,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct BackupRestoreView: View {
+    @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
@@ -37,7 +38,8 @@ struct BackupRestoreView: View {
             history: history,
             prefs: prefs,
             loc: loc,
-            sounds: sounds
+            sounds: sounds,
+            isGuest: !auth.isSignedIn
         )
     }
 

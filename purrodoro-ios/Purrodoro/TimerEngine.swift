@@ -190,6 +190,23 @@ final class TimerEngine: ObservableObject {
         pendingCycleComplete = false
     }
 
+    /// Wipe account-owned timer state on an ownership switch (Drop).
+    func clearAccountOwnedData() {
+        store.set(nil, forKey: stampsKey)
+        store.set(nil, forKey: minutesKey)
+        interruptedFocus = nil
+        pendingCycleComplete = false
+        endsAt = nil
+        stopTicker()
+        let defaults = TimerSettings()
+        runtimeSettings = defaults
+        settings = defaults
+        session = buildSession(defaults)
+        displayRemaining = session.remainingSeconds
+        syncNotification()
+        refreshTodayMetrics()
+    }
+
     /// Apply validated backup data: union focus stamps, replace timer settings,
     /// and reset any in-flight runtime.
     func applyRestored(stamps imported: [String: Int], settings newSettings: TimerSettings) {

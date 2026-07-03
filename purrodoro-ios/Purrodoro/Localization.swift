@@ -180,6 +180,41 @@ final class Localization: ObservableObject {
         "profile.version": [.en: "Version %@", .id: "Versi %@"],
         "profile.privacy": [.en: "Privacy policy", .id: "Kebijakan privasi"],
 
+        // Account & login
+        "account.loading": [.en: "Checking sign-in…", .id: "Memeriksa masuk…"],
+        "account.signedInHint": [
+            .en: "Your data will sync once cloud sync is enabled.",
+            .id: "Datamu akan disinkronkan setelah sinkron cloud aktif.",
+        ],
+        "account.signOut": [.en: "Sign out", .id: "Keluar"],
+        "account.signedInGoogle": [.en: "Signed in with Google", .id: "Masuk dengan Google"],
+        "account.signedInApple": [.en: "Signed in with Apple", .id: "Masuk dengan Apple"],
+        "account.signedInGeneric": [.en: "Signed in", .id: "Sudah masuk"],
+        "account.switch.title": [.en: "Switch account?", .id: "Ganti akun?"],
+        "account.switch.message": [
+            .en: "This device has another account's data. Signing in will remove it. Continue?",
+            .id: "Perangkat ini berisi data akun lain. Masuk akan menghapusnya. Lanjutkan?",
+        ],
+        "account.switch.confirm": [.en: "Remove and continue", .id: "Hapus dan lanjutkan"],
+        "account.switch.cancel": [.en: "Cancel", .id: "Batal"],
+        "login.title": [.en: "Sign in", .id: "Masuk"],
+        "login.subtitle": [
+            .en: "Back up tasks, habits, and focus history across devices.",
+            .id: "Cadangkan tugas, kebiasaan, dan riwayat fokus di semua perangkat.",
+        ],
+        "login.catA11y": [.en: "Purrodoro the cat waving hello", .id: "Purrodoro si kucing melambai"],
+        "login.continueGoogle": [.en: "Continue with Google", .id: "Lanjutkan dengan Google"],
+        "login.continueGuest": [.en: "Continue as guest", .id: "Lanjut sebagai tamu"],
+        "login.guestHint": [
+            .en: "Saved on this device only. Sign in to back it up.",
+            .id: "Tersimpan di perangkat ini saja. Masuk untuk mencadangkannya.",
+        ],
+        "login.error.generic": [.en: "Couldn't sign in. Please try again.", .id: "Tidak bisa masuk. Coba lagi."],
+        "login.error.notConfigured": [
+            .en: "Google sign-in isn't set up yet.",
+            .id: "Masuk dengan Google belum disiapkan.",
+        ],
+
         // Backup & restore
         "backup.title": [.en: "Backup & restore", .id: "Cadangan & pulihkan"],
         "backup.summary": [

@@ -245,17 +245,21 @@ replace the backend.**
 - `LoginSheet` keeps the existing Google button and "continue as guest"; add the
   guest "not backed up" notice.
 
-## Architecture — iOS / macOS (follow-up)
+## Architecture — iOS / macOS
 
-No auth exists today (`STATUS.md` lists none). When built (with Apple, per 4.8):
-- **Add** the Supabase Swift SDK (auth) with **Keychain** session storage.
-- **New** `AuthStore` (`ObservableObject`, injected like other stores) exposing a
-  `Guest | SignedIn` state and the same login decision rule.
-- **New** login UI wired into Onboarding page 0 and Profile → Account.
+**Status (2026-07-03):** shipped on iOS — see [`purrodoro-ios/STATUS.md`](../../../purrodoro-ios/STATUS.md).
+
+- **Added** the Supabase Swift SDK (auth) with **Keychain** session storage.
+- **`AuthStore`** (`ObservableObject`, injected like other stores) exposes
+  `Guest | SignedIn` and delegates sign-in to Supabase.
+- **`LoginSheet`** wired at Profile → Account (onboarding sign-in deferred).
 - Providers: **Google + Apple + Guest.** Apple via `ASAuthorizationController`
-  → `signInWithIdToken` (capture name/email on first authorization — Apple only
-  returns them once).
-- **`ownerId`** persisted behind the existing `KeyValueStore`.
+  → `signInWithIdToken` (capture name on first authorization).
+- **`ownerId`** in `AccountOwnerStore` (`KeyValueStore`).
+- **`AccountManager`** implements Claim / Keep / Drop (same pure rule as Android).
+
+**Still open on iOS:** Supabase sync, logout flush, onboarding sign-in entry,
+Google iOS OAuth client ID + URL scheme for device Google sign-in.
 
 ## Shared / pure logic (both platforms)
 
@@ -348,9 +352,8 @@ listed — these need a device + the live Supabase project, so they stay manual.
 
 ## Open follow-ups (separate specs)
 
-- **iOS auth + Apple Sign-In** — required by App Store 4.8 before iOS ships
-  Google. Includes Apple "Hide My Email" handling and first-auth name/email
-  capture.
+- **iOS auth polish** — onboarding sign-in entry; Google iOS OAuth client + URL
+  scheme; avatar cache. Core auth + Apple shipped 2026-07-03.
 - **Email provider** — magic link vs. **email OTP**; on native, OTP avoids
   deep-link/redirect plumbing and is likely simpler. Requires a **custom SMTP**
   provider (Resend / SES / Postmark) — the built-in SMTP only emails org members
