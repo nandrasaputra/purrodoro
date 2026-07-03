@@ -190,6 +190,26 @@ final class TimerEngine: ObservableObject {
         pendingCycleComplete = false
     }
 
+    /// Apply validated backup data: union focus stamps, replace timer settings,
+    /// and reset any in-flight runtime.
+    func applyRestored(stamps imported: [String: Int], settings newSettings: TimerSettings) {
+        var stamps = focusStampsByDay
+        for (day, count) in imported {
+            stamps[day] = max(stamps[day] ?? 0, count)
+        }
+        store.set(stamps, forKey: stampsKey)
+        interruptedFocus = nil
+        pendingCycleComplete = false
+        endsAt = nil
+        stopTicker()
+        runtimeSettings = newSettings
+        settings = newSettings
+        session = buildSession(newSettings)
+        displayRemaining = session.remainingSeconds
+        syncNotification()
+        refreshTodayMetrics()
+    }
+
     /// Recompute state after returning from background: advance through any
     /// segments whose target time elapsed while we weren't ticking.
     func reconcile() {

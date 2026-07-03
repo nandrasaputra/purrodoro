@@ -167,6 +167,14 @@ final class TaskStore: ObservableObject {
         persistActive()
     }
 
+    /// Replace all tasks (backup restore — clears active attachment).
+    func replaceAll(_ items: [TaskItem]) {
+        tasks = items
+        activeTaskID = nil
+        persist()
+        persistActive()
+    }
+
     /// Credit the active task with one completed focus session. Marks it done
     /// once it reaches its planned sessions.
     func creditActiveFocusSession() {

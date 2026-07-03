@@ -206,6 +206,14 @@ final class HabitStore: ObservableObject {
         persistActive()
     }
 
+    /// Replace all habits (backup restore — clears active attachment).
+    func replaceAll(_ items: [HabitItem]) {
+        habits = items
+        activeHabitID = nil
+        persist()
+        persistActive()
+    }
+
     /// Credit the active habit with one completed focus session.
     func creditActiveFocusSession() {
         guard let id = activeHabitID,

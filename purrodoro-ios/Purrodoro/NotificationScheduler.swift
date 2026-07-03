@@ -35,6 +35,18 @@ final class NotificationScheduler: NSObject {
         center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
+    /// Whether the user has granted alert permission (mirrors Android's
+    /// `NotificationManagerCompat.areNotificationsEnabled()` check in Profile).
+    func notificationsEnabled() async -> Bool {
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return true
+        default:
+            return false
+        }
+    }
+
     /// Async variant used by onboarding so the UI can advance once the user has
     /// responded to the system prompt. Returns whether permission was granted.
     @discardableResult

@@ -42,6 +42,24 @@ final class SessionHistoryStore: ObservableObject {
         persist()
     }
 
+    /// Union imported session rows (backup wins on near-duplicate keys).
+    func unionRecords(_ imported: [FocusSessionRecord]) {
+        var merged = records
+        for record in imported {
+            let duplicate = merged.contains {
+                abs($0.endedAt.timeIntervalSince(record.endedAt)) < 1
+                    && $0.minutes == record.minutes
+                    && $0.intentName == record.intentName
+            }
+            if !duplicate { merged.append(record) }
+        }
+        records = merged.sorted { $0.endedAt > $1.endedAt }
+        if records.count > Self.maxRecords {
+            records = Array(records.prefix(Self.maxRecords))
+        }
+        persist()
+    }
+
     // MARK: Persistence
 
     private func load() {
