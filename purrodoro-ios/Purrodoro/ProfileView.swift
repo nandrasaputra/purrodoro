@@ -3,14 +3,15 @@
 //  Purrodoro
 //
 //  Settings hub ported from Android `ProfileScreen.kt`. Hosts identity,
-//  timer prefs, appearance, language, notifications, and stub rows for
-//  premium / backup / storage until those slices land.
+//  timer prefs, appearance, language, notifications, backup nav, and live auth.
 //
 
 import SwiftUI
 import UIKit
 
 struct ProfileView: View {
+    @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var ownerStore: AccountOwnerStore
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
@@ -25,6 +26,23 @@ struct ProfileView: View {
 
     @State private var notificationsEnabled = false
     @State private var showComingSoonAlert = false
+    @State private var showLoginSheet = false
+    @State private var showAccountSwitchAlert = false
+    @State private var dropConfirmContinuation: CheckedContinuation<Bool, Never>?
+    @State private var signingOut = false
+
+    private var accountManager: AccountManager {
+        AccountManager(
+            ownerStore: ownerStore,
+            clearer: AccountDataClearer(
+                engine: engine,
+                tasks: tasks,
+                habits: habits,
+                history: history,
+                prefs: prefs
+            )
+        )
+    }
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
 
@@ -98,6 +116,27 @@ struct ProfileView: View {
             .alert(loc.t("profile.comingSoon"), isPresented: $showComingSoonAlert) {
                 Button(loc.t("common.ok"), role: .cancel) {}
             }
+            .sheet(isPresented: $showLoginSheet) {
+                LoginSheet(
+                    onSignedIn: { user in
+                        showLoginSheet = false
+                        Task { await handleSignedIn(user) }
+                    },
+                    onContinueAsGuest: { showLoginSheet = false }
+                )
+            }
+            .alert(loc.t("account.switch.title"), isPresented: $showAccountSwitchAlert) {
+                Button(loc.t("account.switch.confirm"), role: .destructive) {
+                    dropConfirmContinuation?.resume(returning: true)
+                    dropConfirmContinuation = nil
+                }
+                Button(loc.t("account.switch.cancel"), role: .cancel) {
+                    dropConfirmContinuation?.resume(returning: false)
+                    dropConfirmContinuation = nil
+                }
+            } message: {
+                Text(loc.t("account.switch.message"))
+            }
         }
         .task { await refreshNotificationStatus() }
         .onChange(of: scenePhase) { _, phase in
@@ -112,32 +151,85 @@ struct ProfileView: View {
     private var identityCard: some View {
         card {
             HStack(spacing: 14) {
-                Image("CatMascot")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 56, height: 56)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(colors.border, lineWidth: 1))
-
+                avatarView
                 VStack(alignment: .leading, spacing: 4) {
                     Text(displayName)
                         .font(.system(.title3, design: .rounded).weight(.bold))
                         .foregroundStyle(colors.textPrimary)
                         .lineLimit(1)
-                    Text(loc.t("profile.guest"))
-                        .font(.system(.caption, design: .rounded).weight(.semibold))
-                        .foregroundStyle(Brand.cocoa)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Brand.peach.opacity(0.55), in: Capsule())
+                    identityBadge
                 }
                 Spacer()
             }
         }
     }
 
+    @ViewBuilder
+    private var avatarView: some View {
+        if case .signedIn(let user) = auth.state, let url = user.avatarURL {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                default:
+                    guestAvatarFallback
+                }
+            }
+            .frame(width: 56, height: 56)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(colors.border, lineWidth: 1))
+        } else {
+            guestAvatarFallback
+        }
+    }
+
+    private var guestAvatarFallback: some View {
+        Image("CatMascot")
+            .resizable()
+            .scaledToFill()
+            .frame(width: 56, height: 56)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(colors.border, lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private var identityBadge: some View {
+        switch auth.state {
+        case .signedIn(let user):
+            if let email = user.email {
+                Text(email)
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(colors.textSecondary)
+                    .lineLimit(1)
+            }
+            Text(providerLabel(user.provider))
+                .font(.system(.caption, design: .rounded).weight(.semibold))
+                .foregroundStyle(Brand.cocoa)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Brand.peach.opacity(0.55), in: Capsule())
+        case .guest, .loading:
+            Text(loc.t("profile.guest"))
+                .font(.system(.caption, design: .rounded).weight(.semibold))
+                .foregroundStyle(Brand.cocoa)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Brand.peach.opacity(0.55), in: Capsule())
+        }
+    }
+
+    private func providerLabel(_ provider: AuthProvider) -> String {
+        switch provider {
+        case .google: return loc.t("account.signedInGoogle")
+        case .apple: return loc.t("account.signedInApple")
+        case .unknown: return loc.t("account.signedInGeneric")
+        }
+    }
+
     private var displayName: String {
-        if let name = prefs.trimmedName { return name }
+        let local = prefs.userName
+        let resolved = resolvedDisplayName(authState: auth.state, localName: local)
+        if !resolved.isEmpty { return resolved }
         return loc.t("profile.friend")
     }
 
@@ -182,31 +274,86 @@ struct ProfileView: View {
         .accessibilityLabel(loc.t("profile.premium.explore"))
     }
 
-    // MARK: - Account stub
+    // MARK: - Account
 
     private var accountCard: some View {
         card {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(loc.t("profile.guestHint"))
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button {
-                    showComingSoonAlert = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "person.crop.circle.badge.plus")
-                        Text(loc.t("profile.signIn"))
-                    }
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Brand.coral, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            switch auth.state {
+            case .loading:
+                HStack {
+                    ProgressView()
+                    Text(loc.t("account.loading"))
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(colors.textSecondary)
                 }
-                .buttonStyle(.plain)
+            case .guest:
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(loc.t("profile.guestHint"))
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button { showLoginSheet = true } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.crop.circle.badge.plus")
+                            Text(loc.t("profile.signIn"))
+                        }
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Brand.coral, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            case .signedIn:
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(loc.t("account.signedInHint"))
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(colors.textSecondary)
+                    Button {
+                        Task { await signOut() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if signingOut { ProgressView().tint(Brand.coral) }
+                            Text(loc.t("account.signOut"))
+                        }
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(Brand.coral)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Brand.coral.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(signingOut)
+                }
             }
         }
+    }
+
+    @MainActor
+    private func handleSignedIn(_ user: AuthUser) async {
+        let result = await accountManager.onSignedIn(
+            incomingUserId: user.userId,
+            confirmDrop: {
+                await withCheckedContinuation { continuation in
+                    dropConfirmContinuation = continuation
+                    showAccountSwitchAlert = true
+                }
+            },
+            onBeforeClear: {
+                if engine.isStarted { engine.stop() }
+            }
+        )
+        if result == .dropCancelled {
+            try? await auth.signOut()
+        }
+    }
+
+    @MainActor
+    private func signOut() async {
+        signingOut = true
+        defer { signingOut = false }
+        try? await auth.signOut()
     }
 
     // MARK: - Notifications
@@ -395,17 +542,23 @@ struct ProfileView: View {
                     Text(loc.t("settings.yourName"))
                         .font(.system(.caption, design: .rounded).weight(.semibold))
                         .foregroundStyle(colors.textFaint)
-                    TextField(
-                        loc.t("settings.addName"),
-                        text: Binding(
-                            get: { prefs.userName },
-                            set: { prefs.userName = $0 }
+                    if isNameFromAccount(authState: auth.state, localName: prefs.userName) {
+                        Text(prefs.trimmedName ?? "")
+                            .font(.system(.headline, design: .rounded))
+                            .foregroundStyle(colors.textPrimary)
+                    } else {
+                        TextField(
+                            loc.t("settings.addName"),
+                            text: Binding(
+                                get: { prefs.userName },
+                                set: { prefs.userName = $0 }
+                            )
                         )
-                    )
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(colors.textPrimary)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.done)
+                        .font(.system(.headline, design: .rounded))
+                        .foregroundStyle(colors.textPrimary)
+                        .textInputAutocapitalization(.words)
+                        .submitLabel(.done)
+                    }
                 }
             }
         }
@@ -549,6 +702,8 @@ struct ProfileView: View {
 
 #Preview {
     ProfileView()
+        .environmentObject(AuthStore())
+        .environmentObject(AccountOwnerStore())
         .environmentObject(TimerEngine())
         .environmentObject(PreferencesStore())
         .environmentObject(Localization())

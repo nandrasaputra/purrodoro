@@ -57,4 +57,10 @@ final class PreferencesStore: ObservableObject {
         self.userName = store.string(forKey: nameKey) ?? ""
         self.hasCompletedOnboarding = store.bool(forKey: onboardingKey)
     }
+
+    /// Clears the greeting name on account switch (Drop). Appearance, language,
+    /// and onboarding flags are device-local and kept.
+    func clearAccountOwnedName() {
+        userName = ""
+    }
 }

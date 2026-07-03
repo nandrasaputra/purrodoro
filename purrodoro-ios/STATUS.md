@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-07-03 (Profile shell + backup/restore)_
+_Last updated: 2026-07-03 (Auth PR A — sign-in + ownership)_
 
 ---
 
@@ -15,9 +15,10 @@ _Last updated: 2026-07-03 (Profile shell + backup/restore)_
 
 | Slice | Status | Key files |
 |-------|--------|-----------|
-| Profile shell | ✅ | `ProfileView.swift` — replaces old `SettingsSheet`; identity, timer, appearance, language, notifications, about/privacy |
-| Backup & restore | ✅ | `BackupCodec.swift`, `BackupManager.swift`, `BackupRestoreView.swift` — schema v1, cross-platform with Android, guest restore |
-| Sign-in / sync / premium | stub | Profile shows coming-soon for sign-in + premium; Storage still stub |
+| Profile shell | ✅ | `ProfileView.swift` |
+| Backup & restore | ✅ | `BackupCodec.swift`, `BackupManager.swift`, `BackupRestoreView.swift` |
+| Auth (Google + Apple + guest) | 🔶 | `AuthStore`, `LoginSheet`, `AccountManager` — Apple live; Google needs iOS client ID |
+| Supabase sync + StoreKit | ❌ | Next slices; premium banner still stub |
 
 ---
 
@@ -27,15 +28,16 @@ _Last updated: 2026-07-03 (Profile shell + backup/restore)_
 Habits), full Pomodoro loop, Start Focus sheet, interrupted-focus resume,
 celebration, task categories & due dates, habit scheduling & rest days, procedural
 ambient sounds, EN/ID localization, onboarding, **Profile hub**, **backup &
-restore** (Android-compatible JSON v1), Live Activity, one Today widget, unit
-tests (all passing). Builds on iOS 26 simulator.
+restore** (Android-compatible JSON v1), **auth** (Supabase + Apple + Google UI,
+Claim/Keep/Drop ownership), Live Activity, one Today widget, unit tests (all
+passing). Builds on iOS 26 simulator.
 
-**Not on iOS yet:** **identity & cloud** (Google sign-in, Supabase sync, StoreKit
-premium), **cloud Soundscape** (dual-deck + lo-fi catalog), **home scenes**,
-**focus-mode overlay**, **post-launch tutorial**, **History screen**, **6 of 7
-Android Glance widgets**, task/habit **free-tier caps** (10 each + paywall).
+**Not on iOS yet:** **Supabase sync**, **StoreKit premium**, **cloud Soundscape**
+(dual-deck + lo-fi catalog), **home scenes**, **focus-mode overlay**,
+**post-launch tutorial**, **History screen**, **6 of 7 Android Glance widgets**,
+task/habit **free-tier caps** (10 each + paywall).
 
-**Next recommended port slices:** auth + sync → StoreKit premium → Soundscape → home scenes.
+**Next recommended port slices:** Supabase sync → StoreKit premium → Soundscape → home scenes.
 
 ---
 
@@ -48,11 +50,11 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Feature | Android | iOS | Notes |
 |---------|---------|-----|-------|
 | 4-tab dock (Focus / Tasks / Habits / Journey) | ✅ | ✅ | `PurrodoroApp.kt` → `RootView.swift` |
-| Profile / Settings screen | ✅ `ProfileScreen.kt` | 🔶 | `ProfileView.swift` — full settings hub; sign-in + premium + storage still stub |
+| Profile / Settings screen | ✅ `ProfileScreen.kt` | 🔶 | `ProfileView.swift` — settings hub + live auth; premium + storage stub |
 | Start Focus sheet | ✅ | ✅ | iOS: none / task / habit; no **simple note** intent |
 | Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | 🔶 | iOS: single ambient list (`SoundsSheet.swift`) |
 | Premium discovery + upsell sheets | ✅ | ❌ | Play Billing on Android |
-| Login / logout / account switch | ✅ | ❌ | Google + Claim/Keep/Drop |
+| Login / logout / account switch | ✅ | 🔶 | `AuthStore` + `AccountManager` — Claim/Keep/Drop; no sync yet |
 | History (day drill-down) | ✅ `HistoryScreen.kt` | ❌ | iOS: 8 recent rows on Journey only |
 | Storage (downloaded tracks) | ✅ `StorageScreen.kt` | ❌ | |
 | Backup & restore | ✅ `BackupRestoreScreen.kt` | ✅ | `BackupRestoreView.swift` — schema v1, guest-only restore, Files picker |
@@ -118,15 +120,17 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 ### Auth & sync
 
-| Feature | Android | iOS |
-|---------|---------|-----|
-| Google Sign-In (Credential Manager) | ✅ `AuthRepository.kt` | ❌ |
-| Supabase session (encrypted) | ✅ | ❌ |
-| Claim / Keep / Drop on sign-in | ✅ `AccountManager.kt` | ❌ |
-| Offline-first LWW sync + tombstones | ✅ `SyncEngine.kt` | ❌ |
-| Sync status in Profile | ✅ | ❌ |
-| Logout flush + unsynced warning | ✅ | ❌ |
-| Avatar cache | ✅ | ❌ |
+| Feature | Android | iOS | Notes |
+|---------|---------|-----|-------|
+| Google Sign-In | ✅ `AuthRepository.kt` | 🔶 | `AuthStore` — needs `googleIOSClientID` in `SupabaseConfig.swift` |
+| Sign in with Apple | — | ✅ | `AuthStore.signInWithApple()`; entitlement + Supabase Apple provider |
+| Supabase session (encrypted) | ✅ Keystore | ✅ | Keychain via `supabase-swift` default storage |
+| `ownerId` ownership marker | ✅ DataStore | ✅ | `AccountOwnerStore` |
+| Claim / Keep / Drop on sign-in | ✅ `AccountManager.kt` | ✅ | `AccountManager.swift` + switch confirm alert |
+| Offline-first LWW sync + tombstones | ✅ `SyncEngine.kt` | ❌ | |
+| Sync status in Profile | ✅ | ❌ | |
+| Logout flush + unsynced warning | ✅ | ❌ | Sign-out clears session only (pre-sync) |
+| Avatar cache | ✅ | 🔶 | `AsyncImage` from provider URL when present |
 
 ### Premium & billing
 
@@ -158,7 +162,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|---------|-----|
 | JSON export (Files) | ✅ `BackupManager.kt` | ✅ `BackupManager.swift` |
 | Guest-only restore + safety backup | ✅ | ✅ |
-| Signed-in restore blocked | ✅ by design | — |
+| Signed-in restore blocked | ✅ | ✅ | `BackupRestoreApplicator.isGuest` |
 
 ### Onboarding
 
@@ -166,7 +170,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|---------|-----|-------|
 | First-run flow | ✅ | ✅ | |
 | Welcome + name + notifications | ✅ | ✅ | |
-| Google sign-in or guest | ✅ | ❌ | iOS: guest only |
+| Google sign-in or guest | ✅ | 🔶 | Profile → Sign in (`LoginSheet`); not in onboarding yet |
 | Language picker in onboarding | ✅ | 🔶 | Settings only on iOS |
 | Post-launch tutorial | ✅ | ❌ | |
 
@@ -179,7 +183,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Language (System / EN / ID) | ✅ | 🔶 EN/ID only (no System) |
 | Profile name | ✅ | ✅ |
 | Notification sound toggle | ✅ | ❌ |
-| Account section (live sign-in) | ✅ | ❌ | Guest card + sign-in stub only |
+| Account section (live sign-in) | ✅ | 🔶 | `ProfileView` + `LoginSheet`; Google needs iOS OAuth client |
 | About + privacy link | ✅ | ✅ | `ProfileView` about card + `AppLinks.swift` |
 | Links to Storage / Backup | ✅ | 🔶 | Backup ✅ (`BackupRestoreView`); Storage stub |
 
@@ -210,7 +214,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 | Item | Android | iOS |
 |------|---------|-----|
-| Unit tests | ✅ 311+ (Gradle) | ✅ Swift Testing — all passing; includes `BackupCodecTests` |
+| Unit tests | ✅ 311+ (Gradle) | ✅ Swift Testing — all passing; includes `BackupCodecTests`, auth ownership tests |
 | UI / snapshot tests | — | ❌ templates only |
 | Persistence | Room + DataStore | `UserDefaults` via `KeyValueStore` |
 | iPad / macOS layout | tablet-aware | ❌ phone-first |
@@ -226,7 +230,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
   `PurrodoroShared/` (app + extension).
 - **State:** `ObservableObject` stores via `@EnvironmentObject` (`TimerEngine`,
   `TaskStore`, `HabitStore`, `PreferencesStore`, `Localization`, `SoundsStore`,
-  `SessionHistoryStore`).
+  `SessionHistoryStore`, `AuthStore`, `AccountOwnerStore`).
+- **Auth:** Supabase Swift SDK + Google Sign-In-iOS (SPM). Session in Keychain.
+  `AuthStore` projects `Guest | SignedIn`; `AccountManager` runs Claim/Keep/Drop.
 - **Persistence:** `KeyValueStore` protocol (`Persistence.swift`); `UserDefaults`
   in production, `InMemoryKeyValueStore` in tests. JSON blobs for domain data;
   per-day dictionaries for stamps/minutes. No Core Data / SQLite.
@@ -245,7 +251,14 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `PurrodoroModels.swift` | Domain models (cycle, settings, dots, greetings) |
 | `TimerEngine.swift` | Countdown, segment advance, reconcile, stamps, widget snapshot |
 | `HomeView.swift` | Focus screen (dial, dots, controls, intent card, resume card) |
-| `ProfileView.swift` | Profile hub: identity, timer, appearance, language, notifications, about, backup nav |
+| `ProfileView.swift` | Profile hub: identity, timer, appearance, language, notifications, account, backup nav |
+| `AuthModels.swift` | `AuthState`, `AuthUser`, `resolveLoginAction` |
+| `SupabaseConfig.swift` | Supabase URL, publishable key, Google OAuth client IDs |
+| `AuthStore.swift` | Supabase auth, Google + Apple sign-in, sign-out |
+| `AccountOwnerStore.swift` | `ownerId` persistence |
+| `AccountManager.swift` | Claim / Keep / Drop on sign-in |
+| `AccountDataClearer.swift` | Wipe account-owned data on Drop |
+| `LoginSheet.swift` | Sign-in sheet (Google, Apple, guest) |
 | `AppLinks.swift` | External URLs (privacy policy, etc.) |
 | `BackupModels.swift` | Backup JSON DTOs (schema v1, matches Android) |
 | `BackupCodec.swift` | Encode/decode + untrusted-input validation |
@@ -279,9 +292,10 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `ui/TodoScreen.kt` | `TasksView.swift` + `TaskStore.swift` |
 | `ui/HabitsScreen.kt` | `HabitsView.swift` + `HabitStore.swift` |
 | `ui/CalendarScreen.kt` + `JourneyModels.kt` | `JourneyView.swift` + `JourneyModels.swift` |
-| `ui/ProfileScreen.kt` | `ProfileView.swift` (no live auth/sync yet) |
+| `ui/ProfileScreen.kt` | `ProfileView.swift` + `LoginSheet.swift` |
 | `ui/SoundsScreen.kt` + `soundscape/*` | `SoundsSheet.swift` + `AmbientAudio.swift` (partial) |
-| `auth/*` + `sync/*` | — |
+| `auth/AuthRepository.kt` + `AccountManager.kt` | `AuthStore.swift` + `AccountManager.swift` (no sync yet) |
+| `sync/*` | — |
 | `billing/*` | — |
 | `data/backup/*` | `BackupCodec.swift` + `BackupManager.swift` + `BackupRestoreView.swift` |
 | `widget/*` (7 Glance widgets) | `PurrodoroWidgets/TodayWidget.swift` |
@@ -314,9 +328,16 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] Haptics on timer + tab transitions
 - [x] Focus-screen accessibility (VoiceOver dial, dots, button labels)
 
-### Profile & backup
+### Profile, backup & auth
 - [x] Profile hub (`ProfileView.swift`) — identity card, timer, appearance, language, notifications status, about/privacy
-- [x] Premium + sign-in stubs (coming-soon alerts until auth/StoreKit land)
+- [x] **Auth (PR A)** — `AuthStore`, `LoginSheet`, `AccountManager`, `AccountOwnerStore`
+- [x] Supabase session (Keychain) + Sign in with Apple
+- [x] Google sign-in UI (`signInWithIdToken`) — paste iOS OAuth client into `SupabaseConfig.googleIOSClientID`
+- [x] Claim / Keep / Drop + account-switch confirm dialog
+- [x] Sign-out (session cleared; local data + `ownerId` kept)
+- [x] Restore blocked while signed in
+- [x] Auth unit tests (`resolveLoginAction`, `AuthProvider`, `AccountManager`)
+- [x] Premium stub banner (coming-soon until StoreKit)
 - [x] Storage stub row (coming soon)
 - [x] **Backup & restore** — `BackupCodec` / `BackupManager` / `BackupRestoreView`
 - [x] Android-compatible JSON schema v1 (cross-platform export/import)
@@ -341,11 +362,13 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 ### P0 — identity & cloud (largest Android delta)
 
-- [x] **Profile shell** — `ProfileView.swift` replaces `SettingsSheet`; timer prefs, appearance, language, notifications, about/privacy, backup nav
-- [ ] **Live account section** — Google Sign-In + Sign in with Apple (`AuthRepository.kt`, `LoginSheet.kt`)
+- [x] **Profile shell** — `ProfileView.swift` replaces `SettingsSheet`
+- [x] **Auth PR A** — `AuthStore`, `LoginSheet`, `AccountManager`, ownership (`ownerId`)
+- [ ] **Google on device** — create iOS OAuth client; set `SupabaseConfig.googleIOSClientID` + URL scheme
+- [ ] **Onboarding sign-in** — wire `LoginSheet` into `OnboardingView` (Profile only today)
 - [ ] **Supabase sync** — port `SyncEngine.kt`, `TableSyncs.kt`, sync status in Profile
-- [ ] **Account flows** — Claim/Keep/Drop (`AccountManager.kt`), logout flush
-- [x] **Backup & restore** — `BackupCodec` / `BackupManager` / `BackupRestoreView`; Android schema v1; cross-platform JSON
+- [ ] **Logout flush** — unsynced warning when sync lands
+- [x] **Backup & restore** — schema v1; cross-platform JSON
 - [ ] **StoreKit premium** — mirror `BillingManager.kt` gates + paywall sheets
 
 ### P1 — product parity
@@ -384,8 +407,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 ```
 1. ProfileScreen shell ✅ — `ProfileView.swift`
 2. Backup export/import ✅ — `BackupRestoreView` + Android schema v1
-3. Auth (Google + Sign in with Apple) + encrypted session  ← next
-4. Supabase sync (offline-first, same tables as Android)
+3. Auth (Google + Apple) + encrypted session ✅ — `AuthStore.swift`, `LoginSheet.swift`, `AccountManager.swift`
+4. Supabase sync (offline-first, same tables as Android)  ← next
 5. StoreKit subscriptions + PremiumGate caps
 6. Soundscape (catalog API shared with Android; AVPlayer loops)
 7. Home scenes + focus overlay
@@ -425,8 +448,17 @@ Specs to read before each slice:
   stable int ids for interchange. Safety copies live in
   `Application Support/backups/` (keeps last 3). Restore blocked while timer
   running. Spec: [`docs/superpowers/specs/2026-06-19-data-backup-and-restore-design.md`](../docs/superpowers/specs/2026-06-19-data-backup-and-restore-design.md).
-- **Profile entry:** Focus screen person icon → `ProfileView` sheet; backup at
-  Profile → Data → Backup & restore.
+- **Profile entry:** Focus screen person icon → `ProfileView` sheet; sign-in at
+  Profile → Account; backup at Profile → Data → Backup & restore.
+- **Auth setup (one-time):** Google Cloud → OAuth **iOS** client for
+  `com.endiar.Purrodoro` → paste into `SupabaseConfig.googleIOSClientID`; add
+  reversed client ID URL scheme to Info.plist. Supabase dashboard → enable **Apple**
+  provider (Google already enabled for Android). Spec:
+  [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](../docs/superpowers/specs/2026-06-09-auth-and-account-identity.md).
+- **Auth behaviour:** guests are local-only (`ownerId = null`). Sign-in runs
+  Claim/Keep/Drop via `AccountManager`; Drop clears account-owned data after
+  confirm, then sets `ownerId`. Sign-out clears Supabase session only — data stays.
+  Sync hooks are no-ops until the sync slice lands.
 
 ---
 
@@ -448,6 +480,14 @@ Open `Purrodoro.xcodeproj` in Xcode → **⌘R** to run on simulator.
 3. (Optional) import that file on Android guest Profile → Restore to verify cross-platform.
 4. On iOS: **Restore from file** → pick JSON → confirm. Tasks/habits/settings replace; stamps/history union.
 5. Stop timer before restore or you'll see "Stop the timer before restoring."
+
+### Manual auth test (iOS)
+
+1. Profile → **Sign in** → **Sign in with Apple** (or Google once iOS client ID is set).
+2. Guest with tasks → sign in → data **claimed** (`ownerId` tagged).
+3. Sign out → sign in same account → **keep** (data intact).
+4. Sign out → sign in different account → **switch confirm** → Drop clears local data.
+5. While signed in, Backup → Restore should be disabled.
 
 - **Android QA open (not iOS blockers):** NAN-65 two-device sync matrix per
   [`purrodoro-android/docs/pending-actions.md`](../purrodoro-android/docs/pending-actions.md).

@@ -51,3 +51,9 @@ Port progress + parity matrix: [`purrodoro-ios/STATUS.md`](purrodoro-ios/STATUS.
 
 - **Automated:** `BackupCodecTests` in `PurrodoroTests/FeatureTests.swift` (round-trip, malformed, unsupported version).
 - **Manual:** Profile → Backup & restore → Export / Restore. Guest-only restore; stop timer first. Cross-platform with Android schema v1 JSON.
+
+### Auth (iOS)
+
+- **Automated:** `ResolveLoginActionTests`, `AuthProviderTests`, `AccountManagerTests` in `PurrodoroTests/FeatureTests.swift`.
+- **Manual:** Profile → Sign in → Apple (or Google once `SupabaseConfig.googleIOSClientID` is set). Claim/Keep/Drop flows — see STATUS.md.
+- **Spec:** [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](docs/superpowers/specs/2026-06-09-auth-and-account-identity.md).

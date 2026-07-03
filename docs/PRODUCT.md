@@ -528,8 +528,19 @@ devices only after sign-in.
 >   on the Android OAuth client.
 > - Offline-first sync (Room + Supabase) for signed-in users — see sync spec.
 >
-> **Remaining:** NAN-65 two-device sync QA matrix (`pending-actions.md`); iOS auth
-> (later).
+> **Shipped (iOS, 2026-07-03):**
+> - `supabase-swift` + `GoogleSignIn-iOS` (SPM); `SupabaseConfig` URL, publishable
+>   key, and Google Web client ID (same project as Android).
+> - Sign in with Apple (`AuthStore.signInWithApple` → `signInWithIdToken`); Google
+>   UI ready — needs iOS OAuth client ID in `SupabaseConfig.googleIOSClientID`.
+> - Keychain session storage (Supabase Swift SDK default).
+> - `LoginSheet` (Profile) → `AccountManager.onSignedIn` (Claim / Keep / Drop
+>   confirm alert). `ownerId` in `AccountOwnerStore`.
+> - Guest local-only; signed-in restore blocked for backup. Sign-out clears session
+>   only (no sync flush yet).
+>
+> **Remaining:** Supabase sync on iOS; StoreKit premium; Google iOS OAuth client
+> + onboarding sign-in entry; NAN-65 two-device sync QA matrix (`pending-actions.md`).
 
 ### Sign-in options by platform
 

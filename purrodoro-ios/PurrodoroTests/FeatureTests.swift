@@ -232,3 +232,110 @@ struct LocalizationTests {
         #expect(bundle.stamps["2026-06-18"] == 4)
     }
 }
+
+// MARK: - Auth ownership
+
+struct ResolveLoginActionTests {
+
+    @Test func nullOwnerClaims() {
+        #expect(resolveLoginAction(ownerId: nil, incomingUserId: "user-A") == .claim)
+        #expect(resolveLoginAction(ownerId: nil, incomingUserId: "") == .claim)
+    }
+
+    @Test func sameOwnerKeeps() {
+        #expect(resolveLoginAction(ownerId: "user-A", incomingUserId: "user-A") == .keep)
+    }
+
+    @Test func differentOwnerDrops() {
+        #expect(resolveLoginAction(ownerId: "user-A", incomingUserId: "user-B") == .drop)
+    }
+}
+
+struct AuthProviderTests {
+
+    @Test func storageTagRoundTrip() {
+        #expect(AuthProvider.fromStorageTag("google") == .google)
+        #expect(AuthProvider.fromStorageTag("apple") == .apple)
+    }
+
+    @Test func unknownProviderFallback() {
+        #expect(AuthProvider.fromStorageTag("email") == .unknown)
+        #expect(AuthProvider.fromStorageTag(nil) == .unknown)
+        #expect(AuthProvider.fromStorageTag("") == .unknown)
+    }
+}
+
+@MainActor
+struct AccountManagerTests {
+
+    @Test func claimTagsOwnerKeepsData() async {
+        let store = InMemoryKeyValueStore()
+        let ownerStore = AccountOwnerStore(store: store)
+        let tasks = TaskStore(store: store)
+        tasks.add(title: "Keep me", priority: .normal, plannedSessions: 1)
+        let manager = AccountManager(
+            ownerStore: ownerStore,
+            clearer: AccountDataClearer(
+                engine: TimerEngine(store: store),
+                tasks: tasks,
+                habits: HabitStore(store: store),
+                history: SessionHistoryStore(store: store),
+                prefs: PreferencesStore(store: store)
+            )
+        )
+
+        let result = await manager.onSignedIn(incomingUserId: "user-A", confirmDrop: { true })
+        #expect(result == .claimed)
+        #expect(ownerStore.ownerId == "user-A")
+        #expect(!tasks.tasks.isEmpty)
+    }
+
+    @Test func dropClearsThenRetags() async {
+        let store = InMemoryKeyValueStore()
+        let ownerStore = AccountOwnerStore(store: store)
+        ownerStore.setOwnerId("user-A")
+        let tasks = TaskStore(store: store)
+        tasks.add(title: "Old data", priority: .normal, plannedSessions: 1)
+        let prefs = PreferencesStore(store: store)
+        prefs.userName = "Alice"
+        let manager = AccountManager(
+            ownerStore: ownerStore,
+            clearer: AccountDataClearer(
+                engine: TimerEngine(store: store),
+                tasks: tasks,
+                habits: HabitStore(store: store),
+                history: SessionHistoryStore(store: store),
+                prefs: prefs
+            )
+        )
+
+        let result = await manager.onSignedIn(incomingUserId: "user-B", confirmDrop: { true })
+        #expect(result == .dropped)
+        #expect(ownerStore.ownerId == "user-B")
+        #expect(tasks.tasks.isEmpty)
+        #expect(prefs.userName.isEmpty)
+    }
+
+    @Test func dropCancelledLeavesData() async {
+        let store = InMemoryKeyValueStore()
+        let ownerStore = AccountOwnerStore(store: store)
+        ownerStore.setOwnerId("user-A")
+        let tasks = TaskStore(store: store)
+        tasks.add(title: "Stay", priority: .normal, plannedSessions: 1)
+        let manager = AccountManager(
+            ownerStore: ownerStore,
+            clearer: AccountDataClearer(
+                engine: TimerEngine(store: store),
+                tasks: tasks,
+                habits: HabitStore(store: store),
+                history: SessionHistoryStore(store: store),
+                prefs: PreferencesStore(store: store)
+            )
+        )
+
+        let result = await manager.onSignedIn(incomingUserId: "user-B", confirmDrop: { false })
+        #expect(result == .dropCancelled)
+        #expect(ownerStore.ownerId == "user-A")
+        #expect(!tasks.tasks.isEmpty)
+    }
+}

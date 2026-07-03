@@ -116,8 +116,7 @@ struct BackupRestoreApplicator {
     let prefs: PreferencesStore
     let loc: Localization
     let sounds: SoundsStore
-
-    var isGuest: Bool { true }
+    let isGuest: Bool
 
     func currentExportJSON(manager: BackupManager) throws -> String {
         try manager.makeExportJSON(
