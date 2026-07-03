@@ -175,3 +175,60 @@ struct LocalizationTests {
         }
     }
 }
+
+@Suite struct BackupCodecTests {
+    @Test func decodeEmptyIsMalformed() {
+        if case .malformed = BackupCodec.decode("") { } else {
+            Issue.record("expected malformed")
+        }
+    }
+
+    @Test func decodeUnsupportedVersion() {
+        let raw = #"{"schema_version":9999,"data":{}}"#
+        if case .unsupportedVersion(9999) = BackupCodec.decode(raw) { } else {
+            Issue.record("expected unsupported version")
+        }
+    }
+
+    @Test func roundTripPreservesCoreFields() throws {
+        let task = TaskItem(
+            title: "Write spec",
+            priority: .high,
+            plannedSessions: 2,
+            completedSessions: 1,
+            category: "Work"
+        )
+        let habit = HabitItem(
+            name: "Read",
+            emoji: "📖",
+            colorHex: 0xAABBCC,
+            targetPerDay: 1,
+            scheduledWeekdays: [2, 6],
+            timeBlock: .morning
+        )
+        let json = try BackupCodec.encode(
+            displayName: "Nandra",
+            timerSettings: TimerSettings(focusMinutes: 30, shortBreakMinutes: 6, longBreakMinutes: 20, autoStartNextSession: true, focusSessionsPerCycle: 3),
+            appearance: .dark,
+            language: .id,
+            selectedSoundId: 2,
+            tasks: [task],
+            habits: [habit],
+            sessionRecords: [FocusSessionRecord(minutes: 25, intentName: "Write spec")],
+            stamps: ["2026-06-18": 4],
+            appVersionName: "1.0",
+            exportedAt: 123
+        )
+        guard case .success(let bundle) = BackupCodec.decode(json) else {
+            Issue.record("decode failed")
+            return
+        }
+        #expect(bundle.displayName == "Nandra")
+        #expect(bundle.timerSettings.focusMinutes == 30)
+        #expect(bundle.tasks.count == 1)
+        #expect(bundle.tasks[0].title == "Write spec")
+        #expect(bundle.tasks[0].trimmedCategory == "Work")
+        #expect(bundle.habits.count == 1)
+        #expect(bundle.stamps["2026-06-18"] == 4)
+    }
+}

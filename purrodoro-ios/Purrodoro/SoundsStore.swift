@@ -62,4 +62,19 @@ final class SoundsStore: ObservableObject {
         playingKind = nil
         player.stop()
     }
+
+    /// 1-based id for backup interchange (rain = 1).
+    var exportSoundId: Int {
+        guard let raw = store.string(forKey: selectedKey),
+              let kind = AmbientKind(rawValue: raw),
+              let index = Self.options.firstIndex(where: { $0.kind == kind })
+        else { return 1 }
+        return index + 1
+    }
+
+    func applyRestoredSoundId(_ id: Int) {
+        let index = max(id, 1) - 1
+        guard index < Self.options.count else { return }
+        store.set(Self.options[index].kind.rawValue, forKey: selectedKey)
+    }
 }

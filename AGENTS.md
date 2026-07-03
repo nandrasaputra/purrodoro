@@ -4,6 +4,7 @@ Quick orientation for agents working in this repo. Keep entries brief — link t
 the source docs for detail.
 
 - **Product reference:** [`docs/PRODUCT.md`](docs/PRODUCT.md)
+- **iOS port status:** [`purrodoro-ios/STATUS.md`](purrodoro-ios/STATUS.md)
 - **Android release readiness:** [`purrodoro-android/docs/release-readiness.md`](purrodoro-android/docs/release-readiness.md)
 - **Design specs:** [`docs/superpowers/specs/`](docs/superpowers/specs/)
 - **Soundscape assets:** Postgres catalog + **Cloudflare R2** audio (`l_amb_*` /
@@ -32,3 +33,21 @@ Run from `purrodoro-android/`:
   ```bash
   adb push purrodoro-android/build/purrodoro-sample-backup.json /sdcard/Download/
   ```
+
+## Testing (iOS)
+
+Run from `purrodoro-ios/`:
+
+```bash
+xcodebuild -scheme Purrodoro -destination 'platform=iOS Simulator,name=iPhone 17' build
+xcodebuild test -scheme Purrodoro -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -only-testing:PurrodoroTests
+xcrun simctl install booted build/DerivedData/Build/Products/Debug-iphonesimulator/Purrodoro.app
+```
+
+Port progress + parity matrix: [`purrodoro-ios/STATUS.md`](purrodoro-ios/STATUS.md).
+
+### Backup & Restore (iOS)
+
+- **Automated:** `BackupCodecTests` in `PurrodoroTests/FeatureTests.swift` (round-trip, malformed, unsupported version).
+- **Manual:** Profile → Backup & restore → Export / Restore. Guest-only restore; stop timer first. Cross-platform with Android schema v1 JSON.

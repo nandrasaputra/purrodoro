@@ -14,10 +14,11 @@ struct HomeView: View {
     @EnvironmentObject private var habits: HabitStore
     @EnvironmentObject private var prefs: PreferencesStore
     @EnvironmentObject private var sounds: SoundsStore
+    @EnvironmentObject private var history: SessionHistoryStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showSettings = false
+    @State private var showProfile = false
     @State private var showStartFocus = false
     @State private var showSounds = false
     @State private var startPrefill: StartFocusPrefill?
@@ -59,10 +60,14 @@ struct HomeView: View {
             }
         }
         .environment(\.pColors, colors)
-        .sheet(isPresented: $showSettings) {
-            SettingsSheet()
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
                 .environmentObject(engine)
+                .environmentObject(tasks)
+                .environmentObject(habits)
                 .environmentObject(prefs)
+                .environmentObject(history)
+                .environmentObject(sounds)
                 .environmentObject(loc)
         }
         .sheet(isPresented: $showStartFocus) {
@@ -118,16 +123,16 @@ struct HomeView: View {
             }
             Spacer()
             Button {
-                showSettings = true
+                showProfile = true
             } label: {
-                Image(systemName: "slider.horizontal.3")
+                Image(systemName: "person.crop.circle")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(colors.textPrimary)
                     .frame(width: 44, height: 44)
                     .background(colors.card, in: Circle())
                     .overlay(Circle().stroke(colors.border, lineWidth: 1))
             }
-            .accessibilityLabel(loc.t("home.timerSettings"))
+            .accessibilityLabel(loc.t("home.openProfile"))
         }
     }
 
