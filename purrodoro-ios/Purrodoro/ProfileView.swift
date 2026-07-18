@@ -12,6 +12,8 @@ import UIKit
 struct ProfileView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var ownerStore: AccountOwnerStore
+    @EnvironmentObject private var syncRepo: SyncRepository
+    @EnvironmentObject private var syncCoordinator: SyncCoordinator
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
@@ -30,17 +32,20 @@ struct ProfileView: View {
     @State private var showAccountSwitchAlert = false
     @State private var dropConfirmContinuation: CheckedContinuation<Bool, Never>?
     @State private var signingOut = false
+    @State private var showUnsyncedLogoutAlert = false
 
     private var accountManager: AccountManager {
         AccountManager(
             ownerStore: ownerStore,
             clearer: AccountDataClearer(
+                syncRepo: syncRepo,
                 engine: engine,
                 tasks: tasks,
                 habits: habits,
                 history: history,
                 prefs: prefs
-            )
+            ),
+            syncHooks: syncCoordinator.syncHooks
         )
     }
 
@@ -136,6 +141,14 @@ struct ProfileView: View {
                 }
             } message: {
                 Text(loc.t("account.switch.message"))
+            }
+            .alert(loc.t("logout.unsynced.title"), isPresented: $showUnsyncedLogoutAlert) {
+                Button(loc.t("logout.unsynced.confirm"), role: .destructive) {
+                    Task { await confirmSignOutDespiteUnsynced() }
+                }
+                Button(loc.t("logout.unsynced.dismiss"), role: .cancel) {}
+            } message: {
+                Text(loc.t("logout.unsynced.body"))
             }
         }
         .task { await refreshNotificationStatus() }
@@ -307,6 +320,7 @@ struct ProfileView: View {
                 }
             case .signedIn:
                 VStack(alignment: .leading, spacing: 12) {
+                    SyncStatusMiniPanel(statusStore: syncCoordinator.statusStore, loc: loc)
                     Text(loc.t("account.signedInHint"))
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(colors.textSecondary)
@@ -351,6 +365,18 @@ struct ProfileView: View {
 
     @MainActor
     private func signOut() async {
+        signingOut = true
+        defer { signingOut = false }
+        switch await syncCoordinator.flushBeforeLogout() {
+        case .signOut:
+            try? await auth.signOut()
+        case .warnUnsynced:
+            showUnsyncedLogoutAlert = true
+        }
+    }
+
+    @MainActor
+    private func confirmSignOutDespiteUnsynced() async {
         signingOut = true
         defer { signingOut = false }
         try? await auth.signOut()
@@ -697,6 +723,53 @@ struct ProfileView: View {
 
     private func refreshNotificationStatus() async {
         notificationsEnabled = await NotificationScheduler.shared.notificationsEnabled()
+    }
+}
+
+private struct SyncStatusMiniPanel: View {
+    @ObservedObject var statusStore: SyncStatusStore
+    let loc: Localization
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let presentation = resolveSyncStatusPresentation(statusStore.snapshot)
+        let labels = resolveSyncStatusLabels(
+            presentation,
+            nowMillis: Int64(Date().timeIntervalSince1970 * 1000)
+        )
+        let colors = PurrodoroColors(scheme: scheme)
+        let accent: Color = {
+            if labels.accentIsDestructive { return Brand.coral }
+            if labels.accentIsMuted { return colors.textSecondary }
+            return Brand.mint
+        }()
+
+        HStack(spacing: 12) {
+            Image(systemName: "icloud.fill")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(loc.t(labels.titleKey))
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textPrimary)
+                if let subtitleKey = labels.subtitleKey, let relativeKey = labels.relativeTimeKey {
+                    let relative = relativeLabel(relativeKey: relativeKey, value: labels.relativeTimeValue, loc: loc)
+                    Text(loc.t(subtitleKey, relative))
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(colors.textSecondary)
+                }
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func relativeLabel(relativeKey: String, value: Int?, loc: Localization) -> String {
+        if let value {
+            return String(format: loc.t(relativeKey), locale: Locale.current, value)
+        }
+        return loc.t(relativeKey)
     }
 }
 

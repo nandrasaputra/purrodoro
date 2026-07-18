@@ -47,7 +47,7 @@ final class TimerEngine: ObservableObject {
 
     @Published var settings: TimerSettings {
         didSet {
-            persistSettings()
+            persistSettings(mirror: !suppressProfileMirror)
             // When idle, reflect new durations immediately in the preview.
             if session.timerState == .idle {
                 session = buildSession(settings)
@@ -61,16 +61,19 @@ final class TimerEngine: ObservableObject {
     private var endsAt: Date?
     private var ticker: AnyCancellable?
     private let notifier = NotificationScheduler.shared
+    private let syncRepo: SyncRepository?
     private let store: KeyValueStore
     private let settingsKey = "purrodoro.settings"
     private let stampsKey = "purrodoro.focusStamps"
     private let minutesKey = "purrodoro.focusMinutes"
+    private var suppressProfileMirror = false
 
     // MARK: Init
 
-    init(store: KeyValueStore = UserDefaults.standard) {
-        self.store = store
-        let loaded = Self.loadSettings(store, key: settingsKey)
+    init(syncRepo: SyncRepository? = nil, store: KeyValueStore = UserDefaults.standard) {
+        self.syncRepo = syncRepo
+        self.store = syncRepo?.store ?? store
+        let loaded = syncRepo?.profileTimerSettings() ?? Self.loadSettings(self.store, key: settingsKey)
         self.settings = loaded
         self.runtimeSettings = loaded
         let session = buildSession(loaded)
@@ -90,7 +93,8 @@ final class TimerEngine: ObservableObject {
 
     /// Per-day focus-session counts, keyed "yyyy-MM-dd".
     var focusStampsByDay: [String: Int] {
-        store.dictionary(forKey: stampsKey) as? [String: Int] ?? [:]
+        if let syncRepo { return syncRepo.stampCounts() }
+        return store.dictionary(forKey: stampsKey) as? [String: Int] ?? [:]
     }
 
     /// Per-day focus minutes, keyed "yyyy-MM-dd".
@@ -192,7 +196,6 @@ final class TimerEngine: ObservableObject {
 
     /// Wipe account-owned timer state on an ownership switch (Drop).
     func clearAccountOwnedData() {
-        store.set(nil, forKey: stampsKey)
         store.set(nil, forKey: minutesKey)
         interruptedFocus = nil
         pendingCycleComplete = false
@@ -207,14 +210,37 @@ final class TimerEngine: ObservableObject {
         refreshTodayMetrics()
     }
 
+    /// Sync-pull apply path: writes timer prefs only (row written by ProfileTableSync).
+    func applySyncedSettings(fromJson json: String) {
+        guard let data = json.data(using: .utf8) else { return }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        guard let decoded = try? decoder.decode(TimerSettings.self, from: data) else { return }
+        suppressProfileMirror = true
+        settings = decoded
+        suppressProfileMirror = false
+    }
+
+    func reloadFromSync() {
+        if let synced = syncRepo?.profileTimerSettings() {
+            suppressProfileMirror = true
+            settings = synced
+            suppressProfileMirror = false
+        }
+        refreshTodayMetrics()
+    }
+
     /// Apply validated backup data: union focus stamps, replace timer settings,
     /// and reset any in-flight runtime.
     func applyRestored(stamps imported: [String: Int], settings newSettings: TimerSettings) {
-        var stamps = focusStampsByDay
-        for (day, count) in imported {
-            stamps[day] = max(stamps[day] ?? 0, count)
+        syncRepo?.applyRestoredStamps(imported)
+        if syncRepo == nil {
+            var stamps = focusStampsByDay
+            for (day, count) in imported {
+                stamps[day] = max(stamps[day] ?? 0, count)
+            }
+            store.set(stamps, forKey: stampsKey)
         }
-        store.set(stamps, forKey: stampsKey)
         interruptedFocus = nil
         pendingCycleComplete = false
         endsAt = nil
@@ -422,9 +448,13 @@ final class TimerEngine: ObservableObject {
 
     private func creditFocus(minutes: Int) {
         let key = Self.dayKey(Date())
-        var stamps = store.dictionary(forKey: stampsKey) as? [String: Int] ?? [:]
-        stamps[key, default: 0] += 1
-        store.set(stamps, forKey: stampsKey)
+        if let syncRepo {
+            syncRepo.incrementStamp(for: Date())
+        } else {
+            var stamps = store.dictionary(forKey: stampsKey) as? [String: Int] ?? [:]
+            stamps[key, default: 0] += 1
+            store.set(stamps, forKey: stampsKey)
+        }
 
         var mins = store.dictionary(forKey: minutesKey) as? [String: Int] ?? [:]
         mins[key, default: 0] += minutes
@@ -456,10 +486,17 @@ final class TimerEngine: ObservableObject {
         #endif
     }
 
-    private func persistSettings() {
+    private func persistSettings(mirror: Bool = true) {
         if let data = try? JSONEncoder().encode(settings) {
             store.set(data, forKey: settingsKey)
         }
+        if mirror { mirrorProfileToSync() }
+    }
+
+    private func mirrorProfileToSync() {
+        guard let syncRepo else { return }
+        let name = store.string(forKey: "purrodoro.userName") ?? ""
+        syncRepo.updateProfile(displayName: name, timerSettings: settings)
     }
 
     private static func loadSettings(_ store: KeyValueStore, key: String) -> TimerSettings {

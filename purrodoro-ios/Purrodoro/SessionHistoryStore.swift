@@ -19,59 +19,54 @@ final class SessionHistoryStore: ObservableObject {
     /// Keep history bounded; older entries are dropped past this count.
     static let maxRecords = 500
 
-    private let store: KeyValueStore
-    private let key = "purrodoro.sessionHistory"
+    private let syncRepo: SyncRepository
+    var timerSettingsProvider: () -> TimerSettings = { TimerSettings() }
 
-    init(store: KeyValueStore = UserDefaults.standard) {
-        self.store = store
+    init(syncRepo: SyncRepository) {
+        self.syncRepo = syncRepo
         load()
     }
 
-    /// Append a freshly completed focus session and persist.
+    convenience init() {
+        self.init(syncRepo: SyncRepository(store: InMemoryKeyValueStore()))
+    }
+
     func record(minutes: Int, intentName: String?, endedAt: Date = Date()) {
         let entry = FocusSessionRecord(endedAt: endedAt, minutes: minutes, intentName: intentName)
-        records.insert(entry, at: 0)
-        if records.count > Self.maxRecords {
-            records.removeLast(records.count - Self.maxRecords)
-        }
-        persist()
+        syncRepo.appendFocusSession(
+            entry,
+            timerSettings: timerSettingsProvider(),
+            maxCount: Self.maxRecords
+        )
+        load()
     }
 
     func clear() {
-        records.removeAll()
-        persist()
+        syncRepo.setFocusSessionRecords([], timerSettings: timerSettingsProvider())
+        load()
     }
 
     /// Union imported session rows (backup wins on near-duplicate keys).
     func unionRecords(_ imported: [FocusSessionRecord]) {
-        var merged = records
-        for record in imported {
-            let duplicate = merged.contains {
-                abs($0.endedAt.timeIntervalSince(record.endedAt)) < 1
-                    && $0.minutes == record.minutes
-                    && $0.intentName == record.intentName
-            }
-            if !duplicate { merged.append(record) }
-        }
-        records = merged.sorted { $0.endedAt > $1.endedAt }
-        if records.count > Self.maxRecords {
-            records = Array(records.prefix(Self.maxRecords))
-        }
-        persist()
+        syncRepo.unionFocusSessionRecords(
+            imported,
+            timerSettings: timerSettingsProvider(),
+            maxCount: Self.maxRecords
+        )
+        load()
     }
 
     // MARK: Persistence
 
     private func load() {
-        guard let data = store.data(forKey: key),
-              let decoded = try? JSONDecoder().decode([FocusSessionRecord].self, from: data)
-        else { return }
-        records = decoded.sorted { $0.endedAt > $1.endedAt }
+        records = syncRepo.focusSessionRecords()
+    }
+
+    func reloadFromSync() {
+        load()
     }
 
     private func persist() {
-        if let data = try? JSONEncoder().encode(records) {
-            store.set(data, forKey: key)
-        }
+        syncRepo.setFocusSessionRecords(records, timerSettings: timerSettingsProvider())
     }
 }

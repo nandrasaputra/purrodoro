@@ -107,13 +107,19 @@ final class HabitStore: ObservableObject {
     static let palette: [UInt32] = [0xFFB59E, 0xCDEEDB, 0xD8C8FF, 0xCFEAF8, 0xFFD8DF, 0xFF7F73]
     static let emojis = ["🌱", "📚", "🏃", "🧘", "💧", "🎨", "🎸", "✍️", "🧹", "☀️", "🌙", "🍎"]
 
+    private let syncRepo: SyncRepository
     private let store: KeyValueStore
-    private let key = "purrodoro.habits"
     private let activeKey = "purrodoro.activeHabit"
 
-    init(store: KeyValueStore = UserDefaults.standard) {
-        self.store = store
+    init(syncRepo: SyncRepository, store: KeyValueStore? = nil) {
+        self.syncRepo = syncRepo
+        self.store = store ?? syncRepo.store
         load()
+    }
+
+    convenience init() {
+        let store = InMemoryKeyValueStore()
+        self.init(syncRepo: SyncRepository(store: store), store: store)
     }
 
     var activeHabit: HabitItem? {
@@ -226,9 +232,7 @@ final class HabitStore: ObservableObject {
     // MARK: Persistence
 
     private func persist() {
-        if let data = try? JSONEncoder().encode(habits) {
-            store.set(data, forKey: key)
-        }
+        syncRepo.setHabitItems(habits)
     }
 
     private func persistActive() {
@@ -236,14 +240,19 @@ final class HabitStore: ObservableObject {
     }
 
     private func load() {
-        if let data = store.data(forKey: key),
-           let decoded = try? JSONDecoder().decode([HabitItem].self, from: data) {
-            habits = decoded
-        }
+        reloadFromSyncRepo()
         if let raw = store.string(forKey: activeKey),
            let id = UUID(uuidString: raw),
            habits.contains(where: { $0.id == id }) {
             activeHabitID = id
         }
+    }
+
+    func reloadFromSync() {
+        reloadFromSyncRepo()
+    }
+
+    private func reloadFromSyncRepo() {
+        habits = syncRepo.habitItems()
     }
 }

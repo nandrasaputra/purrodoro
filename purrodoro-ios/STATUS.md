@@ -7,18 +7,19 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-07-03 (Auth PR A — sign-in + ownership)_
+_Last updated: 2026-07-18 (Supabase sync Phases 1–4 + automated QA)_
 
 ---
 
-## Recent progress (2026-07-03)
+## Recent progress (2026-07-18)
 
 | Slice | Status | Key files |
 |-------|--------|-----------|
 | Profile shell | ✅ | `ProfileView.swift` |
 | Backup & restore | ✅ | `BackupCodec.swift`, `BackupManager.swift`, `BackupRestoreView.swift` |
 | Auth (Google + Apple + guest) | 🔶 | `AuthStore`, `LoginSheet`, `AccountManager` — Apple live; Google needs iOS client ID |
-| Supabase sync + StoreKit | ❌ | Next slices; premium banner still stub |
+| Supabase sync | ✅ wired | `Purrodoro/Sync/*`, `SyncCoordinator`, Profile status; NAN-65 two-device QA pending |
+| StoreKit premium | ❌ | Banner still stub |
 
 ---
 
@@ -29,15 +30,17 @@ Habits), full Pomodoro loop, Start Focus sheet, interrupted-focus resume,
 celebration, task categories & due dates, habit scheduling & rest days, procedural
 ambient sounds, EN/ID localization, onboarding, **Profile hub**, **backup &
 restore** (Android-compatible JSON v1), **auth** (Supabase + Apple + Google UI,
-Claim/Keep/Drop ownership), Live Activity, one Today widget, unit tests (all
+Claim/Keep/Drop ownership), **Supabase sync** (seven tables, Profile status,
+logout flush), Live Activity, one Today widget, unit tests (all
 passing). Builds on iOS 26 simulator.
 
-**Not on iOS yet:** **Supabase sync**, **StoreKit premium**, **cloud Soundscape**
+**Not on iOS yet:** **StoreKit premium**, **cloud Soundscape**
 (dual-deck + lo-fi catalog), **home scenes**, **focus-mode overlay**,
 **post-launch tutorial**, **History screen**, **6 of 7 Android Glance widgets**,
-task/habit **free-tier caps** (10 each + paywall).
+task/habit **free-tier caps** (10 each + paywall). Sync engine + Profile status
+shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** Supabase sync → StoreKit premium → Soundscape → home scenes.
+**Next recommended port slices:** StoreKit premium → Soundscape → home scenes. Run NAN-65 two-device sync QA on iOS.
 
 ---
 
@@ -54,7 +57,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Start Focus sheet | ✅ | ✅ | iOS: none / task / habit; no **simple note** intent |
 | Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | 🔶 | iOS: single ambient list (`SoundsSheet.swift`) |
 | Premium discovery + upsell sheets | ✅ | ❌ | Play Billing on Android |
-| Login / logout / account switch | ✅ | 🔶 | `AuthStore` + `AccountManager` — Claim/Keep/Drop; no sync yet |
+| Login / logout / account switch | ✅ | 🔶 | `AuthStore` + `AccountManager` — Claim/Keep/Drop + sync hooks |
 | History (day drill-down) | ✅ `HistoryScreen.kt` | ❌ | iOS: 8 recent rows on Journey only |
 | Storage (downloaded tracks) | ✅ `StorageScreen.kt` | ❌ | |
 | Backup & restore | ✅ `BackupRestoreScreen.kt` | ✅ | `BackupRestoreView.swift` — schema v1, guest-only restore, Files picker |
@@ -94,7 +97,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Archived filter | 🔶 placeholder | — | Android `TaskUiFilter.Archived` always empty |
 | Live focus indicator on task row | ✅ | ❌ | |
 | Free-tier cap (10 active tasks) | ✅ `PremiumGate` | ❌ | |
-| Cloud sync | ✅ `TaskTableSync` | ❌ | |
+| Cloud sync | ✅ `TaskTableSync` | ✅ `TableSyncs` | |
 
 ### Habits
 
@@ -106,7 +109,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Rest / skip days + streak logic | ✅ | ✅ | |
 | Monthly dot grid + detail sheets | ✅ | 🔶 | iOS: 7-day strip |
 | Free-tier cap (10 habits) | ✅ | ❌ | |
-| Cloud sync | ✅ `HabitTableSync` | ❌ | |
+| Cloud sync | ✅ `HabitTableSync` | ✅ `TableSyncs` | |
 
 ### Journey / stats
 
@@ -116,7 +119,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Session timeline per period | ✅ `JourneyTimeline.kt` | 🔶 | Recent feed only |
 | Streak (daily stamps) | ✅ | ✅ | Ported `calculateStreak` |
 | Delete session record | ✅ History | ❌ | |
-| Cloud sync (records + stamps) | ✅ | ❌ | |
+| Cloud sync (records + stamps) | ✅ | ✅ `TableSyncs` | |
 
 ### Auth & sync
 
@@ -127,9 +130,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Supabase session (encrypted) | ✅ Keystore | ✅ | Keychain via `supabase-swift` default storage |
 | `ownerId` ownership marker | ✅ DataStore | ✅ | `AccountOwnerStore` |
 | Claim / Keep / Drop on sign-in | ✅ `AccountManager.kt` | ✅ | `AccountManager.swift` + switch confirm alert |
-| Offline-first LWW sync + tombstones | ✅ `SyncEngine.kt` | ❌ | |
-| Sync status in Profile | ✅ | ❌ | |
-| Logout flush + unsynced warning | ✅ | ❌ | Sign-out clears session only (pre-sync) |
+| Offline-first LWW sync + tombstones | ✅ `SyncEngine.kt` | ✅ `Sync/` | |
+| Sync status in Profile | ✅ | ✅ | `SyncStatusMiniPanel` |
+| Logout flush + unsynced warning | ✅ | ✅ | `SyncCoordinator.flushBeforeLogout` |
 | Avatar cache | ✅ | 🔶 | `AsyncImage` from provider URL when present |
 
 ### Premium & billing
@@ -294,8 +297,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `ui/CalendarScreen.kt` + `JourneyModels.kt` | `JourneyView.swift` + `JourneyModels.swift` |
 | `ui/ProfileScreen.kt` | `ProfileView.swift` + `LoginSheet.swift` |
 | `ui/SoundsScreen.kt` + `soundscape/*` | `SoundsSheet.swift` + `AmbientAudio.swift` (partial) |
-| `auth/AuthRepository.kt` + `AccountManager.kt` | `AuthStore.swift` + `AccountManager.swift` (no sync yet) |
-| `sync/*` | — |
+| `auth/AuthRepository.kt` + `AccountManager.kt` | `AuthStore.swift` + `AccountManager.swift` + sync hooks |
+| `sync/*` | `Purrodoro/Sync/*` + `SyncCoordinator` |
 | `billing/*` | — |
 | `data/backup/*` | `BackupCodec.swift` + `BackupManager.swift` + `BackupRestoreView.swift` |
 | `widget/*` (7 Glance widgets) | `PurrodoroWidgets/TodayWidget.swift` |
@@ -366,8 +369,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] **Auth PR A** — `AuthStore`, `LoginSheet`, `AccountManager`, ownership (`ownerId`)
 - [ ] **Google on device** — create iOS OAuth client; set `SupabaseConfig.googleIOSClientID` + URL scheme
 - [ ] **Onboarding sign-in** — wire `LoginSheet` into `OnboardingView` (Profile only today)
-- [ ] **Supabase sync** — port `SyncEngine.kt`, `TableSyncs.kt`, sync status in Profile
-- [ ] **Logout flush** — unsynced warning when sync lands
+- [x] **Supabase sync** — `SyncEngine`, `TableSyncs`, `SyncCoordinator`, Profile status
+- [x] **Logout flush** — unsynced warning on sign-out
 - [x] **Backup & restore** — schema v1; cross-platform JSON
 - [ ] **StoreKit premium** — mirror `BillingManager.kt` gates + paywall sheets
 
@@ -408,8 +411,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 1. ProfileScreen shell ✅ — `ProfileView.swift`
 2. Backup export/import ✅ — `BackupRestoreView` + Android schema v1
 3. Auth (Google + Apple) + encrypted session ✅ — `AuthStore.swift`, `LoginSheet.swift`, `AccountManager.swift`
-4. Supabase sync (offline-first, same tables as Android)  ← next
-5. StoreKit subscriptions + PremiumGate caps
+4. Supabase sync (offline-first, same tables as Android) ✅ — `SyncCoordinator` + `Sync/`
+5. StoreKit subscriptions + PremiumGate caps  ← next
 6. Soundscape (catalog API shared with Android; AVPlayer loops)
 7. Home scenes + focus overlay
 8. History + tutorial + widget deep links
@@ -435,7 +438,8 @@ Specs to read before each slice:
 - **Sounds:** procedural synthesis is an intentional iOS substitute for bundled
   `l_amb_*` tracks; full parity means cloud Soundscape + lo-fi deck, not more
   procedural presets.
-- **Persistence:** `UserDefaults` is fine for local-only; add SQLite before sync
+- **Persistence:** `UserDefaults` + `SyncRepository` for sync metadata; revisit
+  SQLite/Core Data if volume/query needs grow
   if entity count or query patterns outgrow JSON blobs.
 - **`import Combine`** required in `ObservableObject` files for `@Published`.
 - **Localization:** in-app table (`Localization.swift`), not `.lproj` — add both
@@ -457,8 +461,13 @@ Specs to read before each slice:
   [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](../docs/superpowers/specs/2026-06-09-auth-and-account-identity.md).
 - **Auth behaviour:** guests are local-only (`ownerId = null`). Sign-in runs
   Claim/Keep/Drop via `AccountManager`; Drop clears account-owned data after
-  confirm, then sets `ownerId`. Sign-out clears Supabase session only — data stays.
-  Sync hooks are no-ops until the sync slice lands.
+  confirm, then sets `ownerId`. Sign-out flushes sync when eligible, then clears
+  Supabase session — data stays locally. Sync hooks drive claim-merge / delta /
+  checkpoint reset through `SyncCoordinator`.
+- **Sync:** offline-first LWW + tombstones for seven tables; triggers on
+  foreground + debounced local writes. Profile shows sync status; logout warns
+  if dirty rows remain after flush. Manual two-device QA (NAN-65) still open.
+  Plan: [`docs/superpowers/plans/2026-07-03-ios-supabase-sync.md`](../docs/superpowers/plans/2026-07-03-ios-supabase-sync.md).
 
 ---
 

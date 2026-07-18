@@ -28,9 +28,9 @@ final class PreferencesStore: ObservableObject {
                 return // didSet re-fires with the capped value, which persists
             }
             store.set(userName, forKey: nameKey)
+            mirrorProfileToSync()
         }
     }
-
     /// Whitespace-trimmed name suitable for display; `nil` when nothing is set.
     var trimmedName: String? {
         let t = userName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -45,13 +45,18 @@ final class PreferencesStore: ObservableObject {
 
     static let maxNameLength = 24
 
+    private let syncRepo: SyncRepository?
     private let store: KeyValueStore
     private let appearanceKey = "purrodoro.appearanceMode"
     private let nameKey = "purrodoro.userName"
     private let onboardingKey = "purrodoro.hasCompletedOnboarding"
+    private var suppressProfileMirror = false
 
-    init(store: KeyValueStore = UserDefaults.standard) {
-        self.store = store
+    var timerSettingsProvider: () -> TimerSettings = { TimerSettings() }
+
+    init(syncRepo: SyncRepository? = nil, store: KeyValueStore = UserDefaults.standard) {
+        self.syncRepo = syncRepo
+        self.store = syncRepo?.store ?? store
         let raw = store.string(forKey: appearanceKey)
         self.appearanceMode = raw.flatMap(AppearanceMode.init(rawValue:)) ?? .auto
         self.userName = store.string(forKey: nameKey) ?? ""
@@ -62,5 +67,26 @@ final class PreferencesStore: ObservableObject {
     /// and onboarding flags are device-local and kept.
     func clearAccountOwnedName() {
         userName = ""
+    }
+
+    /// Sync-pull apply path: writes prefs only (row written by ProfileTableSync).
+    func applySyncedProfile(displayName: String) {
+        suppressProfileMirror = true
+        defer { suppressProfileMirror = false }
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        store.set(trimmed, forKey: nameKey)
+        userName = trimmed
+    }
+
+    func reloadFromSync() {
+        let name = syncRepo?.profileDisplayName() ?? store.string(forKey: nameKey) ?? ""
+        suppressProfileMirror = true
+        userName = name
+        suppressProfileMirror = false
+    }
+
+    private func mirrorProfileToSync() {
+        guard let syncRepo, !suppressProfileMirror else { return }
+        syncRepo.updateProfile(displayName: userName, timerSettings: timerSettingsProvider())
     }
 }

@@ -183,8 +183,8 @@ final class Localization: ObservableObject {
         // Account & login
         "account.loading": [.en: "Checking sign-in…", .id: "Memeriksa masuk…"],
         "account.signedInHint": [
-            .en: "Your data will sync once cloud sync is enabled.",
-            .id: "Datamu akan disinkronkan setelah sinkron cloud aktif.",
+            .en: "Your tasks, habits, and journey sync across devices.",
+            .id: "Tugas, kebiasaan, dan perjalananmu tersinkron di semua perangkat.",
         ],
         "account.signOut": [.en: "Sign out", .id: "Keluar"],
         "account.signedInGoogle": [.en: "Signed in with Google", .id: "Masuk dengan Google"],
@@ -197,6 +197,27 @@ final class Localization: ObservableObject {
         ],
         "account.switch.confirm": [.en: "Remove and continue", .id: "Hapus dan lanjutkan"],
         "account.switch.cancel": [.en: "Cancel", .id: "Batal"],
+        "sync.status.notYet": [.en: "Syncing soon", .id: "Segera tersimpan"],
+        "sync.status.skipped": [.en: "Setting up backup", .id: "Menyiapkan backup"],
+        "sync.status.upToDate": [.en: "Backed up", .id: "Sudah tersimpan"],
+        "sync.status.incomplete": [.en: "Saving…", .id: "Sedang menyimpan…"],
+        "sync.status.failed": [.en: "Couldn't back up", .id: "Gagal tersimpan"],
+        "sync.status.lastSync": [.en: "Last backed up · %@", .id: "Terakhir disimpan · %@"],
+        "sync.status.lastTried": [.en: "Last tried · %@", .id: "Terakhir dicoba · %@"],
+        "sync.time.justNow": [.en: "just now", .id: "baru saja"],
+        "sync.time.minutesAgo": [.en: "%d min ago", .id: "%d menit lalu"],
+        "sync.time.hoursAgo": [.en: "%d hr ago", .id: "%d jam lalu"],
+        "sync.time.stale": [.en: "earlier", .id: "sebelumnya"],
+        "logout.unsynced.title": [
+            .en: "Some changes aren't backed up yet",
+            .id: "Keluar tanpa sinkronisasi?",
+        ],
+        "logout.unsynced.body": [
+            .en: "We couldn't sync your latest updates. They'll stay on this device, but may not come with you if someone else signs in here.",
+            .id: "Beberapa perubahan terbaru belum tersinkron ke cloud. Perubahan itu tetap ada di perangkat ini, tetapi bisa hilang jika akun lain masuk di sini.",
+        ],
+        "logout.unsynced.confirm": [.en: "Sign out anyway", .id: "Tetap keluar"],
+        "logout.unsynced.dismiss": [.en: "Keep syncing", .id: "Lanjut sinkron"],
         "login.title": [.en: "Sign in", .id: "Masuk"],
         "login.subtitle": [
             .en: "Back up tasks, habits, and focus history across devices.",
