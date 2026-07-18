@@ -268,19 +268,35 @@ struct AuthProviderTests {
 @MainActor
 struct AccountManagerTests {
 
+    private func makeStores(store: InMemoryKeyValueStore) -> (
+        SyncRepository, TimerEngine, TaskStore, HabitStore, SessionHistoryStore, PreferencesStore
+    ) {
+        let sync = SyncRepository(store: store)
+        let engine = TimerEngine(syncRepo: sync, store: store)
+        let tasks = TaskStore(syncRepo: sync, store: store)
+        let habits = HabitStore(syncRepo: sync, store: store)
+        let history = SessionHistoryStore(syncRepo: sync)
+        let prefs = PreferencesStore(syncRepo: sync, store: store)
+        tasks.focusMinutesProvider = { engine.settings.focusMinutes }
+        history.timerSettingsProvider = { engine.settings }
+        prefs.timerSettingsProvider = { engine.settings }
+        return (sync, engine, tasks, habits, history, prefs)
+    }
+
     @Test func claimTagsOwnerKeepsData() async {
         let store = InMemoryKeyValueStore()
         let ownerStore = AccountOwnerStore(store: store)
-        let tasks = TaskStore(store: store)
+        let (sync, engine, tasks, habits, history, prefs) = makeStores(store: store)
         tasks.add(title: "Keep me", priority: .normal, plannedSessions: 1)
         let manager = AccountManager(
             ownerStore: ownerStore,
             clearer: AccountDataClearer(
-                engine: TimerEngine(store: store),
+                syncRepo: sync,
+                engine: engine,
                 tasks: tasks,
-                habits: HabitStore(store: store),
-                history: SessionHistoryStore(store: store),
-                prefs: PreferencesStore(store: store)
+                habits: habits,
+                history: history,
+                prefs: prefs
             )
         )
 
@@ -294,17 +310,17 @@ struct AccountManagerTests {
         let store = InMemoryKeyValueStore()
         let ownerStore = AccountOwnerStore(store: store)
         ownerStore.setOwnerId("user-A")
-        let tasks = TaskStore(store: store)
+        let (sync, engine, tasks, habits, history, prefs) = makeStores(store: store)
         tasks.add(title: "Old data", priority: .normal, plannedSessions: 1)
-        let prefs = PreferencesStore(store: store)
         prefs.userName = "Alice"
         let manager = AccountManager(
             ownerStore: ownerStore,
             clearer: AccountDataClearer(
-                engine: TimerEngine(store: store),
+                syncRepo: sync,
+                engine: engine,
                 tasks: tasks,
-                habits: HabitStore(store: store),
-                history: SessionHistoryStore(store: store),
+                habits: habits,
+                history: history,
                 prefs: prefs
             )
         )
@@ -320,16 +336,17 @@ struct AccountManagerTests {
         let store = InMemoryKeyValueStore()
         let ownerStore = AccountOwnerStore(store: store)
         ownerStore.setOwnerId("user-A")
-        let tasks = TaskStore(store: store)
+        let (sync, engine, tasks, habits, history, prefs) = makeStores(store: store)
         tasks.add(title: "Stay", priority: .normal, plannedSessions: 1)
         let manager = AccountManager(
             ownerStore: ownerStore,
             clearer: AccountDataClearer(
-                engine: TimerEngine(store: store),
+                syncRepo: sync,
+                engine: engine,
                 tasks: tasks,
-                habits: HabitStore(store: store),
-                history: SessionHistoryStore(store: store),
-                prefs: PreferencesStore(store: store)
+                habits: habits,
+                history: history,
+                prefs: prefs
             )
         )
 
@@ -338,4 +355,59 @@ struct AccountManagerTests {
         #expect(ownerStore.ownerId == "user-A")
         #expect(!tasks.tasks.isEmpty)
     }
+
+    @Test func claimTriggersClaimMergeSync() async {
+        let store = InMemoryKeyValueStore()
+        let ownerStore = AccountOwnerStore(store: store)
+        let (sync, engine, tasks, habits, history, prefs) = makeStores(store: store)
+        var hookCalls: [String] = []
+        let hooks = RecordingSyncHooks(
+            onClaimMerge: { hookCalls.append("claimMerge") },
+            onDelta: { hookCalls.append("deltaSync") },
+            onReset: { hookCalls.append("resetCheckpointsAndPull") }
+        )
+        let manager = AccountManager(
+            ownerStore: ownerStore,
+            clearer: AccountDataClearer(
+                syncRepo: sync, engine: engine, tasks: tasks, habits: habits, history: history, prefs: prefs
+            ),
+            syncHooks: hooks
+        )
+
+        _ = await manager.onSignedIn(incomingUserId: "user-A", confirmDrop: { true })
+        #expect(hookCalls == ["claimMerge"])
+    }
+
+    @Test func keepTriggersDeltaSync() async {
+        let store = InMemoryKeyValueStore()
+        let ownerStore = AccountOwnerStore(store: store)
+        ownerStore.setOwnerId("user-A")
+        let (sync, engine, tasks, habits, history, prefs) = makeStores(store: store)
+        var hookCalls: [String] = []
+        let hooks = RecordingSyncHooks(
+            onClaimMerge: { hookCalls.append("claimMerge") },
+            onDelta: { hookCalls.append("deltaSync") },
+            onReset: { hookCalls.append("resetCheckpointsAndPull") }
+        )
+        let manager = AccountManager(
+            ownerStore: ownerStore,
+            clearer: AccountDataClearer(
+                syncRepo: sync, engine: engine, tasks: tasks, habits: habits, history: history, prefs: prefs
+            ),
+            syncHooks: hooks
+        )
+
+        _ = await manager.onSignedIn(incomingUserId: "user-A", confirmDrop: { true })
+        #expect(hookCalls == ["deltaSync"])
+    }
+}
+
+private struct RecordingSyncHooks: AccountManager.SyncHooks {
+    let onClaimMerge: () async -> Void
+    let onDelta: () async -> Void
+    let onReset: () async -> Void
+
+    func claimMergeSync() async { await onClaimMerge() }
+    func deltaSync() async { await onDelta() }
+    func resetCheckpointsAndPull() async { await onReset() }
 }

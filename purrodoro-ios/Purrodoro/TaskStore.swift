@@ -76,13 +76,22 @@ final class TaskStore: ObservableObject {
     @Published private(set) var tasks: [TaskItem] = []
     @Published var activeTaskID: UUID?
 
+    private let syncRepo: SyncRepository
     private let store: KeyValueStore
-    private let key = "purrodoro.tasks"
     private let activeKey = "purrodoro.activeTask"
 
-    init(store: KeyValueStore = UserDefaults.standard) {
-        self.store = store
+    /// Focus minutes stamped on task rows for sync/export.
+    var focusMinutesProvider: () -> Int = { 25 }
+
+    init(syncRepo: SyncRepository, store: KeyValueStore? = nil) {
+        self.syncRepo = syncRepo
+        self.store = store ?? syncRepo.store
         load()
+    }
+
+    convenience init() {
+        let store = InMemoryKeyValueStore()
+        self.init(syncRepo: SyncRepository(store: store), store: store)
     }
 
     // MARK: Derived
@@ -192,9 +201,7 @@ final class TaskStore: ObservableObject {
     // MARK: Persistence
 
     private func persist() {
-        if let data = try? JSONEncoder().encode(tasks) {
-            store.set(data, forKey: key)
-        }
+        syncRepo.setTaskItems(tasks, focusMinutes: focusMinutesProvider())
     }
 
     private func persistActive() {
@@ -202,15 +209,20 @@ final class TaskStore: ObservableObject {
     }
 
     private func load() {
-        if let data = store.data(forKey: key),
-           let decoded = try? JSONDecoder().decode([TaskItem].self, from: data) {
-            tasks = decoded
-        }
+        reloadFromSyncRepo()
         if let raw = store.string(forKey: activeKey),
            let id = UUID(uuidString: raw),
            tasks.contains(where: { $0.id == id && !$0.completed }) {
             activeTaskID = id
         }
+    }
+
+    func reloadFromSync() {
+        reloadFromSyncRepo()
+    }
+
+    private func reloadFromSyncRepo() {
+        tasks = syncRepo.taskItems(focusMinutes: focusMinutesProvider())
     }
 }
 

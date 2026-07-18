@@ -11,6 +11,7 @@ import Foundation
 
 @MainActor
 struct AccountDataClearer {
+    let syncRepo: SyncRepository
     let engine: TimerEngine
     let tasks: TaskStore
     let habits: HabitStore
@@ -18,6 +19,7 @@ struct AccountDataClearer {
     let prefs: PreferencesStore
 
     func clearAccountOwnedData() {
+        syncRepo.clearAccountOwnedData()
         engine.clearAccountOwnedData()
         tasks.replaceAll([])
         habits.replaceAll([])

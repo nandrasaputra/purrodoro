@@ -17,12 +17,30 @@ final class AccountManager {
         case dropCancelled
     }
 
+    protocol SyncHooks {
+        func claimMergeSync() async
+        func deltaSync() async
+        func resetCheckpointsAndPull() async
+    }
+
     private let ownerStore: AccountOwnerStore
     private let clearer: AccountDataClearer
+    private let syncHooks: SyncHooks
 
-    init(ownerStore: AccountOwnerStore, clearer: AccountDataClearer) {
+    init(
+        ownerStore: AccountOwnerStore,
+        clearer: AccountDataClearer,
+        syncHooks: SyncHooks = NoOpSyncHooks()
+    ) {
         self.ownerStore = ownerStore
         self.clearer = clearer
+        self.syncHooks = syncHooks
+    }
+
+    private struct NoOpSyncHooks: SyncHooks {
+        func claimMergeSync() async {}
+        func deltaSync() async {}
+        func resetCheckpointsAndPull() async {}
     }
 
     /// Resolve what to do with on-device data for [incomingUserId] that just signed in.
@@ -35,14 +53,17 @@ final class AccountManager {
         switch resolveLoginAction(ownerId: ownerStore.currentOwnerId(), incomingUserId: incomingUserId) {
         case .claim:
             ownerStore.setOwnerId(incomingUserId)
+            await syncHooks.claimMergeSync()
             return .claimed
         case .keep:
+            await syncHooks.deltaSync()
             return .kept
         case .drop:
             guard await confirmDrop() else { return .dropCancelled }
             await onBeforeClear()
             clearer.clearAccountOwnedData()
             ownerStore.setOwnerId(incomingUserId)
+            await syncHooks.resetCheckpointsAndPull()
             return .dropped
         }
     }
