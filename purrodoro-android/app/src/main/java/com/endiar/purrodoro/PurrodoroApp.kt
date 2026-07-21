@@ -112,6 +112,11 @@ import com.endiar.purrodoro.ui.HistoryScreen
 import com.endiar.purrodoro.ui.HomeScenePickerSheet
 import com.endiar.purrodoro.ui.HomeTimerScreen
 import com.endiar.purrodoro.ui.ProfileScreen
+import com.endiar.purrodoro.focusshield.FocusShield
+import com.endiar.purrodoro.focusshield.FocusShieldController
+import com.endiar.purrodoro.focusshield.FocusShieldOverlayAccess
+import com.endiar.purrodoro.focusshield.FocusShieldUsageAccess
+import com.endiar.purrodoro.ui.FocusShieldScreen
 import com.endiar.purrodoro.ui.BackupRestoreScreen
 import com.endiar.purrodoro.ui.SoundsScreen
 import com.endiar.purrodoro.ui.StorageScreen
@@ -312,6 +317,7 @@ fun PurrodoroApp(
     var showHistory by remember { mutableStateOf(false) }
     var showStorage by remember { mutableStateOf(false) }
     var showBackupRestore by remember { mutableStateOf(false) }
+    var showFocusShield by remember { mutableStateOf(false) }
     var showLoginSheet by remember { mutableStateOf(false) }
     var showLogoutSheet by remember { mutableStateOf(false) }
 
@@ -827,6 +833,51 @@ fun PurrodoroApp(
         }
     } ?: settings.secondsFor(TimerMode.Focus)
 
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var focusShieldUsageGranted by remember {
+        mutableStateOf(FocusShieldUsageAccess.isGranted(context))
+    }
+    var focusShieldOverlayGranted by remember {
+        mutableStateOf(FocusShieldOverlayAccess.isGranted(context))
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                focusShieldUsageGranted = FocusShieldUsageAccess.isGranted(context)
+                focusShieldOverlayGranted = FocusShieldOverlayAccess.isGranted(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val focusShieldArmed = FocusShield.isArmed(
+        preferenceEnabled = appState.focusShieldEnabled,
+        blockedPackages = appState.focusShieldPackages,
+        usageAccessEnabled = focusShieldUsageGranted,
+        overlayEnabled = focusShieldOverlayGranted,
+        runtime = runtimeState,
+    )
+    LaunchedEffect(
+        appState.focusShieldEnabled,
+        appState.focusShieldPackages,
+        focusShieldUsageGranted,
+        focusShieldOverlayGranted,
+        focusShieldArmed,
+        remainingSeconds,
+    ) {
+        FocusShieldController.publish(
+            FocusShieldController.Snapshot(
+                preferenceEnabled = appState.focusShieldEnabled,
+                blockedPackages = appState.focusShieldPackages,
+                usageAccessEnabled = focusShieldUsageGranted,
+                overlayEnabled = focusShieldOverlayGranted,
+                armed = focusShieldArmed,
+                remainingSeconds = remainingSeconds,
+            ),
+        )
+        if (!focusShieldArmed) FocusShieldController.clearBypass()
+    }
+
     val currentItemType = runtimeState?.session?.items
         ?.getOrNull(runtimeState?.session?.currentIndex ?: 0)?.type
     val timerMode = when (currentItemType) {
@@ -1257,6 +1308,24 @@ fun PurrodoroApp(
                             showStartFocusSheet = false
                             startFocusPrefill = null
                         },
+                        focusShieldEnabled = appState.focusShieldEnabled,
+                        focusShieldPackages = appState.focusShieldPackages,
+                        onFocusShieldEnabledChange = { enabled ->
+                            scope.launch {
+                                if (enabled && !FocusShieldUsageAccess.isGranted(context)) {
+                                    FocusShieldUsageAccess.openSettings(context)
+                                    return@launch
+                                }
+                                if (enabled && !FocusShieldOverlayAccess.isGranted(context)) {
+                                    FocusShieldOverlayAccess.openSettings(context)
+                                    return@launch
+                                }
+                                repo.setFocusShieldEnabled(enabled)
+                            }
+                        },
+                        onFocusShieldPackagesChange = { packages ->
+                            scope.launch { repo.setFocusShieldPackages(packages) }
+                        },
                         onStartFocus = { request ->
                             showStartFocusSheet = false
                             startFocusPrefill = null
@@ -1306,9 +1375,25 @@ fun PurrodoroApp(
                     storageUsedLabel = stringResource(R.string.storage_used, formatBytes(storageSummary.totalBytes)),
                     onOpenStorage = { showStorage = true },
                     onOpenBackupRestore = { showBackupRestore = true },
+                    onOpenFocusShield = { showFocusShield = true },
                     onSignOut = { showLogoutSheet = true },
+                    focusShieldEnabled = appState.focusShieldEnabled,
                     isPremium = isPremium,
                     onOpenPremium = { requestPremiumAccess(PremiumAccessRequest.Discovery) },
+                )
+            }
+
+            if (showFocusShield) {
+                FocusShieldScreen(
+                    enabled = appState.focusShieldEnabled,
+                    blockedPackages = appState.focusShieldPackages,
+                    onBack = { showFocusShield = false },
+                    onEnabledChange = { enabled ->
+                        scope.launch { repo.setFocusShieldEnabled(enabled) }
+                    },
+                    onBlockedPackagesChange = { packages ->
+                        scope.launch { repo.setFocusShieldPackages(packages) }
+                    },
                 )
             }
 
@@ -1725,6 +1810,7 @@ fun PurrodoroApp(
                     showLoginSheet ||
                     showStorage ||
                     showBackupRestore ||
+                    showFocusShield ||
                     showProfile ||
                     showHistory ||
                     tutorialOverlayActive
@@ -1736,6 +1822,7 @@ fun PurrodoroApp(
                         pendingPremiumRequest = null
                     }
                     showLoginSheet -> showLoginSheet = false
+                    showFocusShield -> showFocusShield = false
                     showBackupRestore -> showBackupRestore = false
                     showStorage -> showStorage = false
                     showProfile -> {

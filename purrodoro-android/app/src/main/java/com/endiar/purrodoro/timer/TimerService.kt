@@ -11,6 +11,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import com.endiar.purrodoro.data.AppRepository
+import com.endiar.purrodoro.focusshield.FocusShieldMonitor
 import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
 import com.endiar.purrodoro.model.SessionItemType
@@ -84,6 +85,7 @@ class TimerService : Service() {
             TimerNotification.setNotificationSoundEnabled(applicationContext, appState.notificationSoundEnabled)
         }
         isRunning = true
+        FocusShieldMonitor.start(scope, applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -120,6 +122,7 @@ class TimerService : Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onDestroy() {
+        FocusShieldMonitor.stop()
         isRunning = false
         tickJob?.cancel()
         serviceJob.cancel()

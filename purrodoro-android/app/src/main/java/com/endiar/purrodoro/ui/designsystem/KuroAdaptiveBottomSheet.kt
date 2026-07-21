@@ -10,6 +10,7 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -53,7 +54,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -71,6 +74,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
@@ -78,6 +82,7 @@ import androidx.core.view.WindowCompat
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.X
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.ui.theme.Cocoa
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -162,7 +167,7 @@ fun KuroBottomSheetDragHandle(modifier: Modifier = Modifier) {
 
 /**
  * Bottom sheet that wraps content when it fits on screen, otherwise caps height and
- * scrolls the body with an optional sticky footer. Dismiss via scrim tap or back press.
+ * scrolls the body with an optional sticky header / footer. Dismiss via scrim tap or back press.
  */
 @Composable
 fun KuroAdaptiveBottomSheet(
@@ -175,6 +180,8 @@ fun KuroAdaptiveBottomSheet(
     showCloseButton: Boolean = false,
     /** When true, scrim tap / back / close are ignored (e.g. OAuth in flight). */
     dismissBlocked: Boolean = false,
+    /** Rendered above the scroll body; stays fixed while content scrolls. */
+    stickyHeader: (@Composable () -> Unit)? = null,
     footer: (@Composable (scrollOverlay: Float) -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -346,54 +353,118 @@ fun KuroAdaptiveBottomSheet(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = horizontalPadding),
+                            .navigationBarsPadding(),
                     ) {
-                        // weight(1f, fill = false): Column allocates the remaining height
-                        // (after the footer) to the scroll body, but lets it shrink when
-                        // content is shorter — no empty whitespace when sections are collapsed.
-                        AnimatedContent(
-                            targetState = contentKey,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(if (footer != null) Modifier.weight(1f, fill = false) else Modifier),
-                            transitionSpec = {
-                                fadeIn(
-                                    tween(
-                                        durationMillis = KuroSheetMotion.ContentSwapDurationMs,
-                                        easing = KuroSheetMotion.EnterEasing,
-                                    ),
-                                ).togetherWith(
-                                    fadeOut(
-                                        tween(
-                                            durationMillis = KuroSheetMotion.ContentSwapDurationMs,
-                                            easing = KuroSheetMotion.ExitEasing,
-                                        ),
-                                    ),
-                                )
-                            },
-                            label = "KuroAdaptiveBottomSheetContent",
-                        ) {
+                        val headerScrolled by remember {
+                            derivedStateOf { scrollState.value > 0 }
+                        }
+                        val headerOverlay by animateFloatAsState(
+                            targetValue = if (stickyHeader != null && headerScrolled) 1f else 0f,
+                            animationSpec = tween(durationMillis = 180),
+                            label = "stickyHeaderScrollOverlay",
+                        )
+                        if (stickyHeader != null) {
+                            // Full card width — outside content horizontal padding.
+                            // Hairline + scroll-viewport scrim only (no Modifier.shadow —
+                            // elevation draws a soft inset oval that looks short of the
+                            // sheet edges and reads too heavy on cream).
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .verticalScroll(scrollState)
-                                    .then(
-                                        if (footer != null) {
-                                            Modifier.padding(bottom = KuroSpacing.sheetFooterScrollInset)
-                                        } else {
-                                            Modifier
-                                        },
-                                    ),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                content = content,
-                            )
+                                    .zIndex(1f)
+                                    .background(sheetColor),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = horizontalPadding),
+                                ) {
+                                    stickyHeader()
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(1.dp)
+                                        .background(
+                                            tokens.divider.copy(
+                                                alpha = 0.16f + (0.22f * headerOverlay),
+                                            ),
+                                        ),
+                                )
+                            }
+                        }
+                        // weight(1f, fill = false): Column allocates remaining height
+                        // (after sticky header / footer) to the scroll body, but lets it
+                        // shrink when content is shorter.
+                        val scrollNeedsWeight = stickyHeader != null || footer != null
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(if (scrollNeedsWeight) Modifier.weight(1f, fill = false) else Modifier),
+                        ) {
+                            AnimatedContent(
+                                targetState = contentKey,
+                                modifier = Modifier.fillMaxWidth(),
+                                transitionSpec = {
+                                    fadeIn(
+                                        tween(
+                                            durationMillis = KuroSheetMotion.ContentSwapDurationMs,
+                                            easing = KuroSheetMotion.EnterEasing,
+                                        ),
+                                    ).togetherWith(
+                                        fadeOut(
+                                            tween(
+                                                durationMillis = KuroSheetMotion.ContentSwapDurationMs,
+                                                easing = KuroSheetMotion.ExitEasing,
+                                            ),
+                                        ),
+                                    )
+                                },
+                                label = "KuroAdaptiveBottomSheetContent",
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .verticalScroll(scrollState)
+                                        .padding(horizontal = horizontalPadding)
+                                        .then(
+                                            if (footer != null) {
+                                                Modifier.padding(bottom = KuroSpacing.sheetFooterScrollInset)
+                                            } else {
+                                                Modifier
+                                            },
+                                        ),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    content = content,
+                                )
+                            }
+                            // Soft edge under sticky header; full card width.
+                            if (stickyHeader != null && headerOverlay > 0f) {
+                                val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
+                                val scrimColor = if (isDark) Color.Black else Cocoa
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(16.dp)
+                                        .align(Alignment.TopCenter)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colorStops = arrayOf(
+                                                    0f to scrimColor.copy(alpha = 0.07f * headerOverlay),
+                                                    0.55f to scrimColor.copy(alpha = 0.025f * headerOverlay),
+                                                    1f to Color.Transparent,
+                                                ),
+                                            ),
+                                        ),
+                                )
+                            }
                         }
 
                         if (footer != null) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(horizontal = horizontalPadding)
                                     .padding(bottom = KuroSpacing.sheetFooterBottomInset),
                             ) {
                                 footer(footerScrollOverlay)

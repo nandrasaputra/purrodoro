@@ -162,6 +162,7 @@ fun KuroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() 
     ) {
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusLg))
                 .padding(KuroSpacing.lg),
             content = content,
