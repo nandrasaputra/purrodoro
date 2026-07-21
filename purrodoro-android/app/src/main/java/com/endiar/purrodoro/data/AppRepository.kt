@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.withTransaction
 import com.endiar.purrodoro.data.local.CategoryEntity
@@ -80,6 +81,8 @@ data class AppState(
     val nextHabitId: Int = 1,
     val interruptedFocus: InterruptedFocus? = null,
     val homeScene: HomeScene = HomeScene.Room,
+    val focusShieldEnabled: Boolean = false,
+    val focusShieldPackages: Set<String> = emptySet(),
 ) {
     companion object {
         /** Placeholder until [AppRepository.appState] emits; previews/tests only when no preload. */
@@ -133,6 +136,8 @@ class AppRepository(
         private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial")
         private val KEY_INTERRUPTED_FOCUS = stringPreferencesKey("interrupted_focus")
         private val KEY_HOME_SCENE = stringPreferencesKey("home_scene")
+        private val KEY_FOCUS_SHIELD_ENABLED = booleanPreferencesKey("focus_shield_enabled")
+        private val KEY_FOCUS_SHIELD_PACKAGES = stringSetPreferencesKey("focus_shield_packages")
 
         // Marks which account the on-device data belongs to. Null = unclaimed
         // (guest data). Survives sign-out; drives the Claim/Keep/Drop rule on the
@@ -681,6 +686,8 @@ class AppRepository(
             nextHabitId = prefs[KEY_NEXT_HABIT_ID] ?: 1,
             interruptedFocus = decodeInterruptedFocus(prefs[KEY_INTERRUPTED_FOCUS] ?: ""),
             homeScene = HomeScene.fromStorageName(prefs[KEY_HOME_SCENE]),
+            focusShieldEnabled = prefs[KEY_FOCUS_SHIELD_ENABLED] ?: false,
+            focusShieldPackages = prefs[KEY_FOCUS_SHIELD_PACKAGES] ?: emptySet(),
         )
     }
 
@@ -912,6 +919,12 @@ class AppRepository(
 
     suspend fun setNotificationSoundEnabled(value: Boolean) =
         dataStore.edit { it[KEY_NOTIFICATION_SOUND] = value }
+
+    suspend fun setFocusShieldEnabled(value: Boolean) =
+        dataStore.edit { it[KEY_FOCUS_SHIELD_ENABLED] = value }
+
+    suspend fun setFocusShieldPackages(packages: Set<String>) =
+        dataStore.edit { it[KEY_FOCUS_SHIELD_PACKAGES] = packages }
 
     suspend fun addCategory(name: String, colorArgb: Long? = null) {
         var newId = 0

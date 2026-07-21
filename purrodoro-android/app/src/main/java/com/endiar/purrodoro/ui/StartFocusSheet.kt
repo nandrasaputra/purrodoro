@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.ChartColumn
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.CircleCheck
@@ -33,11 +34,14 @@ import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.Timer
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,14 +60,25 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.core.graphics.drawable.toBitmap
+import android.graphics.drawable.Drawable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.focusshield.FocusShieldApps
+import com.endiar.purrodoro.focusshield.FocusShieldOverlayAccess
+import com.endiar.purrodoro.focusshield.FocusShieldUsageAccess
+import com.endiar.purrodoro.focusshield.LaunchableApp
 import com.endiar.purrodoro.model.Category
 import com.endiar.purrodoro.model.FocusTask
 import com.endiar.purrodoro.model.FocusType
@@ -111,11 +126,15 @@ data class StartFocusRequest(
 private enum class StartFocusSheetPage {
     Confirm,
     EditConfig,
+    EditFocusShield,
+    FocusShieldPermissions,
     PickTask,
     PickHabit,
     CreateTask,
     CreateHabit,
 }
+
+private val FocusShieldIconSize = 28.dp
 
 sealed class StartFocusPrefill {
     /**
@@ -162,6 +181,10 @@ fun StartFocusSheet(
     onAddHabitBlocked: () -> Unit = {},
     onAddTask: ((String, Int?, TaskPriority, LocalDate?) -> Int?)? = null,
     onAddHabit: (suspend (HabitDraft) -> Int?)? = null,
+    focusShieldEnabled: Boolean = false,
+    focusShieldPackages: Set<String> = emptySet(),
+    onFocusShieldEnabledChange: (Boolean) -> Unit = {},
+    onFocusShieldPackagesChange: (Set<String>) -> Unit = {},
 ) {
     val initialIntent = when (prefill) {
         is StartFocusPrefill.Task -> FocusIntent.Task
@@ -187,6 +210,28 @@ fun StartFocusSheet(
     var page by rememberSaveable { mutableStateOf(StartFocusSheetPage.Confirm) }
     var sessionSettings by remember(initialSettings) { mutableStateOf(initialSettings) }
     var sessionSettingsBeforeEdit by remember { mutableStateOf(initialSettings) }
+    var focusShieldDraft by remember(focusShieldPackages) {
+        mutableStateOf(focusShieldPackages)
+    }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var focusShieldUsageGranted by remember {
+        mutableStateOf(FocusShieldUsageAccess.isGranted(context))
+    }
+    var focusShieldOverlayGranted by remember {
+        mutableStateOf(FocusShieldOverlayAccess.isGranted(context))
+    }
+    val focusShieldPermissionsReady = focusShieldUsageGranted && focusShieldOverlayGranted
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                focusShieldUsageGranted = FocusShieldUsageAccess.isGranted(context)
+                focusShieldOverlayGranted = FocusShieldOverlayAccess.isGranted(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     var intent by rememberSaveable { mutableStateOf(initialIntent) }
     var noteText by rememberSaveable { mutableStateOf("") }
@@ -314,6 +359,13 @@ fun StartFocusSheet(
                 sessionSettings = sessionSettingsBeforeEdit
                 page = StartFocusSheetPage.Confirm
             }
+            StartFocusSheetPage.EditFocusShield -> {
+                focusShieldDraft = focusShieldPackages
+                page = StartFocusSheetPage.Confirm
+            }
+            StartFocusSheetPage.FocusShieldPermissions -> {
+                page = StartFocusSheetPage.Confirm
+            }
             StartFocusSheetPage.Confirm -> Unit
         }
     }
@@ -322,6 +374,35 @@ fun StartFocusSheet(
         onDismiss = onDismiss,
         contentKey = sheetContentKey,
         showCloseButton = true,
+        stickyHeader = when (page) {
+            StartFocusSheetPage.EditFocusShield -> {
+                {
+                    KuroBottomSheetSubpageHeader(
+                        title = stringResource(R.string.focus_shield_pick_title),
+                        onBack = {
+                            focusShieldDraft = focusShieldPackages
+                            page = StartFocusSheetPage.Confirm
+                        },
+                        actionLabel = stringResource(R.string.common_done),
+                        onAction = {
+                            onFocusShieldPackagesChange(focusShieldDraft)
+                            page = StartFocusSheetPage.Confirm
+                        },
+                    )
+                }
+            }
+            StartFocusSheetPage.FocusShieldPermissions -> {
+                {
+                    KuroBottomSheetSubpageHeader(
+                        title = stringResource(R.string.focus_shield_permissions_title),
+                        onBack = { page = StartFocusSheetPage.Confirm },
+                        actionLabel = stringResource(R.string.common_done),
+                        onAction = { page = StartFocusSheetPage.Confirm },
+                    )
+                }
+            }
+            else -> null
+        },
         footer = if (page == StartFocusSheetPage.Confirm) {
             { _ ->
                 StartFocusConfirmButton(enabled = canStart(), onClick = {
@@ -361,6 +442,36 @@ fun StartFocusSheet(
                         sessionSettingsBeforeEdit = sessionSettings
                         page = StartFocusSheetPage.EditConfig
                     },
+                    focusShieldEnabled = focusShieldEnabled,
+                    focusShieldPackageCount = focusShieldPackages.size,
+                    permissionsReady = focusShieldPermissionsReady,
+                    onFocusShieldEnabledChange = { wantOn ->
+                        if (focusShieldPermissionsReady) {
+                            if (wantOn && focusShieldPackages.isEmpty()) {
+                                focusShieldDraft = focusShieldPackages
+                                page = StartFocusSheetPage.EditFocusShield
+                            }
+                            onFocusShieldEnabledChange(wantOn)
+                        }
+                    },
+                    onManageFocusShield = {
+                        if (focusShieldPermissionsReady) {
+                            focusShieldDraft = focusShieldPackages
+                            page = StartFocusSheetPage.EditFocusShield
+                        }
+                    },
+                    onRequestFocusShieldPermissions = {
+                        page = StartFocusSheetPage.FocusShieldPermissions
+                    },
+                )
+            }
+
+            StartFocusSheetPage.FocusShieldPermissions -> {
+                StartFocusFocusShieldPermissionsContent(
+                    usageGranted = focusShieldUsageGranted,
+                    overlayGranted = focusShieldOverlayGranted,
+                    onEnableUsage = { FocusShieldUsageAccess.openSettings(context) },
+                    onEnableOverlay = { FocusShieldOverlayAccess.openSettings(context) },
                 )
             }
 
@@ -529,6 +640,13 @@ fun StartFocusSheet(
                     onDone = { page = StartFocusSheetPage.Confirm },
                 )
             }
+
+            StartFocusSheetPage.EditFocusShield -> {
+                StartFocusFocusShieldEditorContent(
+                    draft = focusShieldDraft,
+                    onDraftChange = { focusShieldDraft = it },
+                )
+            }
         }
     }
 
@@ -623,6 +741,12 @@ private fun StartFocusConfirmContent(
     onIntentClick: (FocusIntent) -> Unit,
     onNoteChange: (String) -> Unit,
     onEditConfig: () -> Unit,
+    focusShieldEnabled: Boolean = false,
+    focusShieldPackageCount: Int = 0,
+    permissionsReady: Boolean = true,
+    onFocusShieldEnabledChange: (Boolean) -> Unit = {},
+    onManageFocusShield: () -> Unit = {},
+    onRequestFocusShieldPermissions: () -> Unit = {},
 ) {
     Image(
         painter = painterResource(id = R.drawable.cat_home_sleeping),
@@ -687,6 +811,15 @@ private fun StartFocusConfirmContent(
     DefaultConfigSection(
         settings = sessionSettings,
         onEdit = onEditConfig,
+    )
+    Spacer(Modifier.height(KuroSpacing.md))
+    FocusShieldToggleRow(
+        enabled = focusShieldEnabled,
+        packageCount = focusShieldPackageCount,
+        permissionsReady = permissionsReady,
+        onEnabledChange = onFocusShieldEnabledChange,
+        onManage = onManageFocusShield,
+        onRequestPermissions = onRequestFocusShieldPermissions,
     )
 
     startFocusBlockMessage(
@@ -1104,6 +1237,132 @@ private fun SelectedIntentSummary(
 }
 
 @Composable
+private fun StartFocusFocusShieldEditorContent(
+    draft: Set<String>,
+    onDraftChange: (Set<String>) -> Unit,
+) {
+    val context = LocalContext.current
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val apps = remember {
+        FocusShieldApps.loadLaunchableApps(context.packageManager, context.packageName)
+    }
+    val suggested = remember(apps) {
+        apps.filter { it.packageName in FocusShieldApps.SUGGESTED_PACKAGES }
+    }
+
+    Text(
+        text = stringResource(R.string.focus_shield_sheet_editor_hint),
+        style = KuroType.bodySecondary,
+        color = tokens.textSecondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = KuroSpacing.md),
+    )
+
+    if (suggested.isNotEmpty()) {
+        Text(
+            text = stringResource(R.string.focus_shield_suggested),
+            style = KuroType.labelMeta,
+            color = tokens.textSecondary,
+            modifier = Modifier.padding(bottom = KuroSpacing.sm),
+        )
+        suggested.forEach { app ->
+            FocusShieldSheetAppRow(
+                app = app,
+                checked = app.packageName in draft,
+                onCheckedChange = { checked ->
+                    onDraftChange(
+                        if (checked) draft + app.packageName else draft - app.packageName,
+                    )
+                },
+            )
+            Spacer(modifier = Modifier.height(KuroSpacing.sm))
+        }
+        Spacer(modifier = Modifier.height(KuroSpacing.sm))
+        Text(
+            text = stringResource(R.string.focus_shield_all_apps),
+            style = KuroType.labelMeta,
+            color = tokens.textSecondary,
+            modifier = Modifier.padding(bottom = KuroSpacing.sm),
+        )
+    }
+    apps.forEach { app ->
+        FocusShieldSheetAppRow(
+            app = app,
+            checked = app.packageName in draft,
+            onCheckedChange = { checked ->
+                onDraftChange(
+                    if (checked) draft + app.packageName else draft - app.packageName,
+                )
+            },
+        )
+        Spacer(modifier = Modifier.height(KuroSpacing.sm))
+    }
+}
+
+@Composable
+private fun FocusShieldSheetAppRow(
+    app: LaunchableApp,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val iconBitmap = remember(app.icon) {
+        app.icon?.toBitmap(width = 72, height = 72)?.asImageBitmap()
+    }
+    KuroCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
+        ) {
+            if (iconBitmap != null) {
+                Image(
+                    bitmap = iconBitmap,
+                    contentDescription = null,
+                    modifier = Modifier.size(KuroSpacing.xl),
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_distraction_app_blocker),
+                    contentDescription = null,
+                    modifier = Modifier.size(KuroSpacing.xl),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = app.label,
+                    style = KuroType.bodyPrimary,
+                    color = tokens.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = app.packageName,
+                    style = KuroType.labelMeta,
+                    color = tokens.textMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = tokens.accentOn,
+                    checkedTrackColor = tokens.accent,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = tokens.textSecondary.copy(alpha = 0.35f),
+                    uncheckedBorderColor = tokens.textSecondary,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
 private fun StartFocusConfigEditorContent(
     settings: TimerSettings,
     onSettingsChange: (TimerSettings) -> Unit,
@@ -1498,6 +1757,207 @@ private fun ConfigCell(
                 text = value,
                 style = KuroType.labelStrong,
                 color = tokens.textPrimary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FocusShieldToggleRow(
+    enabled: Boolean,
+    packageCount: Int,
+    permissionsReady: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    onManage: () -> Unit,
+    onRequestPermissions: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    val stateLabel = if (packageCount > 0) {
+        stringResource(R.string.focus_shield_sheet_state_count, packageCount)
+    } else {
+        stringResource(R.string.focus_shield_sheet_state_none)
+    }
+    val controlsEnabled = permissionsReady
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.focus_shield_title),
+                style = KuroType.labelStrong,
+                color = tokens.textPrimary,
+            )
+            Text(
+                text = stringResource(R.string.focus_shield_edit_apps),
+                style = KuroType.labelStrong,
+                color = if (controlsEnabled) tokens.accent else tokens.accent.copy(alpha = 0.40f),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(KuroSpacing.radiusSm))
+                    .clickable(enabled = controlsEnabled, onClick = onManage)
+                    .padding(horizontal = KuroSpacing.xs, vertical = KuroSpacing.xs),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+                .background(tokens.pageBackground)
+                .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd)),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_distraction_app_blocker),
+                    contentDescription = null,
+                    modifier = Modifier.size(FocusShieldIconSize),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.focus_shield_sheet_copy),
+                        style = KuroType.labelMeta,
+                        color = tokens.textSecondary,
+                    )
+                    Text(
+                        text = stateLabel,
+                        style = KuroType.labelStrong,
+                        color = tokens.textPrimary,
+                    )
+                }
+                Switch(
+                    checked = enabled && controlsEnabled,
+                    onCheckedChange = onEnabledChange,
+                    enabled = controlsEnabled,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = tokens.accentOn,
+                        checkedTrackColor = tokens.accent,
+                        uncheckedThumbColor = tokens.accentOn,
+                        uncheckedTrackColor = tokens.cardBorder,
+                        uncheckedBorderColor = tokens.cardBorder,
+                        disabledCheckedThumbColor = tokens.accentOn.copy(alpha = 0.70f),
+                        disabledCheckedTrackColor = tokens.accent.copy(alpha = 0.40f),
+                        disabledUncheckedThumbColor = tokens.accentOn.copy(alpha = 0.70f),
+                        disabledUncheckedTrackColor = tokens.cardBorder.copy(alpha = 0.60f),
+                        disabledUncheckedBorderColor = tokens.cardBorder.copy(alpha = 0.60f),
+                    ),
+                )
+            }
+            if (!permissionsReady) {
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = KuroSpacing.md)
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(tokens.divider.copy(alpha = 0.55f)),
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onRequestPermissions)
+                        .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+                ) {
+                    Text(
+                        text = stringResource(R.string.focus_shield_grant_needed),
+                        style = KuroType.labelStrong,
+                        color = tokens.accent,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        imageVector = Lucide.ChevronRight,
+                        contentDescription = null,
+                        tint = tokens.accent,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StartFocusFocusShieldPermissionsContent(
+    usageGranted: Boolean,
+    overlayGranted: Boolean,
+    onEnableUsage: () -> Unit,
+    onEnableOverlay: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Text(
+        text = stringResource(R.string.focus_shield_permissions_intro),
+        style = KuroType.bodySecondary,
+        color = tokens.textSecondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = KuroSpacing.lg),
+    )
+    FocusShieldPermissionRow(
+        title = stringResource(R.string.focus_shield_perm_usage_title),
+        body = stringResource(R.string.focus_shield_perm_usage_body),
+        granted = usageGranted,
+        onEnable = onEnableUsage,
+    )
+    Spacer(Modifier.height(KuroSpacing.sm))
+    FocusShieldPermissionRow(
+        title = stringResource(R.string.focus_shield_perm_overlay_title),
+        body = stringResource(R.string.focus_shield_perm_overlay_body),
+        granted = overlayGranted,
+        onEnable = onEnableOverlay,
+    )
+}
+
+@Composable
+private fun FocusShieldPermissionRow(
+    title: String,
+    body: String,
+    granted: Boolean,
+    onEnable: () -> Unit,
+) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(KuroSpacing.radiusMd))
+            .background(tokens.pageBackground)
+            .border(1.dp, tokens.cardBorder, RoundedCornerShape(KuroSpacing.radiusMd))
+            .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm),
+    ) {
+        Text(
+            text = title,
+            style = KuroType.labelStrong,
+            color = tokens.textPrimary,
+        )
+        Text(
+            text = body,
+            style = KuroType.bodySecondary,
+            color = tokens.textSecondary,
+        )
+        if (granted) {
+            Text(
+                text = stringResource(R.string.focus_shield_perm_granted),
+                style = KuroType.labelStrong,
+                color = tokens.accent,
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.focus_shield_perm_enable),
+                style = KuroType.labelStrong,
+                color = tokens.accent,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(KuroSpacing.radiusSm))
+                    .clickable(onClick = onEnable)
+                    .padding(vertical = KuroSpacing.xs),
             )
         }
     }

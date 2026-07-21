@@ -68,6 +68,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -122,6 +123,8 @@ fun ProfileScreen(
     storageUsedLabel: String = "",
     onOpenStorage: () -> Unit = {},
     onOpenBackupRestore: () -> Unit = {},
+    onOpenFocusShield: () -> Unit = {},
+    focusShieldEnabled: Boolean = false,
     isPremium: Boolean = false,
     onOpenPremium: () -> Unit = {},
 ) {
@@ -238,6 +241,16 @@ fun ProfileScreen(
                     subtitle = stringResource(R.string.settings_auto_start_subtitle),
                     checked = settings.autoStartNextSession,
                     onCheckedChange = { onUpdateSettings(settings.copy(autoStartNextSession = it)) },
+                )
+                KuroDivider()
+                TappableRow(
+                    iconRes = R.drawable.ic_distraction_app_blocker,
+                    label = stringResource(R.string.focus_shield_title),
+                    value = stringResource(
+                        if (focusShieldEnabled) R.string.focus_shield_profile_enabled
+                        else R.string.focus_shield_profile_disabled,
+                    ),
+                    onClick = onOpenFocusShield,
                 )
             }
 
@@ -512,6 +525,49 @@ private fun TappableRow(
     onClick: () -> Unit,
     value: String? = null,
 ) {
+    TappableRowContent(
+        icon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.kuroTokens.accent,
+                modifier = Modifier.size(KuroSpacing.lg),
+            )
+        },
+        label = label,
+        onClick = onClick,
+        value = value,
+    )
+}
+
+@Composable
+private fun TappableRow(
+    @DrawableRes iconRes: Int,
+    label: String,
+    onClick: () -> Unit,
+    value: String? = null,
+) {
+    TappableRowContent(
+        icon = {
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(KuroSpacing.lg),
+            )
+        },
+        label = label,
+        onClick = onClick,
+        value = value,
+    )
+}
+
+@Composable
+private fun TappableRowContent(
+    icon: @Composable () -> Unit,
+    label: String,
+    onClick: () -> Unit,
+    value: String? = null,
+) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Row(
         modifier = Modifier
@@ -520,12 +576,7 @@ private fun TappableRow(
             .padding(horizontal = KuroSpacing.md, vertical = KuroSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tokens.accent,
-            modifier = Modifier.size(KuroSpacing.lg),
-        )
+        icon()
         Spacer(modifier = Modifier.width(KuroSpacing.md))
         Text(
             text = label,
