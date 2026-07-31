@@ -22,6 +22,7 @@ struct PurrodoroApp: App {
     @StateObject private var prefs: PreferencesStore
     @StateObject private var history: SessionHistoryStore
     @StateObject private var sounds: SoundsStore
+    @StateObject private var storeKit: StoreKitManager
     @StateObject private var syncCoordinator: SyncCoordinator
     @StateObject private var loc = Localization()
 
@@ -37,6 +38,7 @@ struct PurrodoroApp: App {
         let habits = HabitStore(syncRepo: sync, store: store)
         let prefs = PreferencesStore(syncRepo: sync, store: store)
         let history = SessionHistoryStore(syncRepo: sync)
+        let storeKit = StoreKitManager(prefs: prefs)
 
         tasks.focusMinutesProvider = { engine.settings.focusMinutes }
         prefs.timerSettingsProvider = { engine.settings }
@@ -66,6 +68,7 @@ struct PurrodoroApp: App {
         _prefs = StateObject(wrappedValue: prefs)
         _history = StateObject(wrappedValue: history)
         _sounds = StateObject(wrappedValue: SoundsStore(store: store))
+        _storeKit = StateObject(wrappedValue: storeKit)
         _syncCoordinator = StateObject(wrappedValue: coordinator)
     }
 
@@ -82,6 +85,7 @@ struct PurrodoroApp: App {
                 .environmentObject(prefs)
                 .environmentObject(history)
                 .environmentObject(sounds)
+                .environmentObject(storeKit)
                 .environmentObject(loc)
                 .preferredColorScheme(prefs.appearanceMode.preferredColorScheme)
                 .onOpenURL { url in
@@ -90,6 +94,11 @@ struct PurrodoroApp: App {
                 .onAppear {
                     if !isRunningUnitTests {
                         syncCoordinator.start()
+                        storeKit.start()
+                        Task {
+                            await storeKit.refreshCatalog()
+                            await storeKit.refreshEntitlements()
+                        }
                     }
                     engine.onFocusSessionCompleted = { [weak tasks, weak habits, weak history] minutes in
                         let intentName = tasks?.activeTask?.title ?? habits?.activeHabit?.name
@@ -104,11 +113,16 @@ struct PurrodoroApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, !isRunningUnitTests {
                         syncCoordinator.requestImmediateSync()
+                        Task { await storeKit.refreshEntitlements() }
                     }
                 }
                 .onChange(of: auth.state) { _, state in
                     if case .signedIn = state, !isRunningUnitTests {
                         syncCoordinator.requestImmediateSync()
+                        Task {
+                            await storeKit.refreshCatalog()
+                            await storeKit.refreshEntitlements()
+                        }
                     }
                 }
         }
