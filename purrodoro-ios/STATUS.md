@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-07-31 (StoreKit premium foundation + free-tier caps)_
+_Last updated: 2026-07-31 (iOS Soundscape #1 — dual deck + catalog)_
 
 ---
 
@@ -21,6 +21,7 @@ _Last updated: 2026-07-31 (StoreKit premium foundation + free-tier caps)_
 | Supabase sync | ✅ wired | `Purrodoro/Sync/*`, `SyncCoordinator`, Profile status; NAN-65 two-device QA pending |
 | StoreKit premium | 🔶 | `StoreKitManager` + gates + Profile discovery; App Store Connect products still placeholders |
 | Free-tier caps (10 tasks / 10 habits) | ✅ | `PremiumGate` + Tasks/Habits upsell |
+| **Soundscape #1** | 🔶 | Dual deck + bundled MP3s + cloud catalog/download; Storage UI / dock later |
 | **Android audit 2026-07-31** | docs | Android added **Focus Shield**; billing / Soundscape / 7 widgets confirmed shipped |
 
 ---
@@ -29,21 +30,22 @@ _Last updated: 2026-07-31 (StoreKit premium foundation + free-tier caps)_
 
 **Shipped on iOS:** local-first core product — four tabs (Focus / Tasks / Journey /
 Habits), full Pomodoro loop, Start Focus sheet, interrupted-focus resume,
-celebration, task categories & due dates, habit scheduling & rest days, procedural
-ambient sounds, EN/ID localization, onboarding, **Profile hub**, **backup &
+celebration, task categories & due dates, habit scheduling & rest days, **Soundscape
+dual deck** (bundled ambience + lo-fi MP3s, cloud catalog + download-to-play,
+premium locks), EN/ID localization, onboarding, **Profile hub**, **backup &
 restore** (Android-compatible JSON v1), **auth** (Supabase + Apple + Google UI,
 Claim/Keep/Drop ownership), **Supabase sync** (seven tables, Profile status,
 logout flush), Live Activity, one Today widget, **StoreKit premium foundation**
 (discovery, upsell, 10/10 caps), unit tests (all
 passing). Builds on iOS 26 simulator.
 
-**Not on iOS yet:** **App Store Connect products** (local `.storekit` only), **cloud Soundscape**
-(dual-deck + lo-fi catalog), **home scenes**, **focus-mode overlay**,
+**Not on iOS yet:** **App Store Connect products** (local `.storekit` only), **Soundscape
+Storage UI / home dock / thumbnails**, **home scenes**, **focus-mode overlay**,
 **post-launch tutorial**, **History screen**, **6 of 7 Android Glance widgets**,
 **Focus Shield** (Android distraction blocker — iOS would need Screen Time / FamilyControls).
 StoreKit foundation + task/habit caps shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** Soundscape → home scenes. Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device sync QA on iOS.
+**Next recommended port slices:** Soundscape Storage UI + dock → home scenes. Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device sync QA on iOS.
 
 ---
 
@@ -58,7 +60,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | 4-tab dock (Focus / Tasks / Habits / Journey) | ✅ | ✅ | `PurrodoroApp.kt` → `RootView.swift` |
 | Profile / Settings screen | ✅ `ProfileScreen.kt` | 🔶 | `ProfileView.swift` — settings hub + live auth; premium + storage stub |
 | Start Focus sheet | ✅ | ✅ | iOS: none / task / habit; no **simple note** intent |
-| Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | 🔶 | iOS: single ambient list (`SoundsSheet.swift`) |
+| Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | 🔶 | Dual deck (#1); Storage UI / dock / thumbs later |
 | Premium discovery + upsell sheets | ✅ | 🔶 | `PremiumView` + `PremiumUpsellSheet`; StoreKit placeholders |
 | Login / logout / account switch | ✅ | 🔶 | `AuthStore` + `AccountManager` — Claim/Keep/Drop + sync hooks |
 | History (day drill-down) | ✅ `HistoryScreen.kt` | ❌ | iOS: 8 recent rows on Journey only |
@@ -145,7 +147,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|---------|-----|
 | Play Billing 8.x / subscriptions | ✅ `BillingManager.kt` | 🔶 `StoreKitManager` | Local `.storekit`; Connect TBD |
 | Monthly + yearly + trial offers | ✅ | 🔶 | Trial when yearly product offers intro |
-| Premium gates (sounds, scenes, caps) | ✅ `PremiumGate.kt` | 🔶 | Caps ✅; sounds/scenes wait on those features |
+| Premium gates (sounds, scenes, caps) | ✅ `PremiumGate.kt` | 🔶 | Caps ✅; sound locks ✅; scenes wait on feature |
 | Premium branding (avatar frame, badge) | ✅ | 🔶 | Profile banner purple when premium |
 | StoreKit | — | 🔶 | Foundation shipped |
 
@@ -153,15 +155,15 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 | Feature | Android | iOS | Notes |
 |---------|---------|-----|-------|
-| Dual deck (ambience + lo-fi) | ✅ | ❌ | |
-| Bundled APK tracks (`l_amb_*`, `l_lofi_*`) | ✅ | — | |
-| Cloud catalog (Postgres + R2) | ✅ `SoundscapeCatalogApi.kt` | ❌ | |
-| Track downloads + storage UI | ✅ `TrackDownloadManager.kt` | ❌ | |
+| Dual deck (ambience + lo-fi) | ✅ | ✅ | `SoundsSheet` dual sections; `SoundscapePlayer` |
+| Bundled APK/app tracks (`l_amb_*`, `l_lofi_*`) | ✅ | ✅ | 12 MP3s in `Purrodoro/Soundscape/` |
+| Cloud catalog (Postgres + R2) | ✅ `SoundscapeCatalogApi.kt` | ✅ | `SoundscapeCatalogApi.swift`; refresh on appear/foreground |
+| Track downloads + storage UI | ✅ `TrackDownloadManager.kt` | 🔶 | Download engine ✅; Storage UI ❌ |
 | Thumbnails | ✅ | ❌ | |
 | Dock / compact transport on Home | ✅ | ❌ | Music button → sheet only |
-| Saved mix persistence | ✅ | 🔶 | Selected ambient sound only |
-| Procedural ambient (rain, cafe, …) | — | ✅ | `AmbientAudio.swift` — intentional substitute |
-| Premium-locked tracks | ✅ UI gate | ❌ | `SoundOption.locked` unused |
+| Saved mix persistence | ✅ | 🔶 | Ambience + music ids + volumes |
+| Procedural ambient (rain, cafe, …) | — | — | Retired; replaced by bundled MP3s |
+| Premium-locked tracks | ✅ UI gate | ✅ | `PremiumUpsellTrigger.lockedSound` via `prefs.isPremium` |
 
 ### Backup & restore
 
@@ -280,7 +282,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `JourneyModels.swift` / `JourneyView.swift` | Streaks, heatmap, recent sessions |
 | `SessionHistoryStore.swift` | Per-focus-segment history (cap 500) |
 | `NotificationScheduler.swift` | Local notifications + foreground delegate |
-| `SoundsStore.swift` / `SoundsSheet.swift` / `AmbientAudio.swift` | Procedural ambient audio |
+| `SoundsStore.swift` / `SoundsSheet.swift` / `Soundscape/*` | Dual-deck Soundscape (#1) |
 | `Localization.swift` | Runtime EN/ID string table |
 | `Persistence.swift` | `KeyValueStore` protocol |
 | `LiveActivityController.swift` | ActivityKit lifecycle |
@@ -300,7 +302,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `ui/HabitsScreen.kt` | `HabitsView.swift` + `HabitStore.swift` |
 | `ui/CalendarScreen.kt` + `JourneyModels.kt` | `JourneyView.swift` + `JourneyModels.swift` |
 | `ui/ProfileScreen.kt` | `ProfileView.swift` + `LoginSheet.swift` |
-| `ui/SoundsScreen.kt` + `soundscape/*` | `SoundsSheet.swift` + `AmbientAudio.swift` (partial) |
+| `ui/SoundsScreen.kt` + `soundscape/*` | `SoundsSheet.swift` + `Soundscape/*` (#1) |
 | `auth/AuthRepository.kt` + `AccountManager.kt` | `AuthStore.swift` + `AccountManager.swift` + sync hooks |
 | `sync/*` | `Purrodoro/Sync/*` + `SyncCoordinator` |
 | `billing/*` | — |
@@ -381,7 +383,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 ### P1 — product parity
 
-- [ ] **Soundscape** — dual deck, bundled + cloud catalog, downloads, thumbnails, premium locks
+- [x] **Soundscape #1** — dual deck, bundled MP3s, cloud catalog + download-to-play, premium locks
+- [ ] **Soundscape #2** — Storage UI, home dock/transport, thumbnails
 - [ ] **Home scenes** — `HomeScene.kt` art + picker + premium gates
 - [ ] **Focus mode overlay** — `FocusModeOverlay.kt` immersive surface
 - [ ] **History screen** — day drill-down, delete records (`HistoryScreen.kt`)
@@ -420,17 +423,18 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 3. Auth (Google + Apple) + encrypted session ✅ — `AuthStore.swift`, `LoginSheet.swift`, `AccountManager.swift`
 4. Supabase sync (offline-first, same tables as Android) ✅ — `SyncCoordinator` + `Sync/`
 5. StoreKit subscriptions + PremiumGate caps  ✅ foundation (Connect TBD)
-6. Soundscape (catalog API shared with Android; AVPlayer loops)  ← next
-7. Home scenes + focus overlay
-8. History + tutorial + widget deep links
-9. Extra widgets + iPad polish + tests
-10. Focus Shield (platform-specific; design before port)
+6. Soundscape #1 ✅ — dual deck, bundled + catalog + download-to-play
+7. Soundscape #2 — Storage UI, dock, thumbnails
+8. Home scenes + focus overlay
+9. History + tutorial + widget deep links
+10. Extra widgets + iPad polish + tests
+11. Focus Shield (platform-specific; design before port)
 ```
 
 Specs to read before each slice:
 - Auth: [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](../docs/superpowers/specs/2026-06-09-auth-and-account-identity.md)
 - Backup: [`docs/superpowers/specs/2026-06-19-data-backup-and-restore-design.md`](../docs/superpowers/specs/2026-06-19-data-backup-and-restore-design.md)
-- **StoreKit premium (next):** [`docs/superpowers/specs/2026-07-31-ios-storekit-premium-design.md`](../docs/superpowers/specs/2026-07-31-ios-storekit-premium-design.md)
+- StoreKit premium: [`docs/superpowers/specs/2026-07-31-ios-storekit-premium-design.md`](../docs/superpowers/specs/2026-07-31-ios-storekit-premium-design.md)
 - Soundscape: [`docs/superpowers/specs/2026-06-17-soundscape-admin-design.md`](../docs/superpowers/specs/2026-06-17-soundscape-admin-design.md)
 - Cloud assets: [`docs/CLOUD_ASSET_MANAGEMENT.md`](../docs/CLOUD_ASSET_MANAGEMENT.md)
 - Freemium (historical): [`docs/superpowers/plans/2026-06-07-freemium-model.md`](../docs/superpowers/plans/2026-06-07-freemium-model.md)
@@ -444,9 +448,8 @@ Specs to read before each slice:
   are the reference for edge-case QA, not a port target.
 - **Session records:** Android logs one `SessionRecord` per cycle attempt; iOS
   logs each completed **focus segment** — Journey UI reflects that difference.
-- **Sounds:** procedural synthesis is an intentional iOS substitute for bundled
-  `l_amb_*` tracks; full parity means cloud Soundscape + lo-fi deck, not more
-  procedural presets.
+- **Sounds:** Soundscape #1 ships bundled `l_amb_*` / `l_lofi_*` MP3 loops +
+  cloud catalog download-to-play. Remaining: Storage UI, dock transport, thumbnails.
 - **Persistence:** `UserDefaults` + `SyncRepository` for sync metadata; revisit
   SQLite/Core Data if volume/query needs grow
   if entity count or query patterns outgrow JSON blobs.
@@ -454,8 +457,8 @@ Specs to read before each slice:
 - **Localization:** in-app table (`Localization.swift`), not `.lproj` — add both
   `.en` and `.id` for every new string. Android also supports **System** locale;
   iOS does not yet.
-- **Premium scaffolding:** `SoundOption.locked` and `sounds.premium` string exist
-  but are unused — wire when StoreKit lands.
+- **Premium scaffolding:** sound locks gate via `prefs.isPremium` +
+  `PremiumUpsellTrigger.lockedSound`; scene locks wait on home scenes.
 - **Backup files:** schema v1 matches Android `BackupCodec.kt` field names
   (`schema_version`, snake_case keys). iOS uses UUIDs internally but exports
   stable int ids for interchange. Safety copies live in
