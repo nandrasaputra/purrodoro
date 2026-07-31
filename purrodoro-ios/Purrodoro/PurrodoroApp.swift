@@ -24,7 +24,7 @@ struct PurrodoroApp: App {
     @StateObject private var sounds: SoundsStore
     @StateObject private var storeKit: StoreKitManager
     @StateObject private var syncCoordinator: SyncCoordinator
-    @StateObject private var loc = Localization()
+    @StateObject private var loc: Localization
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -39,6 +39,13 @@ struct PurrodoroApp: App {
         let prefs = PreferencesStore(syncRepo: sync, store: store)
         let history = SessionHistoryStore(syncRepo: sync)
         let storeKit = StoreKitManager(prefs: prefs)
+        let loc = Localization(store: store)
+        let sounds = SoundsStore(
+            store: store,
+            client: auth.client,
+            prefs: prefs,
+            localization: loc
+        )
 
         tasks.focusMinutesProvider = { engine.settings.focusMinutes }
         prefs.timerSettingsProvider = { engine.settings }
@@ -67,9 +74,10 @@ struct PurrodoroApp: App {
         _habits = StateObject(wrappedValue: habits)
         _prefs = StateObject(wrappedValue: prefs)
         _history = StateObject(wrappedValue: history)
-        _sounds = StateObject(wrappedValue: SoundsStore(store: store))
+        _sounds = StateObject(wrappedValue: sounds)
         _storeKit = StateObject(wrappedValue: storeKit)
         _syncCoordinator = StateObject(wrappedValue: coordinator)
+        _loc = StateObject(wrappedValue: loc)
     }
 
     var body: some Scene {
@@ -98,6 +106,7 @@ struct PurrodoroApp: App {
                         Task {
                             await storeKit.refreshCatalog()
                             await storeKit.refreshEntitlements()
+                            await sounds.refreshCatalog()
                         }
                     }
                     engine.onFocusSessionCompleted = { [weak tasks, weak habits, weak history] minutes in
@@ -113,7 +122,10 @@ struct PurrodoroApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, !isRunningUnitTests {
                         syncCoordinator.requestImmediateSync()
-                        Task { await storeKit.refreshEntitlements() }
+                        Task {
+                            await storeKit.refreshEntitlements()
+                            await sounds.refreshCatalog()
+                        }
                     }
                 }
                 .onChange(of: auth.state) { _, state in
