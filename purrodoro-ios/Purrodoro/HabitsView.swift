@@ -11,27 +11,65 @@ import SwiftUI
 
 struct HabitsView: View {
     @EnvironmentObject private var store: HabitStore
+    @EnvironmentObject private var prefs: PreferencesStore
+    @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var ownerStore: AccountOwnerStore
+    @EnvironmentObject private var syncRepo: SyncRepository
+    @EnvironmentObject private var syncCoordinator: SyncCoordinator
+    @EnvironmentObject private var engine: TimerEngine
+    @EnvironmentObject private var tasks: TaskStore
+    @EnvironmentObject private var history: SessionHistoryStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var editing: HabitItem?
     @State private var showAdd = false
+    @State private var premiumUpsellTrigger: PremiumUpsellTrigger?
+    @State private var showLoginSheet = false
+    @State private var pendingUpsellAfterLogin: PremiumUpsellTrigger?
+    @State private var showAccountSwitchAlert = false
+    @State private var dropConfirmContinuation: CheckedContinuation<Bool, Never>?
 
     var onFocusHabit: (HabitItem) -> Void = { _ in }
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
+    private var habitCount: Int { store.habits.count }
+    private var canAdd: Bool { PremiumGate.canAddHabit(habitCount: habitCount, isPremium: prefs.isPremium) }
+    private var isGuest: Bool {
+        if case .guest = auth.state { return true }
+        return false
+    }
+
+    private var accountManager: AccountManager {
+        AccountManager(
+            ownerStore: ownerStore,
+            clearer: AccountDataClearer(
+                syncRepo: syncRepo,
+                engine: engine,
+                tasks: tasks,
+                habits: store,
+                history: history,
+                prefs: prefs
+            ),
+            syncHooks: syncCoordinator.syncHooks
+        )
+    }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             colors.page.ignoresSafeArea()
             content
             Button {
-                showAdd = true
+                if canAdd {
+                    showAdd = true
+                } else {
+                    premiumUpsellTrigger = .habitCap
+                }
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 60, height: 60)
-                    .background(Brand.coral, in: Circle())
+                    .background(canAdd ? Brand.coral : Brand.premiumPurpleBottom, in: Circle())
                     .shadow(color: Brand.coral.opacity(0.4), radius: 12, y: 6)
             }
             .padding(.trailing, 24)
@@ -63,6 +101,64 @@ struct HabitsView: View {
                 store.update(updated)
             }
         }
+        .sheet(item: $premiumUpsellTrigger) { trigger in
+            PremiumUpsellSheet(
+                trigger: trigger,
+                isGuest: isGuest,
+                onDismiss: { premiumUpsellTrigger = nil },
+                onSignIn: {
+                    pendingUpsellAfterLogin = trigger
+                    premiumUpsellTrigger = nil
+                    showLoginSheet = true
+                }
+            )
+        }
+        .sheet(isPresented: $showLoginSheet) {
+            LoginSheet(
+                onSignedIn: { user in
+                    showLoginSheet = false
+                    Task {
+                        await handleSignedIn(user)
+                        if let pending = pendingUpsellAfterLogin {
+                            pendingUpsellAfterLogin = nil
+                            premiumUpsellTrigger = pending
+                        }
+                    }
+                },
+                onContinueAsGuest: { showLoginSheet = false }
+            )
+        }
+        .alert(loc.t("account.switch.title"), isPresented: $showAccountSwitchAlert) {
+            Button(loc.t("account.switch.confirm"), role: .destructive) {
+                dropConfirmContinuation?.resume(returning: true)
+                dropConfirmContinuation = nil
+            }
+            Button(loc.t("account.switch.cancel"), role: .cancel) {
+                dropConfirmContinuation?.resume(returning: false)
+                dropConfirmContinuation = nil
+            }
+        } message: {
+            Text(loc.t("account.switch.message"))
+        }
+    }
+
+    @MainActor
+    private func handleSignedIn(_ user: AuthUser) async {
+        let result = await accountManager.onSignedIn(
+            incomingUserId: user.userId,
+            confirmDrop: {
+                await withCheckedContinuation { continuation in
+                    dropConfirmContinuation = continuation
+                    showAccountSwitchAlert = true
+                }
+            },
+            onBeforeClear: {
+                if engine.isStarted { engine.stop() }
+            }
+        )
+        if result == .dropCancelled {
+            try? await auth.signOut()
+        }
     }
 
     @ViewBuilder
@@ -76,8 +172,16 @@ struct HabitsView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text(loc.t("habits.title"))
-                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(loc.t("habits.title"))
+                            .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        PremiumCapHeader(
+                            visible: !prefs.isPremium,
+                            current: habitCount,
+                            limit: PremiumGate.freeHabitLimit,
+                            labelKey: "free_tier.habits"
+                        )
+                    }
                         .foregroundStyle(colors.textPrimary)
                         .padding(.top, 12)
                         .padding(.bottom, 4)

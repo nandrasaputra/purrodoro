@@ -29,6 +29,10 @@ struct ProfileView: View {
     @State private var notificationsEnabled = false
     @State private var showComingSoonAlert = false
     @State private var showLoginSheet = false
+    @State private var showPremiumLoginSheet = false
+    @State private var showPremiumView = false
+    @State private var premiumUpsellTrigger: PremiumUpsellTrigger?
+    @State private var pendingPremiumAccess: PremiumAccessRequest?
     @State private var showAccountSwitchAlert = false
     @State private var dropConfirmContinuation: CheckedContinuation<Bool, Never>?
     @State private var signingOut = false
@@ -125,9 +129,44 @@ struct ProfileView: View {
                 LoginSheet(
                     onSignedIn: { user in
                         showLoginSheet = false
-                        Task { await handleSignedIn(user) }
+                        Task {
+                            await handleSignedIn(user)
+                            await presentPendingPremiumAccessIfNeeded()
+                        }
                     },
                     onContinueAsGuest: { showLoginSheet = false }
+                )
+            }
+            .sheet(isPresented: $showPremiumLoginSheet) {
+                PremiumLoginRequiredSheet(
+                    onSignIn: {
+                        showPremiumLoginSheet = false
+                        pendingPremiumAccess = .discovery
+                        showLoginSheet = true
+                    },
+                    onDismiss: { showPremiumLoginSheet = false }
+                )
+            }
+            .sheet(isPresented: $showPremiumView) {
+                PremiumView()
+            }
+            .sheet(item: $premiumUpsellTrigger) { trigger in
+                PremiumUpsellSheet(
+                    trigger: trigger,
+                    isGuest: {
+                        if case .guest = auth.state { return true }
+                        return false
+                    }(),
+                    onDismiss: { premiumUpsellTrigger = nil },
+                    onSignIn: {
+                        pendingPremiumAccess = .upsell(trigger)
+                        premiumUpsellTrigger = nil
+                        showLoginSheet = true
+                    },
+                    onExplorePremium: {
+                        premiumUpsellTrigger = nil
+                        showPremiumView = true
+                    }
                 )
             }
             .alert(loc.t("account.switch.title"), isPresented: $showAccountSwitchAlert) {
@@ -246,11 +285,16 @@ struct ProfileView: View {
         return loc.t("profile.friend")
     }
 
-    // MARK: - Premium stub
+    // MARK: - Premium
+
+    private var isGuest: Bool {
+        if case .guest = auth.state { return true }
+        return false
+    }
 
     private var premiumBanner: some View {
         Button {
-            showComingSoonAlert = true
+            openPremiumDiscovery()
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "sparkles")
@@ -262,7 +306,11 @@ struct ProfileView: View {
                     Text(loc.t("profile.premium.title"))
                         .font(.system(.headline, design: .rounded).weight(.bold))
                         .foregroundStyle(.white)
-                    Text(loc.t("profile.premium.subtitle"))
+                    Text(
+                        prefs.isPremium
+                            ? loc.t("profile.premium.activeSubtitle")
+                            : loc.t("profile.premium.subtitle")
+                    )
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(.white.opacity(0.88))
                         .multilineTextAlignment(.leading)
@@ -276,7 +324,9 @@ struct ProfileView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 LinearGradient(
-                    colors: [Brand.coral, Brand.coral.opacity(0.82)],
+                    colors: prefs.isPremium
+                        ? [Brand.premiumPurpleTop, Brand.premiumPurpleBottom]
+                        : [Brand.coral, Brand.coral.opacity(0.82)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
@@ -285,6 +335,27 @@ struct ProfileView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(loc.t("profile.premium.explore"))
+    }
+
+    private func openPremiumDiscovery() {
+        if isGuest {
+            showPremiumLoginSheet = true
+        } else {
+            showPremiumView = true
+        }
+    }
+
+    private func presentPendingPremiumAccessIfNeeded() async {
+        guard let pending = pendingPremiumAccess else { return }
+        pendingPremiumAccess = nil
+        // Wait a beat so login sheet dismiss animation can finish.
+        try? await Task.sleep(for: .milliseconds(350))
+        switch pending {
+        case .discovery:
+            showPremiumView = true
+        case .upsell(let trigger):
+            premiumUpsellTrigger = trigger
+        }
     }
 
     // MARK: - Account
