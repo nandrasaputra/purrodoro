@@ -40,6 +40,9 @@ final class SoundsStore: ObservableObject {
 
     @Published private(set) var isRefreshing = false
 
+    /// True once the user has ever played or saved a mix (drives dock first-run hint).
+    @Published private(set) var hasEverUsedSoundscape: Bool = false
+
     /// Upsell trigger set when a locked track is tapped on the free tier.
     @Published var pendingUpsell: PremiumUpsellTrigger?
 
@@ -61,11 +64,21 @@ final class SoundsStore: ObservableObject {
     private let legacySelectedKey = "purrodoro.selectedSound"
     private let ambienceVolumeKey = "purrodoro.ambienceVolume"
     private let musicVolumeKey = "purrodoro.musicVolume"
+    private let hasUsedKey = "purrodoro.soundscapeHasEverUsed"
 
     private var isPremium: Bool { prefs?.isPremium ?? false }
 
     var isPlaying: Bool {
         playingAmbienceId != nil || playingMusicId != nil
+    }
+
+    /// Cloud catalog rows + download states for the Storage screen.
+    var storageSummary: StorageSummary {
+        buildStorageList(
+            catalog: remoteRows,
+            downloadStates: downloadManager.states,
+            sizeFor: { [downloadManager] row in downloadManager.fileSizeBytes(row) }
+        )
     }
 
     init(
@@ -98,6 +111,10 @@ final class SoundsStore: ObservableObject {
         if let v = Self.readOptionalFloat(store: store, key: musicVolumeKey) {
             musicVolume = v
         }
+
+        hasEverUsedSoundscape = store.data(forKey: hasUsedKey) != nil
+            || selectedAmbienceId != nil
+            || selectedMusicId != nil
 
         rebuildTracks()
 
@@ -214,6 +231,130 @@ final class SoundsStore: ObservableObject {
         objectWillChange.send()
     }
 
+    /// Dock play/pause: pause clears playing ids (mix prefs kept); play resumes mix.
+    func togglePlayPause() {
+        if isPlaying {
+            pauseAll()
+        } else {
+            resumeFromMix()
+        }
+    }
+
+    /// Resume from saved mix, or first unlocked playable track per deck.
+    func resumeFromMix() {
+        markSoundscapeUsed()
+
+        func isPlayable(_ track: SoundscapeTrack) -> Bool {
+            !(track.locked && !isPremium) && track.audio != nil
+        }
+
+        var ambienceId = selectedAmbienceId.flatMap { id in
+            ambienceTracks.first(where: { $0.trackId == id && isPlayable($0) })?.trackId
+        }
+        if ambienceId == nil {
+            if let first = ambienceTracks.first(where: isPlayable) {
+                ambienceId = first.trackId
+                if selectedAmbienceId == nil {
+                    selectedAmbienceId = first.trackId
+                    persistMix()
+                }
+            }
+        }
+
+        var musicId = selectedMusicId.flatMap { id in
+            musicTracks.first(where: { $0.trackId == id && isPlayable($0) })?.trackId
+        }
+        if musicId == nil {
+            if let first = musicTracks.first(where: isPlayable) {
+                musicId = first.trackId
+                if selectedMusicId == nil {
+                    selectedMusicId = first.trackId
+                    persistMix()
+                }
+            }
+        }
+
+        if let id = ambienceId,
+           let track = ambienceTracks.first(where: { $0.trackId == id }),
+           let source = track.audio {
+            playingAmbienceId = id
+            player.playAmbience(source, volume: ambienceVolume)
+        } else {
+            playingAmbienceId = nil
+            player.pauseAmbience()
+        }
+
+        if let id = musicId,
+           let track = musicTracks.first(where: { $0.trackId == id }),
+           let source = track.audio {
+            playingMusicId = id
+            player.playMusic(source, volume: musicVolume)
+        } else {
+            playingMusicId = nil
+            player.pauseMusic()
+        }
+        objectWillChange.send()
+    }
+
+    // MARK: - Storage (downloads)
+
+    /// Stop playback of `id` if active, then delete the on-disk file. Mix prefs kept.
+    func removeDownload(id: Int) {
+        guard let row = remoteRows.first(where: { $0.id == id }) else { return }
+        if playingAmbienceId == id {
+            playingAmbienceId = nil
+            player.pauseAmbience()
+        }
+        if playingMusicId == id {
+            playingMusicId = nil
+            player.pauseMusic()
+        }
+        downloadManager.delete(row)
+        rebuildTracks()
+        objectWillChange.send()
+    }
+
+    func removeAllDownloads() {
+        let downloaded = remoteRows.filter { downloadManager.states[$0.id] == .downloaded }
+        let ids = Set(downloaded.map(\.id))
+        if let id = playingAmbienceId, ids.contains(id) {
+            playingAmbienceId = nil
+            player.pauseAmbience()
+        }
+        if let id = playingMusicId, ids.contains(id) {
+            playingMusicId = nil
+            player.pauseMusic()
+        }
+        for row in downloaded {
+            downloadManager.delete(row)
+        }
+        rebuildTracks()
+        objectWillChange.send()
+    }
+
+    // MARK: - Transport label
+
+    /// Dock title: first-run hint, playing names, or saved mix names.
+    func transportDisplayName(loc: Localization) -> String {
+        if !hasEverUsedSoundscape {
+            return loc.t("soundscape.home_hint")
+        }
+        if isPlaying {
+            let label = Self.mixLabel(
+                ambience: nameForPlaying(kind: .ambience),
+                music: nameForPlaying(kind: .music),
+                separator: loc.t("soundscape.compact_separator")
+            )
+            return label.isEmpty ? loc.t("soundscape.home_hint") : label
+        }
+        let label = Self.mixLabel(
+            ambience: nameForSelected(kind: .ambience),
+            music: nameForSelected(kind: .music),
+            separator: loc.t("soundscape.compact_separator")
+        )
+        return label.isEmpty ? loc.t("soundscape.home_hint") : label
+    }
+
     // MARK: - Backup
 
     /// 1-based ambience local id for backup interchange (bundled local ids 1…n).
@@ -231,6 +372,7 @@ final class SoundsStore: ObservableObject {
 
     private func playAmbience(_ track: SoundscapeTrack) {
         guard let source = track.audio else { return }
+        markSoundscapeUsed()
         selectedAmbienceId = track.trackId
         persistMix()
         // Also mirror into legacy key for older readers.
@@ -242,11 +384,51 @@ final class SoundsStore: ObservableObject {
 
     private func playMusic(_ track: SoundscapeTrack) {
         guard let source = track.audio else { return }
+        markSoundscapeUsed()
         selectedMusicId = track.trackId
         persistMix()
         playingMusicId = track.trackId
         player.playMusic(source, volume: musicVolume)
         objectWillChange.send()
+    }
+
+    private func markSoundscapeUsed() {
+        guard !hasEverUsedSoundscape else { return }
+        hasEverUsedSoundscape = true
+        if let data = try? JSONEncoder().encode(true) {
+            store.set(data, forKey: hasUsedKey)
+        }
+    }
+
+    private func nameForPlaying(kind: SoundscapeKind) -> String? {
+        switch kind {
+        case .ambience:
+            guard let id = playingAmbienceId else { return nil }
+            return ambienceTracks.first(where: { $0.trackId == id })?.name
+        case .music:
+            guard let id = playingMusicId else { return nil }
+            return musicTracks.first(where: { $0.trackId == id })?.name
+        }
+    }
+
+    private func nameForSelected(kind: SoundscapeKind) -> String? {
+        switch kind {
+        case .ambience:
+            guard let id = selectedAmbienceId else { return nil }
+            return ambienceTracks.first(where: { $0.trackId == id })?.name
+        case .music:
+            guard let id = selectedMusicId else { return nil }
+            return musicTracks.first(where: { $0.trackId == id })?.name
+        }
+    }
+
+    private static func mixLabel(ambience: String?, music: String?, separator: String) -> String {
+        switch (ambience, music) {
+        case let (a?, m?): return "\(a)\(separator)\(m)"
+        case let (a?, nil): return a
+        case let (nil, m?): return m
+        case (nil, nil): return ""
+        }
     }
 
     private func startDownload(trackId: Int) {
