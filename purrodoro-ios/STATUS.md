@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-07-31 (iOS Soundscape #1 — dual deck + catalog)_
+_Last updated: 2026-08-01 (merged StoreKit foundation + Soundscape #1 to main)_
 
 ---
 
@@ -22,7 +22,15 @@ _Last updated: 2026-07-31 (iOS Soundscape #1 — dual deck + catalog)_
 | StoreKit premium | 🔶 | `StoreKitManager` + gates + Profile discovery; App Store Connect products still placeholders |
 | Free-tier caps (10 tasks / 10 habits) | ✅ | `PremiumGate` + Tasks/Habits upsell |
 | **Soundscape #1** | 🔶 | Dual deck + bundled MP3s + cloud catalog/download; Storage UI / dock later |
-| **Android audit 2026-07-31** | docs | Android added **Focus Shield**; billing / Soundscape / 7 widgets confirmed shipped |
+| **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
+
+### Session note (2026-08-01)
+
+Shipped on branch then merged:
+1. **StoreKit premium foundation** — entitlement, `PremiumGate` 10/10, Profile discovery/upsell, local `.storekit`
+2. **Soundscape #1** — dual deck, 12 bundled MP3s, Supabase catalog, R2 download-to-play, premium locks
+
+Still next: Soundscape #2 (Storage/dock/thumbs) → home scenes → App Store Connect QA.
 
 ---
 
