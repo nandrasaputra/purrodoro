@@ -159,13 +159,7 @@ struct SoundsSheet: View {
             }
         } label: {
             HStack(spacing: 14) {
-                ZStack {
-                    Circle().fill(track.accentColor.opacity(0.35))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: track.systemImage)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(isPlaying ? Brand.deepCoral : colors.textPrimary)
-                }
+                SoundscapeThumbnailView(track: track, isPlaying: isPlaying, size: 48)
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {

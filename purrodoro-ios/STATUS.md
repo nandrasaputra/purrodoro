@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (merged StoreKit foundation + Soundscape #1 to main)_
+_Last updated: 2026-08-01 (Soundscape #2: Storage UI + dock transport + thumbnails)_
 
 ---
 
@@ -21,16 +21,18 @@ _Last updated: 2026-08-01 (merged StoreKit foundation + Soundscape #1 to main)_
 | Supabase sync | ✅ wired | `Purrodoro/Sync/*`, `SyncCoordinator`, Profile status; NAN-65 two-device QA pending |
 | StoreKit premium | 🔶 | `StoreKitManager` + gates + Profile discovery; App Store Connect products still placeholders |
 | Free-tier caps (10 tasks / 10 habits) | ✅ | `PremiumGate` + Tasks/Habits upsell |
-| **Soundscape #1** | 🔶 | Dual deck + bundled MP3s + cloud catalog/download; Storage UI / dock later |
+| Soundscape #1 | ✅ | Dual deck + bundled MP3s + cloud catalog/download |
+| **Soundscape #2** | ✅ | Storage UI, Focus-tab dock transport, R2 thumbnails |
 | **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
 
 ### Session note (2026-08-01)
 
-Shipped on branch then merged:
-1. **StoreKit premium foundation** — entitlement, `PremiumGate` 10/10, Profile discovery/upsell, local `.storekit`
-2. **Soundscape #1** — dual deck, 12 bundled MP3s, Supabase catalog, R2 download-to-play, premium locks
+Shipped Soundscape #2 on branch:
+1. **Storage** — `StorageView` + `StorageModels` (Android `buildStorageList` / `formatBytes`); Profile row with live used size; remove one / remove all
+2. **Dock transport** — `SoundscapeTransportBar` fused into Focus-tab `BottomDock` (EQ + marquee + play/pause + expand); home music circle removed
+3. **Thumbnails** — `SoundscapeThumbnailLoader` (R2 WebP disk cache) + vinyl/ambience art in `SoundsSheet`
 
-Still next: Soundscape #2 (Storage/dock/thumbs) → home scenes → App Store Connect QA.
+Still next: home scenes → focus overlay → App Store Connect QA.
 
 ---
 
@@ -40,20 +42,22 @@ Still next: Soundscape #2 (Storage/dock/thumbs) → home scenes → App Store Co
 Habits), full Pomodoro loop, Start Focus sheet, interrupted-focus resume,
 celebration, task categories & due dates, habit scheduling & rest days, **Soundscape
 dual deck** (bundled ambience + lo-fi MP3s, cloud catalog + download-to-play,
-premium locks), EN/ID localization, onboarding, **Profile hub**, **backup &
-restore** (Android-compatible JSON v1), **auth** (Supabase + Apple + Google UI,
+premium locks, **Storage UI**, **Focus-tab dock transport**, **R2 thumbnails**),
+EN/ID localization, onboarding, **Profile hub**, **backup & restore**
+(Android-compatible JSON v1), **auth** (Supabase + Apple + Google UI,
 Claim/Keep/Drop ownership), **Supabase sync** (seven tables, Profile status,
 logout flush), Live Activity, one Today widget, **StoreKit premium foundation**
 (discovery, upsell, 10/10 caps), unit tests (all
 passing). Builds on iOS 26 simulator.
 
-**Not on iOS yet:** **App Store Connect products** (local `.storekit` only), **Soundscape
-Storage UI / home dock / thumbnails**, **home scenes**, **focus-mode overlay**,
-**post-launch tutorial**, **History screen**, **6 of 7 Android Glance widgets**,
-**Focus Shield** (Android distraction blocker — iOS would need Screen Time / FamilyControls).
-StoreKit foundation + task/habit caps shipped; **NAN-65 two-device QA** still pending.
+**Not on iOS yet:** **App Store Connect products** (local `.storekit` only),
+**home scenes**, **focus-mode overlay**, **post-launch tutorial**, **History screen**,
+**6 of 7 Android Glance widgets**, **Focus Shield** (Android distraction blocker —
+iOS would need Screen Time / FamilyControls). StoreKit foundation + task/habit caps
+shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** Soundscape Storage UI + dock → home scenes. Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device sync QA on iOS.
+**Next recommended port slices:** Home scenes + focus overlay. Finish App Store Connect
+product setup + purchase QA. Run NAN-65 two-device sync QA on iOS.
 
 ---
 
@@ -66,13 +70,13 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Feature | Android | iOS | Notes |
 |---------|---------|-----|-------|
 | 4-tab dock (Focus / Tasks / Habits / Journey) | ✅ | ✅ | `PurrodoroApp.kt` → `RootView.swift` |
-| Profile / Settings screen | ✅ `ProfileScreen.kt` | 🔶 | `ProfileView.swift` — settings hub + live auth; premium + storage stub |
+| Profile / Settings screen | ✅ `ProfileScreen.kt` | 🔶 | `ProfileView.swift` — settings hub + live auth; premium; Storage live |
 | Start Focus sheet | ✅ | ✅ | iOS: none / task / habit; no **simple note** intent |
-| Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | 🔶 | Dual deck (#1); Storage UI / dock / thumbs later |
+| Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | ✅ | Dual deck + Storage + dock transport + thumbs |
 | Premium discovery + upsell sheets | ✅ | 🔶 | `PremiumView` + `PremiumUpsellSheet`; StoreKit placeholders |
 | Login / logout / account switch | ✅ | 🔶 | `AuthStore` + `AccountManager` — Claim/Keep/Drop + sync hooks |
 | History (day drill-down) | ✅ `HistoryScreen.kt` | ❌ | iOS: 8 recent rows on Journey only |
-| Storage (downloaded tracks) | ✅ `StorageScreen.kt` | ❌ | |
+| Storage (downloaded tracks) | ✅ `StorageScreen.kt` | ✅ | `StorageView.swift` + `StorageModels.swift` |
 | Backup & restore | ✅ `BackupRestoreScreen.kt` | ✅ | `BackupRestoreView.swift` — schema v1, guest-only restore, Files picker |
 | Home scene picker | ✅ `HomeScenePickerSheet.kt` | ❌ | Room / Café / Library / Park |
 | Focus mode overlay | ✅ `FocusModeOverlay.kt` | ❌ | Immersive zen timer surface |
@@ -166,10 +170,10 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Dual deck (ambience + lo-fi) | ✅ | ✅ | `SoundsSheet` dual sections; `SoundscapePlayer` |
 | Bundled APK/app tracks (`l_amb_*`, `l_lofi_*`) | ✅ | ✅ | 12 MP3s in `Purrodoro/Soundscape/` |
 | Cloud catalog (Postgres + R2) | ✅ `SoundscapeCatalogApi.kt` | ✅ | `SoundscapeCatalogApi.swift`; refresh on appear/foreground |
-| Track downloads + storage UI | ✅ `TrackDownloadManager.kt` | 🔶 | Download engine ✅; Storage UI ❌ |
-| Thumbnails | ✅ | ❌ | |
-| Dock / compact transport on Home | ✅ | ❌ | Music button → sheet only |
-| Saved mix persistence | ✅ | 🔶 | Ambience + music ids + volumes |
+| Track downloads + storage UI | ✅ `TrackDownloadManager.kt` | ✅ | Download engine + `StorageView` (remove / remove all) |
+| Thumbnails | ✅ | ✅ | `SoundscapeThumbnailLoader` + sheet vinyl/ambience art |
+| Dock / compact transport on Home | ✅ | ✅ | Focus-tab `SoundscapeTransportBar` in `BottomDock` |
+| Saved mix persistence | ✅ | 🔶 | Ambience + music ids + volumes (no sheet volume UI yet) |
 | Procedural ambient (rain, cafe, …) | — | — | Retired; replaced by bundled MP3s |
 | Premium-locked tracks | ✅ UI gate | ✅ | `PremiumUpsellTrigger.lockedSound` via `prefs.isPremium` |
 
@@ -202,7 +206,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Notification sound toggle | ✅ | ❌ |
 | Account section (live sign-in) | ✅ | 🔶 | `ProfileView` + `LoginSheet`; Google needs iOS OAuth client |
 | About + privacy link | ✅ | ✅ | `ProfileView` about card + `AppLinks.swift` |
-| Links to Storage / Backup | ✅ | 🔶 | Backup ✅ (`BackupRestoreView`); Storage stub |
+| Links to Storage / Backup | ✅ | ✅ | Backup + Storage (`StorageView`) |
 
 ### Widgets & Live Activity
 
@@ -290,7 +294,10 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `JourneyModels.swift` / `JourneyView.swift` | Streaks, heatmap, recent sessions |
 | `SessionHistoryStore.swift` | Per-focus-segment history (cap 500) |
 | `NotificationScheduler.swift` | Local notifications + foreground delegate |
-| `SoundsStore.swift` / `SoundsSheet.swift` / `Soundscape/*` | Dual-deck Soundscape (#1) |
+| `SoundsStore.swift` / `SoundsSheet.swift` / `Soundscape/*` | Dual-deck Soundscape (#1+#2) |
+| `StorageView.swift` / `StorageModels.swift` | Downloaded-track Storage (Android `StorageScreen`) |
+| `SoundscapeTransportBar.swift` | Focus-tab dock transport |
+| `SoundscapeThumbnailLoader.swift` / `SoundscapeThumbnailView.swift` | R2 WebP thumbs + vinyl/ambience UI |
 | `Localization.swift` | Runtime EN/ID string table |
 | `Persistence.swift` | `KeyValueStore` protocol |
 | `LiveActivityController.swift` | ActivityKit lifecycle |
@@ -310,7 +317,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `ui/HabitsScreen.kt` | `HabitsView.swift` + `HabitStore.swift` |
 | `ui/CalendarScreen.kt` + `JourneyModels.kt` | `JourneyView.swift` + `JourneyModels.swift` |
 | `ui/ProfileScreen.kt` | `ProfileView.swift` + `LoginSheet.swift` |
-| `ui/SoundsScreen.kt` + `soundscape/*` | `SoundsSheet.swift` + `Soundscape/*` (#1) |
+| `ui/SoundsScreen.kt` + `soundscape/*` | `SoundsSheet.swift` + `Soundscape/*` (#1+#2) |
+| `ui/StorageScreen.kt` + `StorageModels.kt` | `StorageView.swift` + `StorageModels.swift` |
 | `auth/AuthRepository.kt` + `AccountManager.kt` | `AuthStore.swift` + `AccountManager.swift` + sync hooks |
 | `sync/*` | `Purrodoro/Sync/*` + `SyncCoordinator` |
 | `billing/*` | — |
@@ -356,7 +364,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] Restore blocked while signed in
 - [x] Auth unit tests (`resolveLoginAction`, `AuthProvider`, `AccountManager`)
 - [x] Premium stub banner (coming-soon until StoreKit)
-- [x] Storage stub row (coming soon)
+- [x] Storage screen (`StorageView`) — Profile → Data; used-size badge; remove / remove all
 - [x] **Backup & restore** — `BackupCodec` / `BackupManager` / `BackupRestoreView`
 - [x] Android-compatible JSON schema v1 (cross-platform export/import)
 - [x] Guest-only restore; safety copy before apply; 10 MiB read cap
@@ -392,7 +400,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 ### P1 — product parity
 
 - [x] **Soundscape #1** — dual deck, bundled MP3s, cloud catalog + download-to-play, premium locks
-- [ ] **Soundscape #2** — Storage UI, home dock/transport, thumbnails
+- [x] **Soundscape #2** — Storage UI, Focus-tab dock transport, R2 thumbnails
 - [ ] **Home scenes** — `HomeScene.kt` art + picker + premium gates
 - [ ] **Focus mode overlay** — `FocusModeOverlay.kt` immersive surface
 - [ ] **History screen** — day drill-down, delete records (`HistoryScreen.kt`)
@@ -432,7 +440,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 4. Supabase sync (offline-first, same tables as Android) ✅ — `SyncCoordinator` + `Sync/`
 5. StoreKit subscriptions + PremiumGate caps  ✅ foundation (Connect TBD)
 6. Soundscape #1 ✅ — dual deck, bundled + catalog + download-to-play
-7. Soundscape #2 — Storage UI, dock, thumbnails
+7. Soundscape #2 ✅ — Storage UI, dock transport, thumbnails
 8. Home scenes + focus overlay
 9. History + tutorial + widget deep links
 10. Extra widgets + iPad polish + tests
@@ -456,8 +464,10 @@ Specs to read before each slice:
   are the reference for edge-case QA, not a port target.
 - **Session records:** Android logs one `SessionRecord` per cycle attempt; iOS
   logs each completed **focus segment** — Journey UI reflects that difference.
-- **Sounds:** Soundscape #1 ships bundled `l_amb_*` / `l_lofi_*` MP3 loops +
-  cloud catalog download-to-play. Remaining: Storage UI, dock transport, thumbnails.
+- **Sounds:** Soundscape #1+#2 — bundled `l_amb_*` / `l_lofi_*` MP3 loops, cloud
+  catalog download-to-play, Storage management, Focus-tab dock transport, R2
+  WebP thumbnails (SF Symbol fallback for bundled art). Sheet volume footer still
+  optional parity vs Android sticky footer.
 - **Persistence:** `UserDefaults` + `SyncRepository` for sync metadata; revisit
   SQLite/Core Data if volume/query needs grow
   if entity count or query patterns outgrow JSON blobs.

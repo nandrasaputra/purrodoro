@@ -27,7 +27,6 @@ struct ProfileView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var notificationsEnabled = false
-    @State private var showComingSoonAlert = false
     @State private var showLoginSheet = false
     @State private var showPremiumLoginSheet = false
     @State private var showPremiumView = false
@@ -121,9 +120,6 @@ struct ProfileView: View {
                     Button(loc.t("settings.done")) { dismiss() }
                         .font(.system(.body, design: .rounded).weight(.semibold))
                 }
-            }
-            .alert(loc.t("profile.comingSoon"), isPresented: $showComingSoonAlert) {
-                Button(loc.t("common.ok"), role: .cancel) {}
             }
             .sheet(isPresented: $showLoginSheet) {
                 LoginSheet(
@@ -504,13 +500,13 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
             divider
-            Button {
-                showComingSoonAlert = true
+            NavigationLink {
+                StorageView()
             } label: {
                 dataRowLabel(
                     icon: "internaldrive",
                     title: loc.t("profile.storage"),
-                    badge: loc.t("profile.comingSoon")
+                    badge: loc.t("storage.used", formatBytes(sounds.storageSummary.totalBytes))
                 )
             }
             .buttonStyle(.plain)
