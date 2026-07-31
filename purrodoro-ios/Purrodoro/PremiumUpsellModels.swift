@@ -15,8 +15,18 @@ enum PremiumUpsellReason: Equatable {
     case generic
 }
 
-struct PremiumUpsellTrigger: Equatable {
+struct PremiumUpsellTrigger: Equatable, Identifiable {
     var reason: PremiumUpsellReason = .generic
+
+    var id: String {
+        switch reason {
+        case .lockedSound(let name): "sound:\(name)"
+        case .lockedScene(let name): "scene:\(name)"
+        case .activeTaskCap: "cap:tasks"
+        case .habitCap: "cap:habits"
+        case .generic: "generic"
+        }
+    }
 
     static func lockedSound(_ name: String) -> PremiumUpsellTrigger {
         PremiumUpsellTrigger(reason: .lockedSound(name))

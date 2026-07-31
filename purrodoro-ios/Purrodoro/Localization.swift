@@ -382,6 +382,126 @@ final class Localization: ObservableObject {
         "onboard.enableNotif": [.en: "Enable notifications", .id: "Aktifkan notifikasi"],
         "onboard.enabling": [.en: "Enabling…", .id: "Mengaktifkan…"],
 
+        // Premium
+        "premium.member.title": [.en: "You're Premium", .id: "Kamu Premium"],
+        "premium.member.body": [
+            .en: "Thanks for supporting Purrodoro. Enjoy unlimited tasks, habits, sounds, and scenes.",
+            .id: "Terima kasih mendukung Purrodoro. Nikmati tugas, kebiasaan, suara, dan suasana tanpa batas.",
+        ],
+        "premium.screen.headline": [
+            .en: "Go further with Premium",
+            .id: "Lebih jauh dengan Premium",
+        ],
+        "premium.screen.whatYouGet": [.en: "What you get", .id: "Yang kamu dapat"],
+        "premium.screen.pickPlan": [.en: "Pick a plan", .id: "Pilih paket"],
+        "premium.screen.compareSummary": [
+            .en: "Free stays generous. Premium unlocks more headroom and cozy extras.",
+            .id: "Gratis tetap murah hati. Premium membuka kapasitas lebih dan ekstra yang nyaman.",
+        ],
+        "premium.compare.tasks.free": [.en: "10 active tasks", .id: "10 tugas aktif"],
+        "premium.compare.tasks.premium": [.en: "Unlimited tasks", .id: "Tugas tanpa batas"],
+        "premium.compare.habits.free": [.en: "10 habits", .id: "10 kebiasaan"],
+        "premium.compare.habits.premium": [.en: "Unlimited habits", .id: "Kebiasaan tanpa batas"],
+        "premium.compare.sounds.free": [.en: "Free ambience", .id: "Ambience gratis"],
+        "premium.compare.sounds.premium": [.en: "Full soundscape library", .id: "Pustaka soundscape penuh"],
+        "premium.compare.scenes.free": [.en: "Room scene", .id: "Suasana Room"],
+        "premium.compare.scenes.premium": [.en: "All home scenes", .id: "Semua suasana rumah"],
+        "premium.plan.monthly": [.en: "Monthly", .id: "Bulanan"],
+        "premium.plan.yearly": [.en: "Yearly", .id: "Tahunan"],
+        "premium.plan.savings": [.en: "Save %d%%", .id: "Hemat %d%%"],
+        "premium.cta.subscribe": [.en: "Subscribe", .id: "Berlangganan"],
+        "premium.cta.startTrial": [.en: "Start free trial", .id: "Mulai uji coba gratis"],
+        "premium.cta.maybeLater": [.en: "Maybe later", .id: "Nanti saja"],
+        "premium.cta.retry": [.en: "Retry", .id: "Coba lagi"],
+        "premium.restore": [.en: "Restore purchases", .id: "Pulihkan pembelian"],
+        "premium.manage": [.en: "Manage subscription", .id: "Kelola langganan"],
+        "premium.restore.success": [.en: "Purchases restored.", .id: "Pembelian dipulihkan."],
+        "premium.restore.none": [.en: "No active subscription found.", .id: "Tidak ada langganan aktif."],
+        "premium.purchase.success": [.en: "Welcome to Premium!", .id: "Selamat datang di Premium!"],
+        "premium.error.catalog_unavailable": [
+            .en: "Subscription options aren't available right now.",
+            .id: "Opsi langganan belum tersedia sekarang.",
+        ],
+        "premium.error.catalog_failed": [
+            .en: "Couldn't load prices. Check your connection and try again.",
+            .id: "Gagal memuat harga. Cek koneksi dan coba lagi.",
+        ],
+        "premium.error.product_unavailable": [
+            .en: "That plan isn't available right now.",
+            .id: "Paket itu belum tersedia sekarang.",
+        ],
+        "premium.error.purchase_failed": [
+            .en: "Purchase didn't complete. Please try again.",
+            .id: "Pembelian tidak selesai. Coba lagi.",
+        ],
+        "premium.error.verification_failed": [
+            .en: "Couldn't verify the purchase.",
+            .id: "Tidak bisa memverifikasi pembelian.",
+        ],
+        "premium.error.restore_failed": [
+            .en: "Couldn't restore purchases. Please try again.",
+            .id: "Gagal memulihkan pembelian. Coba lagi.",
+        ],
+        "premium.login.title": [
+            .en: "Sign in to explore Premium",
+            .id: "Masuk untuk menjelajahi Premium",
+        ],
+        "premium.login.body": [
+            .en: "Create or sign in to your account to view plans and subscribe.",
+            .id: "Buat atau masuk ke akunmu untuk melihat paket dan berlangganan.",
+        ],
+        "premium.login.signIn": [.en: "Sign in", .id: "Masuk"],
+        "premium.upsell.taskCap.title": [
+            .en: "You've reached 10 active tasks",
+            .id: "Kamu mencapai 10 tugas aktif",
+        ],
+        "premium.upsell.taskCap.body": [
+            .en: "Complete or delete a task to free a slot, or unlock unlimited tasks with Premium.",
+            .id: "Selesaikan atau hapus tugas untuk slot baru, atau buka tugas tanpa batas dengan Premium.",
+        ],
+        "premium.upsell.habitCap.title": [
+            .en: "You've reached 10 habits",
+            .id: "Kamu mencapai 10 kebiasaan",
+        ],
+        "premium.upsell.habitCap.body": [
+            .en: "Delete a habit to free a slot, or unlock unlimited habits with Premium.",
+            .id: "Hapus kebiasaan untuk slot baru, atau buka kebiasaan tanpa batas dengan Premium.",
+        ],
+        "premium.upsell.generic.title": [
+            .en: "Unlock Purrodoro Premium",
+            .id: "Buka Purrodoro Premium",
+        ],
+        "premium.upsell.generic.body": [
+            .en: "More tasks, habits, sounds, and home scenes — when you're ready.",
+            .id: "Lebih banyak tugas, kebiasaan, suara, dan suasana rumah — saat kamu siap.",
+        ],
+        "premium.upsell.sound.title": [
+            .en: "Unlock %@",
+            .id: "Buka %@",
+        ],
+        "premium.upsell.scene.title": [
+            .en: "Unlock %@ scene",
+            .id: "Buka suasana %@",
+        ],
+        "premium.upsell.locked.body": [
+            .en: "This is part of Purrodoro Premium. Subscribe to unlock it.",
+            .id: "Ini bagian dari Purrodoro Premium. Berlangganan untuk membukanya.",
+        ],
+        "premium.guest.unlock.title": [
+            .en: "Sign in to unlock Premium",
+            .id: "Masuk untuk membuka Premium",
+        ],
+        "free_tier.tasks": [.en: "%d/%d active", .id: "%d/%d aktif"],
+        "free_tier.habits": [.en: "%d/%d habits", .id: "%d/%d kebiasaan"],
+        "free_tier.cap_cd": [
+            .en: "%d of %d free slots used",
+            .id: "%d dari %d slot gratis terpakai",
+        ],
+        "profile.premium.activeSubtitle": [
+            .en: "Unlimited tasks, habits, and cozy extras.",
+            .id: "Tugas, kebiasaan, dan ekstra nyaman tanpa batas.",
+        ],
+
         // Accessibility
         "a11y.timer": [.en: "%@ timer", .id: "Timer %@"],
         "a11y.remaining": [.en: "%@ remaining", .id: "%@ tersisa"],

@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-07-31 (Android parity re-audit; Focus Shield noted)_
+_Last updated: 2026-07-31 (StoreKit premium foundation + free-tier caps)_
 
 ---
 
@@ -19,8 +19,9 @@ _Last updated: 2026-07-31 (Android parity re-audit; Focus Shield noted)_
 | Backup & restore | ✅ | `BackupCodec.swift`, `BackupManager.swift`, `BackupRestoreView.swift` |
 | Auth (Google + Apple + guest) | 🔶 | `AuthStore`, `LoginSheet`, `AccountManager` — Apple live; Google needs iOS client ID |
 | Supabase sync | ✅ wired | `Purrodoro/Sync/*`, `SyncCoordinator`, Profile status; NAN-65 two-device QA pending |
-| StoreKit premium | ❌ | Banner still stub |
-| **Android audit 2026-07-31** | docs | iOS tree unchanged since 2026-07-18; Android added **Focus Shield**; billing / Soundscape / 7 widgets confirmed shipped |
+| StoreKit premium | 🔶 | `StoreKitManager` + gates + Profile discovery; App Store Connect products still placeholders |
+| Free-tier caps (10 tasks / 10 habits) | ✅ | `PremiumGate` + Tasks/Habits upsell |
+| **Android audit 2026-07-31** | docs | Android added **Focus Shield**; billing / Soundscape / 7 widgets confirmed shipped |
 
 ---
 
@@ -35,14 +36,13 @@ Claim/Keep/Drop ownership), **Supabase sync** (seven tables, Profile status,
 logout flush), Live Activity, one Today widget, unit tests (all
 passing). Builds on iOS 26 simulator. **No iOS feature commits since 2026-07-18.**
 
-**Not on iOS yet:** **StoreKit premium**, **cloud Soundscape**
+**Not on iOS yet:** **App Store Connect products** (local `.storekit` only), **cloud Soundscape**
 (dual-deck + lo-fi catalog), **home scenes**, **focus-mode overlay**,
 **post-launch tutorial**, **History screen**, **6 of 7 Android Glance widgets**,
-task/habit **free-tier caps** (10 each + paywall), **Focus Shield** (Android
-distraction blocker — iOS would need Screen Time / FamilyControls). Sync engine +
-Profile status shipped; **NAN-65 two-device QA** still pending.
+**Focus Shield** (Android distraction blocker — iOS would need Screen Time / FamilyControls).
+StoreKit foundation + task/habit caps shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** StoreKit premium → Soundscape → home scenes. Run NAN-65 two-device sync QA on iOS.
+**Next recommended port slices:** Soundscape → home scenes. Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device sync QA on iOS.
 
 ---
 
@@ -58,7 +58,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Profile / Settings screen | ✅ `ProfileScreen.kt` | 🔶 | `ProfileView.swift` — settings hub + live auth; premium + storage stub |
 | Start Focus sheet | ✅ | ✅ | iOS: none / task / habit; no **simple note** intent |
 | Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | 🔶 | iOS: single ambient list (`SoundsSheet.swift`) |
-| Premium discovery + upsell sheets | ✅ | ❌ | Play Billing on Android |
+| Premium discovery + upsell sheets | ✅ | 🔶 | `PremiumView` + `PremiumUpsellSheet`; StoreKit placeholders |
 | Login / logout / account switch | ✅ | 🔶 | `AuthStore` + `AccountManager` — Claim/Keep/Drop + sync hooks |
 | History (day drill-down) | ✅ `HistoryScreen.kt` | ❌ | iOS: 8 recent rows on Journey only |
 | Storage (downloaded tracks) | ✅ `StorageScreen.kt` | ❌ | |
@@ -99,7 +99,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Due dates + urgency badges + sort | ✅ | ✅ | |
 | Archived filter | 🔶 placeholder | — | Android `TaskUiFilter.Archived` always empty |
 | Live focus indicator on task row | ✅ | ❌ | |
-| Free-tier cap (10 active tasks) | ✅ `PremiumGate` | ❌ | |
+| Free-tier cap (10 active tasks) | ✅ `PremiumGate` | ✅ | |
 | Cloud sync | ✅ `TaskTableSync` | ✅ `TableSyncs` | |
 
 ### Habits
@@ -111,7 +111,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Time blocks (morning / afternoon / evening) | ✅ | ✅ | |
 | Rest / skip days + streak logic | ✅ | ✅ | |
 | Monthly dot grid + detail sheets | ✅ | 🔶 | iOS: 7-day strip |
-| Free-tier cap (10 habits) | ✅ | ❌ | |
+| Free-tier cap (10 habits) | ✅ | ✅ | |
 | Cloud sync | ✅ `HabitTableSync` | ✅ `TableSyncs` | |
 
 ### Journey / stats
@@ -142,11 +142,11 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 | Feature | Android | iOS |
 |---------|---------|-----|
-| Play Billing 8.x / subscriptions | ✅ `BillingManager.kt` | ❌ |
-| Monthly + yearly + trial offers | ✅ | ❌ |
-| Premium gates (sounds, scenes, caps) | ✅ `PremiumGate.kt` | ❌ |
-| Premium branding (avatar frame, badge) | ✅ | ❌ |
-| StoreKit | — | ❌ |
+| Play Billing 8.x / subscriptions | ✅ `BillingManager.kt` | 🔶 `StoreKitManager` | Local `.storekit`; Connect TBD |
+| Monthly + yearly + trial offers | ✅ | 🔶 | Trial when yearly product offers intro |
+| Premium gates (sounds, scenes, caps) | ✅ `PremiumGate.kt` | 🔶 | Caps ✅; sounds/scenes wait on those features |
+| Premium branding (avatar frame, badge) | ✅ | 🔶 | Profile banner purple when premium |
+| StoreKit | — | 🔶 | Foundation shipped |
 
 ### Soundscape
 
@@ -376,7 +376,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] **Supabase sync** — `SyncEngine`, `TableSyncs`, `SyncCoordinator`, Profile status
 - [x] **Logout flush** — unsynced warning on sign-out
 - [x] **Backup & restore** — schema v1; cross-platform JSON
-- [ ] **StoreKit premium** — mirror `BillingManager.kt` gates + paywall sheets
+- [x] **StoreKit premium foundation** — `StoreKitManager`, `PremiumGate` caps, Profile discovery/upsell; App Store Connect products still placeholders
 
 ### P1 — product parity
 
@@ -386,7 +386,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [ ] **History screen** — day drill-down, delete records (`HistoryScreen.kt`)
 - [ ] **Start Focus: simple note** intent (`FocusType.SimpleNote`)
 - [ ] **Post-launch tutorial** — 5-step spotlight (`Tutorial.kt`)
-- [ ] **Free-tier caps** — 10 tasks / 10 habits with upsell (`PremiumGate.kt`)
+- [x] **Free-tier caps** — 10 tasks / 10 habits with upsell (`PremiumGate`)
 - [ ] **Settings gaps** — notification sound toggle, System locale
 - [ ] **Focus-busy guard** — block second concurrent Pomodoro
 - [ ] **Focus Shield** — Android `focusshield/*` shipped; iOS port needs Screen Time / FamilyControls design (not a 1:1 UsageStats port)
@@ -418,8 +418,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 2. Backup export/import ✅ — `BackupRestoreView` + Android schema v1
 3. Auth (Google + Apple) + encrypted session ✅ — `AuthStore.swift`, `LoginSheet.swift`, `AccountManager.swift`
 4. Supabase sync (offline-first, same tables as Android) ✅ — `SyncCoordinator` + `Sync/`
-5. StoreKit subscriptions + PremiumGate caps  ← next
-6. Soundscape (catalog API shared with Android; AVPlayer loops)
+5. StoreKit subscriptions + PremiumGate caps  ✅ foundation (Connect TBD)
+6. Soundscape (catalog API shared with Android; AVPlayer loops)  ← next
 7. Home scenes + focus overlay
 8. History + tutorial + widget deep links
 9. Extra widgets + iPad polish + tests

@@ -48,6 +48,12 @@ enum Brand {
     static let nightBorder = Color(hex: 0x2B2440)
     static let nightMuted = Color(hex: 0xB8B0C8)
     static let nightFaint = Color(hex: 0x7D768B)
+
+    // Premium badge / lock (Android PremiumBadgeGradient*)
+    static let premiumPurpleTop = Color(hex: 0x9B7FCC)
+    static let premiumPurpleBottom = Color(hex: 0x6B43AA)
+    static let lockedFill = Color(hex: 0x9B7FCC).opacity(0.22)
+    static let lockedText = Color(hex: 0x6B43AA)
 }
 
 extension AppearanceMode {
