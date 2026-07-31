@@ -7,11 +7,11 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-07-18 (Supabase sync Phases 1–4 + automated QA)_
+_Last updated: 2026-07-31 (Android parity re-audit; Focus Shield noted)_
 
 ---
 
-## Recent progress (2026-07-18)
+## Recent progress
 
 | Slice | Status | Key files |
 |-------|--------|-----------|
@@ -20,6 +20,7 @@ _Last updated: 2026-07-18 (Supabase sync Phases 1–4 + automated QA)_
 | Auth (Google + Apple + guest) | 🔶 | `AuthStore`, `LoginSheet`, `AccountManager` — Apple live; Google needs iOS client ID |
 | Supabase sync | ✅ wired | `Purrodoro/Sync/*`, `SyncCoordinator`, Profile status; NAN-65 two-device QA pending |
 | StoreKit premium | ❌ | Banner still stub |
+| **Android audit 2026-07-31** | docs | iOS tree unchanged since 2026-07-18; Android added **Focus Shield**; billing / Soundscape / 7 widgets confirmed shipped |
 
 ---
 
@@ -32,13 +33,14 @@ ambient sounds, EN/ID localization, onboarding, **Profile hub**, **backup &
 restore** (Android-compatible JSON v1), **auth** (Supabase + Apple + Google UI,
 Claim/Keep/Drop ownership), **Supabase sync** (seven tables, Profile status,
 logout flush), Live Activity, one Today widget, unit tests (all
-passing). Builds on iOS 26 simulator.
+passing). Builds on iOS 26 simulator. **No iOS feature commits since 2026-07-18.**
 
 **Not on iOS yet:** **StoreKit premium**, **cloud Soundscape**
 (dual-deck + lo-fi catalog), **home scenes**, **focus-mode overlay**,
 **post-launch tutorial**, **History screen**, **6 of 7 Android Glance widgets**,
-task/habit **free-tier caps** (10 each + paywall). Sync engine + Profile status
-shipped; **NAN-65 two-device QA** still pending.
+task/habit **free-tier caps** (10 each + paywall), **Focus Shield** (Android
+distraction blocker — iOS would need Screen Time / FamilyControls). Sync engine +
+Profile status shipped; **NAN-65 two-device QA** still pending.
 
 **Next recommended port slices:** StoreKit premium → Soundscape → home scenes. Run NAN-65 two-device sync QA on iOS.
 
@@ -66,6 +68,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Cycle complete UI | ✅ `CycleCompleteDialog.kt` | ✅ | iOS `CelebrationView.swift` (full-screen, not dialog) |
 | Post-launch spotlight tutorial (5 steps) | ✅ `Tutorial.kt` | ❌ | |
 | Focus-busy dialog (block 2nd Pomodoro) | ✅ | ❌ | |
+| Focus Shield (distraction app blocker) | ✅ `focusshield/*` · `FocusShieldScreen.kt` | ❌ | Android UsageStats + overlay; iOS needs different API (Screen Time / FamilyControls) |
 
 ### Timer & focus
 
@@ -115,7 +118,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 | Feature | Android | iOS | Notes |
 |---------|---------|-----|-------|
-| Today / week / month / all-time zoom | ✅ `CalendarScreen.kt` | 🔶 | iOS: week stats + month heatmap |
+| Today / week / month / all-time sections | ✅ `CalendarScreen.kt` | 🔶 | Android: stacked period cards (not a zoom toggle); iOS: week stats + month heatmap |
 | Session timeline per period | ✅ `JourneyTimeline.kt` | 🔶 | Recent feed only |
 | Streak (daily stamps) | ✅ | ✅ | Ported `calculateStreak` |
 | Delete session record | ✅ History | ❌ | |
@@ -300,6 +303,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `auth/AuthRepository.kt` + `AccountManager.kt` | `AuthStore.swift` + `AccountManager.swift` + sync hooks |
 | `sync/*` | `Purrodoro/Sync/*` + `SyncCoordinator` |
 | `billing/*` | — |
+| `focusshield/*` + `FocusShieldScreen.kt` | — (needs iOS Screen Time / FamilyControls design) |
 | `data/backup/*` | `BackupCodec.swift` + `BackupManager.swift` + `BackupRestoreView.swift` |
 | `widget/*` (7 Glance widgets) | `PurrodoroWidgets/TodayWidget.swift` |
 
@@ -385,6 +389,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [ ] **Free-tier caps** — 10 tasks / 10 habits with upsell (`PremiumGate.kt`)
 - [ ] **Settings gaps** — notification sound toggle, System locale
 - [ ] **Focus-busy guard** — block second concurrent Pomodoro
+- [ ] **Focus Shield** — Android `focusshield/*` shipped; iOS port needs Screen Time / FamilyControls design (not a 1:1 UsageStats port)
 
 ### P2 — widgets & platform
 
@@ -399,7 +404,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 - [ ] Live focus indicator on task rows
 - [ ] Habit monthly dot grid + detail sheets (Android parity)
-- [ ] Journey zoom levels (today / all-time summaries)
+- [ ] Journey period summaries (today / all-time — Android uses stacked cards)
+- [ ] Glass readability mode (Android: persist + Adaptive default; **no Profile picker yet**)
 - [ ] Crashlytics or equivalent
 - [ ] Consider SQLite/Core Data if sync lands (volume + query needs)
 
@@ -417,14 +423,16 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 7. Home scenes + focus overlay
 8. History + tutorial + widget deep links
 9. Extra widgets + iPad polish + tests
+10. Focus Shield (platform-specific; design before port)
 ```
 
 Specs to read before each slice:
 - Auth: [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](../docs/superpowers/specs/2026-06-09-auth-and-account-identity.md)
 - Backup: [`docs/superpowers/specs/2026-06-19-data-backup-and-restore-design.md`](../docs/superpowers/specs/2026-06-19-data-backup-and-restore-design.md)
+- **StoreKit premium (next):** [`docs/superpowers/specs/2026-07-31-ios-storekit-premium-design.md`](../docs/superpowers/specs/2026-07-31-ios-storekit-premium-design.md)
 - Soundscape: [`docs/superpowers/specs/2026-06-17-soundscape-admin-design.md`](../docs/superpowers/specs/2026-06-17-soundscape-admin-design.md)
 - Cloud assets: [`docs/CLOUD_ASSET_MANAGEMENT.md`](../docs/CLOUD_ASSET_MANAGEMENT.md)
-- Freemium: [`docs/superpowers/plans/2026-06-07-freemium-model.md`](../docs/superpowers/plans/2026-06-07-freemium-model.md)
+- Freemium (historical): [`docs/superpowers/plans/2026-06-07-freemium-model.md`](../docs/superpowers/plans/2026-06-07-freemium-model.md)
 
 ---
 
@@ -468,6 +476,17 @@ Specs to read before each slice:
   foreground + debounced local writes. Profile shows sync status; logout warns
   if dirty rows remain after flush. Manual two-device QA (NAN-65) still open.
   Plan: [`docs/superpowers/plans/2026-07-03-ios-supabase-sync.md`](../docs/superpowers/plans/2026-07-03-ios-supabase-sync.md).
+- **Focus Shield (Android, 2026-07-31):** session-bound distraction interrupt —
+  UsageStats detect + overlay block while a Focus segment is playing
+  (`focusshield/FocusShield.kt`, Profile → Focus Shield). Not in iOS yet; do
+  **not** copy Android APIs — design against Screen Time / FamilyControls (or
+  defer). Commit `735ab7f`.
+- **Android stubs / partials (don't over-port):** `TaskUiFilter.Archived` always
+  empty; Glass readability persists Adaptive default but has **no Profile
+  picker** yet (`persistGlass*` unused from UI).
+- **2026-07-31 audit:** Android billing, dual-deck Soundscape, History, Storage,
+  scenes, focus overlay, tutorial, PremiumGate, and all 7 Glance widgets remain
+  fully shipped. iOS gap list above still accurate.
 
 ---
 
