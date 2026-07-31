@@ -52,8 +52,10 @@ final class SyncCoordinator: ObservableObject {
             }
         }
 
-        let applySyncedPrefs: @MainActor @Sendable (String, String) -> Void = { [prefs, timerEngine] displayName, settingsJson in
+        let applySyncedPrefs: @MainActor @Sendable (String, String, Bool, Bool) -> Void = {
+            [prefs, timerEngine] displayName, settingsJson, overrideEnabled, overrideActive in
             prefs.applySyncedProfile(displayName: displayName)
+            prefs.applyPremiumOverride(enabled: overrideEnabled, active: overrideActive)
             timerEngine.applySyncedSettings(fromJson: settingsJson)
         }
 

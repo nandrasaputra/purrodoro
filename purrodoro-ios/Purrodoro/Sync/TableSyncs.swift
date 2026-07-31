@@ -13,7 +13,7 @@ enum TableSyncs {
     static func makeAll(
         repo: SyncRepository,
         userId: @escaping @Sendable () async -> String,
-        applySyncedPrefs: @escaping @MainActor @Sendable (String, String) -> Void
+        applySyncedPrefs: @escaping @MainActor @Sendable (String, String, Bool, Bool) -> Void
     ) -> [any TableSync] {
         // Unsafe: closures are `@MainActor` and only invoked via MainActorGate.
         nonisolated(unsafe) let repoRef = repo
@@ -218,13 +218,13 @@ final class ProfileTableSync: TableSync, @unchecked Sendable {
     // Held unsafely so MainActorGate bodies stay callable from nonisolated sync.
     nonisolated(unsafe) private let repo: SyncRepository
     private let userId: @Sendable () async -> String
-    private let applySyncedPrefs: @MainActor @Sendable (String, String) -> Void
+    private let applySyncedPrefs: @MainActor @Sendable (String, String, Bool, Bool) -> Void
     private var pushSnapshotModifiedAt: Int64?
 
     init(
         repo: SyncRepository,
         userId: @escaping @Sendable () async -> String,
-        applySyncedPrefs: @escaping @MainActor @Sendable (String, String) -> Void
+        applySyncedPrefs: @escaping @MainActor @Sendable (String, String, Bool, Bool) -> Void
     ) {
         self.repo = repo
         self.userId = userId
@@ -260,6 +260,8 @@ final class ProfileTableSync: TableSync, @unchecked Sendable {
 
         let displayName = SyncJSON.stringField(row, "display_name")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let settingsJson = SyncDtoCodec.timerSettingsJson(from: row["timer_settings"] ?? .object([:]))
+        let overrideEnabled = SyncJSON.boolField(row, "premium_override_enabled") ?? false
+        let overrideActive = SyncJSON.boolField(row, "premium_override_active") ?? false
 
         await MainActorGate.perform {
             let local = repo.syncProfileRecord()
@@ -273,7 +275,7 @@ final class ProfileTableSync: TableSync, @unchecked Sendable {
                 )
             )
             guard repo.syncProfileRecord()?.dirty == false else { return }
-            applySyncedPrefs(displayName, settingsJson)
+            applySyncedPrefs(displayName, settingsJson, overrideEnabled, overrideActive)
         }
     }
 

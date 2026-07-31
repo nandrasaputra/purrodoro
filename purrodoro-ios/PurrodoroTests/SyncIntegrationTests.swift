@@ -203,6 +203,8 @@ private func localDailyStamp(
 private func profileRow(
     displayName: String,
     focusMinutes: Int,
+    premiumOverrideEnabled: Bool = false,
+    premiumOverrideActive: Bool = false,
     updatedAt: String
 ) -> SyncRow {
     [
@@ -215,6 +217,8 @@ private func profileRow(
             "auto_start_next_session": .bool(false),
             "focus_sessions_per_cycle": .integer(4),
         ]),
+        "premium_override_enabled": .bool(premiumOverrideEnabled),
+        "premium_override_active": .bool(premiumOverrideActive),
         "updated_at": .string(updatedAt),
         "deleted": .bool(false),
     ]
@@ -233,8 +237,9 @@ private func makeIntegrationHarness(
     let tables = TableSyncs.makeAll(
         repo: repo,
         userId: userId,
-        applySyncedPrefs: { displayName, settingsJson in
+        applySyncedPrefs: { displayName, settingsJson, overrideEnabled, overrideActive in
             prefs.applySyncedProfile(displayName: displayName)
+            prefs.applyPremiumOverride(enabled: overrideEnabled, active: overrideActive)
             engine.applySyncedSettings(fromJson: settingsJson)
         }
     )
@@ -477,7 +482,13 @@ struct ProfileSyncIntegrationTests {
     @Test func pulledProfileLandsInPrefsAndRow() async throws {
         let (repo, prefs, engine, api, syncEngine) = await MainActor.run { makeTestStack() }
         await api.setRemote(
-            [profileRow(displayName: "Cloud Name", focusMinutes: 30, updatedAt: "2026-06-12T10:00:00+00:00")],
+            [profileRow(
+                displayName: "Cloud Name",
+                focusMinutes: 30,
+                premiumOverrideEnabled: true,
+                premiumOverrideActive: true,
+                updatedAt: "2026-06-12T10:00:00+00:00"
+            )],
             table: "profiles"
         )
 
@@ -486,6 +497,9 @@ struct ProfileSyncIntegrationTests {
         await MainActor.run {
             #expect(prefs.trimmedName == "Cloud Name")
             #expect(engine.settings.focusMinutes == 30)
+            #expect(prefs.premiumOverrideEnabled)
+            #expect(prefs.premiumOverrideActive)
+            #expect(prefs.isPremium)
             #expect(repo.syncProfileRecord()?.displayName == "Cloud Name")
             #expect(repo.syncProfileRecord()?.dirty == false)
         }
