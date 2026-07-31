@@ -33,8 +33,9 @@ celebration, task categories & due dates, habit scheduling & rest days, procedur
 ambient sounds, EN/ID localization, onboarding, **Profile hub**, **backup &
 restore** (Android-compatible JSON v1), **auth** (Supabase + Apple + Google UI,
 Claim/Keep/Drop ownership), **Supabase sync** (seven tables, Profile status,
-logout flush), Live Activity, one Today widget, unit tests (all
-passing). Builds on iOS 26 simulator. **No iOS feature commits since 2026-07-18.**
+logout flush), Live Activity, one Today widget, **StoreKit premium foundation**
+(discovery, upsell, 10/10 caps), unit tests (all
+passing). Builds on iOS 26 simulator.
 
 **Not on iOS yet:** **App Store Connect products** (local `.storekit` only), **cloud Soundscape**
 (dual-deck + lo-fi catalog), **home scenes**, **focus-mode overlay**,
