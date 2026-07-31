@@ -19,7 +19,8 @@ struct SoundsSheet: View {
     @Environment(\.colorScheme) private var scheme
 
     @State private var premiumUpsellTrigger: PremiumUpsellTrigger?
-    @State private var showPremiumLogin = false
+    @State private var pendingUpsellAfterLogin: PremiumUpsellTrigger?
+    @State private var showLoginSheet = false
     @State private var showPremium = false
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
@@ -82,8 +83,9 @@ struct SoundsSheet: View {
                 isGuest: isGuest,
                 onDismiss: { premiumUpsellTrigger = nil },
                 onSignIn: {
+                    pendingUpsellAfterLogin = trigger
                     premiumUpsellTrigger = nil
-                    showPremiumLogin = true
+                    showLoginSheet = true
                 },
                 onExplorePremium: {
                     premiumUpsellTrigger = nil
@@ -94,10 +96,16 @@ struct SoundsSheet: View {
             .environmentObject(prefs)
             .environmentObject(loc)
         }
-        .sheet(isPresented: $showPremiumLogin) {
-            PremiumLoginRequiredSheet(
-                onSignIn: { showPremiumLogin = false },
-                onDismiss: { showPremiumLogin = false }
+        .sheet(isPresented: $showLoginSheet) {
+            LoginSheet(
+                onSignedIn: { _ in
+                    showLoginSheet = false
+                    if let pending = pendingUpsellAfterLogin {
+                        pendingUpsellAfterLogin = nil
+                        premiumUpsellTrigger = pending
+                    }
+                },
+                onContinueAsGuest: { showLoginSheet = false }
             )
         }
         .sheet(isPresented: $showPremium) {
