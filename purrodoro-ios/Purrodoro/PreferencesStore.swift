@@ -43,6 +43,19 @@ final class PreferencesStore: ObservableObject {
         didSet { store.set(hasCompletedOnboarding, forKey: onboardingKey) }
     }
 
+    @Published private(set) var storePremium: Bool
+    @Published private(set) var premiumOverrideEnabled: Bool
+    @Published private(set) var premiumOverrideActive: Bool
+
+    var isPremium: Bool {
+        PremiumOverride.overrideValue()
+            ?? PremiumResolver.resolve(
+                overrideEnabled: premiumOverrideEnabled,
+                overrideActive: premiumOverrideActive,
+                storePremium: storePremium
+            )
+    }
+
     static let maxNameLength = 24
 
     private let syncRepo: SyncRepository?
@@ -50,6 +63,9 @@ final class PreferencesStore: ObservableObject {
     private let appearanceKey = "purrodoro.appearanceMode"
     private let nameKey = "purrodoro.userName"
     private let onboardingKey = "purrodoro.hasCompletedOnboarding"
+    private let storePremiumKey = "purrodoro.storePremium"
+    private let overrideEnabledKey = "purrodoro.premiumOverrideEnabled"
+    private let overrideActiveKey = "purrodoro.premiumOverrideActive"
     private var suppressProfileMirror = false
 
     var timerSettingsProvider: () -> TimerSettings = { TimerSettings() }
@@ -61,6 +77,9 @@ final class PreferencesStore: ObservableObject {
         self.appearanceMode = raw.flatMap(AppearanceMode.init(rawValue:)) ?? .auto
         self.userName = store.string(forKey: nameKey) ?? ""
         self.hasCompletedOnboarding = store.bool(forKey: onboardingKey)
+        self.storePremium = store.bool(forKey: storePremiumKey)
+        self.premiumOverrideEnabled = store.bool(forKey: overrideEnabledKey)
+        self.premiumOverrideActive = store.bool(forKey: overrideActiveKey)
     }
 
     /// Clears the greeting name on account switch (Drop). Appearance, language,
@@ -76,6 +95,18 @@ final class PreferencesStore: ObservableObject {
         let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         store.set(trimmed, forKey: nameKey)
         userName = trimmed
+    }
+
+    func setStorePremium(_ value: Bool) {
+        storePremium = value
+        store.set(value, forKey: storePremiumKey)
+    }
+
+    func applyPremiumOverride(enabled: Bool, active: Bool) {
+        premiumOverrideEnabled = enabled
+        premiumOverrideActive = active
+        store.set(enabled, forKey: overrideEnabledKey)
+        store.set(active, forKey: overrideActiveKey)
     }
 
     func reloadFromSync() {

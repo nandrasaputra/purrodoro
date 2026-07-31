@@ -55,6 +55,31 @@ struct PremiumResolverTests {
     }
 }
 
+@MainActor
+struct PremiumPreferencesTests {
+
+    @Test func storeEntitlementIsCachedAndRestored() {
+        let store = InMemoryKeyValueStore()
+        let prefs = PreferencesStore(store: store)
+
+        prefs.setStorePremium(true)
+
+        #expect(prefs.storePremium)
+        #expect(PreferencesStore(store: store).storePremium)
+    }
+
+    @Test func syncedOverrideTakesPrecedenceOverStoreEntitlement() {
+        let prefs = PreferencesStore(store: InMemoryKeyValueStore())
+        prefs.setStorePremium(true)
+
+        prefs.applyPremiumOverride(enabled: true, active: false)
+
+        #expect(prefs.premiumOverrideEnabled)
+        #expect(!prefs.premiumOverrideActive)
+        #expect(!prefs.isPremium)
+    }
+}
+
 struct PremiumEntitlementTests {
 
     @Test func grantsWhenMonthlyMatches() {

@@ -32,6 +32,11 @@ enum SyncJSON {
         return value
     }
 
+    static func boolField(_ row: SyncRow, _ key: String) -> Bool? {
+        guard case .bool(let value) = row[key] else { return nil }
+        return value
+    }
+
     static func pushPayload(from row: SyncRow) -> SyncRow {
         row.filter { $0.key != "updated_at" }
     }
