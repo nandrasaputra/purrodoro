@@ -78,6 +78,16 @@ struct PremiumPreferencesTests {
         #expect(!prefs.premiumOverrideActive)
         #expect(!prefs.isPremium)
     }
+
+    @Test func storeKitManagerStartsIdle() {
+        let manager = StoreKitManager(
+            prefs: PreferencesStore(store: InMemoryKeyValueStore())
+        )
+
+        #expect(manager.offers.catalogState == .idle)
+        #expect(!manager.purchaseInFlight)
+        #expect(manager.lastError == nil)
+    }
 }
 
 struct PremiumEntitlementTests {
