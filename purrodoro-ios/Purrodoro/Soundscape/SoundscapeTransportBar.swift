@@ -42,6 +42,7 @@ struct SoundscapeTransportBar: View {
                         .font(.system(.subheadline, design: .rounded).weight(isPlaying ? .bold : .semibold))
                         .foregroundStyle(nameColor)
                         .lineLimit(1)
+                        .opacity(showFirstRunHint && !isPlaying ? 0.9 : 1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .contentShape(Rectangle())
