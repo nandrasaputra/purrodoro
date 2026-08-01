@@ -43,6 +43,12 @@ final class PreferencesStore: ObservableObject {
         didSet { store.set(hasCompletedOnboarding, forKey: onboardingKey) }
     }
 
+    /// Selected home hero backdrop. Premium scenes stay stored for free users
+    /// but render falls back to Room via `effectiveHomeScene`.
+    @Published var homeScene: HomeScene {
+        didSet { store.set(homeScene.storageName, forKey: homeSceneKey) }
+    }
+
     @Published private(set) var storePremium: Bool
     @Published private(set) var premiumOverrideEnabled: Bool
     @Published private(set) var premiumOverrideActive: Bool
@@ -56,6 +62,11 @@ final class PreferencesStore: ObservableObject {
             )
     }
 
+    /// Scene actually shown on Home (Room for free users with a premium pick).
+    var displayHomeScene: HomeScene {
+        effectiveHomeScene(selected: homeScene, isPremium: isPremium)
+    }
+
     static let maxNameLength = 24
 
     private let syncRepo: SyncRepository?
@@ -63,6 +74,7 @@ final class PreferencesStore: ObservableObject {
     private let appearanceKey = "purrodoro.appearanceMode"
     private let nameKey = "purrodoro.userName"
     private let onboardingKey = "purrodoro.hasCompletedOnboarding"
+    private let homeSceneKey = "purrodoro.homeScene"
     private let storePremiumKey = "purrodoro.storePremium"
     private let overrideEnabledKey = "purrodoro.premiumOverrideEnabled"
     private let overrideActiveKey = "purrodoro.premiumOverrideActive"
@@ -77,6 +89,7 @@ final class PreferencesStore: ObservableObject {
         self.appearanceMode = raw.flatMap(AppearanceMode.init(rawValue:)) ?? .auto
         self.userName = store.string(forKey: nameKey) ?? ""
         self.hasCompletedOnboarding = store.bool(forKey: onboardingKey)
+        self.homeScene = HomeScene.fromStorageName(store.string(forKey: homeSceneKey))
         self.storePremium = store.bool(forKey: storePremiumKey)
         self.premiumOverrideEnabled = store.bool(forKey: overrideEnabledKey)
         self.premiumOverrideActive = store.bool(forKey: overrideActiveKey)
