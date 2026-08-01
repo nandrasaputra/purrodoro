@@ -30,6 +30,7 @@ final class BackupManager {
         language: AppLanguage,
         selectedSoundId: Int,
         homeScene: HomeScene = .room,
+        notificationSound: Bool = true,
         tasks: [TaskItem],
         habits: [HabitItem],
         sessionRecords: [FocusSessionRecord],
@@ -42,6 +43,7 @@ final class BackupManager {
             language: language,
             selectedSoundId: selectedSoundId,
             homeScene: homeScene,
+            notificationSound: notificationSound,
             tasks: tasks,
             habits: habits,
             sessionRecords: sessionRecords,
@@ -128,6 +130,7 @@ struct BackupRestoreApplicator {
             language: loc.language,
             selectedSoundId: sounds.exportSoundId,
             homeScene: prefs.homeScene,
+            notificationSound: prefs.notificationSoundEnabled,
             tasks: tasks.tasks,
             habits: habits.habits,
             sessionRecords: history.records,
@@ -147,6 +150,7 @@ struct BackupRestoreApplicator {
         prefs.userName = bundle.displayName
         prefs.appearanceMode = bundle.prefs.appearance
         prefs.homeScene = bundle.prefs.homeScene
+        prefs.notificationSoundEnabled = bundle.prefs.notificationSound
         loc.language = bundle.prefs.language
         sounds.applyRestoredSoundId(bundle.prefs.selectedSoundId)
     }

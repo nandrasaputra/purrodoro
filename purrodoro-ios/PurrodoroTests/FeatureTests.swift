@@ -165,6 +165,7 @@ struct LocalizationTests {
         let loc = manager()
         for key in [
             "tab.focus", "home.startFocus", "settings.language", "sounds.title",
+            "focusBusy.title", "settings.notifSound", "settings.languageSystem",
             "journey.title", "journey.recentSessions", "journey.currentStreak",
             "onboard.welcome.title", "onboard.enableNotif", "date.today",
         ] {
@@ -232,6 +233,29 @@ struct LocalizationTests {
         #expect(bundle.tasks[0].trimmedCategory == "Work")
         #expect(bundle.habits.count == 1)
         #expect(bundle.stamps["2026-06-18"] == 4)
+    }
+
+    @Test func systemLanguageAndNotificationSoundRoundTrip() throws {
+        let json = try BackupCodec.encode(
+            displayName: "",
+            timerSettings: TimerSettings(),
+            appearance: .auto,
+            language: .system,
+            selectedSoundId: 1,
+            notificationSound: false,
+            tasks: [],
+            habits: [],
+            sessionRecords: [],
+            stamps: [:],
+            appVersionName: "1.0",
+            exportedAt: 1
+        )
+        guard case .success(let bundle) = BackupCodec.decode(json) else {
+            Issue.record("decode failed")
+            return
+        }
+        #expect(bundle.prefs.language == .system)
+        #expect(bundle.prefs.notificationSound == false)
     }
 }
 
@@ -401,6 +425,55 @@ struct AccountManagerTests {
 
         _ = await manager.onSignedIn(incomingUserId: "user-A", confirmDrop: { true })
         #expect(hookCalls == ["deltaSync"])
+    }
+}
+
+struct FocusBusyGateTests {
+
+    @Test func idleProceeds() {
+        #expect(FocusBusyGate.evaluate(isStarted: false, liveMatchesSelection: false) == .proceed)
+        #expect(FocusBusyGate.evaluate(isStarted: false, liveMatchesSelection: true) == .proceed)
+    }
+
+    @Test func sameIntentOpensFocus() {
+        #expect(FocusBusyGate.evaluate(isStarted: true, liveMatchesSelection: true) == .openFocus)
+    }
+
+    @Test func otherIntentIsBusy() {
+        #expect(FocusBusyGate.evaluate(isStarted: true, liveMatchesSelection: false) == .busy)
+    }
+}
+
+struct AppLanguageSystemTests {
+
+    @Test func systemResolvesToDeviceLanguage() {
+        let resolved = AppLanguage.system.resolved
+        #expect(resolved == .en || resolved == .id)
+        #expect(resolved != .system)
+    }
+
+    @Test func concreteLanguagesResolveToThemselves() {
+        #expect(AppLanguage.en.resolved == .en)
+        #expect(AppLanguage.id.resolved == .id)
+    }
+
+    @Test func localizationDefaultsToSystem() {
+        let loc = Localization(store: InMemoryKeyValueStore())
+        #expect(loc.language == .system)
+    }
+}
+
+@MainActor
+struct NotificationSoundPreferenceTests {
+
+    @Test func defaultsEnabledAndPersistsOff() {
+        let store = InMemoryKeyValueStore()
+        let prefs = PreferencesStore(store: store)
+        #expect(prefs.notificationSoundEnabled == true)
+        prefs.notificationSoundEnabled = false
+        #expect(store.bool(forKey: "purrodoro.notificationSoundEnabled") == false)
+        let reloaded = PreferencesStore(store: store)
+        #expect(reloaded.notificationSoundEnabled == false)
     }
 }
 

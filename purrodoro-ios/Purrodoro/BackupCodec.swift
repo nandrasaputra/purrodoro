@@ -34,6 +34,7 @@ enum BackupCodec {
         language: AppLanguage,
         selectedSoundId: Int,
         homeScene: HomeScene = .room,
+        notificationSound: Bool = true,
         tasks: [TaskItem],
         habits: [HabitItem],
         sessionRecords: [FocusSessionRecord],
@@ -59,7 +60,7 @@ enum BackupCodec {
                     glass: "Adaptive",
                     homeScene: homeScene.storageName,
                     selectedSoundId: max(selectedSoundId, 1),
-                    notificationSound: true
+                    notificationSound: notificationSound
                 ),
                 categories: categories,
                 tasks: tasks.enumerated().map { index, task in
@@ -176,7 +177,8 @@ private extension BackupData {
                 appearance: AppearanceMode.fromBackup(prefs.appearance),
                 language: AppLanguage.fromBackup(prefs.language),
                 selectedSoundId: max(prefs.selectedSoundId, 1),
-                homeScene: HomeScene.fromStorageName(prefs.homeScene)
+                homeScene: HomeScene.fromStorageName(prefs.homeScene),
+                notificationSound: prefs.notificationSound
             ),
             tasks: tasks,
             habits: habits,
@@ -380,6 +382,7 @@ private extension AppearanceMode {
 private extension AppLanguage {
     func toBackupLanguage() -> String {
         switch self {
+        case .system: return "System"
         case .en: return "English"
         case .id: return "Indonesian"
         }
@@ -387,9 +390,10 @@ private extension AppLanguage {
 
     static func fromBackup(_ raw: String) -> AppLanguage {
         switch raw {
+        case "System", "system": return .system
         case "Indonesian", "id": return .id
         case "English", "en": return .en
-        default: return .en
+        default: return .system
         }
     }
 }

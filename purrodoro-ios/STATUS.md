@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (Home scenes + Focus Mode overlay)_
+_Last updated: 2026-08-01 (Focus-busy + settings gaps)_
 
 ---
 
@@ -23,17 +23,18 @@ _Last updated: 2026-08-01 (Home scenes + Focus Mode overlay)_
 | Free-tier caps (10 tasks / 10 habits) | ✅ | `PremiumGate` + Tasks/Habits upsell |
 | Soundscape #1 | ✅ | Dual deck + bundled MP3s + cloud catalog/download |
 | Soundscape #2 | ✅ | Storage UI, Focus-tab dock transport, R2 thumbnails |
-| **Home scenes + Focus Mode** | ✅ | `HomeScene`, picker, hero art, `FocusModeOverlay` |
+| Home scenes + Focus Mode | ✅ | `HomeScene`, picker, hero art, `FocusModeOverlay` |
+| **Focus-busy + settings gaps** | ✅ | `FocusBusyGate`, notif sound toggle, `AppLanguage.system` |
 | **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
 
 ### Session note (2026-08-01)
 
-Shipped **Home scenes + Focus Mode overlay** on branch:
-1. **Home scenes** — `HomeScene` (Room / Café / Library / Park), day/night resolve, `PreferencesStore.homeScene`, layers button + `HomeScenePickerSheet`, premium lock → upsell, backup `home_scene` round-trip
-2. **Focus Mode** — `FocusModeOverlay` + `FocusModeController` + `FocusModeMotion`; dock hides while active; transport bar inside overlay; stop confirm; mascot variants
-3. **Home hero** — scene art is the Focus-tab hero (idle Start Focus / active compact timer card + Focus Mode chip)
+Shipped **Focus-busy guard + settings gaps**:
+1. **Focus-busy** — Tasks/Habits focus CTAs gated while a Pomodoro is playing/paused (`FocusBusyGate` + alert); same intent → Open Focus; other → dialog
+2. **Notification sound** — Profile toggle; `NotificationScheduler.soundEnabled`; backup `notification_sound`
+3. **System locale** — `AppLanguage.system` follows device EN/ID; Profile picker label includes resolved endonym
 
-Still next: History screen → post-launch tutorial → widget deep links. App Store Connect QA + NAN-65 remain open.
+Still next: History / tutorial / deep links (other branches) → extra widgets. App Store Connect QA + NAN-65 remain open.
 
 ---
 
@@ -85,7 +86,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Focus mode overlay | ✅ `FocusModeOverlay.kt` | ✅ | `FocusModeOverlay.swift` + `FocusModeController` |
 | Cycle complete UI | ✅ `CycleCompleteDialog.kt` | ✅ | iOS `CelebrationView.swift` (full-screen, not dialog) |
 | Post-launch spotlight tutorial (5 steps) | ✅ `Tutorial.kt` | ❌ | |
-| Focus-busy dialog (block 2nd Pomodoro) | ✅ | ❌ | |
+| Focus-busy dialog (block 2nd Pomodoro) | ✅ | ✅ | `FocusBusyGate` + RootView alert |
 | Focus Shield (distraction app blocker) | ✅ `focusshield/*` · `FocusShieldScreen.kt` | ❌ | Android UsageStats + overlay; iOS needs different API (Screen Time / FamilyControls) |
 
 ### Timer & focus
@@ -204,9 +205,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|---------|-----|
 | Timer durations + sessions/cycle + auto-start | ✅ | ✅ |
 | Appearance (Light / Dark / Auto) | ✅ | ✅ |
-| Language (System / EN / ID) | ✅ | 🔶 EN/ID only (no System) |
+| Language (System / EN / ID) | ✅ | ✅ | `AppLanguage.system` resolves at lookup |
 | Profile name | ✅ | ✅ |
-| Notification sound toggle | ✅ | ❌ |
+| Notification sound toggle | ✅ | ✅ | Profile toggle → `NotificationScheduler` |
 | Account section (live sign-in) | ✅ | 🔶 | `ProfileView` + `LoginSheet`; Google needs iOS OAuth client |
 | About + privacy link | ✅ | ✅ | `ProfileView` about card + `AppLinks.swift` |
 | Links to Storage / Backup | ✅ | ✅ | Backup + Storage (`StorageView`) |
@@ -231,7 +232,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|---------|-----|
 | English + Indonesian | ✅ `values` / `values-in` | ✅ `Localization.swift` |
 | Runtime switch (no relaunch) | ✅ | ✅ |
-| System locale follow | ✅ `AppLanguage.System` | ❌ |
+| System locale follow | ✅ `AppLanguage.System` | ✅ | |
 | Widget + notification localized | ✅ | 🔶 notifications yes; widget strings hardcoded EN |
 
 ### Engineering & polish
@@ -288,8 +289,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `BackupCodec.swift` | Encode/decode + untrusted-input validation |
 | `BackupManager.swift` | Export, restore, safety snapshots (`Application Support/backups/`) |
 | `BackupRestoreView.swift` | Export/import UI (Files picker, confirm dialog) |
-| `PreferencesStore.swift` | Appearance, name, onboarding flag |
+| `PreferencesStore.swift` | Appearance, name, onboarding flag, notification sound |
 | `OnboardingView.swift` | First-run welcome / name / notification priming |
+| `FocusBusyGate.swift` | Block starting a 2nd Pomodoro from Tasks/Habits |
 | `StartFocusSheet.swift` | Pre-start intent + one-shot session config |
 | `CelebrationView.swift` | Cycle-complete overlay + confetti |
 | `TaskStore.swift` / `TasksView.swift` | Tasks + categories + due dates |
@@ -420,8 +422,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [ ] **Start Focus: simple note** intent (`FocusType.SimpleNote`)
 - [ ] **Post-launch tutorial** — 5-step spotlight (`Tutorial.kt`)
 - [x] **Free-tier caps** — 10 tasks / 10 habits with upsell (`PremiumGate`)
-- [ ] **Settings gaps** — notification sound toggle, System locale
-- [ ] **Focus-busy guard** — block second concurrent Pomodoro
+- [x] **Settings gaps** — notification sound toggle, System locale
+- [x] **Focus-busy guard** — block second concurrent Pomodoro
 - [ ] **Focus Shield** — Android `focusshield/*` shipped; iOS port needs Screen Time / FamilyControls design (not a 1:1 UsageStats port)
 
 ### P2 — widgets & platform
