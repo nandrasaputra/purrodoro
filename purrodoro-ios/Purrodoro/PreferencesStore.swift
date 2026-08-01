@@ -52,6 +52,24 @@ final class PreferencesStore: ObservableObject {
         }
     }
 
+    /// Whether the post-onboarding spotlight tour has been finished or skipped.
+    @Published var hasSeenTutorial: Bool {
+        didSet { store.set(hasSeenTutorial, forKey: tutorialKey) }
+    }
+
+    /// Ephemeral "simple note" intent for the active focus cycle (Android
+    /// `FocusType.SimpleNote`). Cleared when a task/habit is attached or the
+    /// user detaches the note.
+    @Published var activeSimpleNote: String? {
+        didSet {
+            if let note = activeSimpleNote, !note.isEmpty {
+                store.set(note, forKey: simpleNoteKey)
+            } else {
+                store.set(nil as String?, forKey: simpleNoteKey)
+            }
+        }
+    }
+
     /// Selected home hero backdrop. Premium scenes stay stored for free users
     /// but render falls back to Room via `effectiveHomeScene`.
     @Published var homeScene: HomeScene {
@@ -84,6 +102,8 @@ final class PreferencesStore: ObservableObject {
     private let nameKey = "purrodoro.userName"
     private let onboardingKey = "purrodoro.hasCompletedOnboarding"
     private let notificationSoundKey = "purrodoro.notificationSoundEnabled"
+    private let tutorialKey = "purrodoro.hasSeenTutorial"
+    private let simpleNoteKey = "purrodoro.activeSimpleNote"
     private let homeSceneKey = "purrodoro.homeScene"
     private let storePremiumKey = "purrodoro.storePremium"
     private let overrideEnabledKey = "purrodoro.premiumOverrideEnabled"
@@ -103,6 +123,10 @@ final class PreferencesStore: ObservableObject {
         self.notificationSoundEnabled = store.contains(notificationSoundKey)
             ? store.bool(forKey: notificationSoundKey)
             : true
+        self.hasSeenTutorial = store.bool(forKey: tutorialKey)
+        let savedNote = store.string(forKey: simpleNoteKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        self.activeSimpleNote = (savedNote?.isEmpty == false) ? savedNote : nil
         self.homeScene = HomeScene.fromStorageName(store.string(forKey: homeSceneKey))
         self.storePremium = store.bool(forKey: storePremiumKey)
         self.premiumOverrideEnabled = store.bool(forKey: overrideEnabledKey)
@@ -110,10 +134,20 @@ final class PreferencesStore: ObservableObject {
         NotificationScheduler.shared.soundEnabled = notificationSoundEnabled
     }
 
+    func setSimpleNote(_ note: String) {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        activeSimpleNote = trimmed.isEmpty ? nil : trimmed
+    }
+
+    func clearSimpleNote() {
+        activeSimpleNote = nil
+    }
+
     /// Clears the greeting name on account switch (Drop). Appearance, language,
     /// and onboarding flags are device-local and kept.
     func clearAccountOwnedName() {
         userName = ""
+        clearSimpleNote()
     }
 
     /// Sync-pull apply path: writes prefs only (row written by ProfileTableSync).

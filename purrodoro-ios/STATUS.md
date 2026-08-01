@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (Focus-busy + settings gaps)_
+_Last updated: 2026-08-01 (Tutorial + deep links + simple note)_
 
 ---
 
@@ -24,17 +24,19 @@ _Last updated: 2026-08-01 (Focus-busy + settings gaps)_
 | Soundscape #1 | ✅ | Dual deck + bundled MP3s + cloud catalog/download |
 | Soundscape #2 | ✅ | Storage UI, Focus-tab dock transport, R2 thumbnails |
 | Home scenes + Focus Mode | ✅ | `HomeScene`, picker, hero art, `FocusModeOverlay` |
-| **Focus-busy + settings gaps** | ✅ | `FocusBusyGate`, notif sound toggle, `AppLanguage.system` |
+| Focus-busy + settings gaps | ✅ | `FocusBusyGate`, notif sound toggle, `AppLanguage.system` |
+| **Tutorial + deep links + note** | ✅ | `TutorialController`, `SpotlightTutorialOverlay`, `DeepLinkRouter`, Start Focus note |
 | **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
 
 ### Session note (2026-08-01)
 
-Shipped **Focus-busy guard + settings gaps**:
-1. **Focus-busy** — Tasks/Habits focus CTAs gated while a Pomodoro is playing/paused (`FocusBusyGate` + alert); same intent → Open Focus; other → dialog
-2. **Notification sound** — Profile toggle; `NotificationScheduler.soundEnabled`; backup `notification_sound`
-3. **System locale** — `AppLanguage.system` follows device EN/ID; Profile picker label includes resolved endonym
+Shipped **post-launch tutorial + widget deep links + Start Focus simple note**
+(on top of Focus-busy + settings gaps):
+1. **Tutorial** — 5-step spotlight (`TutorialController` + `SpotlightTutorialOverlay`); anchors on Start Focus / Soundscape play / Tasks / Habits / Journey; `hasSeenTutorial` after onboarding
+2. **Deep links** — `purrodoro://` scheme (`DeepLinkRouter`); Today widget → `start-focus`; tab URLs for Focus/Tasks/Habits/Journey
+3. **Simple note** — Start Focus intent chip + text field; `PreferencesStore.activeSimpleNote`; shows on Home / Focus Mode / history credit
 
-Still next: History / tutorial / deep links (other branches) → extra widgets. App Store Connect QA + NAN-65 remain open.
+Still next: History screen (separate PR) → extra widgets. App Store Connect QA + NAN-65 remain open.
 
 ---
 
@@ -46,7 +48,7 @@ celebration, task categories & due dates, habit scheduling & rest days, **Sounds
 dual deck** (bundled ambience + lo-fi MP3s, cloud catalog + download-to-play,
 premium locks, **Storage UI**, **Focus-tab dock transport**, **R2 thumbnails**),
 **home scenes** (Room free; Café / Library / Park Premium; day/night art; picker),
-**Focus Mode overlay** (immersive zen timer), EN/ID localization, onboarding,
+**Focus Mode overlay** (immersive zen timer), **post-launch tutorial**, **widget deep links**, **Start Focus simple note**, EN/ID localization, onboarding,
 **Profile hub**, **backup & restore** (Android-compatible JSON v1), **auth**
 (Supabase + Apple + Google UI, Claim/Keep/Drop ownership), **Supabase sync**
 (seven tables, Profile status, logout flush), Live Activity, one Today widget,
@@ -54,14 +56,14 @@ premium locks, **Storage UI**, **Focus-tab dock transport**, **R2 thumbnails**),
 Builds on iOS 26 simulator.
 
 **Not on iOS yet:** **App Store Connect products** (local `.storekit` only),
-**post-launch tutorial**, **History screen**,
+**History screen** (in-flight on separate branch),
 **6 of 7 Android Glance widgets**, **Focus Shield** (Android distraction blocker —
 iOS would need Screen Time / FamilyControls). StoreKit foundation + task/habit caps
 shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** History screen + tutorial + widget deep links.
-Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device sync
-QA on iOS.
+**Next recommended port slices:** History screen (merge) → extra widgets → Focus-busy
+guard. Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device
+sync QA on iOS.
 
 ---
 
@@ -85,7 +87,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Home scene picker | ✅ `HomeScenePickerSheet.kt` | ✅ | `HomeScenePickerSheet.swift` — Room free; Café/Library/Park Premium |
 | Focus mode overlay | ✅ `FocusModeOverlay.kt` | ✅ | `FocusModeOverlay.swift` + `FocusModeController` |
 | Cycle complete UI | ✅ `CycleCompleteDialog.kt` | ✅ | iOS `CelebrationView.swift` (full-screen, not dialog) |
-| Post-launch spotlight tutorial (5 steps) | ✅ `Tutorial.kt` | ❌ | |
+| Post-launch spotlight tutorial (5 steps) | ✅ `Tutorial.kt` | ✅ | `TutorialController` + `SpotlightTutorialOverlay` |
 | Focus-busy dialog (block 2nd Pomodoro) | ✅ | ✅ | `FocusBusyGate` + RootView alert |
 | Focus Shield (distraction app blocker) | ✅ `focusshield/*` · `FocusShieldScreen.kt` | ❌ | Android UsageStats + overlay; iOS needs different API (Screen Time / FamilyControls) |
 
@@ -98,7 +100,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Process-death reconcile | ✅ `TimerReconciler` | ✅ | `TimerEngine.reconcile()` |
 | Auto-start next segment | ✅ | ✅ | |
 | Interrupted-focus resume | ✅ | ✅ | |
-| Focus types: Task / Habit / SimpleNote / Empty | ✅ | 🔶 | iOS: task / habit / none only |
+| Focus types: Task / Habit / SimpleNote / Empty | ✅ | ✅ | Start Focus note + `activeSimpleNote` |
 | Per-day stamps + minutes | ✅ | ✅ | |
 | Session records | ✅ per-cycle `SessionRecord` | 🔶 | iOS: per focus segment (`SessionHistoryStore`) |
 | Habit credit on focus complete | ✅ | ✅ | via `PurrodoroApp` hook |
@@ -107,7 +109,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Chained notifications (auto-start) | ✅ | ✅ | `TimerEngine.notificationChain` |
 | Notification sound toggle (completion chime) | ✅ Profile | ❌ | Chime always on when foregrounded |
 | Notification permission UX + settings deep link | ✅ | 🔶 | Profile shows status + Open Settings; onboarding priming |
-| Widget deep link → Start Focus / tab | ✅ `WidgetActions.kt` | ❌ | |
+| Widget deep link → Start Focus / tab | ✅ `WidgetActions.kt` | ✅ | `purrodoro://` + Today widget `widgetURL` |
 
 ### Tasks
 
@@ -197,7 +199,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Welcome + name + notifications | ✅ | ✅ | |
 | Google sign-in or guest | ✅ | 🔶 | Profile → Sign in (`LoginSheet`); not in onboarding yet |
 | Language picker in onboarding | ✅ | 🔶 | Settings only on iOS |
-| Post-launch tutorial | ✅ | ❌ | |
+| Post-launch tutorial | ✅ | ✅ | After onboarding on Focus tab |
 
 ### Settings / profile detail
 
@@ -224,7 +226,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Calm minimal | ✅ `CalmMinimalWidget.kt` | ❌ |
 | Cozy scene | ✅ `CozySceneWidget.kt` | ❌ |
 | Live Activity / Dynamic Island | — | ✅ `FocusLiveActivity.swift` |
-| Widget → app deep links | ✅ | ❌ |
+| Widget → app deep links | ✅ | ✅ | Today → `purrodoro://start-focus`; router ready for more widgets |
 
 ### Localization
 
@@ -418,9 +420,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] **Soundscape #2** — Storage UI, Focus-tab dock transport, R2 thumbnails
 - [x] **Home scenes** — `HomeScene` art + picker + premium gates
 - [x] **Focus mode overlay** — `FocusModeOverlay` immersive surface
-- [ ] **History screen** — day drill-down, delete records (`HistoryScreen.kt`)
-- [ ] **Start Focus: simple note** intent (`FocusType.SimpleNote`)
-- [ ] **Post-launch tutorial** — 5-step spotlight (`Tutorial.kt`)
+- [ ] **History screen** — day drill-down, delete records (`HistoryScreen.kt`) — separate branch
+- [x] **Start Focus: simple note** intent (`FocusType.SimpleNote`)
+- [x] **Post-launch tutorial** — 5-step spotlight (`TutorialController`)
 - [x] **Free-tier caps** — 10 tasks / 10 habits with upsell (`PremiumGate`)
 - [x] **Settings gaps** — notification sound toggle, System locale
 - [x] **Focus-busy guard** — block second concurrent Pomodoro
@@ -429,7 +431,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 ### P2 — widgets & platform
 
 - [ ] Extra widgets (dashboard, daily plan, streak, stats grid, calm, cozy)
-- [ ] Widget → app deep links (open tab, auto Start Focus)
+- [x] Widget → app deep links (open tab, auto Start Focus) — Today wired; scheme ready
 - [ ] iPad / macOS layout polish (targets enabled, phone-first UI)
 - [ ] Full accessibility sweep (Tasks, Habits, Settings)
 - [ ] Snapshot / UI tests (replace XCTest templates)
@@ -457,8 +459,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 6. Soundscape #1 ✅ — dual deck, bundled + catalog + download-to-play
 7. Soundscape #2 ✅ — Storage UI, dock transport, thumbnails
 8. Home scenes + focus overlay ✅
-9. History + tutorial + widget deep links
-10. Extra widgets + iPad polish + tests
+9. Tutorial + widget deep links + simple note ✅
+10. History (separate PR) + extra widgets + iPad polish
 11. Focus Shield (platform-specific; design before port)
 ```
 
