@@ -2,10 +2,10 @@
 //  OnboardingView.swift
 //  Purrodoro
 //
-//  First-run intro shown full-screen over the app. Three gentle steps:
-//  welcome → name → notification priming. Mirrors the spirit of the Android
-//  onboarding (warm mascot, name step, permission ask) without blocking: every
-//  step can be skipped and nothing here is required to use the app.
+//  First-run intro shown full-screen over the app. Welcome offers Sign in
+//  (LoginSheet) or Continue as guest — matching Android `OnboardingScreen` —
+//  then optional name + notification priming. Language can be changed from the
+//  top bar. Every step can be skipped; nothing here is required to use the app.
 //
 
 import SwiftUI
@@ -13,6 +13,14 @@ import SwiftUI
 struct OnboardingView: View {
     @EnvironmentObject private var prefs: PreferencesStore
     @EnvironmentObject private var loc: Localization
+    @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var ownerStore: AccountOwnerStore
+    @EnvironmentObject private var syncRepo: SyncRepository
+    @EnvironmentObject private var syncCoordinator: SyncCoordinator
+    @EnvironmentObject private var engine: TimerEngine
+    @EnvironmentObject private var tasks: TaskStore
+    @EnvironmentObject private var habits: HabitStore
+    @EnvironmentObject private var history: SessionHistoryStore
     @Environment(\.colorScheme) private var scheme
 
     /// Called when onboarding finishes (or is skipped) so the host can dismiss.
@@ -20,8 +28,37 @@ struct OnboardingView: View {
 
     @State private var step: Step = .welcome
     @State private var requestingNotifications = false
+    @State private var showLoginSheet = false
+    @State private var showAccountSwitchAlert = false
+    @State private var dropConfirmContinuation: CheckedContinuation<Bool, Never>?
+    @State private var authBusy = false
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
+
+    private var isSignedIn: Bool {
+        if case .signedIn = auth.state { return true }
+        return false
+    }
+
+    private var signedInUser: AuthUser? {
+        if case .signedIn(let user) = auth.state { return user }
+        return nil
+    }
+
+    private var accountManager: AccountManager {
+        AccountManager(
+            ownerStore: ownerStore,
+            clearer: AccountDataClearer(
+                syncRepo: syncRepo,
+                engine: engine,
+                tasks: tasks,
+                habits: habits,
+                history: history,
+                prefs: prefs
+            ),
+            syncHooks: syncCoordinator.syncHooks
+        )
+    }
 
     enum Step: Int, CaseIterable {
         case welcome, name, notifications
@@ -32,7 +69,7 @@ struct OnboardingView: View {
             colors.page.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                skipBar
+                topBar
 
                 Spacer(minLength: 0)
 
@@ -53,22 +90,76 @@ struct OnboardingView: View {
                 progressDots
                     .padding(.bottom, 16)
 
-                primaryAction
+                bottomActions
                     .padding(.horizontal, 28)
                     .padding(.bottom, 12)
             }
+
+            if authBusy {
+                Color.black.opacity(0.18).ignoresSafeArea()
+                ProgressView()
+                    .tint(Brand.coral)
+                    .scaleEffect(1.2)
+            }
         }
         .environment(\.pColors, colors)
+        .sheet(isPresented: $showLoginSheet) {
+            LoginSheet(
+                onSignedIn: { user in
+                    showLoginSheet = false
+                    Task { await handleSignedIn(user) }
+                },
+                onContinueAsGuest: {
+                    showLoginSheet = false
+                }
+            )
+            .environmentObject(auth)
+            .environmentObject(loc)
+        }
+        .alert(loc.t("account.switch.title"), isPresented: $showAccountSwitchAlert) {
+            Button(loc.t("account.switch.confirm"), role: .destructive) {
+                dropConfirmContinuation?.resume(returning: true)
+                dropConfirmContinuation = nil
+            }
+            Button(loc.t("common.cancel"), role: .cancel) {
+                dropConfirmContinuation?.resume(returning: false)
+                dropConfirmContinuation = nil
+            }
+        } message: {
+            Text(loc.t("account.switch.message"))
+        }
     }
 
     // MARK: Steps
 
     private var welcomeStep: some View {
-        stepScaffold(
-            image: "CatMascot",
-            title: loc.t("onboard.welcome.title"),
-            subtitle: loc.t("onboard.welcome.subtitle")
-        )
+        VStack(spacing: 18) {
+            Text(loc.t("onboard.welcomeTo"))
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(colors.textSecondary)
+            Text("Purrodoro")
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .foregroundStyle(colors.textPrimary)
+
+            mascot("CatMascot")
+
+            VStack(spacing: 8) {
+                Text(loc.t("onboard.welcome.title"))
+                    .font(.system(.title2, design: .rounded).weight(.bold))
+                    .foregroundStyle(colors.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text(loc.t(isSignedIn ? "onboard.welcome.signedInBody" : "onboard.welcome.subtitle"))
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+            }
+
+            if let user = signedInUser {
+                signedInCard(user)
+            }
+        }
+        .padding(.horizontal, 28)
     }
 
     private var nameStep: some View {
@@ -132,20 +223,104 @@ struct OnboardingView: View {
         Image(name)
             .resizable()
             .scaledToFit()
-            .frame(width: 180, height: 180)
+            .frame(width: 160, height: 160)
+    }
+
+    private func signedInCard(_ user: AuthUser) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Brand.coral)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(loc.t("onboard.welcome.signedInHeading"))
+                    .font(.system(.subheadline, design: .rounded).weight(.bold))
+                    .foregroundStyle(colors.textPrimary)
+                Text(user.displayName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                     ?? user.email
+                     ?? loc.t("account.signedInGeneric"))
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(colors.textSecondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(colors.border, lineWidth: 1))
     }
 
     // MARK: Chrome
 
-    private var skipBar: some View {
+    private var topBar: some View {
         HStack {
+            if step == .notifications || step == .name {
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        step = step == .notifications ? .name : .welcome
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(colors.textPrimary)
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(loc.t("common.back"))
+            }
+
             Spacer()
+
+            languageMenu
+
             Button(loc.t("onboard.skip")) { finish() }
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 .foregroundStyle(colors.textFaint)
+                .disabled(authBusy)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 20)
         .padding(.top, 12)
+    }
+
+    private var languageMenu: some View {
+        Menu {
+            ForEach(AppLanguage.allCases) { lang in
+                Button {
+                    loc.language = lang
+                } label: {
+                    HStack {
+                        Text(languageLabel(lang))
+                        if loc.language == lang {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "globe")
+                    .font(.system(size: 14, weight: .semibold))
+                Text(languageLabel(loc.language))
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .foregroundStyle(colors.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(colors.card, in: Capsule())
+            .overlay(Capsule().stroke(colors.border, lineWidth: 1))
+        }
+        .accessibilityLabel(loc.t("settings.language"))
+    }
+
+    private func languageLabel(_ lang: AppLanguage) -> String {
+        switch lang {
+        case .system:
+            return loc.t("settings.languageSystemPicker", AppLanguage.deviceLanguageEndonym)
+        case .en: return "English"
+        case .id: return "Bahasa Indonesia"
+        }
     }
 
     private var progressDots: some View {
@@ -160,25 +335,53 @@ struct OnboardingView: View {
     }
 
     @ViewBuilder
-    private var primaryAction: some View {
+    private var bottomActions: some View {
         switch step {
         case .welcome:
-            PrimaryButton(title: loc.t("onboard.getStarted"), systemImage: "arrow.right", tint: Brand.coral) {
-                advance(to: .name)
+            VStack(spacing: 10) {
+                if isSignedIn {
+                    PrimaryButton(title: loc.t("onboard.continue"), systemImage: "arrow.right", tint: Brand.coral) {
+                        advance(to: .name)
+                    }
+                    .disabled(authBusy)
+                    Button(loc.t("onboard.continueGuestInstead")) {
+                        Task { await continueAsGuestInstead() }
+                    }
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Brand.coral)
+                    .disabled(authBusy)
+                } else {
+                    PrimaryButton(title: loc.t("onboard.signIn"), systemImage: "person.crop.circle.badge.checkmark", tint: Brand.coral) {
+                        showLoginSheet = true
+                    }
+                    .disabled(authBusy)
+                    Button(loc.t("onboard.continueGuest")) {
+                        advance(to: .name)
+                    }
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Brand.coral)
+                    .disabled(authBusy)
+                }
             }
         case .name:
             PrimaryButton(title: loc.t("onboard.continue"), systemImage: "arrow.right", tint: Brand.coral) {
                 advance(to: .notifications)
             }
         case .notifications:
-            PrimaryButton(
-                title: requestingNotifications ? loc.t("onboard.enabling") : loc.t("onboard.enableNotif"),
-                systemImage: "bell.fill",
-                tint: Brand.coral
-            ) {
-                enableNotificationsThenFinish()
+            VStack(spacing: 10) {
+                PrimaryButton(
+                    title: requestingNotifications ? loc.t("onboard.enabling") : loc.t("onboard.enableNotif"),
+                    systemImage: "bell.fill",
+                    tint: Brand.coral
+                ) {
+                    enableNotificationsThenFinish()
+                }
+                .disabled(requestingNotifications)
+                Button(loc.t("onboard.notNow")) { finish() }
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textSecondary)
+                    .disabled(requestingNotifications)
             }
-            .disabled(requestingNotifications)
         }
     }
 
@@ -188,6 +391,42 @@ struct OnboardingView: View {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
             step = next
         }
+    }
+
+    @MainActor
+    private func handleSignedIn(_ user: AuthUser) async {
+        authBusy = true
+        defer { authBusy = false }
+        let result = await accountManager.onSignedIn(
+            incomingUserId: user.userId,
+            confirmDrop: {
+                await withCheckedContinuation { continuation in
+                    dropConfirmContinuation = continuation
+                    showAccountSwitchAlert = true
+                }
+            },
+            onBeforeClear: {
+                if engine.isStarted { engine.stop() }
+            }
+        )
+        if result == .dropCancelled {
+            try? await auth.signOut()
+            return
+        }
+        if prefs.trimmedName == nil,
+           let name = user.displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !name.isEmpty {
+            prefs.userName = name
+        }
+        advance(to: .name)
+    }
+
+    @MainActor
+    private func continueAsGuestInstead() async {
+        authBusy = true
+        defer { authBusy = false }
+        try? await auth.signOut()
+        advance(to: .name)
     }
 
     private func enableNotificationsThenFinish() {
@@ -205,8 +444,29 @@ struct OnboardingView: View {
     }
 }
 
+private extension String {
+    var nilIfEmpty: String? {
+        let t = trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
+    }
+}
+
 #Preview {
     OnboardingView(onFinish: {})
         .environmentObject(PreferencesStore())
         .environmentObject(Localization())
+        .environmentObject(AuthStore())
+        .environmentObject(AccountOwnerStore())
+        .environmentObject(SyncRepository())
+        .environmentObject(SyncCoordinator(
+            auth: AuthStore(),
+            ownerStore: AccountOwnerStore(),
+            syncRepo: SyncRepository(),
+            prefs: PreferencesStore(),
+            timerEngine: TimerEngine()
+        ))
+        .environmentObject(TimerEngine())
+        .environmentObject(TaskStore())
+        .environmentObject(HabitStore())
+        .environmentObject(SessionHistoryStore())
 }

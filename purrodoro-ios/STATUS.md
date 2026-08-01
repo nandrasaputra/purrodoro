@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (Focus-busy + settings gaps)_
+_Last updated: 2026-08-01 (Onboarding auth + live focus)_
 
 ---
 
@@ -24,17 +24,18 @@ _Last updated: 2026-08-01 (Focus-busy + settings gaps)_
 | Soundscape #1 | ✅ | Dual deck + bundled MP3s + cloud catalog/download |
 | Soundscape #2 | ✅ | Storage UI, Focus-tab dock transport, R2 thumbnails |
 | Home scenes + Focus Mode | ✅ | `HomeScene`, picker, hero art, `FocusModeOverlay` |
-| **Focus-busy + settings gaps** | ✅ | `FocusBusyGate`, notif sound toggle, `AppLanguage.system` |
+| Focus-busy + settings gaps | ✅ | `FocusBusyGate`, notif sound toggle, `AppLanguage.system` |
+| **Onboarding auth + live focus** | ✅ | `OnboardingView` LoginSheet + language; Tasks row live ring |
 | **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
 
 ### Session note (2026-08-01)
 
-Shipped **Focus-busy guard + settings gaps**:
-1. **Focus-busy** — Tasks/Habits focus CTAs gated while a Pomodoro is playing/paused (`FocusBusyGate` + alert); same intent → Open Focus; other → dialog
-2. **Notification sound** — Profile toggle; `NotificationScheduler.soundEnabled`; backup `notification_sound`
-3. **System locale** — `AppLanguage.system` follows device EN/ID; Profile picker label includes resolved endonym
+Shipped **onboarding sign-in + language picker + live task focus indicator**:
+1. **Onboarding** — Welcome Sign in / Continue as guest (`LoginSheet` + Claim/Keep/Drop); language menu in top bar; Not now on notifications
+2. **Live focus** — Tasks row shows NOW FOCUSING + accent ring while that task is attached to a playing/paused Pomodoro
+3. **Polish** — removed misleading "Coming soon" badge on empty Tasks/Habits placeholders
 
-Still next: History / tutorial / deep links (other branches) → extra widgets. App Store Connect QA + NAN-65 remain open.
+Still next: merge History / tutorial / widgets branches → iPad polish / Focus Shield design. App Store Connect QA + NAN-65 remain open.
 
 ---
 
@@ -59,9 +60,9 @@ Builds on iOS 26 simulator.
 iOS would need Screen Time / FamilyControls). StoreKit foundation + task/habit caps
 shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** History screen + tutorial + widget deep links.
-Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device sync
-QA on iOS.
+**Next recommended port slices:** History / tutorial / widgets (in-flight branches)
+→ iPad polish / accessibility / Focus Shield design. Finish App Store Connect
+product setup + purchase QA. Run NAN-65 two-device sync QA on iOS.
 
 ---
 
@@ -117,7 +118,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Categories (create / filter / colors) | ✅ | ✅ | |
 | Due dates + urgency badges + sort | ✅ | ✅ | |
 | Archived filter | 🔶 placeholder | — | Android `TaskUiFilter.Archived` always empty |
-| Live focus indicator on task row | ✅ | ❌ | |
+| Live focus indicator on task row | ✅ | ✅ | Accent ring + NOW FOCUSING while timer attached |
 | Free-tier cap (10 active tasks) | ✅ `PremiumGate` | ✅ | |
 | Cloud sync | ✅ `TaskTableSync` | ✅ `TableSyncs` | |
 
@@ -195,8 +196,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|---------|-----|-------|
 | First-run flow | ✅ | ✅ | |
 | Welcome + name + notifications | ✅ | ✅ | |
-| Google sign-in or guest | ✅ | 🔶 | Profile → Sign in (`LoginSheet`); not in onboarding yet |
-| Language picker in onboarding | ✅ | 🔶 | Settings only on iOS |
+| Google sign-in or guest | ✅ | ✅ | Welcome → `LoginSheet` / Continue as guest |
+| Language picker in onboarding | ✅ | ✅ | Top-bar language menu (System / EN / ID) |
 | Post-launch tutorial | ✅ | ❌ | |
 
 ### Settings / profile detail
@@ -406,7 +407,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] **Profile shell** — `ProfileView.swift` replaces `SettingsSheet`
 - [x] **Auth PR A** — `AuthStore`, `LoginSheet`, `AccountManager`, ownership (`ownerId`)
 - [ ] **Google on device** — create iOS OAuth client; set `SupabaseConfig.googleIOSClientID` + URL scheme
-- [ ] **Onboarding sign-in** — wire `LoginSheet` into `OnboardingView` (Profile only today)
+- [x] **Onboarding sign-in** — `LoginSheet` + Claim/Keep/Drop on Welcome; language menu
 - [x] **Supabase sync** — `SyncEngine`, `TableSyncs`, `SyncCoordinator`, Profile status
 - [x] **Logout flush** — unsynced warning on sign-out
 - [x] **Backup & restore** — schema v1; cross-platform JSON
@@ -433,11 +434,11 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [ ] iPad / macOS layout polish (targets enabled, phone-first UI)
 - [ ] Full accessibility sweep (Tasks, Habits, Settings)
 - [ ] Snapshot / UI tests (replace XCTest templates)
-- [ ] Remove misleading **"Coming soon"** badge on empty states (`RootView.swift` `PlaceholderScreen`)
+- [x] Remove misleading **"Coming soon"** badge on empty states (`PlaceholderScreen`)
 
 ### P3 — nice-to-have
 
-- [ ] Live focus indicator on task rows
+- [x] Live focus indicator on task rows
 - [ ] Habit monthly dot grid + detail sheets (Android parity)
 - [ ] Journey period summaries (today / all-time — Android uses stacked cards)
 - [ ] Glass readability mode (Android: persist + Adaptive default; **no Profile picker yet**)
