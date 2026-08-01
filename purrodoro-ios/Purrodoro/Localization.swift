@@ -178,6 +178,8 @@ final class Localization: ObservableObject {
         "start.whatWorkingOn": [.en: "What are you working on?", .id: "Sedang mengerjakan apa?"],
         "start.intentOptional": [.en: "Intent (optional)", .id: "Tujuan (opsional)"],
         "start.none": [.en: "None", .id: "Tanpa"],
+        "start.note": [.en: "Note", .id: "Catatan"],
+        "start.notePlaceholder": [.en: "Write a quick note…", .id: "Tulis catatan singkat…"],
         "start.task": [.en: "Task", .id: "Tugas"],
         "start.habit": [.en: "Habit", .id: "Kebiasaan"],
         "start.chooseTask": [.en: "Choose a task", .id: "Pilih tugas"],
@@ -503,6 +505,22 @@ final class Localization: ObservableObject {
         "unit.minAbbrev": [.en: "%ldm", .id: "%ld mnt"],
         "date.today": [.en: "Today", .id: "Hari ini"],
         "date.yesterday": [.en: "Yesterday", .id: "Kemarin"],
+
+        // Post-launch spotlight tutorial
+        "tutorial.skip": [.en: "Skip", .id: "Lewati"],
+        "tutorial.previous": [.en: "Back", .id: "Kembali"],
+        "tutorial.next": [.en: "Next", .id: "Lanjut"],
+        "tutorial.done": [.en: "Got it", .id: "Mengerti"],
+        "tutorial.startFocus.title": [.en: "Start your first focus", .id: "Mulai fokus pertamamu"],
+        "tutorial.startFocus.body": [.en: "Tap here to begin a Pomodoro and let Purrodoro keep time for you.", .id: "Ketuk di sini untuk memulai Pomodoro dan biarkan Purrodoro menghitung waktunya."],
+        "tutorial.soundscape.title": [.en: "Play your Soundscape", .id: "Putar Soundscape-mu"],
+        "tutorial.soundscape.body": [.en: "Tap here to mix ambience and lo-fi music while you focus.", .id: "Ketuk di sini untuk mencampur ambien dan musik lo-fi saat kamu fokus."],
+        "tutorial.tasks.title": [.en: "Plan what matters", .id: "Rencanakan yang penting"],
+        "tutorial.tasks.body": [.en: "Add tasks here, then pick one to focus on with Purrodoro.", .id: "Tambahkan tugas di sini, lalu pilih satu untuk difokuskan bersama Purrodoro."],
+        "tutorial.habits.title": [.en: "Build gentle habits", .id: "Bangun kebiasaan lembut"],
+        "tutorial.habits.body": [.en: "Track small routines and focus on them when they need attention.", .id: "Pantau rutinitas kecil dan fokuskan saat perlu perhatian."],
+        "tutorial.journey.title": [.en: "Watch it add up", .id: "Lihat hasilnya bertambah"],
+        "tutorial.journey.body": [.en: "Every finished cycle shows up in your journey over time.", .id: "Setiap siklus yang selesai akan muncul di perjalananmu seiring waktu."],
 
         // Onboarding
         "onboard.skip": [.en: "Skip", .id: "Lewati"],

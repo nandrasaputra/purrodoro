@@ -169,6 +169,7 @@ struct LocalizationTests {
             "journey.title", "journey.recentSessions", "journey.currentStreak",
             "journey.openHistory", "history.title", "history.emptyDay",
             "journey.deleteRecord", "journey.statFocused",
+            "tutorial.startFocus.title", "tutorial.done", "start.note",
             "onboard.welcome.title", "onboard.enableNotif", "date.today",
         ] {
             loc.language = .en
@@ -466,6 +467,54 @@ struct AppLanguageSystemTests {
 }
 
 @MainActor
+struct TutorialControllerTests {
+
+    @Test func advancesAndFinishes() {
+        let controller = TutorialController()
+        var finished = false
+        controller.start()
+        #expect(controller.visible)
+        #expect(controller.stepIndex == 0)
+        #expect(controller.steps.count == 5)
+
+        for _ in 0..<(controller.steps.count - 1) {
+            controller.next { finished = true }
+            #expect(!finished)
+        }
+        controller.next { finished = true }
+        #expect(finished)
+        #expect(!controller.visible)
+    }
+
+    @Test func skipFinishesEarly() {
+        let controller = TutorialController()
+        var finished = false
+        controller.start()
+        controller.skip { finished = true }
+        #expect(finished)
+        #expect(!controller.visible)
+    }
+}
+
+struct DeepLinkTests {
+
+    @Test func parsesStartFocusAndTabs() {
+        #expect(DeepLink.parse(URL(string: "purrodoro://start-focus")!) == .startFocus)
+        #expect(DeepLink.parse(URL(string: "purrodoro://tab/tasks")!) == .openTab(.tasks))
+        #expect(DeepLink.parse(URL(string: "purrodoro://tab/habits")!) == .openTab(.habits))
+        #expect(DeepLink.parse(URL(string: "purrodoro://tab/journey")!) == .openTab(.journey))
+        #expect(DeepLink.parse(URL(string: "purrodoro://tab/focus")!) == .openTab(.focus))
+        #expect(DeepLink.parse(URL(string: "purrodoro://")!) == .openApp)
+        #expect(DeepLink.parse(URL(string: "https://example.com")!) == nil)
+    }
+
+    @Test func urlBuildersRoundTrip() {
+        #expect(DeepLink.parse(DeepLink.url(for: .startFocus)) == .startFocus)
+        #expect(DeepLink.parse(DeepLink.url(for: .openTab(.habits))) == .openTab(.habits))
+    }
+}
+
+@MainActor
 struct NotificationSoundPreferenceTests {
 
     @Test func defaultsEnabledAndPersistsOff() {
@@ -498,6 +547,20 @@ struct SessionHistoryDeleteTests {
         #expect(history.records.count == 1)
         #expect(history.records.contains { $0.id == doomed.id } == false)
         #expect(sync.syncDirtySessionRecords().contains { $0.id == doomed.id.uuidString.lowercased() && $0.deleted })
+    }
+}
+
+@MainActor
+struct SimpleNotePreferenceTests {
+
+    @Test func setAndClearSimpleNote() {
+        let store = InMemoryKeyValueStore()
+        let prefs = PreferencesStore(store: store)
+        prefs.setSimpleNote("  Draft blog  ")
+        #expect(prefs.activeSimpleNote == "Draft blog")
+        #expect(store.string(forKey: "purrodoro.activeSimpleNote") == "Draft blog")
+        prefs.clearSimpleNote()
+        #expect(prefs.activeSimpleNote == nil)
     }
 }
 

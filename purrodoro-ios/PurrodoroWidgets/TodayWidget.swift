@@ -115,6 +115,9 @@ struct TodayWidget: Widget {
         StaticConfiguration(kind: kind, provider: TodayProvider()) { entry in
             TodayWidgetView(entry: entry)
                 .containerBackground(WidgetBrand.peach.opacity(0.12), for: .widget)
+                // Deep link into the app (Android Today widget opens MainActivity;
+                // medium also offers Start Focus via the same host URL family).
+                .widgetURL(URL(string: "purrodoro://start-focus"))
         }
         .configurationDisplayName("Today")
         .description("Your focus sessions, minutes, and streak today.")

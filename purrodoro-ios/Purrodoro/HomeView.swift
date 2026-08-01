@@ -18,6 +18,7 @@ struct HomeView: View {
     @EnvironmentObject private var focusMode: FocusModeController
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var storeKit: StoreKitManager
+    @EnvironmentObject private var deepLinks: DeepLinkRouter
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
@@ -133,6 +134,10 @@ struct HomeView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { engine.reconcile() }
         }
+        .onAppear { consumeDeepLinkStartFocusIfNeeded() }
+        .onChange(of: deepLinks.pendingOpenStartFocus) { _, pending in
+            if pending { consumeDeepLinkStartFocusIfNeeded() }
+        }
         .animation(.easeInOut(duration: 0.25), value: engine.pendingCycleComplete)
         .sensoryFeedback(trigger: engine.session.timerState) { old, new in
             switch new {
@@ -148,6 +153,12 @@ struct HomeView: View {
     private func openStartFocus(prefill: StartFocusPrefill? = nil) {
         startPrefill = prefill
         showStartFocus = true
+    }
+
+    private func consumeDeepLinkStartFocusIfNeeded() {
+        guard deepLinks.pendingOpenStartFocus else { return }
+        deepLinks.consumeStartFocus()
+        openStartFocus()
     }
 
     // MARK: Header
@@ -211,6 +222,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 28)
                 .offset(y: 22)
+                .tutorialAnchor(.startFocus)
             } else {
                 activeTimerCard
                     .padding(.horizontal, 12)
@@ -343,6 +355,13 @@ struct HomeView: View {
                     title: habit.name,
                     subtitle: loc.t("home.habitToday", habit.todayCount, habit.targetPerDay),
                     onDetach: { habits.clearActive() }
+                )
+            } else if let note = prefs.activeSimpleNote {
+                activeIntentCard(
+                    symbol: "pencil.line",
+                    title: note,
+                    subtitle: loc.t("start.note"),
+                    onDetach: { prefs.clearSimpleNote() }
                 )
             }
 
@@ -603,6 +622,8 @@ struct SecondaryButton: View {
         .environmentObject(PreferencesStore())
         .environmentObject(SoundsStore())
         .environmentObject(FocusModeController())
+        .environmentObject(TutorialController())
+        .environmentObject(DeepLinkRouter())
         .environmentObject(AuthStore())
         .environmentObject(StoreKitManager(prefs: PreferencesStore()))
         .environmentObject(Localization())
