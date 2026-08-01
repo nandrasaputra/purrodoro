@@ -25,6 +25,8 @@ struct PurrodoroApp: App {
     @StateObject private var storeKit: StoreKitManager
     @StateObject private var syncCoordinator: SyncCoordinator
     @StateObject private var focusMode: FocusModeController
+    @StateObject private var tutorial: TutorialController
+    @StateObject private var deepLinks: DeepLinkRouter
     @StateObject private var loc: Localization
 
     @Environment(\.scenePhase) private var scenePhase
@@ -79,6 +81,8 @@ struct PurrodoroApp: App {
         _storeKit = StateObject(wrappedValue: storeKit)
         _syncCoordinator = StateObject(wrappedValue: coordinator)
         _focusMode = StateObject(wrappedValue: FocusModeController())
+        _tutorial = StateObject(wrappedValue: TutorialController())
+        _deepLinks = StateObject(wrappedValue: DeepLinkRouter())
         _loc = StateObject(wrappedValue: loc)
     }
 
@@ -97,9 +101,12 @@ struct PurrodoroApp: App {
                 .environmentObject(sounds)
                 .environmentObject(storeKit)
                 .environmentObject(focusMode)
+                .environmentObject(tutorial)
+                .environmentObject(deepLinks)
                 .environmentObject(loc)
                 .preferredColorScheme(prefs.appearanceMode.preferredColorScheme)
                 .onOpenURL { url in
+                    if deepLinks.handle(url) { return }
                     _ = auth.handleOpenURL(url)
                 }
                 .onAppear {
@@ -112,14 +119,18 @@ struct PurrodoroApp: App {
                             await sounds.refreshCatalog()
                         }
                     }
-                    engine.onFocusSessionCompleted = { [weak tasks, weak habits, weak history] minutes in
-                        let intentName = tasks?.activeTask?.title ?? habits?.activeHabit?.name
+                    engine.onFocusSessionCompleted = { [weak tasks, weak habits, weak history, weak prefs] minutes in
+                        let intentName = tasks?.activeTask?.title
+                            ?? habits?.activeHabit?.name
+                            ?? prefs?.activeSimpleNote
                         tasks?.creditActiveFocusSession()
                         habits?.creditActiveFocusSession()
                         history?.record(minutes: minutes, intentName: intentName)
                     }
-                    engine.activeIntentNameProvider = { [weak tasks, weak habits] in
-                        tasks?.activeTask?.title ?? habits?.activeHabit?.name
+                    engine.activeIntentNameProvider = { [weak tasks, weak habits, weak prefs] in
+                        tasks?.activeTask?.title
+                            ?? habits?.activeHabit?.name
+                            ?? prefs?.activeSimpleNote
                     }
                 }
                 .onChange(of: scenePhase) { _, phase in

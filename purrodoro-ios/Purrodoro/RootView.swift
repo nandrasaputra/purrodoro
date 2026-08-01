@@ -6,6 +6,7 @@
 //  Habits) hosted behind a custom warm bottom dock that mirrors the Android
 //  app's navigation aesthetic. Focus tab fuses the Soundscape transport bar
 //  above the tab row (Android `DashboardDock` + `SoundscapeTransportBar`).
+//  Also hosts the post-launch spotlight tutorial and applies widget deep links.
 //
 
 import SwiftUI
@@ -34,6 +35,15 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .habits: return "repeat"
         }
     }
+
+    var tutorialTarget: TutorialTarget? {
+        switch self {
+        case .tasks: return .tasksTab
+        case .habits: return .habitsTab
+        case .journey: return .journeyTab
+        case .focus: return nil
+        }
+    }
 }
 
 struct RootView: View {
@@ -43,6 +53,8 @@ struct RootView: View {
     @EnvironmentObject private var prefs: PreferencesStore
     @EnvironmentObject private var sounds: SoundsStore
     @EnvironmentObject private var focusMode: FocusModeController
+    @EnvironmentObject private var tutorial: TutorialController
+    @EnvironmentObject private var deepLinks: DeepLinkRouter
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
@@ -59,6 +71,25 @@ struct RootView: View {
 
     private var showDock: Bool { !focusActive }
 
+    /// Matches Android `tutorialVisible` gates.
+    private var tutorialEligible: Bool {
+        prefs.hasCompletedOnboarding
+            && !prefs.hasSeenTutorial
+            && !engine.isStarted
+            && tab == .focus
+            && !showSounds
+            && !focusActive
+            && !engine.pendingCycleComplete
+    }
+
+    private var activeIntentTitle: String? {
+        tasks.activeTask?.title ?? habits.activeHabit?.name ?? prefs.activeSimpleNote
+    }
+
+    private var activeIntentIsHabit: Bool {
+        tasks.activeTask == nil && habits.activeHabit != nil
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             colors.page.ignoresSafeArea()
@@ -69,6 +100,7 @@ struct RootView: View {
                 case .tasks:
                     TasksView { task in
                         habits.clearActive()
+                        prefs.clearSimpleNote()
                         tasks.setActive(task)
                         focusOnSelectedIntent()
                     }
@@ -77,6 +109,7 @@ struct RootView: View {
                 case .habits:
                     HabitsView { habit in
                         tasks.clearActive()
+                        prefs.clearSimpleNote()
                         habits.setActive(habit)
                         focusOnSelectedIntent()
                     }
@@ -105,8 +138,8 @@ struct RootView: View {
                     mode: engine.currentMode,
                     timerState: engine.session.timerState,
                     dots: engine.dots,
-                    intentTitle: tasks.activeTask?.title ?? habits.activeHabit?.name,
-                    intentIsHabit: tasks.activeTask == nil && habits.activeHabit != nil,
+                    intentTitle: activeIntentTitle,
+                    intentIsHabit: activeIntentIsHabit,
                     isSoundscapePlaying: sounds.isPlaying,
                     soundscapeDisplayName: sounds.transportDisplayName(loc: loc),
                     showSoundscapeFirstRunHint: !sounds.hasEverUsedSoundscape,
@@ -129,12 +162,56 @@ struct RootView: View {
                 .transition(.opacity)
                 .zIndex(3)
             }
+
+            if tutorialEligible, tutorial.visible,
+               let step = tutorial.currentStep,
+               let bounds = tutorial.boundsFor(step.target) {
+                SpotlightTutorialOverlay(
+                    targetBounds: bounds,
+                    title: loc.t(step.titleKey),
+                    bodyText: loc.t(step.bodyKey),
+                    stepIndex: tutorial.stepIndex,
+                    totalSteps: tutorial.steps.count,
+                    skipLabel: loc.t("tutorial.skip"),
+                    previousLabel: tutorial.canGoBack ? loc.t("tutorial.previous") : nil,
+                    nextLabel: loc.t(tutorial.isLastStep ? "tutorial.done" : "tutorial.next"),
+                    placement: step.placement,
+                    spotlightPadding: step.spotlightPadding,
+                    spotlightCornerRadius: step.spotlightCornerRadius,
+                    onSkip: {
+                        tutorial.skip { prefs.hasSeenTutorial = true }
+                    },
+                    onPrevious: { tutorial.previous() },
+                    onNext: {
+                        tutorial.next { prefs.hasSeenTutorial = true }
+                    }
+                )
+                .zIndex(4)
+            }
         }
+        .coordinateSpace(name: TutorialCoordinateSpace.name)
         .environment(\.pColors, colors)
         .animation(.easeInOut(duration: focusActive ? FocusModeMotion.enterDuration : FocusModeMotion.exitDuration), value: focusActive)
         .sensoryFeedback(.selection, trigger: tab)
         .onChange(of: engine.session.timerState) { _, state in
             focusMode.syncWithTimerState(state)
+        }
+        .onChange(of: tutorialEligible) { _, eligible in
+            if eligible && !tutorial.visible {
+                tutorial.start()
+            }
+        }
+        .onAppear {
+            if tutorialEligible && !tutorial.visible {
+                tutorial.start()
+            }
+            applyPendingDeepLink()
+        }
+        .onChange(of: deepLinks.pendingTab) { _, _ in
+            applyPendingDeepLink()
+        }
+        .onChange(of: deepLinks.pendingOpenStartFocus) { _, _ in
+            applyPendingDeepLink()
         }
         .sheet(isPresented: $showSounds) {
             SoundsSheet()
@@ -147,6 +224,15 @@ struct RootView: View {
                 .environmentObject(prefs)
                 .environmentObject(loc)
         }
+    }
+
+    private func applyPendingDeepLink() {
+        if let pending = deepLinks.consumeTab() {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                tab = pending
+            }
+        }
+        // Start Focus is consumed by HomeView when it appears on the Focus tab.
     }
 
     private func focusOnSelectedIntent() {
@@ -255,6 +341,20 @@ private struct DockItem: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(loc.t(tab.labelKey))
+        .modifier(OptionalTutorialAnchor(target: tab.tutorialTarget))
+    }
+}
+
+private struct OptionalTutorialAnchor: ViewModifier {
+    let target: TutorialTarget?
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let target {
+            content.tutorialAnchor(target)
+        } else {
+            content
+        }
     }
 }
 
@@ -303,5 +403,8 @@ struct PlaceholderScreen: View {
         .environmentObject(PreferencesStore())
         .environmentObject(SessionHistoryStore())
         .environmentObject(SoundsStore())
+        .environmentObject(FocusModeController())
+        .environmentObject(TutorialController())
+        .environmentObject(DeepLinkRouter())
         .environmentObject(Localization())
 }
