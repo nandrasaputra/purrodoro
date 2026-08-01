@@ -476,8 +476,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 9. History ✅ — day drill-down + delete
 10. Tutorial + widget deep links + simple note ✅
 11. Extra widgets ✅ — Stats / Plan / Streak / Dashboard / Calm / Cozy
-12. Onboarding auth + live focus + iPad polish
-13. Focus Shield (platform-specific; design before port)
+12. Onboarding auth + live focus ✅
+13. iPad polish / accessibility
+14. Focus Shield (platform-specific; design before port)
 ```
 
 Specs to read before each slice:
