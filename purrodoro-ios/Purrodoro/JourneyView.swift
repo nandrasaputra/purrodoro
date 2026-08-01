@@ -14,6 +14,7 @@ struct JourneyView: View {
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var month: Date = Date()
+    @State private var showHistory = false
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
     private var stamps: [String: Int] { engine.focusStampsByDay }
@@ -25,6 +26,11 @@ struct JourneyView: View {
             content
         }
         .environment(\.pColors, colors)
+        .fullScreenCover(isPresented: $showHistory) {
+            HistoryView()
+                .environmentObject(history)
+                .environmentObject(loc)
+        }
     }
 
     @ViewBuilder
@@ -38,10 +44,7 @@ struct JourneyView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text(loc.t("journey.title"))
-                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                        .foregroundStyle(colors.textPrimary)
-                        .padding(.top, 12)
+                    journeyHeader
 
                     streakHero
                     statsRow
@@ -52,6 +55,27 @@ struct JourneyView: View {
                 .padding(.bottom, 120)
             }
         }
+    }
+
+    private var journeyHeader: some View {
+        HStack(alignment: .center) {
+            Text(loc.t("journey.title"))
+                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                .foregroundStyle(colors.textPrimary)
+            Spacer()
+            Button {
+                showHistory = true
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(colors.textPrimary)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(loc.t("journey.openHistory"))
+        }
+        .padding(.top, 12)
     }
 
     // MARK: Streak hero

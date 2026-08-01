@@ -227,6 +227,19 @@ final class SyncRepository: ObservableObject {
         setFocusSessionRecords(merged, timerSettings: timerSettings)
     }
 
+    /// Soft-deletes a focus session so sync can push the tombstone (Android
+    /// `deleteSessionRecord`).
+    func deleteFocusSession(id: UUID) {
+        let syncId = id.uuidString.lowercased()
+        let now = nowMillis()
+        guard let index = sessionRecords.firstIndex(where: { $0.id == syncId && !$0.deleted }) else { return }
+        sessionRecords[index].deleted = true
+        sessionRecords[index].dirty = true
+        sessionRecords[index].locallyModifiedAt = now
+        saveSessionRecords()
+        notifyWrite()
+    }
+
     func incrementStamp(for date: Date) {
         let key = SyncMappers.dayKey(date)
         let now = nowMillis()

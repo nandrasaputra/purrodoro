@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (Home scenes + Focus Mode overlay)_
+_Last updated: 2026-08-01 (History screen)_
 
 ---
 
@@ -23,17 +23,18 @@ _Last updated: 2026-08-01 (Home scenes + Focus Mode overlay)_
 | Free-tier caps (10 tasks / 10 habits) | ✅ | `PremiumGate` + Tasks/Habits upsell |
 | Soundscape #1 | ✅ | Dual deck + bundled MP3s + cloud catalog/download |
 | Soundscape #2 | ✅ | Storage UI, Focus-tab dock transport, R2 thumbnails |
-| **Home scenes + Focus Mode** | ✅ | `HomeScene`, picker, hero art, `FocusModeOverlay` |
+| Home scenes + Focus Mode | ✅ | `HomeScene`, picker, hero art, `FocusModeOverlay` |
+| **History screen** | ✅ | `HistoryView`, `HistoryModels`, soft-delete via sync tombstone |
 | **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
 
 ### Session note (2026-08-01)
 
-Shipped **Home scenes + Focus Mode overlay** on branch:
-1. **Home scenes** — `HomeScene` (Room / Café / Library / Park), day/night resolve, `PreferencesStore.homeScene`, layers button + `HomeScenePickerSheet`, premium lock → upsell, backup `home_scene` round-trip
-2. **Focus Mode** — `FocusModeOverlay` + `FocusModeController` + `FocusModeMotion`; dock hides while active; transport bar inside overlay; stop confirm; mascot variants
-3. **Home hero** — scene art is the Focus-tab hero (idle Start Focus / active compact timer card + Focus Mode chip)
+Shipped **History screen** on branch:
+1. **History** — Journey history icon → full-screen `HistoryView`; monthly heatmap (intensity by focus minutes); day drill-down timeline; record sheet with soft-delete (sync tombstone)
+2. **Models** — `HistoryModels` ports Android `focusIntensityLevel` / `historyDayDetail` / `journeyMinutesLabel` for per-segment `FocusSessionRecord`s (rest always 0; all rows completed)
+3. **Asset** — `CatEmptyDay` from Android `cat_empty_day.webp`
 
-Still next: History screen → post-launch tutorial → widget deep links. App Store Connect QA + NAN-65 remain open.
+Still next: post-launch tutorial → widget deep links → Start Focus simple note. App Store Connect QA + NAN-65 remain open.
 
 ---
 
@@ -45,7 +46,8 @@ celebration, task categories & due dates, habit scheduling & rest days, **Sounds
 dual deck** (bundled ambience + lo-fi MP3s, cloud catalog + download-to-play,
 premium locks, **Storage UI**, **Focus-tab dock transport**, **R2 thumbnails**),
 **home scenes** (Room free; Café / Library / Park Premium; day/night art; picker),
-**Focus Mode overlay** (immersive zen timer), EN/ID localization, onboarding,
+**Focus Mode overlay** (immersive zen timer), **History** (month heatmap + day
+drill-down + delete), EN/ID localization, onboarding,
 **Profile hub**, **backup & restore** (Android-compatible JSON v1), **auth**
 (Supabase + Apple + Google UI, Claim/Keep/Drop ownership), **Supabase sync**
 (seven tables, Profile status, logout flush), Live Activity, one Today widget,
@@ -53,14 +55,14 @@ premium locks, **Storage UI**, **Focus-tab dock transport**, **R2 thumbnails**),
 Builds on iOS 26 simulator.
 
 **Not on iOS yet:** **App Store Connect products** (local `.storekit` only),
-**post-launch tutorial**, **History screen**,
+**post-launch tutorial**,
 **6 of 7 Android Glance widgets**, **Focus Shield** (Android distraction blocker —
 iOS would need Screen Time / FamilyControls). StoreKit foundation + task/habit caps
 shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** History screen + tutorial + widget deep links.
-Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device sync
-QA on iOS.
+**Next recommended port slices:** Post-launch tutorial + widget deep links +
+Start Focus simple note. Finish App Store Connect product setup + purchase QA.
+Run NAN-65 two-device sync QA on iOS.
 
 ---
 
@@ -78,7 +80,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | ✅ | Dual deck + Storage + dock transport + thumbs |
 | Premium discovery + upsell sheets | ✅ | 🔶 | `PremiumView` + `PremiumUpsellSheet`; StoreKit placeholders |
 | Login / logout / account switch | ✅ | 🔶 | `AuthStore` + `AccountManager` — Claim/Keep/Drop + sync hooks |
-| History (day drill-down) | ✅ `HistoryScreen.kt` | ❌ | iOS: 8 recent rows on Journey only |
+| History (day drill-down) | ✅ `HistoryScreen.kt` | ✅ | `HistoryView.swift` + `HistoryModels.swift` — per-segment records; rest always 0 |
 | Storage (downloaded tracks) | ✅ `StorageScreen.kt` | ✅ | `StorageView.swift` + `StorageModels.swift` |
 | Backup & restore | ✅ `BackupRestoreScreen.kt` | ✅ | `BackupRestoreView.swift` — schema v1, guest-only restore, Files picker |
 | Home scene picker | ✅ `HomeScenePickerSheet.kt` | ✅ | `HomeScenePickerSheet.swift` — Room free; Café/Library/Park Premium |
@@ -137,9 +139,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Feature | Android | iOS | Notes |
 |---------|---------|-----|-------|
 | Today / week / month / all-time sections | ✅ `CalendarScreen.kt` | 🔶 | Android: stacked period cards (not a zoom toggle); iOS: week stats + month heatmap |
-| Session timeline per period | ✅ `JourneyTimeline.kt` | 🔶 | Recent feed only |
+| Session timeline per period | ✅ `JourneyTimeline.kt` | 🔶 | Journey recent feed + History day timeline |
 | Streak (daily stamps) | ✅ | ✅ | Ported `calculateStreak` |
-| Delete session record | ✅ History | ❌ | |
+| Delete session record | ✅ History | ✅ | Soft-delete + sync tombstone via `SessionHistoryStore.delete` |
 | Cloud sync (records + stamps) | ✅ | ✅ `TableSyncs` | |
 
 ### Auth & sync
@@ -294,8 +296,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `CelebrationView.swift` | Cycle-complete overlay + confetti |
 | `TaskStore.swift` / `TasksView.swift` | Tasks + categories + due dates |
 | `HabitStore.swift` / `HabitsView.swift` | Habits + scheduling + rest days |
-| `JourneyModels.swift` / `JourneyView.swift` | Streaks, heatmap, recent sessions |
-| `SessionHistoryStore.swift` | Per-focus-segment history (cap 500) |
+| `JourneyModels.swift` / `JourneyView.swift` | Streaks, heatmap, recent sessions, History entry |
+| `HistoryModels.swift` / `HistoryView.swift` | History month heatmap, day drill-down, delete sheet |
+| `SessionHistoryStore.swift` | Per-focus-segment history (cap 500) + soft-delete |
 | `NotificationScheduler.swift` | Local notifications + foreground delegate |
 | `SoundsStore.swift` / `SoundsSheet.swift` / `Soundscape/*` | Dual-deck Soundscape (#1+#2) |
 | `HomeScene.swift` / `HomeScenePickerSheet.swift` | Home hero themes + picker |
@@ -323,6 +326,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `ui/TodoScreen.kt` | `TasksView.swift` + `TaskStore.swift` |
 | `ui/HabitsScreen.kt` | `HabitsView.swift` + `HabitStore.swift` |
 | `ui/CalendarScreen.kt` + `JourneyModels.kt` | `JourneyView.swift` + `JourneyModels.swift` |
+| `ui/HistoryScreen.kt` | `HistoryView.swift` + `HistoryModels.swift` |
 | `ui/ProfileScreen.kt` | `ProfileView.swift` + `LoginSheet.swift` |
 | `ui/SoundsScreen.kt` + `soundscape/*` | `SoundsSheet.swift` + `Soundscape/*` (#1+#2) |
 | `ui/StorageScreen.kt` + `StorageModels.kt` | `StorageView.swift` + `StorageModels.swift` |
@@ -390,6 +394,13 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] Focus Mode overlay (zen timer, dock hide, transport, stop confirm)
 - [x] `HomeSceneTests` + `FocusModeMotionTests`
 
+### History
+- [x] History full-screen from Journey history icon (`HistoryView`)
+- [x] Monthly heatmap intensity by focus minutes + day selection
+- [x] Day detail stats + session timeline; empty-day cat art
+- [x] Record detail sheet + soft-delete (sync tombstone)
+- [x] `HistoryModelTests` + `SessionHistoryDeleteTests`
+
 ### Engineering
 - [x] `KeyValueStore` persistence protocol + in-memory test conformer
 - [x] Unit tests: models, Journey math, engine transitions, parity features (all passing)
@@ -416,7 +427,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] **Soundscape #2** — Storage UI, Focus-tab dock transport, R2 thumbnails
 - [x] **Home scenes** — `HomeScene` art + picker + premium gates
 - [x] **Focus mode overlay** — `FocusModeOverlay` immersive surface
-- [ ] **History screen** — day drill-down, delete records (`HistoryScreen.kt`)
+- [x] **History screen** — day drill-down, delete records (`HistoryView`)
 - [ ] **Start Focus: simple note** intent (`FocusType.SimpleNote`)
 - [ ] **Post-launch tutorial** — 5-step spotlight (`Tutorial.kt`)
 - [x] **Free-tier caps** — 10 tasks / 10 habits with upsell (`PremiumGate`)
@@ -455,9 +466,10 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 6. Soundscape #1 ✅ — dual deck, bundled + catalog + download-to-play
 7. Soundscape #2 ✅ — Storage UI, dock transport, thumbnails
 8. Home scenes + focus overlay ✅
-9. History + tutorial + widget deep links
-10. Extra widgets + iPad polish + tests
-11. Focus Shield (platform-specific; design before port)
+9. History ✅ — day drill-down + delete
+10. Tutorial + widget deep links + simple note intent
+11. Extra widgets + iPad polish + tests
+12. Focus Shield (platform-specific; design before port)
 ```
 
 Specs to read before each slice:
@@ -496,6 +508,11 @@ Specs to read before each slice:
   Persisted device-local (`purrodoro.homeScene`); included in backup `home_scene`.
 - **Focus Mode:** `FocusModeController` + full-screen `FocusModeOverlay`; dock
   hides while active; auto-exits when the timer returns to idle.
+- **History:** Journey history icon opens full-screen `HistoryView`. Heatmap
+  intensity uses focus minutes (Android `focusIntensityLevel`). Day detail and
+  delete operate on per-segment `FocusSessionRecord`s — rest minutes are always
+  0 and status is always Completed. Delete soft-deletes via sync tombstone
+  (`SessionHistoryStore.delete` → `SyncRepository.deleteFocusSession`).
 - **Backup files:** schema v1 matches Android `BackupCodec.kt` field names
   (`schema_version`, snake_case keys). iOS uses UUIDs internally but exports
   stable int ids for interchange. Safety copies live in
