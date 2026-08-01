@@ -61,8 +61,8 @@ Builds on iOS 26 simulator.
 iOS would need Screen Time / FamilyControls). StoreKit foundation + task/habit caps
 shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** History screen (merge) → extra widgets → Focus-busy
-guard. Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device
+**Next recommended port slices:** History screen (merge) → extra widgets.
+Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device
 sync QA on iOS.
 
 ---
@@ -77,7 +77,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|---------|-----|-------|
 | 4-tab dock (Focus / Tasks / Habits / Journey) | ✅ | ✅ | `PurrodoroApp.kt` → `RootView.swift` |
 | Profile / Settings screen | ✅ `ProfileScreen.kt` | 🔶 | `ProfileView.swift` — settings hub + live auth; premium; Storage live |
-| Start Focus sheet | ✅ | ✅ | iOS: none / task / habit; no **simple note** intent |
+| Start Focus sheet | ✅ | ✅ | none / task / habit / **simple note** |
 | Sounds / Soundscape sheet | ✅ `SoundsScreen.kt` | ✅ | Dual deck + Storage + dock transport + thumbs |
 | Premium discovery + upsell sheets | ✅ | 🔶 | `PremiumView` + `PremiumUpsellSheet`; StoreKit placeholders |
 | Login / logout / account switch | ✅ | 🔶 | `AuthStore` + `AccountManager` — Claim/Keep/Drop + sync hooks |
