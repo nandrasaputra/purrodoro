@@ -286,6 +286,38 @@ final class Localization: ObservableObject {
         "soundscape.downloading": [.en: "Downloading…", .id: "Mengunduh…"],
         "soundscape.downloading_pct": [.en: "Downloading… %d%%", .id: "Mengunduh… %d%%"],
         "soundscape.download_size": [.en: "%@ MB · tap to download", .id: "%@ MB · ketuk untuk unduh"],
+        "soundscape.home_hint": [
+            .en: "Tap to mix ambience + lo-fi",
+            .id: "Ketuk untuk campur ambien + lo-fi",
+        ],
+        "soundscape.compact_separator": [.en: " · ", .id: " · "],
+        "soundscape.mini_open": [.en: "Open Soundscape", .id: "Buka Soundscape"],
+        "soundscape.transport.play": [.en: "Play Soundscape", .id: "Putar Soundscape"],
+        "soundscape.transport.pause": [.en: "Pause Soundscape", .id: "Jeda Soundscape"],
+
+        // Storage
+        "storage.title": [.en: "Storage", .id: "Penyimpanan"],
+        "storage.used": [.en: "%@ used", .id: "%@ terpakai"],
+        "storage.summary.subtitle": [
+            .en: "Used by downloaded sounds",
+            .id: "Dipakai oleh suara yang diunduh",
+        ],
+        "storage.section.downloads": [.en: "Downloads", .id: "Unduhan"],
+        "storage.downloading": [.en: "Downloading… %d%%", .id: "Mengunduh… %d%%"],
+        "storage.remove_one_cd": [.en: "Remove %@ download", .id: "Hapus unduhan %@"],
+        "storage.remove_all": [.en: "Remove all downloads", .id: "Hapus semua unduhan"],
+        "storage.remove_all.title": [.en: "Remove all downloads?", .id: "Hapus semua unduhan?"],
+        "storage.remove_all.body": [
+            .en: "This frees %@. You can download these sounds again anytime.",
+            .id: "Ini mengosongkan %@. Kamu bisa mengunduh suara ini lagi kapan saja.",
+        ],
+        "storage.remove_all.confirm": [.en: "Remove all", .id: "Hapus semua"],
+        "storage.empty": [.en: "No downloads yet", .id: "Belum ada unduhan"],
+        "storage.empty.hint": [
+            .en: "Sounds you download for offline play will show up here.",
+            .id: "Suara yang kamu unduh untuk diputar offline akan muncul di sini.",
+        ],
+
         "sound.rain.name": [.en: "Rainy Window", .id: "Jendela Hujan"],
         "sound.rain.desc": [.en: "Soft rain for deep reading", .id: "Hujan lembut untuk membaca dalam"],
         "sound.cafe.name": [.en: "Cafe Purr", .id: "Dengkuran Kafe"],

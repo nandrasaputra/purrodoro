@@ -20,7 +20,6 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showProfile = false
     @State private var showStartFocus = false
-    @State private var showSounds = false
     @State private var startPrefill: StartFocusPrefill?
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
@@ -44,15 +43,13 @@ struct HomeView: View {
 
                 CycleDotsRow(dots: engine.dots, colors: colors)
 
-                musicButton
-
                 Spacer(minLength: 8)
 
                 controls
             }
             .padding(.horizontal, 28)
             .padding(.top, 12)
-            .padding(.bottom, 96)
+            .padding(.bottom, 120)
 
             if engine.pendingCycleComplete {
                 CelebrationOverlay { engine.acknowledgeCycleComplete() }
@@ -72,9 +69,6 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showStartFocus) {
             StartFocusSheet(prefill: startPrefill)
-        }
-        .sheet(isPresented: $showSounds) {
-            SoundsSheet()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { engine.reconcile() }
@@ -142,23 +136,6 @@ struct HomeView: View {
         case .afternoon: return "afternoon"
         case .evening: return "evening"
         }
-    }
-
-    // MARK: Music button
-
-    private var musicButton: some View {
-        Button {
-            showSounds = true
-        } label: {
-            Image(systemName: sounds.isPlaying ? "waveform" : "music.note")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(sounds.isPlaying ? .white : colors.textSecondary)
-                .frame(width: 46, height: 46)
-                .background(sounds.isPlaying ? Brand.coral : colors.card, in: Circle())
-                .overlay(Circle().stroke(sounds.isPlaying ? Color.clear : colors.border, lineWidth: 1))
-                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: sounds.isPlaying)
-        }
-        .accessibilityLabel(loc.t("sounds.title"))
     }
 
     // MARK: Controls

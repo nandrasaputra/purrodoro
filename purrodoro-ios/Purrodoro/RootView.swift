@@ -4,7 +4,8 @@
 //
 //  Top-level shell: the four primary destinations (Focus / Tasks / Journey /
 //  Habits) hosted behind a custom warm bottom dock that mirrors the Android
-//  app's navigation aesthetic.
+//  app's navigation aesthetic. Focus tab fuses the Soundscape transport bar
+//  above the tab row (Android `DashboardDock` + `SoundscapeTransportBar`).
 //
 
 import SwiftUI
@@ -40,11 +41,16 @@ struct RootView: View {
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
     @EnvironmentObject private var prefs: PreferencesStore
+    @EnvironmentObject private var sounds: SoundsStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
+    @State private var showSounds = false
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
+
+    /// Transport chrome only on Focus tab (Android hides it on other tabs / focus mode).
+    private var showSoundscapeTransport: Bool { tab == .focus }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -71,10 +77,22 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            BottomDock(selected: $tab, colors: colors)
+            BottomDock(
+                selected: $tab,
+                colors: colors,
+                showTransport: showSoundscapeTransport,
+                isSoundscapePlaying: sounds.isPlaying,
+                transportLabel: sounds.transportDisplayName(loc: loc),
+                showFirstRunHint: !sounds.hasEverUsedSoundscape,
+                onOpenSoundscape: { showSounds = true },
+                onPlayPause: { sounds.togglePlayPause() }
+            )
         }
         .environment(\.pColors, colors)
         .sensoryFeedback(.selection, trigger: tab)
+        .sheet(isPresented: $showSounds) {
+            SoundsSheet()
+        }
         .fullScreenCover(isPresented: Binding(
             get: { !prefs.hasCompletedOnboarding },
             set: { _ in }
@@ -97,6 +115,12 @@ struct RootView: View {
 private struct BottomDock: View {
     @Binding var selected: AppTab
     let colors: PurrodoroColors
+    var showTransport: Bool = false
+    var isSoundscapePlaying: Bool = false
+    var transportLabel: String = ""
+    var showFirstRunHint: Bool = false
+    var onOpenSoundscape: () -> Void = {}
+    var onPlayPause: () -> Void = {}
 
     private var dockFill: Color {
         colors.scheme == .dark ? Color(hex: 0x251E3A) : Color(hex: 0xEFE0CB)
@@ -106,6 +130,42 @@ private struct BottomDock: View {
     }
 
     var body: some View {
+        Group {
+            if showTransport {
+                VStack(spacing: 0) {
+                    SoundscapeTransportBar(
+                        isPlaying: isSoundscapePlaying,
+                        displayName: transportLabel,
+                        showFirstRunHint: showFirstRunHint,
+                        onPlayPause: onPlayPause,
+                        onExpand: onOpenSoundscape
+                    )
+                    Rectangle()
+                        .fill(dockBorder.opacity(0.55))
+                        .frame(height: 1)
+                        .padding(.horizontal, 12)
+                    tabRow
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 6)
+                }
+                .background(dockFill, in: RoundedRectangle(cornerRadius: 34, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 34, style: .continuous)
+                        .stroke(dockBorder, lineWidth: 1)
+                )
+            } else {
+                tabRow
+                    .padding(6)
+                    .background(dockFill, in: Capsule())
+                    .overlay(Capsule().stroke(dockBorder, lineWidth: 1))
+            }
+        }
+        .shadow(color: .black.opacity(colors.scheme == .dark ? 0.4 : 0.08), radius: 16, y: 6)
+        .padding(.horizontal, showTransport ? 18 : 24)
+        .padding(.bottom, showTransport ? 10 : 6)
+    }
+
+    private var tabRow: some View {
         HStack(spacing: 4) {
             ForEach(AppTab.allCases) { tab in
                 DockItem(tab: tab, isActive: tab == selected, colors: colors) {
@@ -115,12 +175,6 @@ private struct BottomDock: View {
                 }
             }
         }
-        .padding(6)
-        .background(dockFill, in: Capsule())
-        .overlay(Capsule().stroke(dockBorder, lineWidth: 1))
-        .shadow(color: .black.opacity(colors.scheme == .dark ? 0.4 : 0.08), radius: 16, y: 6)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 6)
     }
 }
 
