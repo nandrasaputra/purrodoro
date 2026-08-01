@@ -544,6 +544,13 @@ final class Localization: ObservableObject {
         "tasks.nowFocusing": [.en: "NOW FOCUSING", .id: "SEDANG FOKUS"],
         "tasks.focusA11y": [.en: "Focus on this task", .id: "Fokus pada tugas ini"],
         "tasks.activeFocusA11y": [.en: "Active focus task", .id: "Tugas fokus aktif"],
+        "tasks.markDoneA11y": [.en: "Mark task done", .id: "Tandai tugas selesai"],
+        "tasks.markNotDoneA11y": [.en: "Mark task not done", .id: "Tandai tugas belum selesai"],
+        "habits.focusA11y": [.en: "Focus on this habit", .id: "Fokus pada kebiasaan ini"],
+        "habits.activeFocusA11y": [.en: "Active focus habit", .id: "Kebiasaan fokus aktif"],
+        "habits.logTodayA11y": [.en: "Log today", .id: "Catat hari ini"],
+        "habits.markNotDoneA11y": [.en: "Mark not done today", .id: "Batalkan catat hari ini"],
+        "journey.streakA11y": [.en: "Focus streak", .id: "Rentetan fokus"],
 
         // Premium
         "premium.member.title": [.en: "You're Premium", .id: "Kamu Premium"],

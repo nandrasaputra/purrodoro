@@ -172,6 +172,8 @@ struct LocalizationTests {
             "tutorial.startFocus.title", "tutorial.done", "start.note",
             "onboard.welcome.title", "onboard.enableNotif", "onboard.signIn",
             "onboard.continueGuest", "tasks.nowFocusing", "date.today",
+            "tasks.markDoneA11y", "habits.focusA11y", "habits.logTodayA11y",
+            "journey.streakA11y", "appearance.light",
         ] {
             loc.language = .en
             #expect(loc.t(key) != key)

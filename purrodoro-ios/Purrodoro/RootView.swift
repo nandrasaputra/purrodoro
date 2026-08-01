@@ -141,6 +141,7 @@ struct RootView: View {
                     onOpenSoundscape: { showSounds = true },
                     onPlayPause: { sounds.togglePlayPause() }
                 )
+                .readableDockWidth()
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 

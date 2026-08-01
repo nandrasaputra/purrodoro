@@ -55,6 +55,7 @@ struct JourneyView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .readableContentWidth()
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -68,6 +69,7 @@ struct JourneyView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 120)
             }
+            .readableContentWidth()
         }
     }
 
@@ -117,6 +119,13 @@ struct JourneyView: View {
         .frame(maxWidth: .infinity)
         .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(loc.t("journey.streakA11y"))
+        .accessibilityValue(
+            streak == 0
+                ? loc.t("journey.startToday")
+                : loc.t(streak == 1 ? "habits.dayStreak" : "habits.daysStreak", streak)
+        )
     }
 
     // MARK: Stats
@@ -144,6 +153,9 @@ struct JourneyView: View {
         .padding(.vertical, 16)
         .background(colors.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colors.border, lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
     }
 
     // MARK: Calendar
