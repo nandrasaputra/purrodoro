@@ -2,9 +2,10 @@
 //  SharedStore.swift
 //  Purrodoro (shared between the app and the PurrodoroWidgets extension)
 //
-//  A tiny App Group-backed snapshot of "today" so the Home Screen widget can
-//  render the same focus count / minutes the app shows. The app writes after
-//  every focus credit; the widget reads on each timeline refresh.
+//  App Group-backed snapshots so Home Screen widgets can render focus stats
+//  and the richer dashboard (habits/tasks/nudge) without importing app stores.
+//  The app writes after focus credits and local data changes; widgets read on
+//  each timeline refresh.
 //
 
 import Foundation
@@ -22,6 +23,7 @@ enum SharedStore {
         static let dayKey = "today.dayKey"
         static let streak = "today.streak"
         static let updatedAt = "today.updatedAt"
+        static let dashboard = "widget.dashboard.v1"
     }
 
     static func dayKey(_ date: Date = Date()) -> String {
@@ -54,6 +56,37 @@ enum SharedStore {
             minutes: d.integer(forKey: Key.minutes),
             streak: d.integer(forKey: Key.streak)
         )
+    }
+
+    /// Persist the full dashboard snapshot used by Stats / Plan / Streak / etc.
+    static func writeDashboard(_ snapshot: WidgetDashboardSnapshot) {
+        guard let data = try? JSONEncoder().encode(snapshot) else { return }
+        defaults.set(data, forKey: Key.dashboard)
+        writeToday(
+            count: snapshot.focusToday,
+            minutes: snapshot.minutesToday,
+            streak: snapshot.streak,
+            date: Date()
+        )
+    }
+
+    /// Read the dashboard snapshot. Falls back to Today fields when missing or
+    /// stale so widgets still render after an app update.
+    static func readDashboard(now: Date = Date()) -> WidgetDashboardSnapshot {
+        let d = defaults
+        if let data = d.data(forKey: Key.dashboard),
+           let snap = try? JSONDecoder().decode(WidgetDashboardSnapshot.self, from: data),
+           snap.dayKey == dayKey(now) {
+            return snap
+        }
+        let today = readToday(now: now)
+        var empty = WidgetDashboardSnapshot.empty
+        empty.dayKey = dayKey(now)
+        empty.focusToday = today.count
+        empty.minutesToday = today.minutes
+        empty.streak = today.streak
+        empty.streakAtRisk = today.streak > 0 && today.count == 0
+        return empty
     }
 }
 

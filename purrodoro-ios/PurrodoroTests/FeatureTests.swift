@@ -169,7 +169,9 @@ struct LocalizationTests {
             "journey.title", "journey.recentSessions", "journey.currentStreak",
             "journey.openHistory", "history.title", "history.emptyDay",
             "journey.deleteRecord", "journey.statFocused",
-            "onboard.welcome.title", "onboard.enableNotif", "date.today",
+            "tutorial.startFocus.title", "tutorial.done", "start.note",
+            "onboard.welcome.title", "onboard.enableNotif", "onboard.signIn",
+            "onboard.continueGuest", "tasks.nowFocusing", "date.today",
         ] {
             loc.language = .en
             #expect(loc.t(key) != key)
@@ -466,6 +468,54 @@ struct AppLanguageSystemTests {
 }
 
 @MainActor
+struct TutorialControllerTests {
+
+    @Test func advancesAndFinishes() {
+        let controller = TutorialController()
+        var finished = false
+        controller.start()
+        #expect(controller.visible)
+        #expect(controller.stepIndex == 0)
+        #expect(controller.steps.count == 5)
+
+        for _ in 0..<(controller.steps.count - 1) {
+            controller.next { finished = true }
+            #expect(!finished)
+        }
+        controller.next { finished = true }
+        #expect(finished)
+        #expect(!controller.visible)
+    }
+
+    @Test func skipFinishesEarly() {
+        let controller = TutorialController()
+        var finished = false
+        controller.start()
+        controller.skip { finished = true }
+        #expect(finished)
+        #expect(!controller.visible)
+    }
+}
+
+struct DeepLinkTests {
+
+    @Test func parsesStartFocusAndTabs() {
+        #expect(DeepLink.parse(URL(string: "purrodoro://start-focus")!) == .startFocus)
+        #expect(DeepLink.parse(URL(string: "purrodoro://tab/tasks")!) == .openTab(.tasks))
+        #expect(DeepLink.parse(URL(string: "purrodoro://tab/habits")!) == .openTab(.habits))
+        #expect(DeepLink.parse(URL(string: "purrodoro://tab/journey")!) == .openTab(.journey))
+        #expect(DeepLink.parse(URL(string: "purrodoro://tab/focus")!) == .openTab(.focus))
+        #expect(DeepLink.parse(URL(string: "purrodoro://")!) == .openApp)
+        #expect(DeepLink.parse(URL(string: "https://example.com")!) == nil)
+    }
+
+    @Test func urlBuildersRoundTrip() {
+        #expect(DeepLink.parse(DeepLink.url(for: .startFocus)) == .startFocus)
+        #expect(DeepLink.parse(DeepLink.url(for: .openTab(.habits))) == .openTab(.habits))
+    }
+}
+
+@MainActor
 struct NotificationSoundPreferenceTests {
 
     @Test func defaultsEnabledAndPersistsOff() {
@@ -498,6 +548,108 @@ struct SessionHistoryDeleteTests {
         #expect(history.records.count == 1)
         #expect(history.records.contains { $0.id == doomed.id } == false)
         #expect(sync.syncDirtySessionRecords().contains { $0.id == doomed.id.uuidString.lowercased() && $0.deleted })
+    }
+}
+
+@MainActor
+struct SimpleNotePreferenceTests {
+
+    @Test func setAndClearSimpleNote() {
+        let store = InMemoryKeyValueStore()
+        let prefs = PreferencesStore(store: store)
+        prefs.setSimpleNote("  Draft blog  ")
+        #expect(prefs.activeSimpleNote == "Draft blog")
+        #expect(store.string(forKey: "purrodoro.activeSimpleNote") == "Draft blog")
+        prefs.clearSimpleNote()
+        #expect(prefs.activeSimpleNote == nil)
+    }
+}
+
+struct WidgetSnapshotBuilderTests {
+
+    @Test func freshFocusWhenIdleEmpty() {
+        let snap = WidgetSnapshotBuilder.build(
+            stamps: [:],
+            minutesToday: 0,
+            settings: TimerSettings(focusSessionsPerCycle: 4),
+            habits: [],
+            tasks: [],
+            timerState: .idle,
+            pendingCycleAck: false,
+            today: date("2026-08-01")
+        )
+        #expect(snap.nudge.kind == .freshFocus)
+        #expect(snap.nudge.target == .startFocus)
+        #expect(snap.focusToday == 0)
+        #expect(snap.focusTarget == 4)
+    }
+
+    @Test func streakAtRiskWhenStreakAliveAndNoFocusToday() {
+        let today = date("2026-08-01")
+        let stamps = ["2026-07-31": 1, "2026-07-30": 1]
+        let snap = WidgetSnapshotBuilder.build(
+            stamps: stamps,
+            minutesToday: 0,
+            settings: TimerSettings(focusSessionsPerCycle: 4),
+            habits: [],
+            tasks: [],
+            timerState: .idle,
+            pendingCycleAck: false,
+            today: today
+        )
+        #expect(snap.streak == 2)
+        #expect(snap.streakAtRisk)
+        #expect(snap.nudge.kind == .streakAtRisk)
+        #expect(snap.nudge.target == .startFocus)
+    }
+
+    @Test func playingTimerWinsNudgePriority() {
+        let snap = WidgetSnapshotBuilder.build(
+            stamps: ["2026-08-01": 0],
+            minutesToday: 0,
+            settings: TimerSettings(),
+            habits: [],
+            tasks: [],
+            timerState: .playing,
+            pendingCycleAck: false,
+            today: date("2026-08-01")
+        )
+        #expect(snap.nudge.kind == .focusing)
+        #expect(snap.nudge.target == .openTimer)
+    }
+
+    @Test func planChipsPreferHabitsThenTasks() {
+        let habit = HabitItem(name: "Stretch", emoji: "🧘")
+        let task = TaskItem(title: "Draft", dueDate: date("2026-08-01"))
+        let snap = WidgetSnapshotBuilder.build(
+            stamps: [:],
+            minutesToday: 0,
+            settings: TimerSettings(),
+            habits: [habit],
+            tasks: [task],
+            timerState: .idle,
+            pendingCycleAck: false,
+            today: date("2026-08-01")
+        )
+        let chips = snap.planChips(max: 3)
+        #expect(chips.count == 2)
+        #expect(chips[0].label == "Stretch")
+        #expect(chips[1].label == "Draft")
+        #expect(snap.pendingTasksCount == 1)
+    }
+
+    @Test func nudgeTargetURLsMatchDeepLinkScheme() {
+        #expect(WidgetNudgeTarget.startFocus.url.absoluteString == "purrodoro://start-focus")
+        #expect(WidgetNudgeTarget.openHabits.url.absoluteString == "purrodoro://tab/habits")
+        #expect(WidgetNudgeTarget.openTasks.url.absoluteString == "purrodoro://tab/tasks")
+        #expect(WidgetNudgeTarget.openTimer.url.absoluteString == "purrodoro://tab/focus")
+    }
+
+    private func date(_ key: String) -> Date {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f.date(from: key)!
     }
 }
 

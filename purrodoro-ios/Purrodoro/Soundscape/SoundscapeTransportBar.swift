@@ -62,6 +62,7 @@ struct SoundscapeTransportBar: View {
             .accessibilityLabel(
                 loc.t(isPlaying ? "soundscape.transport.pause" : "soundscape.transport.play")
             )
+            .tutorialAnchor(.soundscapePlay)
 
             Button(action: onExpand) {
                 Image(systemName: "chevron.up")
