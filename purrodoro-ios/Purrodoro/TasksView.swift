@@ -214,9 +214,11 @@ struct TasksView: View {
     }
 
     private func row(for task: TaskItem) -> some View {
-        TaskRow(
+        let isLive = engine.isStarted && store.activeTaskID == task.id
+        return TaskRow(
             task: task,
             isActive: store.activeTaskID == task.id,
+            isLive: isLive,
             colors: colors,
             onToggle: { store.toggleCompleted(task) },
             onFocus: { onFocusTask(task) },
@@ -237,6 +239,9 @@ private struct TaskRow: View {
     @EnvironmentObject private var loc: Localization
     let task: TaskItem
     let isActive: Bool
+    /// True when this task is attached to a playing/paused Pomodoro (Android
+    /// `isLive` accent ring on the category/color affordance).
+    let isLive: Bool
     let colors: PurrodoroColors
     let onToggle: () -> Void
     let onFocus: () -> Void
@@ -245,13 +250,28 @@ private struct TaskRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Button(action: onToggle) {
-                Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 24))
-                    .foregroundStyle(task.completed ? Brand.coral : colors.textFaint)
+                ZStack {
+                    if isLive {
+                        Circle()
+                            .stroke(Brand.coral, lineWidth: 1.5)
+                            .frame(width: 30, height: 30)
+                    }
+                    Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 24))
+                        .foregroundStyle(task.completed ? Brand.coral : (isLive ? Brand.coral : colors.textFaint))
+                }
+                .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
 
             VStack(alignment: .leading, spacing: 5) {
+                if isLive {
+                    Text(loc.t("tasks.nowFocusing"))
+                        .font(.system(.caption2, design: .rounded).weight(.bold))
+                        .tracking(0.6)
+                        .foregroundStyle(Brand.coral)
+                }
+
                 Text(task.title)
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .foregroundStyle(colors.textPrimary)
@@ -277,22 +297,28 @@ private struct TaskRow: View {
 
             if !task.completed {
                 Button(action: onFocus) {
-                    Image(systemName: isActive ? "play.circle.fill" : "play.circle")
+                    Image(systemName: isLive || isActive ? "play.circle.fill" : "play.circle")
                         .font(.system(size: 28))
-                        .foregroundStyle(isActive ? Brand.coral : colors.textSecondary)
+                        .foregroundStyle(isLive || isActive ? Brand.coral : colors.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isActive ? "Active focus task" : "Focus on this task")
+                .accessibilityLabel(
+                    isLive
+                        ? loc.t("tasks.nowFocusing")
+                        : (isActive ? loc.t("tasks.activeFocusA11y") : loc.t("tasks.focusA11y"))
+                )
             }
         }
         .padding(14)
         .background(colors.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(isActive ? Brand.coral : colors.border, lineWidth: isActive ? 2 : 1)
+                .stroke(isLive ? Brand.coral : (isActive ? Brand.coral.opacity(0.55) : colors.border),
+                        lineWidth: isLive ? 2 : (isActive ? 1.5 : 1))
         )
         .contentShape(Rectangle())
         .onTapGesture(perform: onEdit)
+        .accessibilityAddTraits(isLive ? .updatesFrequently : [])
     }
 
     private func categoryChip(_ name: String) -> some View {

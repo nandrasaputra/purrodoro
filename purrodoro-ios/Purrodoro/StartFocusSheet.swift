@@ -3,8 +3,8 @@
 //  Purrodoro
 //
 //  A confirmation sheet shown before a focus cycle begins (ported from the
-//  Android `StartFocusSheet`). Lets the user pick an intent (none / task /
-//  habit) and adjust this session's durations before starting — without
+//  Android `StartFocusSheet`). Lets the user pick an intent (none / note /
+//  task / habit) and adjust this session's durations before starting — without
 //  touching the saved defaults. Also powers the "continue where you left off"
 //  flow by accepting a leftover focus length to pre-fill.
 //
@@ -18,7 +18,7 @@ struct StartFocusPrefill: Equatable {
 }
 
 private enum FocusIntentKind: String, CaseIterable, Identifiable {
-    case none, task, habit
+    case none, note, task, habit
     var id: String { rawValue }
 }
 
@@ -26,6 +26,7 @@ struct StartFocusSheet: View {
     @EnvironmentObject private var engine: TimerEngine
     @EnvironmentObject private var tasks: TaskStore
     @EnvironmentObject private var habits: HabitStore
+    @EnvironmentObject private var prefs: PreferencesStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
@@ -33,6 +34,7 @@ struct StartFocusSheet: View {
     var prefill: StartFocusPrefill? = nil
 
     @State private var intent: FocusIntentKind = .none
+    @State private var noteText: String = ""
     @State private var selectedTaskID: UUID?
     @State private var selectedHabitID: UUID?
     @State private var sessionSettings = TimerSettings()
@@ -48,6 +50,7 @@ struct StartFocusSheet: View {
     private var canStart: Bool {
         switch intent {
         case .none: return true
+        case .note: return !noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .task: return selectedTaskID != nil
         case .habit: return selectedHabitID != nil
         }
@@ -97,6 +100,9 @@ struct StartFocusSheet: View {
             } else if let active = habits.activeHabit {
                 intent = .habit
                 selectedHabitID = active.id
+            } else if let note = prefs.activeSimpleNote, !note.isEmpty {
+                intent = .note
+                noteText = note
             }
         }
     }
@@ -122,10 +128,22 @@ struct StartFocusSheet: View {
                 .tracking(1)
                 .foregroundStyle(colors.textFaint)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            HStack(spacing: 10) {
-                intentChip(.none, symbol: "square.dashed", label: loc.t("start.none"))
+            HStack(spacing: 8) {
+                intentChip(.none, symbol: "timer", label: loc.t("start.none"))
+                intentChip(.note, symbol: "pencil.line", label: loc.t("start.note"))
                 intentChip(.task, symbol: "checkmark.circle", label: loc.t("start.task"))
                 intentChip(.habit, symbol: "leaf", label: loc.t("start.habit"))
+            }
+
+            if intent == .note {
+                TextField(loc.t("start.notePlaceholder"), text: $noteText)
+                    .font(.system(.body, design: .rounded))
+                    .padding(14)
+                    .background(colors.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(colors.border, lineWidth: 1)
+                    )
             }
         }
     }
@@ -135,25 +153,32 @@ struct StartFocusSheet: View {
         return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 intent = kind
-                if kind == .none { selectedTaskID = nil; selectedHabitID = nil }
+                if kind == .none || kind == .note {
+                    selectedTaskID = nil
+                    selectedHabitID = nil
+                }
             }
         } label: {
             VStack(spacing: 6) {
                 Image(systemName: symbol)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                 Text(label)
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .font(.system(.caption2, design: .rounded).weight(.semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .multilineTextAlignment(.center)
             }
-            .foregroundStyle(selected ? .white : colors.textSecondary)
+            .foregroundStyle(selected ? Brand.coral : colors.textSecondary)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 4)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(selected ? Brand.coral : colors.card)
+                    .fill(selected ? Brand.coral.opacity(0.14) : colors.card)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(selected ? Color.clear : colors.border, lineWidth: 1)
+                    .stroke(selected ? Brand.coral.opacity(0.35) : colors.border, lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
@@ -162,7 +187,7 @@ struct StartFocusSheet: View {
     @ViewBuilder
     private var intentPicker: some View {
         switch intent {
-        case .none:
+        case .none, .note:
             EmptyView()
         case .task:
             pickerCard(title: loc.t("start.chooseTask"), empty: loc.t("start.noTasks")) {
@@ -340,12 +365,17 @@ struct StartFocusSheet: View {
     private func begin() {
         switch intent {
         case .none:
+            tasks.clearActive(); habits.clearActive(); prefs.clearSimpleNote()
+        case .note:
             tasks.clearActive(); habits.clearActive()
+            prefs.setSimpleNote(noteText)
         case .task:
+            prefs.clearSimpleNote()
             if let id = selectedTaskID, let task = tasks.tasks.first(where: { $0.id == id }) {
                 habits.clearActive(); tasks.setActive(task)
             }
         case .habit:
+            prefs.clearSimpleNote()
             if let id = selectedHabitID, let habit = habits.habits.first(where: { $0.id == id }) {
                 tasks.clearActive(); habits.setActive(habit)
             }

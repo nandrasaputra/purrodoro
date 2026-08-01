@@ -40,6 +40,11 @@ final class TimerEngine: ObservableObject {
     /// without depending on the task/habit stores directly.
     var activeIntentNameProvider: (() -> String?)?
 
+    /// Builds the richer App Group dashboard snapshot for Home Screen widgets
+    /// (habits/tasks/nudge). Wired by the app so the engine can refresh
+    /// widgets without depending on task/habit stores.
+    var widgetDashboardProvider: (() -> WidgetDashboardSnapshot)?
+
     /// The settings a running cycle was built from. Lets a session use one-shot
     /// overrides (e.g. an adjusted focus length from the Start Focus sheet)
     /// without mutating the persisted defaults.
@@ -473,17 +478,26 @@ final class TimerEngine: ObservableObject {
         publishTodaySnapshot(stamps: stamps)
     }
 
-    /// Mirror today's focus tally into the App Group store and refresh the Home
-    /// Screen widget timelines.
+    /// Mirror today's focus tally (and optional dashboard snapshot) into the
+    /// App Group store and refresh Home Screen widget timelines.
     private func publishTodaySnapshot(stamps: [String: Int]) {
-        SharedStore.writeToday(
-            count: todayFocusCount,
-            minutes: todayFocusMinutes,
-            streak: Journey.currentStreak(stamps)
-        )
+        if let dashboard = widgetDashboardProvider?() {
+            SharedStore.writeDashboard(dashboard)
+        } else {
+            SharedStore.writeToday(
+                count: todayFocusCount,
+                minutes: todayFocusMinutes,
+                streak: Journey.currentStreak(stamps)
+            )
+        }
         #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
         #endif
+    }
+
+    /// Re-publish widget snapshots after tasks/habits change (or on foreground).
+    func publishWidgetSnapshot() {
+        publishTodaySnapshot(stamps: focusStampsByDay)
     }
 
     private func persistSettings(mirror: Bool = true) {
