@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (Tutorial + deep links + simple note)_
+_Last updated: 2026-08-01 (Extra widgets)_
 
 ---
 
@@ -25,18 +25,19 @@ _Last updated: 2026-08-01 (Tutorial + deep links + simple note)_
 | Soundscape #2 | ✅ | Storage UI, Focus-tab dock transport, R2 thumbnails |
 | Home scenes + Focus Mode | ✅ | `HomeScene`, picker, hero art, `FocusModeOverlay` |
 | Focus-busy + settings gaps | ✅ | `FocusBusyGate`, notif sound toggle, `AppLanguage.system` |
-| **Tutorial + deep links + note** | ✅ | `TutorialController`, `SpotlightTutorialOverlay`, `DeepLinkRouter`, Start Focus note |
+| Tutorial + deep links + note | ✅ | `TutorialController`, `SpotlightTutorialOverlay`, `DeepLinkRouter`, Start Focus note |
+| **Extra widgets** | ✅ | Stats / Plan / Streak / Dashboard / Calm / Cozy + `WidgetSnapshotBuilder` |
 | **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
 
 ### Session note (2026-08-01)
 
-Shipped **post-launch tutorial + widget deep links + Start Focus simple note**
-(on top of Focus-busy + settings gaps):
-1. **Tutorial** — 5-step spotlight (`TutorialController` + `SpotlightTutorialOverlay`); anchors on Start Focus / Soundscape play / Tasks / Habits / Journey; `hasSeenTutorial` after onboarding
-2. **Deep links** — `purrodoro://` scheme (`DeepLinkRouter`); Today widget → `start-focus`; tab URLs for Focus/Tasks/Habits/Journey
-3. **Simple note** — Start Focus intent chip + text field; `PreferencesStore.activeSimpleNote`; shows on Home / Focus Mode / history credit
+Shipped **extra Home Screen widgets** (stacked on tutorial + deep links):
+1. **Snapshot** — App Group `WidgetDashboardSnapshot` + `WidgetSnapshotBuilder` (Android `WidgetState.deriveData` / nudge priority)
+2. **Widgets** — Stats grid, Daily plan, Streak hero, Nudge dashboard, Calm minimal, Cozy scene (Android art in widget assets)
+3. **Deep links** — each widget uses `WidgetNudgeTarget` → `purrodoro://…` (requires DeepLinkRouter from tutorial branch)
+4. **Polish** — removed misleading "Coming soon" badge on empty Tasks/Habits placeholders
 
-Still next: History screen (separate PR) → extra widgets. App Store Connect QA + NAN-65 remain open.
+Still next: History screen (separate PR) → iPad polish / Focus Shield design. App Store Connect QA + NAN-65 remain open.
 
 ---
 
@@ -48,22 +49,22 @@ celebration, task categories & due dates, habit scheduling & rest days, **Sounds
 dual deck** (bundled ambience + lo-fi MP3s, cloud catalog + download-to-play,
 premium locks, **Storage UI**, **Focus-tab dock transport**, **R2 thumbnails**),
 **home scenes** (Room free; Café / Library / Park Premium; day/night art; picker),
-**Focus Mode overlay** (immersive zen timer), **post-launch tutorial**, **widget deep links**, **Start Focus simple note**, EN/ID localization, onboarding,
+**Focus Mode overlay** (immersive zen timer), **post-launch tutorial**, **widget deep links**, **Start Focus simple note**, **7 Home Screen widgets** (Today + 6 Android Glance ports), EN/ID localization, onboarding,
 **Profile hub**, **backup & restore** (Android-compatible JSON v1), **auth**
 (Supabase + Apple + Google UI, Claim/Keep/Drop ownership), **Supabase sync**
-(seven tables, Profile status, logout flush), Live Activity, one Today widget,
+(seven tables, Profile status, logout flush), Live Activity,
 **StoreKit premium foundation** (discovery, upsell, 10/10 caps), unit tests.
 Builds on iOS 26 simulator.
 
 **Not on iOS yet:** **App Store Connect products** (local `.storekit` only),
 **History screen** (in-flight on separate branch),
-**6 of 7 Android Glance widgets**, **Focus Shield** (Android distraction blocker —
+**Focus Shield** (Android distraction blocker —
 iOS would need Screen Time / FamilyControls). StoreKit foundation + task/habit caps
 shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** History screen (merge) → extra widgets.
-Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device
-sync QA on iOS.
+**Next recommended port slices:** History screen (merge) → iPad polish /
+accessibility / Focus Shield design. Finish App Store Connect product setup +
+purchase QA. Run NAN-65 two-device sync QA on iOS.
 
 ---
 
@@ -219,14 +220,14 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Widget / surface | Android | iOS |
 |------------------|---------|-----|
 | Today (sessions / minutes / streak) | ✅ `TodayProgressWidget.kt` | ✅ `TodayWidget.swift` |
-| Dashboard / nudge | ✅ `NudgeDashboardWidget.kt` | ❌ |
-| Daily plan (tasks + habits) | ✅ `DailyPlanWidget.kt` | ❌ |
-| Streak hero | ✅ `StreakHeroWidget.kt` | ❌ |
-| Stats grid | ✅ `StatsGridWidget.kt` | ❌ |
-| Calm minimal | ✅ `CalmMinimalWidget.kt` | ❌ |
-| Cozy scene | ✅ `CozySceneWidget.kt` | ❌ |
+| Dashboard / nudge | ✅ `NudgeDashboardWidget.kt` | ✅ `NudgeDashboardWidget.swift` |
+| Daily plan (tasks + habits) | ✅ `DailyPlanWidget.kt` | ✅ `DailyPlanWidget.swift` |
+| Streak hero | ✅ `StreakHeroWidget.kt` | ✅ `StreakHeroWidget.swift` + Android art |
+| Stats grid | ✅ `StatsGridWidget.kt` | ✅ `StatsGridWidget.swift` |
+| Calm minimal | ✅ `CalmMinimalWidget.kt` | ✅ `CalmMinimalWidget.swift` |
+| Cozy scene | ✅ `CozySceneWidget.kt` | ✅ `CozySceneWidget.swift` |
 | Live Activity / Dynamic Island | — | ✅ `FocusLiveActivity.swift` |
-| Widget → app deep links | ✅ | ✅ | Today → `purrodoro://start-focus`; router ready for more widgets |
+| Widget → app deep links | ✅ | ✅ | All widgets via `WidgetNudgeTarget` / `purrodoro://` |
 
 ### Localization
 
@@ -312,8 +313,10 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `LiveActivityController.swift` | ActivityKit lifecycle |
 | `PurrodoroTheme.swift` | Brand palette (ported from Android `Color.kt`) |
 | `PurrodoroShared/FocusActivityAttributes.swift` | Live Activity shared types |
-| `PurrodoroShared/SharedStore.swift` | App Group `TodaySnapshot` |
-| `PurrodoroWidgets/*` | Today widget + Live Activity UI |
+| `PurrodoroShared/SharedStore.swift` | App Group `TodaySnapshot` + dashboard JSON |
+| `PurrodoroWidgets/*` | Today + 6 Glance ports + Live Activity |
+| `PurrodoroShared/WidgetSnapshot.swift` | App Group dashboard snapshot + nudge targets |
+| `WidgetSnapshotBuilder.swift` | Port of Android `WidgetState.deriveData` |
 
 ### Android → iOS file mapping (core)
 
@@ -335,7 +338,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `billing/*` | — |
 | `focusshield/*` + `FocusShieldScreen.kt` | — (needs iOS Screen Time / FamilyControls design) |
 | `data/backup/*` | `BackupCodec.swift` + `BackupManager.swift` + `BackupRestoreView.swift` |
-| `widget/*` (7 Glance widgets) | `PurrodoroWidgets/TodayWidget.swift` |
+| `widget/*` (7 Glance widgets) | `PurrodoroWidgets/*` (Today + 6) |
 
 ---
 
@@ -430,12 +433,12 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 ### P2 — widgets & platform
 
-- [ ] Extra widgets (dashboard, daily plan, streak, stats grid, calm, cozy)
-- [x] Widget → app deep links (open tab, auto Start Focus) — Today wired; scheme ready
+- [x] Extra widgets (dashboard, daily plan, streak, stats grid, calm, cozy)
+- [x] Widget → app deep links (open tab, auto Start Focus) — all widgets wired
 - [ ] iPad / macOS layout polish (targets enabled, phone-first UI)
 - [ ] Full accessibility sweep (Tasks, Habits, Settings)
 - [ ] Snapshot / UI tests (replace XCTest templates)
-- [ ] Remove misleading **"Coming soon"** badge on empty states (`RootView.swift` `PlaceholderScreen`)
+- [x] Remove misleading **"Coming soon"** badge on empty states (`PlaceholderScreen`)
 
 ### P3 — nice-to-have
 
@@ -460,8 +463,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 7. Soundscape #2 ✅ — Storage UI, dock transport, thumbnails
 8. Home scenes + focus overlay ✅
 9. Tutorial + widget deep links + simple note ✅
-10. History (separate PR) + extra widgets + iPad polish
-11. Focus Shield (platform-specific; design before port)
+10. Extra widgets ✅ — Stats / Plan / Streak / Dashboard / Calm / Cozy
+11. History (separate PR) + iPad polish + accessibility
+12. Focus Shield (platform-specific; design before port)
 ```
 
 Specs to read before each slice:

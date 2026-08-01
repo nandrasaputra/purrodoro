@@ -540,6 +540,94 @@ struct SimpleNotePreferenceTests {
     }
 }
 
+struct WidgetSnapshotBuilderTests {
+
+    @Test func freshFocusWhenIdleEmpty() {
+        let snap = WidgetSnapshotBuilder.build(
+            stamps: [:],
+            minutesToday: 0,
+            settings: TimerSettings(focusSessionsPerCycle: 4),
+            habits: [],
+            tasks: [],
+            timerState: .idle,
+            pendingCycleAck: false,
+            today: date("2026-08-01")
+        )
+        #expect(snap.nudge.kind == .freshFocus)
+        #expect(snap.nudge.target == .startFocus)
+        #expect(snap.focusToday == 0)
+        #expect(snap.focusTarget == 4)
+    }
+
+    @Test func streakAtRiskWhenStreakAliveAndNoFocusToday() {
+        let today = date("2026-08-01")
+        let stamps = ["2026-07-31": 1, "2026-07-30": 1]
+        let snap = WidgetSnapshotBuilder.build(
+            stamps: stamps,
+            minutesToday: 0,
+            settings: TimerSettings(focusSessionsPerCycle: 4),
+            habits: [],
+            tasks: [],
+            timerState: .idle,
+            pendingCycleAck: false,
+            today: today
+        )
+        #expect(snap.streak == 2)
+        #expect(snap.streakAtRisk)
+        #expect(snap.nudge.kind == .streakAtRisk)
+        #expect(snap.nudge.target == .startFocus)
+    }
+
+    @Test func playingTimerWinsNudgePriority() {
+        let snap = WidgetSnapshotBuilder.build(
+            stamps: ["2026-08-01": 0],
+            minutesToday: 0,
+            settings: TimerSettings(),
+            habits: [],
+            tasks: [],
+            timerState: .playing,
+            pendingCycleAck: false,
+            today: date("2026-08-01")
+        )
+        #expect(snap.nudge.kind == .focusing)
+        #expect(snap.nudge.target == .openTimer)
+    }
+
+    @Test func planChipsPreferHabitsThenTasks() {
+        let habit = HabitItem(name: "Stretch", emoji: "🧘")
+        let task = TaskItem(title: "Draft", dueDate: date("2026-08-01"))
+        let snap = WidgetSnapshotBuilder.build(
+            stamps: [:],
+            minutesToday: 0,
+            settings: TimerSettings(),
+            habits: [habit],
+            tasks: [task],
+            timerState: .idle,
+            pendingCycleAck: false,
+            today: date("2026-08-01")
+        )
+        let chips = snap.planChips(max: 3)
+        #expect(chips.count == 2)
+        #expect(chips[0].label == "Stretch")
+        #expect(chips[1].label == "Draft")
+        #expect(snap.pendingTasksCount == 1)
+    }
+
+    @Test func nudgeTargetURLsMatchDeepLinkScheme() {
+        #expect(WidgetNudgeTarget.startFocus.url.absoluteString == "purrodoro://start-focus")
+        #expect(WidgetNudgeTarget.openHabits.url.absoluteString == "purrodoro://tab/habits")
+        #expect(WidgetNudgeTarget.openTasks.url.absoluteString == "purrodoro://tab/tasks")
+        #expect(WidgetNudgeTarget.openTimer.url.absoluteString == "purrodoro://tab/focus")
+    }
+
+    private func date(_ key: String) -> Date {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f.date(from: key)!
+    }
+}
+
 private struct RecordingSyncHooks: AccountManager.SyncHooks {
     let onClaimMerge: () async -> Void
     let onDelta: () async -> Void

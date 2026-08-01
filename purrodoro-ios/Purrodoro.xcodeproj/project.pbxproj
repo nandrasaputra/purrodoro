@@ -12,6 +12,8 @@
 		F1000000000000000000A012 /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000A00F /* FocusActivityAttributes.swift */; };
 		F1000000000000000000A013 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000A010 /* SharedStore.swift */; };
 		F1000000000000000000A014 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000A010 /* SharedStore.swift */; };
+		F1000000000000000000A016 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000A015 /* WidgetSnapshot.swift */; };
+		F1000000000000000000A017 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000A015 /* WidgetSnapshot.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +47,7 @@
 		F1000000000000000000A001 /* PurrodoroWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PurrodoroWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F1000000000000000000A00F /* FocusActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusActivityAttributes.swift; sourceTree = "<group>"; };
 		F1000000000000000000A010 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
+		F1000000000000000000A015 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -144,6 +147,7 @@
 			children = (
 				F1000000000000000000A00F /* FocusActivityAttributes.swift */,
 				F1000000000000000000A010 /* SharedStore.swift */,
+				F1000000000000000000A015 /* WidgetSnapshot.swift */,
 			);
 			path = PurrodoroShared;
 			sourceTree = "<group>";
@@ -335,6 +339,7 @@
 			files = (
 				F1000000000000000000A011 /* FocusActivityAttributes.swift in Sources */,
 				F1000000000000000000A013 /* SharedStore.swift in Sources */,
+				F1000000000000000000A016 /* WidgetSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -344,6 +349,7 @@
 			files = (
 				F1000000000000000000A012 /* FocusActivityAttributes.swift in Sources */,
 				F1000000000000000000A014 /* SharedStore.swift in Sources */,
+				F1000000000000000000A017 /* WidgetSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -409,13 +409,6 @@ struct PlaceholderScreen: View {
                 .foregroundStyle(colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 48)
-            Text("Coming soon")
-                .font(.system(.caption, design: .rounded).weight(.bold))
-                .tracking(1)
-                .foregroundStyle(Brand.cocoa)
-                .padding(.vertical, 6)
-                .padding(.horizontal, 14)
-                .background(Brand.peach, in: Capsule())
             Spacer()
             Spacer()
         }

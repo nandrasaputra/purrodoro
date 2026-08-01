@@ -132,15 +132,43 @@ struct PurrodoroApp: App {
                             ?? habits?.activeHabit?.name
                             ?? prefs?.activeSimpleNote
                     }
+                    engine.widgetDashboardProvider = { [weak engine, weak tasks, weak habits] in
+                        guard let engine, let tasks, let habits else {
+                            return WidgetDashboardSnapshot.empty
+                        }
+                        return WidgetSnapshotBuilder.build(
+                            stamps: engine.focusStampsByDay,
+                            minutesToday: engine.todayFocusMinutes,
+                            settings: engine.settings,
+                            habits: habits.habits,
+                            tasks: tasks.tasks,
+                            timerState: engine.session.timerState,
+                            pendingCycleAck: engine.pendingCycleComplete
+                        )
+                    }
+                    engine.publishWidgetSnapshot()
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, !isRunningUnitTests {
                         syncCoordinator.requestImmediateSync()
+                        engine.publishWidgetSnapshot()
                         Task {
                             await storeKit.refreshEntitlements()
                             await sounds.refreshCatalog()
                         }
                     }
+                }
+                .onChange(of: tasks.tasks) { _, _ in
+                    engine.publishWidgetSnapshot()
+                }
+                .onChange(of: habits.habits) { _, _ in
+                    engine.publishWidgetSnapshot()
+                }
+                .onChange(of: engine.session.timerState) { _, _ in
+                    engine.publishWidgetSnapshot()
+                }
+                .onChange(of: engine.pendingCycleComplete) { _, _ in
+                    engine.publishWidgetSnapshot()
                 }
                 .onChange(of: auth.state) { _, state in
                     if case .signedIn = state, !isRunningUnitTests {
