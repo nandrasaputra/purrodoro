@@ -21,6 +21,7 @@ struct HabitsView: View {
     @EnvironmentObject private var history: SessionHistoryStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
+    @State private var detailHabit: HabitItem?
     @State private var editing: HabitItem?
     @State private var showAdd = false
     @State private var premiumUpsellTrigger: PremiumUpsellTrigger?
@@ -30,6 +31,8 @@ struct HabitsView: View {
     @State private var dropConfirmContinuation: CheckedContinuation<Bool, Never>?
 
     var onFocusHabit: (HabitItem) -> Void = { _ in }
+    var onOpenFocus: () -> Void = {}
+    var onFocusBusy: () -> Void = {}
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
     private var habitCount: Int { store.habits.count }
@@ -88,6 +91,14 @@ struct HabitsView: View {
                     timeBlock: draft.timeBlock
                 )
             }
+        }
+        .sheet(item: $detailHabit) { habit in
+            HabitDetailView(
+                habitID: habit.id,
+                onFocus: { selected in onFocusHabit(selected) },
+                onOpenFocus: onOpenFocus,
+                onFocusBusy: onFocusBusy
+            )
         }
         .sheet(item: $editing) { habit in
             HabitEditor(habit: habit) { draft in
@@ -205,7 +216,8 @@ struct HabitsView: View {
                                 Label(loc.t("common.delete"), systemImage: "trash")
                             }
                         }
-                        .onTapGesture { editing = habit }
+                        .onTapGesture { detailHabit = habit }
+                        .accessibilityHint(loc.t("habits.openDetailHint"))
                     }
                 }
                 .padding(.horizontal, 20)
@@ -263,18 +275,20 @@ private struct HabitCard: View {
                         .foregroundStyle(isActive ? Brand.coral : colors.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isActive ? "Active focus habit" : "Focus on this habit")
+                .accessibilityLabel(isActive ? loc.t("habits.a11y.activeFocus") : loc.t("habits.a11y.focus"))
 
-                Button(action: onToggle) {
-                    Image(systemName: habit.isDoneToday ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 28))
-                        .foregroundStyle(habit.isDoneToday ? habit.color : colors.textFaint)
+                if habit.isScheduledToday {
+                    Button(action: onToggle) {
+                        Image(systemName: habit.isDoneToday ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 28))
+                            .foregroundStyle(habit.isDoneToday ? habit.color : colors.textFaint)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(loc.t("habits.a11y.logToday"))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Log today")
             }
 
-            weekStrip
+            HabitWeekStrip(habit: habit, colors: colors)
         }
         .padding(14)
         .background(colors.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -283,6 +297,8 @@ private struct HabitCard: View {
                 .stroke(isActive ? Brand.coral : colors.border, lineWidth: isActive ? 2 : 1)
         )
         .contentShape(Rectangle())
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(habit.name)
     }
 
     @ViewBuilder
@@ -315,45 +331,6 @@ private struct HabitCard: View {
         }
         return labels.joined(separator: " ")
     }
-
-    private var weekStrip: some View {
-        let cal = Journey.calendar
-        let today = Date()
-        let days: [Date] = (0..<7).reversed().compactMap {
-            cal.date(byAdding: .day, value: -$0, to: today)
-        }
-        return HStack(spacing: 0) {
-            ForEach(days, id: \.self) { date in
-                let scheduled = habit.isScheduled(on: date)
-                let done = habit.meetsTarget(on: date)
-                let isToday = cal.isDateInToday(date)
-                VStack(spacing: 5) {
-                    Text(shortWeekday(date))
-                        .font(.system(size: 10, design: .rounded).weight(.semibold))
-                        .foregroundStyle(colors.textFaint)
-                    ZStack {
-                        Circle()
-                            .fill(done ? habit.color : colors.page)
-                            .frame(width: 22, height: 22)
-                            .overlay(Circle().stroke(isToday ? Brand.coral : colors.border, lineWidth: isToday ? 2 : 1))
-                            .opacity(scheduled ? 1 : 0.4)
-                        if !scheduled && !done {
-                            Circle()
-                                .fill(colors.textFaint.opacity(0.4))
-                                .frame(width: 4, height: 4)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-    }
-
-    private func shortWeekday(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "EEEEE"
-        return f.string(from: date)
-    }
 }
 
 // MARK: - Editor
@@ -367,7 +344,7 @@ struct HabitDraft {
     var timeBlock: HabitTimeBlock
 }
 
-private struct HabitEditor: View {
+struct HabitEditor: View {
     let habit: HabitItem?
     let onSave: (HabitDraft) -> Void
 

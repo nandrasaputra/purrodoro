@@ -116,15 +116,19 @@ struct RootView: View {
                 case .journey:
                     JourneyView()
                 case .habits:
-                    HabitsView { habit in
-                        handleFocusRequest(
-                            liveMatches: habits.activeHabitID == habit.id
-                        ) {
-                            tasks.clearActive()
-                            prefs.clearSimpleNote()
-                            habits.setActive(habit)
-                        }
-                    }
+                    HabitsView(
+                        onFocusHabit: { habit in
+                            handleFocusRequest(
+                                liveMatches: habits.activeHabitID == habit.id
+                            ) {
+                                tasks.clearActive()
+                                prefs.clearSimpleNote()
+                                habits.setActive(habit)
+                            }
+                        },
+                        onOpenFocus: { focusOnSelectedIntent() },
+                        onFocusBusy: { showFocusBusy = true }
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

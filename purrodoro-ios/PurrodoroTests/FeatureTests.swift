@@ -129,6 +129,84 @@ struct HabitSchedulingTests {
         habit.log[Journey.dayKey(lastWeek)] = 1
         #expect(habit.streak == 2)
     }
+
+    @Test func bestStreakFindsLongestHistoricalRun() {
+        var habit = HabitItem(name: "Read")
+        habit.targetPerDay = 1
+        // Fixed week: Mon–Fri of a known month (2026-05-04 is a Monday).
+        let monday = date(y: 2026, m: 5, d: 4)
+        let tuesday = date(y: 2026, m: 5, d: 5)
+        let wednesday = date(y: 2026, m: 5, d: 6)
+        let friday = date(y: 2026, m: 5, d: 8)
+        habit.createdAt = monday
+        habit.log[Journey.dayKey(monday)] = 1
+        habit.log[Journey.dayKey(tuesday)] = 1
+        habit.log[Journey.dayKey(wednesday)] = 1
+        // Thursday missed
+        habit.log[Journey.dayKey(friday)] = 1
+        #expect(habit.bestStreak(asOf: friday) == 3)
+    }
+
+    @Test func bestStreakZeroWhenEmpty() {
+        let habit = HabitItem(name: "Empty")
+        #expect(habit.bestStreak(asOf: Date()) == 0)
+    }
+
+    @Test func monthlyProgressMarksCompletedDays() {
+        var habit = HabitItem(name: "Pages")
+        habit.targetPerDay = 1
+        let completed = date(y: 2026, m: 5, d: 20)
+        let month = date(y: 2026, m: 5, d: 15)
+        habit.log[Journey.dayKey(completed)] = 1
+        let dots = HabitDisplay.monthlyProgressDots(habits: [habit], monthDate: month)
+        #expect(dots.count == 31)
+        #expect(dots.first { cal.isDate($0.date, inSameDayAs: completed) }?.isCompleted == true)
+        #expect(dots.first { cal.component(.day, from: $0.date) == 1 }?.isCompleted == false)
+    }
+
+    @Test func weekDotsCoverSevenDaysEndingToday() {
+        var habit = HabitItem(name: "Walk")
+        habit.targetPerDay = 1
+        let today = date(y: 2026, m: 6, d: 10)
+        habit.log[Journey.dayKey(today)] = 1
+        let dots = HabitDisplay.weekDots(for: habit, today: today)
+        #expect(dots.count == 7)
+        #expect(dots.last?.isToday == true)
+        #expect(dots.last?.isCompleted == true)
+        #expect(dots.first?.isToday == false)
+    }
+
+    @Test func mondayFirstLeadingBlanksForKnownMonth() {
+        // 2026-05-01 is a Friday → Mon-first lead = 4 (Mon Tue Wed Thu).
+        let may = date(y: 2026, m: 5, d: 1)
+        #expect(HabitDisplay.mondayFirstLeadingBlanks(for: may) == 4)
+    }
+
+    @Test func focusBlockReasonMatchesAndroid() {
+        var habit = HabitItem(name: "Gym")
+        habit.targetPerDay = 1
+        let wednesday = date(weekday: 4) // Wed
+        habit.scheduledWeekdays = [2, 4] // Mon, Wed
+        #expect(habit.focusBlockReason(on: date(weekday: 3)) == .notScheduled)
+
+        habit.restDays = [Journey.dayKey(wednesday)]
+        #expect(habit.focusBlockReason(on: wednesday) == .skipped)
+
+        habit.restDays = []
+        habit.log[Journey.dayKey(wednesday)] = 1
+        #expect(habit.focusBlockReason(on: wednesday) == .completed)
+
+        habit.log[Journey.dayKey(wednesday)] = 0
+        #expect(habit.focusBlockReason(on: wednesday) == nil)
+    }
+
+    private func date(y: Int, m: Int, d: Int) -> Date {
+        var comps = DateComponents()
+        comps.year = y
+        comps.month = m
+        comps.day = d
+        return cal.date(from: comps)!
+    }
 }
 
 // MARK: - Localization
@@ -172,6 +250,9 @@ struct LocalizationTests {
             "tutorial.startFocus.title", "tutorial.done", "start.note",
             "onboard.welcome.title", "onboard.enableNotif", "onboard.signIn",
             "onboard.continueGuest", "tasks.nowFocusing", "date.today",
+            "habits.monthlyProgress", "habits.markDoneToday", "habits.bestStreak",
+            "habits.currentStreak", "habits.thisWeek", "habits.focusWithPurrodoro",
+            "habits.deleteTitle", "habits.helperStart",
         ] {
             loc.language = .en
             #expect(loc.t(key) != key)

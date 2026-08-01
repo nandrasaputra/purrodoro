@@ -76,9 +76,12 @@ struct HabitItem: Identifiable, Equatable, Codable {
     /// Consecutive *scheduled* days (ending today) meeting the daily target.
     /// Non-scheduled days and rest days are skipped without breaking the run; an
     /// in-progress today that isn't met yet doesn't reset a legitimate streak.
-    var streak: Int {
+    var streak: Int { currentStreak(asOf: Date()) }
+
+    /// Same as `streak`, with an injectable "today" for tests (Android `currentStreak`).
+    func currentStreak(asOf today: Date) -> Int {
         let cal = Journey.calendar
-        var date = Date()
+        var date = cal.startOfDay(for: today)
         var streak = 0
         var first = true
         var guardCount = 0
@@ -97,6 +100,65 @@ struct HabitItem: Identifiable, Equatable, Codable {
         }
         return streak
     }
+
+    /// Longest run of completed scheduled days through `today` (Android `bestStreak`).
+    /// Rest / unscheduled days are transparent; a miss resets the run.
+    func bestStreak(asOf today: Date = Date()) -> Int {
+        let cal = Journey.calendar
+        let end = cal.startOfDay(for: today)
+        let startCandidates: [Date] = log.keys.compactMap(Journey.date(fromKey:))
+            + restDays.compactMap(Journey.date(fromKey:))
+            + [createdAt]
+        guard let earliest = startCandidates.map({ cal.startOfDay(for: $0) }).min() else { return 0 }
+        var cursor = earliest
+        var run = 0
+        var best = 0
+        var guardCount = 0
+        while cursor <= end && guardCount < 4000 {
+            guardCount += 1
+            if isScheduled(on: cursor) {
+                if meetsTarget(on: cursor) {
+                    run += 1
+                    best = max(best, run)
+                } else {
+                    run = 0
+                }
+            }
+            guard let next = cal.date(byAdding: .day, value: 1, to: cursor) else { break }
+            cursor = next
+        }
+        return best
+    }
+
+    /// Next scheduled date on or after `today` (Android `nextScheduledDate`).
+    func nextScheduledDate(from today: Date = Date()) -> Date {
+        let cal = Journey.calendar
+        var date = cal.startOfDay(for: today)
+        for _ in 0..<7 {
+            if isScheduled(on: date) { return date }
+            guard let next = cal.date(byAdding: .day, value: 1, to: date) else { break }
+            date = next
+        }
+        return cal.startOfDay(for: today)
+    }
+
+    /// Why Start Focus is blocked for this habit today (Android `focusBlockReason`).
+    /// Occurrence (weekdays) is checked separately from rest/skip so helpers can
+    /// distinguish "not on the schedule" vs "rest day today".
+    func focusBlockReason(on date: Date = Date()) -> HabitFocusBlockReason? {
+        let onOccurrence = scheduledWeekdays.isEmpty || scheduledWeekdays.contains(weekday(date))
+        if !onOccurrence { return .notScheduled }
+        if isRestDay(date) { return .skipped }
+        if meetsTarget(on: date) { return .completed }
+        return nil
+    }
+}
+
+/// Android `HabitFocusBlockReason` — detail / Start Focus eligibility.
+enum HabitFocusBlockReason: Equatable {
+    case notScheduled
+    case skipped
+    case completed
 }
 
 @MainActor
