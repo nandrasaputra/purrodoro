@@ -55,6 +55,11 @@ struct RootView: View {
     @EnvironmentObject private var focusMode: FocusModeController
     @EnvironmentObject private var tutorial: TutorialController
     @EnvironmentObject private var deepLinks: DeepLinkRouter
+    @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var ownerStore: AccountOwnerStore
+    @EnvironmentObject private var syncRepo: SyncRepository
+    @EnvironmentObject private var syncCoordinator: SyncCoordinator
+    @EnvironmentObject private var history: SessionHistoryStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
@@ -238,6 +243,14 @@ struct RootView: View {
             OnboardingView(onFinish: {})
                 .environmentObject(prefs)
                 .environmentObject(loc)
+                .environmentObject(auth)
+                .environmentObject(ownerStore)
+                .environmentObject(syncRepo)
+                .environmentObject(syncCoordinator)
+                .environmentObject(engine)
+                .environmentObject(tasks)
+                .environmentObject(habits)
+                .environmentObject(history)
         }
     }
 
@@ -417,15 +430,32 @@ struct PlaceholderScreen: View {
 }
 
 #Preview {
-    RootView()
-        .environmentObject(TimerEngine())
-        .environmentObject(TaskStore())
-        .environmentObject(HabitStore())
-        .environmentObject(PreferencesStore())
-        .environmentObject(SessionHistoryStore())
-        .environmentObject(SoundsStore())
+    let store = InMemoryKeyValueStore()
+    store.set(true, forKey: "purrodoro.hasCompletedOnboarding")
+    let sync = SyncRepository(store: store)
+    let prefs = PreferencesStore(syncRepo: sync, store: store)
+    let auth = AuthStore()
+    let owner = AccountOwnerStore(store: store)
+    let engine = TimerEngine(syncRepo: sync, store: store)
+    return RootView()
+        .environmentObject(engine)
+        .environmentObject(TaskStore(syncRepo: sync, store: store))
+        .environmentObject(HabitStore(syncRepo: sync, store: store))
+        .environmentObject(prefs)
+        .environmentObject(SessionHistoryStore(syncRepo: sync))
+        .environmentObject(SoundsStore(store: store, prefs: prefs))
         .environmentObject(FocusModeController())
         .environmentObject(TutorialController())
         .environmentObject(DeepLinkRouter())
-        .environmentObject(Localization())
+        .environmentObject(auth)
+        .environmentObject(owner)
+        .environmentObject(sync)
+        .environmentObject(SyncCoordinator(
+            auth: auth,
+            ownerStore: owner,
+            syncRepo: sync,
+            prefs: prefs,
+            timerEngine: engine
+        ))
+        .environmentObject(Localization(store: store))
 }
