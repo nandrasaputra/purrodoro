@@ -169,6 +169,8 @@ struct LocalizationTests {
             "journey.title", "journey.recentSessions", "journey.currentStreak",
             "journey.openHistory", "history.title", "history.emptyDay",
             "journey.deleteRecord", "journey.statFocused",
+            "journey.periodWeek", "journey.periodMonth", "journey.sectionAllTime",
+            "journey.focusTimeWeek", "journey.noRecordsToday", "journey.allTimeStreak",
             "tutorial.startFocus.title", "tutorial.done", "start.note",
             "onboard.welcome.title", "onboard.enableNotif", "onboard.signIn",
             "onboard.continueGuest", "tasks.nowFocusing", "date.today",

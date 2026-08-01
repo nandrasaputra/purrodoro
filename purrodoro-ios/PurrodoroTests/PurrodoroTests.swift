@@ -236,6 +236,124 @@ struct JourneyTests {
     }
 }
 
+// MARK: - Journey period summaries (Android CalendarScreen)
+
+struct JourneyPeriodSummaryTests {
+
+    /// UTC Monday-first calendar matching Android Journey tests.
+    private var cal: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(secondsFromGMT: 0)!
+        c.firstWeekday = 2
+        return c
+    }
+
+    /// Sunday 2026-05-24 — week Mon 18 … Sun 24.
+    private var today: Date { date(y: 2026, m: 5, d: 24) }
+
+    @Test func summaryBuildsWeeklyMetricsFromSessionRecords() {
+        // Android JourneyModelsTest: Mon 75 / Tue 25 / Wed 50; previous week 250 → WoW −40.
+        let records = [
+            record(day: date(y: 2026, m: 5, d: 18), hour: 9, minutes: 50),
+            record(day: date(y: 2026, m: 5, d: 18), hour: 14, minutes: 25),
+            record(day: date(y: 2026, m: 5, d: 19), hour: 11, minutes: 25),
+            record(day: date(y: 2026, m: 5, d: 20), hour: 10, minutes: 50),
+            record(day: date(y: 2026, m: 5, d: 17), hour: 10, minutes: 250),
+        ]
+        let summary = Journey.summary(
+            records: records,
+            today: today,
+            calendar: cal,
+            weeklyGoalMinutes: 12 * 60
+        )
+        #expect(summary.weekFocusMinutes == 150)
+        #expect(summary.focusDays == 3)
+        #expect(summary.dailyAverageMinutes == 50)
+        #expect(summary.weeklyGoalPercent == 21)
+        #expect(summary.previousWeekFocusMinutes == 250)
+        #expect(summary.weekOverWeekPercent == -40)
+        #expect(summary.weekBars.count == 7)
+        #expect(summary.weekBars.map(\.focusMinutes) == [75, 25, 50, 0, 0, 0, 0])
+    }
+
+    @Test func summaryBuildsTodayRowsNewestFirst() {
+        let records = [
+            record(day: today, hour: 9, minutes: 25, intent: "Inbox cleanup"),
+            record(day: today, hour: 21, minutes: 45),
+            record(day: date(y: 2026, m: 5, d: 18), hour: 9, minutes: 25, intent: "Design polish"),
+        ]
+        let summary = Journey.summary(records: records, today: today, calendar: cal)
+        #expect(summary.todayRows.count == 2)
+        #expect(summary.todayRows.first?.minutes == 45)
+        #expect(summary.todayRows.last?.intentName == "Inbox cleanup")
+        #expect(summary.todayFocusSessions == 2)
+    }
+
+    @Test func chartScaleUsesNiceStepsAndEmptyFallback() {
+        #expect(Journey.chartScale(maxDayMinutes: 0).topMinutes == 60)
+        #expect(Journey.chartScale(maxDayMinutes: 10).topMinutes == 15)
+        #expect(Journey.chartScale(maxDayMinutes: 61).topMinutes == 90)
+        #expect(Journey.chartScale(maxDayMinutes: 800).topMinutes == 840)
+        #expect(Journey.chartScale(maxDayMinutes: 120).midMinutes == 60)
+    }
+
+    @Test func allTimeSummaryCompactLabelAndStreak() {
+        let records = [
+            record(day: date(y: 2026, m: 5, d: 18), hour: 10, minutes: 30),
+            record(day: date(y: 2026, m: 5, d: 19), hour: 10, minutes: 29),
+            record(day: date(y: 2026, m: 5, d: 21), hour: 10, minutes: 25),
+        ]
+        let all = Journey.allTimeSummary(records: records, calendar: cal)
+        #expect(all.totalFocusMinutes == 84)
+        #expect(all.totalFocusLabel == "1h")
+        #expect(all.totalSessions == 3)
+        #expect(all.bestStreakDays == 2)
+
+        #expect(Journey.compactHoursMinutesLabel(59) == "59m")
+        #expect(Journey.compactHoursMinutesLabel(60) == "1h")
+    }
+
+    @Test func monthSummaryAndMonthBestStreak() {
+        let records = [
+            record(day: date(y: 2026, m: 5, d: 1), hour: 10, minutes: 25),
+            record(day: date(y: 2026, m: 5, d: 2), hour: 10, minutes: 25),
+            record(day: date(y: 2026, m: 5, d: 4), hour: 10, minutes: 25),
+            record(day: date(y: 2026, m: 4, d: 30), hour: 10, minutes: 90), // outside May
+        ]
+        let month = Journey.monthSummary(records: records, month: today, calendar: cal)
+        #expect(month.focusDays == 3)
+        #expect(month.focusMinutes == 75)
+
+        let intensities = History.focusIntensitiesByDate(records: records, calendar: cal)
+        #expect(Journey.monthBestStreakDays(intensities: intensities, month: today, calendar: cal) == 2)
+    }
+
+    @Test func mondayWeekStartForSunday() {
+        let sunday = date(y: 2026, m: 5, d: 24)
+        let monday = Journey.mondayWeekStart(containing: sunday, calendar: cal)
+        #expect(cal.component(.day, from: monday) == 18)
+        #expect(cal.component(.weekday, from: monday) == 2)
+    }
+
+    private func date(y: Int, m: Int, d: Int) -> Date {
+        var comps = DateComponents()
+        comps.year = y
+        comps.month = m
+        comps.day = d
+        return cal.date(from: comps)!
+    }
+
+    /// Build a segment whose started day is `day` at `hour`:00 UTC.
+    private func record(day: Date, hour: Int, minutes: Int, intent: String? = nil) -> FocusSessionRecord {
+        var comps = cal.dateComponents([.year, .month, .day], from: day)
+        comps.hour = hour
+        comps.minute = 0
+        let started = cal.date(from: comps)!
+        let ended = started.addingTimeInterval(TimeInterval(minutes) * 60)
+        return FocusSessionRecord(endedAt: ended, minutes: minutes, intentName: intent)
+    }
+}
+
 // MARK: - Session history record
 
 struct FocusSessionRecordTests {
