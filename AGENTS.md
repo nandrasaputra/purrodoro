@@ -57,3 +57,71 @@ Port progress + parity matrix: [`purrodoro-ios/STATUS.md`](purrodoro-ios/STATUS.
 - **Automated:** `ResolveLoginActionTests`, `AuthProviderTests`, `AccountManagerTests` in `PurrodoroTests/FeatureTests.swift`.
 - **Manual:** Profile → Sign in → Apple (or Google once `SupabaseConfig.googleIOSClientID` is set). Claim/Keep/Drop flows — see STATUS.md.
 - **Spec:** [`docs/superpowers/specs/2026-06-09-auth-and-account-identity.md`](docs/superpowers/specs/2026-06-09-auth-and-account-identity.md).
+
+## Cursor Cloud specific instructions
+
+The Cloud VM is **Linux**, so what is runnable differs per component. The
+startup update script only refreshes dependencies — services are started
+manually per the notes below.
+
+### Android (`purrodoro-android`) — primary product, build & test only
+
+- **SDK/JDK are already provisioned:** Android SDK lives at `$HOME/android-sdk`
+  (Platform `android-36` + `android-36.1`, Build-Tools `36.0.0`, Platform-Tools).
+  `ANDROID_HOME`/`ANDROID_SDK_ROOT`/`PATH` are exported in `~/.bashrc` (login
+  shells only), and the update script writes `purrodoro-android/local.properties`
+  (`sdk.dir=…`) so non-login shells resolve the SDK too. JDK 21 is preinstalled;
+  the Gradle wrapper fetches Gradle 9.2.1 on first use.
+- **Use the documented Gradle commands** in the *Testing (Android)* section above.
+  `./gradlew testDebugUnitTest` (399 JUnit/Robolectric tests) and
+  `./gradlew assembleDebug` work headless.
+- **No emulator / GUI:** there is no `/dev/kvm`, so `connectedDebugAndroidTest`,
+  `installDebug`, and running the app as a normal GUI are **not** possible here.
+- **Lint runs but currently fails on pre-existing code errors** (41 errors; first
+  is a `MissingPermission` in `timer/TimerAlarmReceiver.kt`). This is a code
+  issue, not an environment issue — there is no lint baseline configured, so
+  `./gradlew lintDebug` aborts. Treat lint as functional tooling; the failures
+  are pre-existing.
+- **To preview real UI headlessly (no emulator):** render with Robolectric
+  `@GraphicsMode(NATIVE)` and draw the view to a `Bitmap`. See
+  `widget/WidgetPreviewLayoutExportTest` — run it with `EXPORT_WIDGET_PREVIEWS=1`
+  (it re-writes the committed `res/drawable/widget_preview_*.png`, so `git
+  checkout` those afterward if you only wanted a preview).
+
+### iOS (`purrodoro-ios`) — not buildable on Linux
+
+Requires macOS + Xcode; skip on the Cloud VM.
+
+### Soundscape Admin (`tools/soundscape-admin`) — Vite dev-only web tool
+
+- Debug-only SPA; it **throws on load** unless `VITE_SUPABASE_URL` +
+  `VITE_SUPABASE_SERVICE_ROLE_KEY` are set in `.env.local` (gitignored). Never
+  `npm run build` / serve `dist/` — Vite would inline the secrets (see its
+  README). Run `npm run dev` (serves `http://localhost:5173`).
+- **Docker + the Supabase CLI are preinstalled** for a self-contained local
+  backend, but `dockerd` is **not** auto-started. Bring the stack up with:
+
+  ```bash
+  sudo bash -c 'nohup dockerd >/var/log/dockerd.log 2>&1 &'   # start once per VM
+  sudo chmod 666 /var/run/docker.sock                          # let non-root use docker
+  cd ~/sb-local && supabase start                              # applies repo migrations, prints keys
+  ```
+
+  A ready-to-use local project already exists at `~/sb-local` (repo migrations
+  copied into `~/sb-local/supabase/migrations`). Re-copy from
+  `/workspace/supabase/migrations/*.sql` if migrations change.
+- **Gotcha:** the repo migrations create the `soundscape_*` tables but do **not**
+  `GRANT` privileges to `service_role`. Hosted Supabase grants these via default
+  privileges; a fresh **local** DB does not, so PostgREST returns
+  `permission denied`. After `supabase start`, grant once against the local DB:
+
+  ```bash
+  docker exec -i supabase_db_sb-local psql -U postgres -d postgres \
+    -c "grant all on all tables in schema public to anon, authenticated, service_role;"
+  ```
+
+  Then point `tools/soundscape-admin/.env.local` at
+  `VITE_SUPABASE_URL=http://127.0.0.1:54321` with the `SERVICE_ROLE_KEY` from
+  `supabase status`. Migrations seed 22 remote + 12 bundled tracks, so both
+  tables populate immediately. R2 (`VITE_R2_*`) creds are only needed for audio
+  uploads — dummy values are fine for browsing/toggling.
