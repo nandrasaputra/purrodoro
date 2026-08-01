@@ -43,6 +43,15 @@ final class PreferencesStore: ObservableObject {
         didSet { store.set(hasCompletedOnboarding, forKey: onboardingKey) }
     }
 
+    /// Play a chime with segment-end local notifications (Android
+    /// `notificationSoundEnabled`). Device-local; included in backup.
+    @Published var notificationSoundEnabled: Bool {
+        didSet {
+            store.set(notificationSoundEnabled, forKey: notificationSoundKey)
+            NotificationScheduler.shared.soundEnabled = notificationSoundEnabled
+        }
+    }
+
     /// Selected home hero backdrop. Premium scenes stay stored for free users
     /// but render falls back to Room via `effectiveHomeScene`.
     @Published var homeScene: HomeScene {
@@ -74,6 +83,7 @@ final class PreferencesStore: ObservableObject {
     private let appearanceKey = "purrodoro.appearanceMode"
     private let nameKey = "purrodoro.userName"
     private let onboardingKey = "purrodoro.hasCompletedOnboarding"
+    private let notificationSoundKey = "purrodoro.notificationSoundEnabled"
     private let homeSceneKey = "purrodoro.homeScene"
     private let storePremiumKey = "purrodoro.storePremium"
     private let overrideEnabledKey = "purrodoro.premiumOverrideEnabled"
@@ -89,10 +99,15 @@ final class PreferencesStore: ObservableObject {
         self.appearanceMode = raw.flatMap(AppearanceMode.init(rawValue:)) ?? .auto
         self.userName = store.string(forKey: nameKey) ?? ""
         self.hasCompletedOnboarding = store.bool(forKey: onboardingKey)
+        // Default ON to match Android; missing key → true.
+        self.notificationSoundEnabled = store.contains(notificationSoundKey)
+            ? store.bool(forKey: notificationSoundKey)
+            : true
         self.homeScene = HomeScene.fromStorageName(store.string(forKey: homeSceneKey))
         self.storePremium = store.bool(forKey: storePremiumKey)
         self.premiumOverrideEnabled = store.bool(forKey: overrideEnabledKey)
         self.premiumOverrideActive = store.bool(forKey: overrideActiveKey)
+        NotificationScheduler.shared.soundEnabled = notificationSoundEnabled
     }
 
     /// Clears the greeting name on account switch (Drop). Appearance, language,

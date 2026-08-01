@@ -47,6 +47,7 @@ struct RootView: View {
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
     @State private var showSounds = false
+    @State private var showFocusBusy = false
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
 
@@ -68,17 +69,23 @@ struct RootView: View {
                 case .focus: HomeView()
                 case .tasks:
                     TasksView { task in
-                        habits.clearActive()
-                        tasks.setActive(task)
-                        focusOnSelectedIntent()
+                        handleFocusRequest(
+                            liveMatches: tasks.activeTaskID == task.id
+                        ) {
+                            habits.clearActive()
+                            tasks.setActive(task)
+                        }
                     }
                 case .journey:
                     JourneyView()
                 case .habits:
                     HabitsView { habit in
-                        tasks.clearActive()
-                        habits.setActive(habit)
-                        focusOnSelectedIntent()
+                        handleFocusRequest(
+                            liveMatches: habits.activeHabitID == habit.id
+                        ) {
+                            tasks.clearActive()
+                            habits.setActive(habit)
+                        }
                     }
                 }
             }
@@ -139,6 +146,14 @@ struct RootView: View {
         .sheet(isPresented: $showSounds) {
             SoundsSheet()
         }
+        .alert(loc.t("focusBusy.title"), isPresented: $showFocusBusy) {
+            Button(loc.t("focusBusy.open")) {
+                focusOnSelectedIntent()
+            }
+            Button(loc.t("common.gotIt"), role: .cancel) {}
+        } message: {
+            Text(loc.t("focusBusy.body"))
+        }
         .fullScreenCover(isPresented: Binding(
             get: { !prefs.hasCompletedOnboarding },
             set: { _ in }
@@ -146,6 +161,19 @@ struct RootView: View {
             OnboardingView(onFinish: {})
                 .environmentObject(prefs)
                 .environmentObject(loc)
+        }
+    }
+
+    /// Central gate matching Android `attemptStartFocus` / habit focus CTA.
+    private func handleFocusRequest(liveMatches: Bool, attach: () -> Void) {
+        switch FocusBusyGate.evaluate(isStarted: engine.isStarted, liveMatchesSelection: liveMatches) {
+        case .proceed:
+            attach()
+            focusOnSelectedIntent()
+        case .openFocus:
+            focusOnSelectedIntent()
+        case .busy:
+            showFocusBusy = true
         }
     }
 
