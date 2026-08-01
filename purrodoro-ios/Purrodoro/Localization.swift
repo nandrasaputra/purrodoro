@@ -483,6 +483,23 @@ final class Localization: ObservableObject {
         "journey.focusSession": [.en: "Focus session", .id: "Sesi fokus"],
         "journey.less": [.en: "Less", .id: "Sedikit"],
         "journey.more": [.en: "More", .id: "Banyak"],
+        "journey.openHistory": [.en: "Open history", .id: "Buka riwayat"],
+        "journey.detail": [.en: "Journey detail", .id: "Detail perjalanan"],
+        "journey.timeRange": [.en: "%@ - %@", .id: "%@ - %@"],
+        "journey.statFocused": [.en: "Focused", .id: "Fokus"],
+        "journey.statSessions": [.en: "Sessions", .id: "Sesi"],
+        "journey.statRest": [.en: "Rest", .id: "Istirahat"],
+        "journey.statusCompleted": [.en: "Completed", .id: "Selesai"],
+        "journey.deleteRecord": [.en: "Delete Record", .id: "Hapus Catatan"],
+        "journey.deleteTitle": [.en: "Delete this record?", .id: "Hapus catatan ini?"],
+        "journey.deleteBody": [.en: "The session from %@ to %@ will be permanently removed.", .id: "Sesi dari %@ hingga %@ akan dihapus permanen."],
+
+        // History
+        "history.title": [.en: "History", .id: "Riwayat"],
+        "history.emptyDay": [.en: "No focus sessions on this day.", .id: "Tidak ada sesi fokus pada hari ini."],
+        "history.previousMonth": [.en: "Previous month", .id: "Bulan sebelumnya"],
+        "history.nextMonth": [.en: "Next month", .id: "Bulan berikutnya"],
+
         "unit.minAbbrev": [.en: "%ldm", .id: "%ld mnt"],
         "date.today": [.en: "Today", .id: "Hari ini"],
         "date.yesterday": [.en: "Yesterday", .id: "Kemarin"],

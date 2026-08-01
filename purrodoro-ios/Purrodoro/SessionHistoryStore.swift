@@ -46,6 +46,13 @@ final class SessionHistoryStore: ObservableObject {
         load()
     }
 
+    /// Soft-deletes a session record (tombstone for sync), matching Android
+    /// `AppRepository.deleteSessionRecord`.
+    func delete(_ id: UUID) {
+        syncRepo.deleteFocusSession(id: id)
+        load()
+    }
+
     /// Union imported session rows (backup wins on near-duplicate keys).
     func unionRecords(_ imported: [FocusSessionRecord]) {
         syncRepo.unionFocusSessionRecords(

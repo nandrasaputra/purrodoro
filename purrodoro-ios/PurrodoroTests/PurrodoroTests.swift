@@ -256,6 +256,94 @@ struct FocusSessionRecordTests {
     }
 }
 
+// MARK: - History day helpers (Android HistoryScreen parity)
+
+struct HistoryModelTests {
+
+    private var calendar: Calendar {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(secondsFromGMT: 0)!
+        cal.firstWeekday = 2 // Monday, matching Android History calendar
+        return cal
+    }
+
+    private func date(_ year: Int, _ month: Int, _ day: Int, hour: Int = 12, minute: Int = 0) -> Date {
+        calendar.date(from: DateComponents(
+            year: year, month: month, day: day, hour: hour, minute: minute
+        ))!
+    }
+
+    @Test func intensityBucketsMatchAndroid() {
+        #expect(History.focusIntensityLevel(minutes: 0) == 0)
+        #expect(History.focusIntensityLevel(minutes: 30) == 1)
+        #expect(History.focusIntensityLevel(minutes: 59) == 1)
+        #expect(History.focusIntensityLevel(minutes: 60) == 2)
+        #expect(History.focusIntensityLevel(minutes: 119) == 2)
+        #expect(History.focusIntensityLevel(minutes: 120) == 3)
+        #expect(History.focusIntensityLevel(minutes: 179) == 3)
+        #expect(History.focusIntensityLevel(minutes: 180) == 4)
+        #expect(History.focusIntensityLevel(minutes: 400) == 4)
+    }
+
+    @Test func minutesLabelFormatsHoursAndMinutes() {
+        #expect(History.minutesLabel(0) == "0m")
+        #expect(History.minutesLabel(45) == "45m")
+        #expect(History.minutesLabel(60) == "1h")
+        #expect(History.minutesLabel(75) == "1h 15m")
+    }
+
+    @Test func dayDetailAggregatesSessionsOnSelectedDay() {
+        let day = date(2026, 8, 1)
+        let morning = FocusSessionRecord(
+            endedAt: date(2026, 8, 1, hour: 10, minute: 0),
+            minutes: 25,
+            intentName: "Write"
+        )
+        let afternoon = FocusSessionRecord(
+            endedAt: date(2026, 8, 1, hour: 15, minute: 30),
+            minutes: 50,
+            intentName: nil
+        )
+        let otherDay = FocusSessionRecord(
+            endedAt: date(2026, 7, 31, hour: 18, minute: 0),
+            minutes: 25,
+            intentName: "Other"
+        )
+
+        let detail = History.dayDetail(
+            records: [morning, afternoon, otherDay],
+            date: day,
+            calendar: calendar
+        )
+
+        #expect(detail.focusSessions == 2)
+        #expect(detail.focusMinutes == 75)
+        #expect(detail.restMinutes == 0)
+        #expect(detail.rows.map(\.id) == [afternoon.id, morning.id]) // newest first
+    }
+
+    @Test func intensitiesGroupByStartedDay() {
+        // Session ends just after midnight but started the previous evening.
+        let late = FocusSessionRecord(
+            endedAt: date(2026, 8, 2, hour: 0, minute: 10),
+            minutes: 40,
+            intentName: nil
+        )
+        let intensities = History.focusIntensitiesByDate(records: [late], calendar: calendar)
+        let august1 = calendar.startOfDay(for: date(2026, 8, 1))
+        let august2 = calendar.startOfDay(for: date(2026, 8, 2))
+        #expect(intensities[august1] == 1)
+        #expect(intensities[august2] == nil)
+    }
+
+    @Test func monthGridProducesFortyTwoCells() {
+        let grid = HistoryMonthGrid(month: date(2026, 8, 15), calendar: calendar)
+        #expect(grid.days.count == 42)
+        #expect(grid.isInMonth(date(2026, 8, 1), calendar: calendar))
+        #expect(!grid.isInMonth(date(2026, 7, 31), calendar: calendar))
+    }
+}
+
 // MARK: - Appearance mode
 
 struct AppearanceModeTests {
