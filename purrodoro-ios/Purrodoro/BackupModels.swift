@@ -194,6 +194,7 @@ struct RestorePrefs {
     var appearance: AppearanceMode
     var language: AppLanguage
     var selectedSoundId: Int
+    var homeScene: HomeScene
 }
 
 struct RestoreBundle {

@@ -24,6 +24,7 @@ struct PurrodoroApp: App {
     @StateObject private var sounds: SoundsStore
     @StateObject private var storeKit: StoreKitManager
     @StateObject private var syncCoordinator: SyncCoordinator
+    @StateObject private var focusMode: FocusModeController
     @StateObject private var loc: Localization
 
     @Environment(\.scenePhase) private var scenePhase
@@ -77,6 +78,7 @@ struct PurrodoroApp: App {
         _sounds = StateObject(wrappedValue: sounds)
         _storeKit = StateObject(wrappedValue: storeKit)
         _syncCoordinator = StateObject(wrappedValue: coordinator)
+        _focusMode = StateObject(wrappedValue: FocusModeController())
         _loc = StateObject(wrappedValue: loc)
     }
 
@@ -94,6 +96,7 @@ struct PurrodoroApp: App {
                 .environmentObject(history)
                 .environmentObject(sounds)
                 .environmentObject(storeKit)
+                .environmentObject(focusMode)
                 .environmentObject(loc)
                 .preferredColorScheme(prefs.appearanceMode.preferredColorScheme)
                 .onOpenURL { url in

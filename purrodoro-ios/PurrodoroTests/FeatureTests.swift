@@ -212,6 +212,7 @@ struct LocalizationTests {
             appearance: .dark,
             language: .id,
             selectedSoundId: 2,
+            homeScene: .cafe,
             tasks: [task],
             habits: [habit],
             sessionRecords: [FocusSessionRecord(minutes: 25, intentName: "Write spec")],
@@ -225,6 +226,7 @@ struct LocalizationTests {
         }
         #expect(bundle.displayName == "Nandra")
         #expect(bundle.timerSettings.focusMinutes == 30)
+        #expect(bundle.prefs.homeScene == .cafe)
         #expect(bundle.tasks.count == 1)
         #expect(bundle.tasks[0].title == "Write spec")
         #expect(bundle.tasks[0].trimmedCategory == "Work")

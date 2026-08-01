@@ -42,6 +42,7 @@ struct RootView: View {
     @EnvironmentObject private var habits: HabitStore
     @EnvironmentObject private var prefs: PreferencesStore
     @EnvironmentObject private var sounds: SoundsStore
+    @EnvironmentObject private var focusMode: FocusModeController
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @State private var tab: AppTab = .focus
@@ -49,8 +50,14 @@ struct RootView: View {
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
 
+    private var focusActive: Bool {
+        focusModeActive(isFocusMode: focusMode.isFocusMode, timerState: engine.session.timerState)
+    }
+
     /// Transport chrome only on Focus tab (Android hides it on other tabs / focus mode).
-    private var showSoundscapeTransport: Bool { tab == .focus }
+    private var showSoundscapeTransport: Bool { tab == .focus && !focusActive }
+
+    private var showDock: Bool { !focusActive }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -76,20 +83,59 @@ struct RootView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .opacity(focusActive ? 0 : 1)
 
-            BottomDock(
-                selected: $tab,
-                colors: colors,
-                showTransport: showSoundscapeTransport,
-                isSoundscapePlaying: sounds.isPlaying,
-                transportLabel: sounds.transportDisplayName(loc: loc),
-                showFirstRunHint: !sounds.hasEverUsedSoundscape,
-                onOpenSoundscape: { showSounds = true },
-                onPlayPause: { sounds.togglePlayPause() }
-            )
+            if showDock {
+                BottomDock(
+                    selected: $tab,
+                    colors: colors,
+                    showTransport: showSoundscapeTransport,
+                    isSoundscapePlaying: sounds.isPlaying,
+                    transportLabel: sounds.transportDisplayName(loc: loc),
+                    showFirstRunHint: !sounds.hasEverUsedSoundscape,
+                    onOpenSoundscape: { showSounds = true },
+                    onPlayPause: { sounds.togglePlayPause() }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
+            if focusActive {
+                FocusModeOverlay(
+                    remainingSeconds: engine.displayRemaining,
+                    mode: engine.currentMode,
+                    timerState: engine.session.timerState,
+                    dots: engine.dots,
+                    intentTitle: tasks.activeTask?.title ?? habits.activeHabit?.name,
+                    intentIsHabit: tasks.activeTask == nil && habits.activeHabit != nil,
+                    isSoundscapePlaying: sounds.isPlaying,
+                    soundscapeDisplayName: sounds.transportDisplayName(loc: loc),
+                    showSoundscapeFirstRunHint: !sounds.hasEverUsedSoundscape,
+                    onExit: { focusMode.exit() },
+                    onStartPause: {
+                        if engine.isRunning {
+                            engine.pause()
+                        } else if engine.session.timerState == .paused {
+                            engine.resume()
+                        }
+                    },
+                    onStop: {
+                        engine.stop()
+                        focusMode.exit()
+                    },
+                    onSkip: { engine.skip() },
+                    onOpenSoundscape: { showSounds = true },
+                    onSoundscapePlayPause: { sounds.togglePlayPause() }
+                )
+                .transition(.opacity)
+                .zIndex(3)
+            }
         }
         .environment(\.pColors, colors)
+        .animation(.easeInOut(duration: focusActive ? FocusModeMotion.enterDuration : FocusModeMotion.exitDuration), value: focusActive)
         .sensoryFeedback(.selection, trigger: tab)
+        .onChange(of: engine.session.timerState) { _, state in
+            focusMode.syncWithTimerState(state)
+        }
         .sheet(isPresented: $showSounds) {
             SoundsSheet()
         }
