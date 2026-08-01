@@ -167,6 +167,8 @@ struct LocalizationTests {
             "tab.focus", "home.startFocus", "settings.language", "sounds.title",
             "focusBusy.title", "settings.notifSound", "settings.languageSystem",
             "journey.title", "journey.recentSessions", "journey.currentStreak",
+            "journey.openHistory", "history.title", "history.emptyDay",
+            "journey.deleteRecord", "journey.statFocused",
             "onboard.welcome.title", "onboard.enableNotif", "date.today",
         ] {
             loc.language = .en
@@ -474,6 +476,28 @@ struct NotificationSoundPreferenceTests {
         #expect(store.bool(forKey: "purrodoro.notificationSoundEnabled") == false)
         let reloaded = PreferencesStore(store: store)
         #expect(reloaded.notificationSoundEnabled == false)
+    }
+}
+
+@MainActor
+struct SessionHistoryDeleteTests {
+
+    @Test func deleteSoftDeletesAndHidesRecord() {
+        let store = InMemoryKeyValueStore()
+        let sync = SyncRepository(store: store)
+        let history = SessionHistoryStore(syncRepo: sync)
+        history.timerSettingsProvider = { TimerSettings() }
+
+        history.record(minutes: 25, intentName: "Write")
+        history.record(minutes: 30, intentName: "Read")
+        #expect(history.records.count == 2)
+
+        let doomed = history.records[0]
+        history.delete(doomed.id)
+
+        #expect(history.records.count == 1)
+        #expect(history.records.contains { $0.id == doomed.id } == false)
+        #expect(sync.syncDirtySessionRecords().contains { $0.id == doomed.id.uuidString.lowercased() && $0.deleted })
     }
 }
 
