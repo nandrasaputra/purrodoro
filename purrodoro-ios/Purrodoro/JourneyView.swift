@@ -36,11 +36,25 @@ struct JourneyView: View {
     @ViewBuilder
     private var content: some View {
         if Journey.total(stamps) == 0 {
-            PlaceholderScreen(
-                title: loc.t("journey.title"),
-                subtitle: loc.t("journey.emptySubtitle"),
-                image: "CatEmptyMonth"
-            )
+            VStack(alignment: .leading, spacing: 0) {
+                journeyHeader
+                    .padding(.horizontal, 20)
+                VStack(spacing: 18) {
+                    Spacer()
+                    Image("CatEmptyMonth")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 160, height: 160)
+                    Text(loc.t("journey.emptySubtitle"))
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 48)
+                    Spacer()
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
