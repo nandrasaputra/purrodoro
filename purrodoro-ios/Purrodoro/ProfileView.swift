@@ -453,20 +453,20 @@ struct ProfileView: View {
 
     private var notificationsCard: some View {
         card {
-            if notificationsEnabled {
-                HStack(spacing: 12) {
-                    Image(systemName: "bell.badge.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Brand.coral)
-                    Text(loc.t("profile.notificationsOn"))
-                        .font(.system(.subheadline, design: .rounded).weight(.medium))
-                        .foregroundStyle(colors.textPrimary)
-                    Spacer()
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Brand.coral)
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 12) {
+                if notificationsEnabled {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bell.badge.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Brand.coral)
+                        Text(loc.t("profile.notificationsOn"))
+                            .font(.system(.subheadline, design: .rounded).weight(.medium))
+                            .foregroundStyle(colors.textPrimary)
+                        Spacer()
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Brand.coral)
+                    }
+                } else {
                     Label(loc.t("profile.notificationsOff"), systemImage: "bell.slash")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundStyle(colors.textPrimary)
@@ -485,6 +485,20 @@ struct ProfileView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                divider
+
+                Toggle(isOn: $prefs.notificationSoundEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc.t("settings.notifSound"))
+                            .font(.system(.subheadline, design: .rounded).weight(.medium))
+                            .foregroundStyle(colors.textPrimary)
+                        Text(loc.t("settings.notifSoundSubtitle"))
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(colors.textFaint)
+                    }
+                }
+                .tint(Brand.coral)
             }
         }
     }
@@ -593,7 +607,7 @@ struct ProfileView: View {
                     } label: {
                         HStack(spacing: 12) {
                             Text(lang.flag).font(.system(size: 20))
-                            Text(lang.nativeLabel)
+                            Text(languageLabel(lang))
                                 .font(.system(.body, design: .rounded).weight(.medium))
                                 .foregroundStyle(colors.textPrimary)
                             Spacer()
@@ -611,6 +625,15 @@ struct ProfileView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func languageLabel(_ lang: AppLanguage) -> String {
+        switch lang {
+        case .system:
+            return loc.t("settings.languageSystemPicker", AppLanguage.deviceLanguageEndonym)
+        case .en, .id:
+            return lang.nativeLabel
         }
     }
 

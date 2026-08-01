@@ -22,6 +22,28 @@ struct NotificationEntry: Equatable {
 final class NotificationScheduler: NSObject {
     static let shared = NotificationScheduler()
 
+    /// When false, segment-end notifications are silent (Android
+    /// `notificationSoundEnabled`). Mirrored to a lock-guarded flag so the
+    /// notification-center delegate (any thread) can read it safely.
+    var soundEnabled: Bool = true {
+        didSet { Self.setSoundEnabledFlag(soundEnabled) }
+    }
+
+    nonisolated(unsafe) private static var soundEnabledFlag = true
+    private static let soundLock = NSLock()
+
+    nonisolated static func currentSoundEnabled() -> Bool {
+        soundLock.lock()
+        defer { soundLock.unlock() }
+        return soundEnabledFlag
+    }
+
+    private static func setSoundEnabledFlag(_ value: Bool) {
+        soundLock.lock()
+        soundEnabledFlag = value
+        soundLock.unlock()
+    }
+
     private let center = UNUserNotificationCenter.current()
     private let identifierPrefix = "purrodoro.segmentEnd"
     private var scheduledIDs: [String] = []
@@ -29,6 +51,7 @@ final class NotificationScheduler: NSObject {
     override init() {
         super.init()
         center.delegate = self
+        Self.setSoundEnabledFlag(true)
     }
 
     func requestAuthorization() {
@@ -68,7 +91,7 @@ final class NotificationScheduler: NSObject {
             let content = UNMutableNotificationContent()
             content.title = entry.title
             content.body = entry.body
-            content.sound = .default
+            content.sound = soundEnabled ? .default : nil
 
             let id = "\(identifierPrefix).\(index)"
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
@@ -86,12 +109,16 @@ final class NotificationScheduler: NSObject {
 }
 
 extension NotificationScheduler: UNUserNotificationCenterDelegate {
-    // Show the chime/banner even when the app is foregrounded.
+    // Show the banner even when the app is foregrounded; honor the sound toggle.
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .sound])
+        if Self.currentSoundEnabled() {
+            completionHandler([.banner, .sound])
+        } else {
+            completionHandler([.banner])
+        }
     }
 }

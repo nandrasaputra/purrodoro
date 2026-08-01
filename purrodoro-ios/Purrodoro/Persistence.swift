@@ -16,9 +16,16 @@ protocol KeyValueStore: AnyObject {
     func bool(forKey defaultName: String) -> Bool
     func dictionary(forKey defaultName: String) -> [String: Any]?
     func set(_ value: Any?, forKey defaultName: String)
+    /// Whether a value has been written for `defaultName` (distinguishes
+    /// "missing" from `bool == false`).
+    func contains(_ defaultName: String) -> Bool
 }
 
-extension UserDefaults: KeyValueStore {}
+extension UserDefaults: KeyValueStore {
+    func contains(_ defaultName: String) -> Bool {
+        object(forKey: defaultName) != nil
+    }
+}
 
 /// A non-persistent `KeyValueStore` for tests and previews.
 final class InMemoryKeyValueStore: KeyValueStore {
@@ -30,6 +37,7 @@ final class InMemoryKeyValueStore: KeyValueStore {
     func string(forKey defaultName: String) -> String? { values[defaultName] as? String }
     func bool(forKey defaultName: String) -> Bool { values[defaultName] as? Bool ?? false }
     func dictionary(forKey defaultName: String) -> [String: Any]? { values[defaultName] as? [String: Any] }
+    func contains(_ defaultName: String) -> Bool { values[defaultName] != nil }
 
     func set(_ value: Any?, forKey defaultName: String) {
         if let value { values[defaultName] = value } else { values.removeValue(forKey: defaultName) }

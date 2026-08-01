@@ -13,14 +13,17 @@ import Foundation
 import Combine
 
 enum AppLanguage: String, CaseIterable, Codable, Identifiable {
+    case system
     case en
     case id
 
     var id: String { rawValue }
 
-    /// Name shown in its own language (for the picker).
+    /// Name shown in its own language (for the picker). System uses a
+    /// localized label from the string table.
     var nativeLabel: String {
         switch self {
+        case .system: return "System"
         case .en: return "English"
         case .id: return "Bahasa Indonesia"
         }
@@ -28,15 +31,29 @@ enum AppLanguage: String, CaseIterable, Codable, Identifiable {
 
     var flag: String {
         switch self {
+        case .system: return "🖥️"
         case .en: return "🇬🇧"
         case .id: return "🇮🇩"
         }
     }
 
-    /// Best guess from the device locale, used the very first launch.
-    static var systemDefault: AppLanguage {
+    /// Concrete language used for string lookup (never `.system`).
+    var resolved: AppLanguage {
+        switch self {
+        case .system: return Self.deviceLanguage
+        case .en, .id: return self
+        }
+    }
+
+    /// Best guess from the device locale (English or Indonesian only).
+    static var deviceLanguage: AppLanguage {
         let code = Locale.preferredLanguages.first?.lowercased() ?? "en"
         return code.hasPrefix("id") ? .id : .en
+    }
+
+    /// Endonym for the device-resolved language (Android `resolvedSystemLocaleName`).
+    static var deviceLanguageEndonym: String {
+        deviceLanguage.nativeLabel
     }
 }
 
@@ -55,7 +72,8 @@ final class Localization: ObservableObject {
         if let raw = store.string(forKey: key), let lang = AppLanguage(rawValue: raw) {
             self.language = lang
         } else {
-            self.language = AppLanguage.systemDefault
+            // Match Android default: follow the system locale until the user picks.
+            self.language = .system
         }
     }
 
@@ -63,7 +81,9 @@ final class Localization: ObservableObject {
     /// raw key. `args` feed `String(format:)` for interpolated strings.
     func t(_ key: String, _ args: CVarArg...) -> String {
         let entry = Self.table[key]
-        let template = entry?[language] ?? entry?[.en] ?? key
+        // `.resolved` is always `.en` or `.id`.
+        let concrete = language.resolved
+        let template = entry?[concrete] ?? entry?[.en] ?? key
         return args.isEmpty ? template : String(format: template, locale: Locale.current, arguments: args)
     }
 
@@ -187,6 +207,14 @@ final class Localization: ObservableObject {
         "settings.appearance": [.en: "Appearance", .id: "Tampilan"],
         "settings.theme": [.en: "Theme", .id: "Tema"],
         "settings.language": [.en: "Language", .id: "Bahasa"],
+        "settings.languageSystem": [.en: "System default", .id: "Bawaan sistem"],
+        "settings.languageSystemPicker": [.en: "System default (%@)", .id: "Bawaan sistem (%@)"],
+        "settings.notifSound": [.en: "Enable notification sound", .id: "Aktifkan suara notifikasi"],
+        "settings.notifSoundSubtitle": [.en: "Play sound when session ends", .id: "Putar suara saat sesi berakhir"],
+        "common.gotIt": [.en: "Got it", .id: "Mengerti"],
+        "focusBusy.title": [.en: "A focus is in progress", .id: "Ada fokus yang sedang berjalan"],
+        "focusBusy.body": [.en: "Finish or stop the current Pomodoro before starting a new one.", .id: "Selesaikan atau hentikan Pomodoro saat ini sebelum memulai yang baru."],
+        "focusBusy.open": [.en: "Open focus", .id: "Buka fokus"],
         "settings.done": [.en: "Done", .id: "Selesai"],
 
         // Profile

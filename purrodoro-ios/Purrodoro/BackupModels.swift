@@ -195,6 +195,7 @@ struct RestorePrefs {
     var language: AppLanguage
     var selectedSoundId: Int
     var homeScene: HomeScene
+    var notificationSound: Bool
 }
 
 struct RestoreBundle {
