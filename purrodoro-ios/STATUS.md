@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (Soundscape #2: Storage UI + dock transport + thumbnails)_
+_Last updated: 2026-08-01 (Home scenes + Focus Mode overlay)_
 
 ---
 
@@ -22,17 +22,18 @@ _Last updated: 2026-08-01 (Soundscape #2: Storage UI + dock transport + thumbnai
 | StoreKit premium | 🔶 | `StoreKitManager` + gates + Profile discovery; App Store Connect products still placeholders |
 | Free-tier caps (10 tasks / 10 habits) | ✅ | `PremiumGate` + Tasks/Habits upsell |
 | Soundscape #1 | ✅ | Dual deck + bundled MP3s + cloud catalog/download |
-| **Soundscape #2** | ✅ | Storage UI, Focus-tab dock transport, R2 thumbnails |
+| Soundscape #2 | ✅ | Storage UI, Focus-tab dock transport, R2 thumbnails |
+| **Home scenes + Focus Mode** | ✅ | `HomeScene`, picker, hero art, `FocusModeOverlay` |
 | **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
 
 ### Session note (2026-08-01)
 
-Shipped Soundscape #2 on branch:
-1. **Storage** — `StorageView` + `StorageModels` (Android `buildStorageList` / `formatBytes`); Profile row with live used size; remove one / remove all
-2. **Dock transport** — `SoundscapeTransportBar` fused into Focus-tab `BottomDock` (EQ + marquee + play/pause + expand); home music circle removed
-3. **Thumbnails** — `SoundscapeThumbnailLoader` (R2 WebP disk cache) + vinyl/ambience art in `SoundsSheet`
+Shipped **Home scenes + Focus Mode overlay** on branch:
+1. **Home scenes** — `HomeScene` (Room / Café / Library / Park), day/night resolve, `PreferencesStore.homeScene`, layers button + `HomeScenePickerSheet`, premium lock → upsell, backup `home_scene` round-trip
+2. **Focus Mode** — `FocusModeOverlay` + `FocusModeController` + `FocusModeMotion`; dock hides while active; transport bar inside overlay; stop confirm; mascot variants
+3. **Home hero** — scene art is the Focus-tab hero (idle Start Focus / active compact timer card + Focus Mode chip)
 
-Still next: home scenes → focus overlay → App Store Connect QA.
+Still next: History screen → post-launch tutorial → widget deep links. App Store Connect QA + NAN-65 remain open.
 
 ---
 
@@ -43,21 +44,23 @@ Habits), full Pomodoro loop, Start Focus sheet, interrupted-focus resume,
 celebration, task categories & due dates, habit scheduling & rest days, **Soundscape
 dual deck** (bundled ambience + lo-fi MP3s, cloud catalog + download-to-play,
 premium locks, **Storage UI**, **Focus-tab dock transport**, **R2 thumbnails**),
-EN/ID localization, onboarding, **Profile hub**, **backup & restore**
-(Android-compatible JSON v1), **auth** (Supabase + Apple + Google UI,
-Claim/Keep/Drop ownership), **Supabase sync** (seven tables, Profile status,
-logout flush), Live Activity, one Today widget, **StoreKit premium foundation**
-(discovery, upsell, 10/10 caps), unit tests (all
-passing). Builds on iOS 26 simulator.
+**home scenes** (Room free; Café / Library / Park Premium; day/night art; picker),
+**Focus Mode overlay** (immersive zen timer), EN/ID localization, onboarding,
+**Profile hub**, **backup & restore** (Android-compatible JSON v1), **auth**
+(Supabase + Apple + Google UI, Claim/Keep/Drop ownership), **Supabase sync**
+(seven tables, Profile status, logout flush), Live Activity, one Today widget,
+**StoreKit premium foundation** (discovery, upsell, 10/10 caps), unit tests.
+Builds on iOS 26 simulator.
 
 **Not on iOS yet:** **App Store Connect products** (local `.storekit` only),
-**home scenes**, **focus-mode overlay**, **post-launch tutorial**, **History screen**,
+**post-launch tutorial**, **History screen**,
 **6 of 7 Android Glance widgets**, **Focus Shield** (Android distraction blocker —
 iOS would need Screen Time / FamilyControls). StoreKit foundation + task/habit caps
 shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** Home scenes + focus overlay. Finish App Store Connect
-product setup + purchase QA. Run NAN-65 two-device sync QA on iOS.
+**Next recommended port slices:** History screen + tutorial + widget deep links.
+Finish App Store Connect product setup + purchase QA. Run NAN-65 two-device sync
+QA on iOS.
 
 ---
 
@@ -78,8 +81,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | History (day drill-down) | ✅ `HistoryScreen.kt` | ❌ | iOS: 8 recent rows on Journey only |
 | Storage (downloaded tracks) | ✅ `StorageScreen.kt` | ✅ | `StorageView.swift` + `StorageModels.swift` |
 | Backup & restore | ✅ `BackupRestoreScreen.kt` | ✅ | `BackupRestoreView.swift` — schema v1, guest-only restore, Files picker |
-| Home scene picker | ✅ `HomeScenePickerSheet.kt` | ❌ | Room / Café / Library / Park |
-| Focus mode overlay | ✅ `FocusModeOverlay.kt` | ❌ | Immersive zen timer surface |
+| Home scene picker | ✅ `HomeScenePickerSheet.kt` | ✅ | `HomeScenePickerSheet.swift` — Room free; Café/Library/Park Premium |
+| Focus mode overlay | ✅ `FocusModeOverlay.kt` | ✅ | `FocusModeOverlay.swift` + `FocusModeController` |
 | Cycle complete UI | ✅ `CycleCompleteDialog.kt` | ✅ | iOS `CelebrationView.swift` (full-screen, not dialog) |
 | Post-launch spotlight tutorial (5 steps) | ✅ `Tutorial.kt` | ❌ | |
 | Focus-busy dialog (block 2nd Pomodoro) | ✅ | ❌ | |
@@ -98,7 +101,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Per-day stamps + minutes | ✅ | ✅ | |
 | Session records | ✅ per-cycle `SessionRecord` | 🔶 | iOS: per focus segment (`SessionHistoryStore`) |
 | Habit credit on focus complete | ✅ | ✅ | via `PurrodoroApp` hook |
-| Home hero scenes (day/night art) | ✅ `HomeScene.kt` | ❌ | Static mascot art only |
+| Home hero scenes (day/night art) | ✅ `HomeScene.kt` | ✅ | `HomeScene.swift` + xcassets; day/night + premium gate |
 | Segment-end notifications | ✅ | ✅ | `NotificationScheduler.swift` |
 | Chained notifications (auto-start) | ✅ | ✅ | `TimerEngine.notificationChain` |
 | Notification sound toggle (completion chime) | ✅ Profile | ❌ | Chime always on when foregrounded |
@@ -159,7 +162,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|---------|-----|
 | Play Billing 8.x / subscriptions | ✅ `BillingManager.kt` | 🔶 `StoreKitManager` | Local `.storekit`; Connect TBD |
 | Monthly + yearly + trial offers | ✅ | 🔶 | Trial when yearly product offers intro |
-| Premium gates (sounds, scenes, caps) | ✅ `PremiumGate.kt` | 🔶 | Caps ✅; sound locks ✅; scenes wait on feature |
+| Premium gates (sounds, scenes, caps) | ✅ `PremiumGate.kt` | ✅ | Caps ✅; sound locks ✅; scene locks ✅ |
 | Premium branding (avatar frame, badge) | ✅ | 🔶 | Profile banner purple when premium |
 | StoreKit | — | 🔶 | Foundation shipped |
 
@@ -295,6 +298,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `SessionHistoryStore.swift` | Per-focus-segment history (cap 500) |
 | `NotificationScheduler.swift` | Local notifications + foreground delegate |
 | `SoundsStore.swift` / `SoundsSheet.swift` / `Soundscape/*` | Dual-deck Soundscape (#1+#2) |
+| `HomeScene.swift` / `HomeScenePickerSheet.swift` | Home hero themes + picker |
+| `FocusModeOverlay.swift` / `FocusModeMotion.swift` / `FocusModeController.swift` | Immersive Focus Mode |
 | `StorageView.swift` / `StorageModels.swift` | Downloaded-track Storage (Android `StorageScreen`) |
 | `SoundscapeTransportBar.swift` | Focus-tab dock transport |
 | `SoundscapeThumbnailLoader.swift` / `SoundscapeThumbnailView.swift` | R2 WebP thumbs + vinyl/ambience UI |
@@ -312,7 +317,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 |---------|-----|
 | `timer/TimerService.kt` + `TimerStateMachine.kt` | `TimerEngine.swift` |
 | `model/KuroModels.kt` | `PurrodoroModels.swift` |
-| `ui/HomeTimerScreen.kt` | `HomeView.swift` |
+| `ui/HomeTimerScreen.kt` | `HomeView.swift` (+ hero scenes) |
+| `ui/HomeScenePickerSheet.kt` + `model/HomeScene.kt` | `HomeScenePickerSheet.swift` + `HomeScene.swift` |
+| `ui/components/FocusModeOverlay.kt` | `FocusModeOverlay.swift` + `FocusModeMotion.swift` |
 | `ui/TodoScreen.kt` | `TasksView.swift` + `TaskStore.swift` |
 | `ui/HabitsScreen.kt` | `HabitsView.swift` + `HabitStore.swift` |
 | `ui/CalendarScreen.kt` + `JourneyModels.kt` | `JourneyView.swift` + `JourneyModels.swift` |
@@ -377,6 +384,12 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] Runtime EN/ID localization with in-app language picker
 - [x] Appearance Light / Dark / Auto
 
+### Home scenes & Focus Mode
+- [x] Home hero scenes (Room / Café / Library / Park) with day/night art
+- [x] Scene picker sheet + layers entry on hero; Premium lock → upsell
+- [x] Focus Mode overlay (zen timer, dock hide, transport, stop confirm)
+- [x] `HomeSceneTests` + `FocusModeMotionTests`
+
 ### Engineering
 - [x] `KeyValueStore` persistence protocol + in-memory test conformer
 - [x] Unit tests: models, Journey math, engine transitions, parity features (all passing)
@@ -401,8 +414,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 - [x] **Soundscape #1** — dual deck, bundled MP3s, cloud catalog + download-to-play, premium locks
 - [x] **Soundscape #2** — Storage UI, Focus-tab dock transport, R2 thumbnails
-- [ ] **Home scenes** — `HomeScene.kt` art + picker + premium gates
-- [ ] **Focus mode overlay** — `FocusModeOverlay.kt` immersive surface
+- [x] **Home scenes** — `HomeScene` art + picker + premium gates
+- [x] **Focus mode overlay** — `FocusModeOverlay` immersive surface
 - [ ] **History screen** — day drill-down, delete records (`HistoryScreen.kt`)
 - [ ] **Start Focus: simple note** intent (`FocusType.SimpleNote`)
 - [ ] **Post-launch tutorial** — 5-step spotlight (`Tutorial.kt`)
@@ -441,7 +454,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 5. StoreKit subscriptions + PremiumGate caps  ✅ foundation (Connect TBD)
 6. Soundscape #1 ✅ — dual deck, bundled + catalog + download-to-play
 7. Soundscape #2 ✅ — Storage UI, dock transport, thumbnails
-8. Home scenes + focus overlay
+8. Home scenes + focus overlay ✅
 9. History + tutorial + widget deep links
 10. Extra widgets + iPad polish + tests
 11. Focus Shield (platform-specific; design before port)
@@ -475,8 +488,14 @@ Specs to read before each slice:
 - **Localization:** in-app table (`Localization.swift`), not `.lproj` — add both
   `.en` and `.id` for every new string. Android also supports **System** locale;
   iOS does not yet.
-- **Premium scaffolding:** sound locks gate via `prefs.isPremium` +
-  `PremiumUpsellTrigger.lockedSound`; scene locks wait on home scenes.
+- **Premium scaffolding:** sound + scene locks gate via `prefs.isPremium` +
+  `PremiumUpsellTrigger.lockedSound` / `.lockedScene`.
+- **Home scenes:** Room is free; Café / Library / Park require Premium.
+  `effectiveHomeScene` falls back to Room for free users while keeping their
+  selection. Day/night from dark appearance or local hour outside 06:00–17:59.
+  Persisted device-local (`purrodoro.homeScene`); included in backup `home_scene`.
+- **Focus Mode:** `FocusModeController` + full-screen `FocusModeOverlay`; dock
+  hides while active; auto-exits when the timer returns to idle.
 - **Backup files:** schema v1 matches Android `BackupCodec.kt` field names
   (`schema_version`, snake_case keys). iOS uses UUIDs internally but exports
   stable int ids for interchange. Safety copies live in

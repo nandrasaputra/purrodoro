@@ -2,8 +2,9 @@
 //  HomeView.swift
 //  Purrodoro
 //
-//  The focus home screen: greeting, mascot, the circular countdown with
+//  The focus home screen: greeting, home-scene hero, countdown dial with
 //  cycle progress dots, and the start / pause / skip / stop controls.
+//  Focus Mode chip opens the immersive zen overlay (RootView).
 //
 
 import SwiftUI
@@ -14,42 +15,54 @@ struct HomeView: View {
     @EnvironmentObject private var habits: HabitStore
     @EnvironmentObject private var prefs: PreferencesStore
     @EnvironmentObject private var sounds: SoundsStore
-    @EnvironmentObject private var history: SessionHistoryStore
+    @EnvironmentObject private var focusMode: FocusModeController
+    @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var storeKit: StoreKitManager
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showProfile = false
     @State private var showStartFocus = false
+    @State private var showScenePicker = false
     @State private var startPrefill: StartFocusPrefill?
+    @State private var premiumUpsellTrigger: PremiumUpsellTrigger?
+    @State private var pendingUpsellAfterLogin: PremiumUpsellTrigger?
+    @State private var showLoginSheet = false
+    @State private var showPremium = false
+    @State private var showStopConfirm = false
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
+    private var isDark: Bool { scheme == .dark }
+
+    private var isGuest: Bool {
+        if case .signedIn = auth.state { return false }
+        return true
+    }
+
+    private var heroImageName: String {
+        resolveHomeHeroImageName(scene: prefs.displayHomeScene, isDarkTheme: isDark)
+    }
 
     var body: some View {
         ZStack {
             colors.page.ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                header
+            ScrollView {
+                VStack(spacing: 18) {
+                    header
 
-                Spacer(minLength: 8)
+                    heroSection
 
-                TimerDial(
-                    remaining: engine.displayRemaining,
-                    total: engine.session.currentItem?.type.seconds ?? engine.settings.seconds(for: .focus),
-                    mode: engine.currentMode,
-                    state: engine.session.timerState,
-                    colors: colors
-                )
+                    if engine.isStarted {
+                        activeSessionChips
+                    }
 
-                CycleDotsRow(dots: engine.dots, colors: colors)
-
-                Spacer(minLength: 8)
-
-                controls
+                    controls
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 140)
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 12)
-            .padding(.bottom, 120)
 
             if engine.pendingCycleComplete {
                 CelebrationOverlay { engine.acknowledgeCycleComplete() }
@@ -59,24 +72,68 @@ struct HomeView: View {
         .environment(\.pColors, colors)
         .sheet(isPresented: $showProfile) {
             ProfileView()
-                .environmentObject(engine)
-                .environmentObject(tasks)
-                .environmentObject(habits)
-                .environmentObject(prefs)
-                .environmentObject(history)
-                .environmentObject(sounds)
-                .environmentObject(loc)
         }
         .sheet(isPresented: $showStartFocus) {
             StartFocusSheet(prefill: startPrefill)
+        }
+        .sheet(isPresented: $showScenePicker) {
+            HomeScenePickerSheet(
+                selected: prefs.homeScene,
+                isPremium: prefs.isPremium,
+                onSelect: { prefs.homeScene = $0 },
+                onPremiumSceneAttempt: { name in
+                    premiumUpsellTrigger = .lockedScene(name)
+                }
+            )
+            .environmentObject(loc)
+        }
+        .sheet(item: $premiumUpsellTrigger) { trigger in
+            PremiumUpsellSheet(
+                trigger: trigger,
+                isGuest: isGuest,
+                onDismiss: { premiumUpsellTrigger = nil },
+                onSignIn: {
+                    pendingUpsellAfterLogin = trigger
+                    premiumUpsellTrigger = nil
+                    showLoginSheet = true
+                },
+                onExplorePremium: {
+                    premiumUpsellTrigger = nil
+                    showPremium = true
+                }
+            )
+            .environmentObject(storeKit)
+            .environmentObject(prefs)
+            .environmentObject(loc)
+        }
+        .sheet(isPresented: $showLoginSheet) {
+            LoginSheet(
+                onSignedIn: { _ in
+                    showLoginSheet = false
+                    if let pending = pendingUpsellAfterLogin {
+                        pendingUpsellAfterLogin = nil
+                        premiumUpsellTrigger = pending
+                    }
+                },
+                onContinueAsGuest: { showLoginSheet = false }
+            )
+        }
+        .sheet(isPresented: $showPremium) {
+            PremiumView()
+                .environmentObject(prefs)
+                .environmentObject(storeKit)
+                .environmentObject(loc)
+        }
+        .alert(loc.t("home.stop.title"), isPresented: $showStopConfirm) {
+            Button(loc.t("home.stop.confirm"), role: .destructive) { engine.stop() }
+            Button(loc.t("home.stop.dismiss"), role: .cancel) {}
+        } message: {
+            Text(loc.t("home.stop.body"))
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { engine.reconcile() }
         }
         .animation(.easeInOut(duration: 0.25), value: engine.pendingCycleComplete)
-        // Haptics: weight the feedback to the transition — starting focus is the
-        // firmest, pausing/resuming softer; segment changes are a light "tick";
-        // finishing a whole cycle gets a celebratory success buzz.
         .sensoryFeedback(trigger: engine.session.timerState) { old, new in
             switch new {
             case .playing: return old == .paused ? .impact(weight: .light) : .impact(weight: .medium)
@@ -138,6 +195,136 @@ struct HomeView: View {
         }
     }
 
+    // MARK: Hero
+
+    private var heroSection: some View {
+        ZStack(alignment: .bottom) {
+            HeroSceneImage(
+                imageName: heroImageName,
+                onChangeScene: { showScenePicker = true },
+                colors: colors
+            )
+
+            if !engine.isStarted {
+                PrimaryButton(title: loc.t("home.startFocus"), systemImage: "play.fill", tint: Brand.coral) {
+                    openStartFocus()
+                }
+                .padding(.horizontal, 28)
+                .offset(y: 22)
+            } else {
+                activeTimerCard
+                    .padding(.horizontal, 12)
+                    .offset(y: 18)
+            }
+        }
+        .padding(.bottom, engine.isStarted ? 10 : 22)
+    }
+
+    private var activeTimerCard: some View {
+        VStack(spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(formatSeconds(engine.displayRemaining))
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(colors.textPrimary)
+                Spacer()
+                ModeChip(mode: engine.currentMode, state: engine.session.timerState)
+            }
+
+            CycleDotsRow(dots: engine.dots, colors: colors)
+
+            HStack(spacing: 12) {
+                Button {
+                    if engine.isRunning {
+                        engine.pause()
+                    } else {
+                        engine.resume()
+                    }
+                } label: {
+                    Image(systemName: engine.isRunning ? "pause.fill" : "play.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 48, height: 48)
+                        .background(Brand.coral, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(loc.t(engine.isRunning ? "home.pause" : "home.resume"))
+
+                Spacer()
+
+                Text(loc.t(engine.currentMode.labelKey))
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textSecondary)
+            }
+        }
+        .padding(16)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(colors.border, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(scheme == .dark ? 0.35 : 0.08), radius: 12, y: 4)
+    }
+
+    private var activeSessionChips: some View {
+        HStack(spacing: 8) {
+            sessionChip(
+                systemImage: "leaf.fill",
+                title: loc.t("home.focusMode.chip"),
+                tint: Brand.coral
+            ) {
+                focusMode.enter()
+            }
+            .accessibilityLabel(loc.t("home.focusMode.open"))
+
+            if engine.currentMode != .focus {
+                sessionChip(
+                    systemImage: "forward.fill",
+                    title: loc.t("home.skip"),
+                    tint: colors.textSecondary
+                ) {
+                    engine.skip()
+                }
+            }
+
+            sessionChip(
+                systemImage: "stop.circle",
+                title: loc.t("home.stop"),
+                tint: colors.textSecondary
+            ) {
+                if engine.currentMode == .focus {
+                    showStopConfirm = true
+                } else {
+                    engine.stop()
+                }
+            }
+        }
+    }
+
+    private func sessionChip(
+        systemImage: String,
+        title: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(tint)
+                Text(title)
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textPrimary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(colors.card, in: Capsule())
+            .overlay(Capsule().stroke(colors.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: Controls
 
     @ViewBuilder
@@ -164,25 +351,6 @@ struct HomeView: View {
             }
 
             todayStat
-
-            switch engine.session.timerState {
-            case .idle:
-                PrimaryButton(title: loc.t("home.startFocus"), systemImage: "play.fill", tint: Brand.coral) {
-                    openStartFocus()
-                }
-            case .playing:
-                HStack(spacing: 14) {
-                    SecondaryButton(systemImage: "stop.fill", label: loc.t("home.stop"), colors: colors) { engine.stop() }
-                    PrimaryButton(title: loc.t("home.pause"), systemImage: "pause.fill", tint: Brand.coral) { engine.pause() }
-                    SecondaryButton(systemImage: "forward.fill", label: loc.t("home.skip"), colors: colors) { engine.skip() }
-                }
-            case .paused:
-                HStack(spacing: 14) {
-                    SecondaryButton(systemImage: "stop.fill", label: loc.t("home.stop"), colors: colors) { engine.stop() }
-                    PrimaryButton(title: loc.t("home.resume"), systemImage: "play.fill", tint: Brand.coral) { engine.resume() }
-                    SecondaryButton(systemImage: "forward.fill", label: loc.t("home.skip"), colors: colors) { engine.skip() }
-                }
-            }
         }
     }
 
@@ -288,84 +456,40 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Timer dial
+// MARK: - Hero scene image
 
-private struct TimerDial: View {
-    @EnvironmentObject private var loc: Localization
-    let remaining: Int
-    let total: Int
-    let mode: TimerMode
-    let state: TimerState
+private struct HeroSceneImage: View {
+    let imageName: String
+    let onChangeScene: () -> Void
     let colors: PurrodoroColors
-
-    private var progress: Double {
-        guard total > 0 else { return 0 }
-        return min(max(Double(total - remaining) / Double(total), 0), 1)
-    }
-
-    private static let spokenDuration: DateComponentsFormatter = {
-        let f = DateComponentsFormatter()
-        f.allowedUnits = [.minute, .second]
-        f.unitsStyle = .full
-        return f
-    }()
-
-    private var accessibilityLabelText: String {
-        let modeName = state == .idle ? loc.t("mode.ready") : loc.t(mode.labelKey)
-        return loc.t("a11y.timer", modeName)
-    }
-
-    private var accessibilityValueText: String {
-        if state == .idle { return formatSeconds(remaining) }
-        let spoken = Self.spokenDuration.string(from: Double(remaining)) ?? formatSeconds(remaining)
-        let base = loc.t("a11y.remaining", spoken)
-        return state == .paused ? "\(loc.t("a11y.paused")). \(base)" : base
-    }
+    @EnvironmentObject private var loc: Localization
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(colors.border, lineWidth: 14)
+        ZStack(alignment: .topTrailing) {
+            Image(imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1.48, contentMode: .fit)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(
-                    mode.accentStrong,
-                    style: StrokeStyle(lineWidth: 14, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.3), value: progress)
-
-            VStack(spacing: 10) {
-                Image(mode == .focus ? "CatFocusing" : mode.mascotImageName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 96, height: 96)
-                    .opacity(state == .idle ? 0.0 : 1.0)
-                    .overlay {
-                        if state == .idle {
-                            Image("CatReady")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 104, height: 104)
-                        }
-                    }
-
-                Text(formatSeconds(remaining))
-                    .font(.system(size: 56, weight: .bold, design: .rounded))
-                    .monospacedDigit()
+            Button(action: onChangeScene) {
+                Image(systemName: "square.3.layers.3d")
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(colors.textPrimary)
-
-                ModeChip(mode: mode, state: state)
+                    .frame(width: 36, height: 36)
+                    .background(colors.card.opacity(0.92), in: Circle())
+                    .overlay(Circle().stroke(colors.border, lineWidth: 1))
             }
+            .buttonStyle(.plain)
+            .padding(10)
+            .accessibilityLabel(loc.t("home.scene.change"))
         }
-        .frame(width: 300, height: 300)
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabelText)
-        .accessibilityValue(accessibilityValueText)
     }
 }
+
+// MARK: - Mode chip
 
 private struct ModeChip: View {
     @EnvironmentObject private var loc: Localization
@@ -478,5 +602,8 @@ struct SecondaryButton: View {
         .environmentObject(HabitStore())
         .environmentObject(PreferencesStore())
         .environmentObject(SoundsStore())
+        .environmentObject(FocusModeController())
+        .environmentObject(AuthStore())
+        .environmentObject(StoreKitManager(prefs: PreferencesStore()))
         .environmentObject(Localization())
 }

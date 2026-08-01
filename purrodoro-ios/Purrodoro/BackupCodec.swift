@@ -33,6 +33,7 @@ enum BackupCodec {
         appearance: AppearanceMode,
         language: AppLanguage,
         selectedSoundId: Int,
+        homeScene: HomeScene = .room,
         tasks: [TaskItem],
         habits: [HabitItem],
         sessionRecords: [FocusSessionRecord],
@@ -56,7 +57,7 @@ enum BackupCodec {
                     appearance: appearance.toBackupAppearance(),
                     language: language.toBackupLanguage(),
                     glass: "Adaptive",
-                    homeScene: "Room",
+                    homeScene: homeScene.storageName,
                     selectedSoundId: max(selectedSoundId, 1),
                     notificationSound: true
                 ),
@@ -174,7 +175,8 @@ private extension BackupData {
             prefs: RestorePrefs(
                 appearance: AppearanceMode.fromBackup(prefs.appearance),
                 language: AppLanguage.fromBackup(prefs.language),
-                selectedSoundId: max(prefs.selectedSoundId, 1)
+                selectedSoundId: max(prefs.selectedSoundId, 1),
+                homeScene: HomeScene.fromStorageName(prefs.homeScene)
             ),
             tasks: tasks,
             habits: habits,
