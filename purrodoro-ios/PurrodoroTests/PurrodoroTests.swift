@@ -344,6 +344,104 @@ struct HistoryModelTests {
     }
 }
 
+// MARK: - Journey period summaries (Android CalendarScreen parity)
+
+struct JourneyPeriodSummaryTests {
+
+    private var calendar: Calendar {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(secondsFromGMT: 0)!
+        cal.firstWeekday = 2 // Monday
+        return cal
+    }
+
+    private func date(_ y: Int, _ m: Int, _ d: Int, hour: Int = 12, minute: Int = 0) -> Date {
+        calendar.date(from: DateComponents(year: y, month: m, day: d, hour: hour, minute: minute))!
+    }
+
+    /// Build a focus segment that *started* on the given calendar day.
+    private func record(
+        started y: Int, _ m: Int, _ d: Int,
+        hour: Int,
+        minutes: Int,
+        intent: String? = nil
+    ) -> FocusSessionRecord {
+        let started = date(y, m, d, hour: hour)
+        let ended = started.addingTimeInterval(TimeInterval(minutes) * 60)
+        return FocusSessionRecord(endedAt: ended, minutes: minutes, intentName: intent)
+    }
+
+    @Test func journeySummaryBuildsWeeklyMetrics() {
+        // Week of Mon 2026-05-18 … Sun 2026-05-24 (today = Sunday 24).
+        let today = date(2026, 5, 24)
+        let records = [
+            record(started: 2026, 5, 18, hour: 9, minutes: 50),  // Mon 50
+            record(started: 2026, 5, 18, hour: 14, minutes: 25), // Mon +25 = 75
+            record(started: 2026, 5, 19, hour: 11, minutes: 25), // Tue 25
+            record(started: 2026, 5, 20, hour: 10, minutes: 50), // Wed 50
+            record(started: 2026, 5, 11, hour: 10, minutes: 250), // previous week Mon
+        ]
+
+        let summary = Journey.journeySummary(
+            records: records,
+            today: today,
+            calendar: calendar,
+            weeklyGoalMinutes: 12 * 60
+        )
+
+        #expect(summary.weekFocusMinutes == 150)
+        #expect(summary.focusDays == 3)
+        #expect(summary.dailyAverageMinutes == 50)
+        #expect(summary.weeklyGoalPercent == 21)
+        #expect(summary.previousWeekFocusMinutes == 250)
+        #expect(summary.weekOverWeekPercent == -40)
+        #expect(summary.weekBars.count == 7)
+        #expect(summary.weekBars.map(\.focusMinutes) == [75, 25, 50, 0, 0, 0, 0])
+    }
+
+    @Test func journeySummaryBuildsTodayRows() {
+        let today = date(2026, 5, 24)
+        let records = [
+            record(started: 2026, 5, 24, hour: 9, minutes: 25, intent: "Inbox"),
+            record(started: 2026, 5, 24, hour: 21, minutes: 45),
+            record(started: 2026, 5, 18, hour: 9, minutes: 25, intent: "Design"),
+        ]
+        let summary = Journey.journeySummary(records: records, today: today, calendar: calendar)
+        #expect(summary.todayFocusSessions == 2)
+        #expect(summary.todayRows.count == 2)
+        #expect(summary.todayRows.first?.minutes == 45) // newest first
+        #expect(summary.todayRows.last?.intentName == "Inbox")
+    }
+
+    @Test func monthAndAllTimeSummaries() {
+        let records = [
+            record(started: 2026, 5, 1, hour: 10, minutes: 60),
+            record(started: 2026, 5, 2, hour: 10, minutes: 30),
+            record(started: 2026, 5, 4, hour: 10, minutes: 25),
+            record(started: 2026, 4, 30, hour: 10, minutes: 40),
+        ]
+        let month = Journey.monthSummary(records: records, month: date(2026, 5, 15), calendar: calendar)
+        #expect(month.focusDays == 3)
+        #expect(month.focusMinutes == 115)
+
+        let intensities = History.focusIntensitiesByDate(records: records, calendar: calendar)
+        #expect(Journey.monthBestStreakDays(intensities: intensities, month: date(2026, 5, 15), calendar: calendar) == 2)
+
+        let allTime = Journey.allTimeSummary(records: records, calendar: calendar)
+        #expect(allTime.totalFocusMinutes == 155)
+        #expect(allTime.totalSessions == 4)
+        #expect(allTime.bestStreakDays == 2) // May 1–2
+        #expect(allTime.totalFocusLabel == "2h")
+    }
+
+    @Test func chartScaleUsesNiceAxisTops() {
+        #expect(Journey.chartScale(maxDayMinutes: 0).topMinutes == 60)
+        #expect(Journey.chartScale(maxDayMinutes: 10).topMinutes == 15)
+        #expect(Journey.chartScale(maxDayMinutes: 61).topMinutes == 90)
+        #expect(Journey.chartScale(maxDayMinutes: 800).topMinutes == 840)
+    }
+}
+
 // MARK: - Appearance mode
 
 struct AppearanceModeTests {

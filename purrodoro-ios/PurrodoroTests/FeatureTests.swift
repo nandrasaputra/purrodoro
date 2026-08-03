@@ -129,6 +129,49 @@ struct HabitSchedulingTests {
         habit.log[Journey.dayKey(lastWeek)] = 1
         #expect(habit.streak == 2)
     }
+
+    @Test func bestStreakFindsLongestHistoricalRun() {
+        var habit = HabitItem(name: "Meditate")
+        habit.targetPerDay = 1
+        // Build a 3-day run, a gap, then a 5-day run ending before today.
+        let today = cal.startOfDay(for: Date())
+        for offset in [20, 19, 18, 10, 9, 8, 7, 6] {
+            let d = cal.date(byAdding: .day, value: -offset, to: today)!
+            habit.log[Journey.dayKey(d)] = 1
+        }
+        #expect(habit.bestStreak(asOf: today, calendar: cal) == 5)
+        #expect(habit.bestStreak(asOf: today, calendar: cal) >= habit.streak)
+    }
+
+    @Test func monthlyProgressDotsCoverWholeMonth() {
+        var habit = HabitItem(name: "Water")
+        habit.targetPerDay = 1
+        // Use the app calendar so dayKey ↔ startOfDay stay aligned.
+        let cal = Journey.calendar
+        let month = cal.date(from: DateComponents(year: 2026, month: 5, day: 15, hour: 12))!
+        let day3 = cal.date(from: DateComponents(year: 2026, month: 5, day: 3, hour: 12))!
+        let day10 = cal.date(from: DateComponents(year: 2026, month: 5, day: 10, hour: 12))!
+        habit.log[Journey.dayKey(day3)] = 1
+        habit.log[Journey.dayKey(day10)] = 1
+        let dots = HabitDisplay.monthlyProgressDots(habit: habit, monthDate: month, calendar: cal)
+        #expect(dots.count == 31)
+        #expect(dots[2].isCompleted)  // May 3
+        #expect(dots[9].isCompleted)  // May 10
+        #expect(!dots[0].isCompleted) // May 1
+        // May 1 2026 is Friday → 4 Mon-first leading blanks.
+        let weekday = cal.component(.weekday, from: dots[0].date)
+        let expectedLead = (weekday + 5) % 7
+        #expect(HabitDisplay.mondayLeadingBlanks(forFirstDay: dots[0].date, calendar: cal) == expectedLead)
+    }
+
+    @Test func weekDotsAreSevenDaysEndingToday() {
+        let habit = HabitItem(name: "Read")
+        let today = cal.startOfDay(for: Date())
+        let dots = HabitDisplay.weekDots(habit: habit, today: today, calendar: cal)
+        #expect(dots.count == 7)
+        #expect(dots.last?.isToday == true)
+        #expect(cal.isDate(dots.last!.date, inSameDayAs: today))
+    }
 }
 
 // MARK: - Localization

@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (iPad readable width + a11y)_
+_Last updated: 2026-08-03 (Habit detail + Journey periods)_
 
 ---
 
@@ -29,16 +29,18 @@ _Last updated: 2026-08-01 (iPad readable width + a11y)_
 | Tutorial + deep links + note | ✅ | `TutorialController`, `SpotlightTutorialOverlay`, `DeepLinkRouter`, Start Focus note |
 | Extra widgets | ✅ | Stats / Plan / Streak / Dashboard / Calm / Cozy + `WidgetSnapshotBuilder` |
 | Onboarding auth + live focus | ✅ | `OnboardingView` LoginSheet + language; Tasks row live ring |
-| **iPad + a11y polish** | 🔶 | `ReadableContentLayout` + Tasks/Habits/Journey/Profile labels |
+| iPad + a11y polish | 🔶 | `ReadableContentLayout` + Tasks/Habits/Journey/Profile labels |
+| **Habit detail + Journey periods** | ✅ | Detail sheet + monthly grid; Today/Week/Month/All-time Journey |
 
-### Session note (2026-08-01)
+### Session note (2026-08-03)
 
-Shipped **iPad readable-width + primary accessibility**:
-1. **Readable columns** — 720pt content / 580pt dock on regular size class (`ReadableContentLayout`)
-2. **Applied** — Focus, Tasks, Habits, Journey, Profile + capped bottom dock
-3. **A11y** — Tasks complete toggle; Habits focus/log localized; Journey streak/stats; Profile appearance + duration steppers; wired unused timer a11y keys on active dial
+Shipped **Habit detail + Journey period summaries** (Android parity polish):
+1. **Habit detail sheet** — tap opens detail (not editor); current/best streak; mark done; focus CTA; this-week strip; **monthly progress dots** (Mon-first); Edit → existing editor; delete confirm
+2. **`HabitDisplay` helpers** — `weekDots`, `monthlyProgressDots`, `bestStreak(asOf:)`
+3. **Journey stacked periods** — Today timeline (collapsible), This week (WoW + bar chart), This month (Mon-first heatmap + side stats), All time
+4. **Tests** — habit display + journey period summary math (mirrors Android `JourneyModelsTest`)
 
-Still next: Habit detail / Journey period PRs (if unmerged) · Focus Shield design · App Store Connect QA · NAN-65.
+Still next: Focus Shield design · App Store Connect QA · NAN-65 · full a11y / UI tests / Crashlytics.
 
 ---
 
@@ -46,16 +48,19 @@ Still next: Habit detail / Journey period PRs (if unmerged) · Focus Shield desi
 
 **Shipped on iOS:** local-first core product — four tabs (Focus / Tasks / Journey /
 Habits), full Pomodoro loop, Start Focus sheet, interrupted-focus resume,
-celebration, task categories & due dates, habit scheduling & rest days, **Soundscape
-dual deck** (bundled ambience + lo-fi MP3s, cloud catalog + download-to-play,
-premium locks, **Storage UI**, **Focus-tab dock transport**, **R2 thumbnails**),
-**home scenes** (Room free; Café / Library / Park Premium; day/night art; picker),
-**Focus Mode overlay** (immersive zen timer), **History**, **post-launch tutorial**, **widget deep links**, **Start Focus simple note**, **7 Home Screen widgets** (Today + 6 Android Glance ports), EN/ID localization, onboarding,
-**Profile hub**, **backup & restore** (Android-compatible JSON v1), **auth**
-(Supabase + Apple + Google UI, Claim/Keep/Drop ownership), **Supabase sync**
-(seven tables, Profile status, logout flush), Live Activity,
-**StoreKit premium foundation** (discovery, upsell, 10/10 caps), unit tests.
-Builds on iOS 26 simulator.
+celebration, task categories & due dates, habit scheduling & rest days, **habit
+detail + monthly progress grid**, **Soundscape dual deck** (bundled ambience +
+lo-fi MP3s, cloud catalog + download-to-play, premium locks, **Storage UI**,
+**Focus-tab dock transport**, **R2 thumbnails**), **home scenes** (Room free;
+Café / Library / Park Premium; day/night art; picker), **Focus Mode overlay**
+(immersive zen timer), **History**, **Journey Today/Week/Month/All-time**,
+**post-launch tutorial**, **widget deep links**, **Start Focus simple note**,
+**7 Home Screen widgets** (Today + 6 Android Glance ports), EN/ID localization,
+onboarding, **Profile hub**, **backup & restore** (Android-compatible JSON v1),
+**auth** (Supabase + Apple + Google UI, Claim/Keep/Drop ownership), **Supabase
+sync** (seven tables, Profile status, logout flush), Live Activity, **StoreKit
+premium foundation** (discovery, upsell, 10/10 caps), unit tests. Builds on iOS
+26 simulator.
 
 **Not on iOS yet:** **App Store Connect products** (local `.storekit` only),
 **Focus Shield** (Android distraction blocker —
@@ -64,8 +69,7 @@ shipped; **NAN-65 two-device QA** still pending.
 
 **Next recommended port slices:** Focus Shield design (Screen Time /
 FamilyControls). Finish App Store Connect product setup + purchase QA. Run
-NAN-65 two-device sync QA on iOS. Merge pending habit-detail / Journey-period
-PRs if still open.
+NAN-65 two-device sync QA on iOS.
 
 ---
 
@@ -133,7 +137,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Occurrence (weekdays) | ✅ | ✅ | |
 | Time blocks (morning / afternoon / evening) | ✅ | ✅ | |
 | Rest / skip days + streak logic | ✅ | ✅ | |
-| Monthly dot grid + detail sheets | ✅ | 🔶 | iOS: 7-day strip |
+| Monthly dot grid + detail sheets | ✅ | ✅ | `HabitDetailSheet` + `HabitMonthlyProgressCard` (Mon-first) |
 | Free-tier cap (10 habits) | ✅ | ✅ | |
 | Cloud sync | ✅ `HabitTableSync` | ✅ `TableSyncs` | |
 
@@ -141,8 +145,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 | Feature | Android | iOS | Notes |
 |---------|---------|-----|-------|
-| Today / week / month / all-time sections | ✅ `CalendarScreen.kt` | 🔶 | Android: stacked period cards (not a zoom toggle); iOS: week stats + month heatmap |
-| Session timeline per period | ✅ `JourneyTimeline.kt` | 🔶 | Journey recent feed + History day timeline |
+| Today / week / month / all-time sections | ✅ `CalendarScreen.kt` | ✅ | Stacked period cards in `JourneyView` |
+| Session timeline per period | ✅ `JourneyTimeline.kt` | ✅ | Today collapsible timeline; History day timeline |
 | Streak (daily stamps) | ✅ | ✅ | Ported `calculateStreak` |
 | Delete session record | ✅ History | ✅ | Soft-delete + sync tombstone via `SessionHistoryStore.delete` |
 | Cloud sync (records + stamps) | ✅ | ✅ `TableSyncs` | |
@@ -299,8 +303,9 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `StartFocusSheet.swift` | Pre-start intent + one-shot session config |
 | `CelebrationView.swift` | Cycle-complete overlay + confetti |
 | `TaskStore.swift` / `TasksView.swift` | Tasks + categories + due dates |
-| `HabitStore.swift` / `HabitsView.swift` | Habits + scheduling + rest days |
-| `JourneyModels.swift` / `JourneyView.swift` | Streaks, heatmap, recent sessions, History entry |
+| `HabitStore.swift` / `HabitsView.swift` | Habits + scheduling + rest days + detail/monthly |
+| `HabitDisplayModels.swift` | Week/month dots + `bestStreak` (Android display helpers) |
+| `JourneyModels.swift` / `JourneyView.swift` | Streaks, period summaries, heatmap, today timeline |
 | `HistoryModels.swift` / `HistoryView.swift` | History month heatmap, day drill-down, delete sheet |
 | `SessionHistoryStore.swift` | Per-focus-segment history (cap 500) + soft-delete |
 | `NotificationScheduler.swift` | Local notifications + foreground delegate |
@@ -362,7 +367,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] Focus home — dial, dots, mascot, greeting, today stats, intent card
 - [x] Tasks — CRUD, priority, planned sessions, categories, due dates, focus attach
 - [x] Habits — CRUD, occurrence, time blocks, rest days, streaks, focus attach
-- [x] Journey — streaks, week stats, month heatmap, recent sessions
+- [x] Journey — Today / week / month / all-time stacked periods + History
 
 ### Platform
 - [x] Local notifications + chained schedule when auto-start on
@@ -441,6 +446,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] **Settings gaps** — notification sound toggle, System locale
 - [x] **Focus-busy guard** — block second concurrent Pomodoro
 - [ ] **Focus Shield** — Android `focusshield/*` shipped; iOS port needs Screen Time / FamilyControls design (not a 1:1 UsageStats port)
+- [x] **Habit monthly grid + detail sheets** — `HabitDetailSheet` + `HabitDisplay`
+- [x] **Journey period summaries** — Today / week / month / all-time (`JourneyView`)
 
 ### P2 — widgets & platform
 
@@ -454,8 +461,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 ### P3 — nice-to-have
 
 - [x] Live focus indicator on task rows
-- [ ] Habit monthly dot grid + detail sheets (Android parity)
-- [ ] Journey period summaries (today / all-time — Android uses stacked cards)
+- [x] Habit monthly dot grid + detail sheets (Android parity)
+- [x] Journey period summaries (today / all-time — Android uses stacked cards)
 - [ ] Glass readability mode (Android: persist + Adaptive default; **no Profile picker yet**)
 - [ ] Crashlytics or equivalent
 - [ ] Consider SQLite/Core Data if sync lands (volume + query needs)
@@ -478,7 +485,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 11. Extra widgets ✅ — Stats / Plan / Streak / Dashboard / Calm / Cozy
 12. Onboarding auth + live focus ✅
 13. iPad readable width + primary a11y ✅
-14. Focus Shield (platform-specific; design before port)
+14. Habit detail + Journey periods ✅
+15. Focus Shield (platform-specific; design before port)
 ```
 
 Specs to read before each slice:

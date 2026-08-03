@@ -2,8 +2,8 @@
 //  JourneyView.swift
 //  Purrodoro
 //
-//  The Journey tab: focus streaks, lightweight stats, and a month calendar
-//  heatmap driven by the per-day focus stamps the engine records.
+//  The Journey tab: stacked Today / This week / This month / All time sections
+//  (Android `CalendarScreen`), driven by focus session records + stamps.
 //
 
 import SwiftUI
@@ -13,63 +13,56 @@ struct JourneyView: View {
     @EnvironmentObject private var history: SessionHistoryStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
-    @State private var month: Date = Date()
     @State private var showHistory = false
+    @State private var timelineExpanded = false
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
-    private var stamps: [String: Int] { engine.focusStampsByDay }
-    private var minutes: [String: Int] { engine.focusMinutesByDay }
+    private var records: [FocusSessionRecord] { history.records }
+    private var summary: JourneyPeriodSummary {
+        Journey.journeySummary(records: records)
+    }
+    private var month: JourneyMonthSummary {
+        Journey.monthSummary(records: records)
+    }
+    private var intensities: [Date: Int] {
+        History.focusIntensitiesByDate(records: records)
+    }
+    private var monthStreak: Int {
+        Journey.monthBestStreakDays(intensities: intensities, month: Date())
+    }
+    private var allTime: JourneyAllTimeSummary {
+        Journey.allTimeSummary(records: records)
+    }
 
     var body: some View {
         ZStack {
             colors.page.ignoresSafeArea()
-            content
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    journeyHeader
+                    periodSection(loc.t("journey.today")) {
+                        todayCard
+                    }
+                    periodSection(loc.t("journey.periodWeek")) {
+                        weeklyCard
+                    }
+                    periodSection(loc.t("journey.periodMonth")) {
+                        monthCard
+                    }
+                    periodSection(loc.t("journey.sectionAllTime")) {
+                        allTimeCard
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 120)
+            }
+            .readableContentWidth()
         }
         .environment(\.pColors, colors)
         .fullScreenCover(isPresented: $showHistory) {
             HistoryView()
                 .environmentObject(history)
                 .environmentObject(loc)
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if Journey.total(stamps) == 0 {
-            VStack(alignment: .leading, spacing: 0) {
-                journeyHeader
-                    .padding(.horizontal, 20)
-                VStack(spacing: 18) {
-                    Spacer()
-                    Image("CatEmptyMonth")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 160, height: 160)
-                    Text(loc.t("journey.emptySubtitle"))
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(colors.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 48)
-                    Spacer()
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .readableContentWidth()
-        } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    journeyHeader
-
-                    streakHero
-                    statsRow
-                    calendarCard
-                    recentSessionsCard
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 120)
-            }
-            .readableContentWidth()
         }
     }
 
@@ -94,197 +87,86 @@ struct JourneyView: View {
         .padding(.top, 12)
     }
 
-    // MARK: Streak hero
-
-    private var streakHero: some View {
-        let streak = Journey.currentStreak(stamps)
-        return HStack(spacing: 16) {
-            ZStack {
-                Circle().fill(Brand.coral.opacity(0.15)).frame(width: 64, height: 64)
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(Brand.coral)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(loc.t(streak == 1 ? "habits.dayStreak" : "habits.daysStreak", streak))
-                    .font(.system(.title, design: .rounded).weight(.bold))
-                    .foregroundStyle(colors.textPrimary)
-                Text(streak == 0 ? loc.t("journey.startToday") : loc.t("journey.currentStreak"))
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(colors.textSecondary)
-            }
-            Spacer()
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity)
-        .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(loc.t("journey.streakA11y"))
-        .accessibilityValue(
-            streak == 0
-                ? loc.t("journey.startToday")
-                : loc.t(streak == 1 ? "habits.dayStreak" : "habits.daysStreak", streak)
-        )
-    }
-
-    // MARK: Stats
-
-    private var statsRow: some View {
-        HStack(spacing: 12) {
-            statCard(value: loc.t("unit.minAbbrev", Journey.sum(minutes, lastDays: 7)), label: loc.t("journey.thisWeek"))
-            statCard(value: "\(Journey.total(stamps))", label: loc.t("journey.totalSessions"))
-            statCard(value: "\(Journey.bestStreak(stamps))", label: loc.t("journey.bestStreak"))
-        }
-    }
-
-    private func statCard(value: String, label: String) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.system(.title3, design: .rounded).weight(.bold))
-                .foregroundStyle(colors.textPrimary)
-                .monospacedDigit()
-            Text(label)
-                .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(colors.textFaint)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(colors.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colors.border, lineWidth: 1))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label)
-        .accessibilityValue(value)
-    }
-
-    // MARK: Calendar
-
-    private var calendarCard: some View {
-        let grid = MonthGrid(month: month)
-        return VStack(spacing: 14) {
-            HStack {
-                Text(grid.title)
-                    .font(.system(.headline, design: .rounded).weight(.bold))
-                    .foregroundStyle(colors.textPrimary)
-                Spacer()
-                monthButton(systemName: "chevron.left") { shiftMonth(-1) }
-                monthButton(systemName: "chevron.right") { shiftMonth(1) }
-            }
-
-            HStack(spacing: 0) {
-                ForEach(Array(grid.weekdaySymbols.enumerated()), id: \.offset) { _, sym in
-                    Text(sym)
-                        .font(.system(.caption2, design: .rounded).weight(.semibold))
-                        .foregroundStyle(colors.textFaint)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-
-            let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 7)
-            LazyVGrid(columns: columns, spacing: 6) {
-                ForEach(grid.days) { cell in
-                    dayCell(cell)
-                }
-            }
-
-            legend
-        }
-        .padding(18)
-        .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
-    }
-
-    @ViewBuilder
-    private func dayCell(_ cell: MonthDay) -> some View {
-        if let date = cell.date {
-            let count = Journey.count(stamps, on: date)
-            let isToday = Journey.calendar.isDateInToday(date)
-            Text("\(Journey.calendar.component(.day, from: date))")
+    private func periodSection<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
                 .font(.system(.caption, design: .rounded).weight(.semibold))
-                .foregroundStyle(count > 0 ? Brand.cocoa : colors.textFaint)
-                .frame(maxWidth: .infinity)
-                .frame(height: 38)
-                .background(intensity(count), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(Brand.coral, lineWidth: isToday ? 2 : 0)
-                )
-        } else {
-            Color.clear.frame(height: 38)
+                .foregroundStyle(colors.textSecondary)
+                .tracking(0.6)
+            content()
         }
     }
 
-    private func intensity(_ count: Int) -> Color {
-        switch count {
-        case 0: return colors.scheme == .dark ? Brand.nightDeep : Brand.pageWhite
-        case 1: return Brand.peach.opacity(0.45)
-        case 2: return Brand.peach
-        default: return Brand.coral
-        }
-    }
+    // MARK: Today
 
-    private var legend: some View {
-        HStack(spacing: 8) {
-            Text(loc.t("journey.less"))
-                .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(colors.textFaint)
-            ForEach([0, 1, 2, 3], id: \.self) { c in
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(intensity(c))
-                    .frame(width: 16, height: 16)
-                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(colors.border, lineWidth: c == 0 ? 1 : 0))
-            }
-            Text(loc.t("journey.more"))
-                .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(colors.textFaint)
-            Spacer()
-        }
-    }
-
-    // MARK: Recent sessions
-
-    @ViewBuilder
-    private var recentSessionsCard: some View {
-        if !history.records.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(loc.t("journey.recentSessions"))
-                    .font(.system(.headline, design: .rounded).weight(.bold))
-                    .foregroundStyle(colors.textPrimary)
-
+    private var todayCard: some View {
+        let rows = summary.todayRows
+        return Group {
+            if rows.isEmpty {
+                HStack(spacing: 14) {
+                    Image("CatEmptyDay")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 72, height: 72)
+                    Text(loc.t("journey.noRecordsToday"))
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(colors.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
+            } else {
                 VStack(spacing: 0) {
-                    let recent = Array(history.records.prefix(8))
-                    ForEach(Array(recent.enumerated()), id: \.element.id) { index, record in
-                        sessionRow(record)
-                        if index < recent.count - 1 {
-                            Rectangle()
-                                .fill(colors.border)
-                                .frame(height: 1)
+                    let collapsed = 3
+                    let visible = timelineExpanded || rows.count <= collapsed
+                        ? rows
+                        : Array(rows.prefix(collapsed))
+                    ForEach(Array(visible.enumerated()), id: \.element.id) { index, record in
+                        timelineRow(record, isLatest: index == 0)
+                        if index < visible.count - 1 {
+                            Rectangle().fill(colors.border).frame(height: 1)
                         }
                     }
+                    if rows.count > collapsed {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                timelineExpanded.toggle()
+                            }
+                        } label: {
+                            Text(
+                                timelineExpanded
+                                    ? loc.t("journey.timelineShowLess")
+                                    : loc.t("journey.timelineMore", rows.count - collapsed)
+                            )
+                            .font(.system(.caption, design: .rounded).weight(.semibold))
+                            .foregroundStyle(Brand.coral)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 12)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
         }
     }
 
-    private func sessionRow(_ record: FocusSessionRecord) -> some View {
+    private func timelineRow(_ record: FocusSessionRecord, isLatest: Bool) -> some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(Brand.coral.opacity(0.15)).frame(width: 38, height: 38)
-                Image(systemName: record.intentName == nil ? "timer" : "target")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Brand.coral)
-            }
+            Circle()
+                .fill(isLatest ? Brand.coral : colors.border)
+                .frame(width: 10, height: 10)
             VStack(alignment: .leading, spacing: 2) {
                 Text(record.intentName ?? loc.t("journey.focusSession"))
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(colors.textPrimary)
                     .lineLimit(1)
-                Text(relativeStamp(record.endedAt))
+                Text(loc.t("journey.timelineMeta", timeLabel(record), loc.t("journey.statusCompleted")))
                     .font(.system(.caption2, design: .rounded))
                     .foregroundStyle(colors.textFaint)
             }
@@ -297,13 +179,275 @@ struct JourneyView: View {
         .padding(.vertical, 10)
     }
 
-    /// "Today · 2:30 PM" / "Yesterday · 2:30 PM" / "Jun 3 · 2:30 PM".
-    private func relativeStamp(_ date: Date) -> String {
-        let cal = Journey.calendar
-        let time = Self.timeFormatter.string(from: date)
-        if cal.isDateInToday(date) { return "\(loc.t("date.today")) · \(time)" }
-        if cal.isDateInYesterday(date) { return "\(loc.t("date.yesterday")) · \(time)" }
-        return "\(Self.dayFormatter.string(from: date)) · \(time)"
+    // MARK: Week
+
+    private var weeklyCard: some View {
+        let note: String = {
+            if let pct = summary.weekOverWeekPercent {
+                let sign = pct >= 0 ? "+" : ""
+                return loc.t("journey.weekOverWeek", sign, pct)
+            }
+            return loc.t("journey.noLastWeek")
+        }()
+        let noteColor: Color = (summary.weekOverWeekPercent ?? 0) > 0 ? Color(hex: 0x3D9A6A) : colors.textSecondary
+        let avgLabel = summary.dailyAverageMinutes > 0
+            ? History.minutesLabel(summary.dailyAverageMinutes)
+            : loc.t("journey.statNone")
+        let todaySessionsLabel = loc.t(
+            summary.todayFocusSessions == 1 ? "journey.todaySessions.one" : "journey.todaySessions.other",
+            summary.todayFocusSessions
+        )
+        let maxDay = summary.weekBars.map(\.focusMinutes).max() ?? 0
+        let scale = Journey.chartScale(maxDayMinutes: maxDay)
+        let today = Journey.calendar.startOfDay(for: Date())
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(loc.t("journey.focusTimeWeek"))
+                        .font(.system(.headline, design: .rounded).weight(.bold))
+                        .foregroundStyle(colors.textPrimary)
+                    Text(History.minutesLabel(summary.weekFocusMinutes))
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        .foregroundStyle(colors.textPrimary)
+                        .monospacedDigit()
+                    Text(note)
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(noteColor)
+                }
+                Spacer()
+                Image("CatReady")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 72, height: 72)
+            }
+
+            HStack(spacing: 10) {
+                weekChip(
+                    icon: "clock",
+                    label: loc.t("journey.statDailyAvg"),
+                    value: avgLabel,
+                    highlighted: false
+                )
+                weekChip(
+                    icon: "target",
+                    label: loc.t("journey.today"),
+                    value: todaySessionsLabel,
+                    highlighted: true
+                )
+            }
+
+            weekChart(scale: scale, today: today)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
+    }
+
+    private func weekChip(icon: String, label: String, value: String, highlighted: Bool) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Brand.coral)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(colors.textFaint)
+                Text(value)
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textPrimary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(
+            highlighted ? Brand.coral.opacity(0.12) : colors.page,
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(highlighted ? Brand.coral.opacity(0.35) : colors.border, lineWidth: 1)
+        )
+    }
+
+    private func weekChart(scale: JourneyChartScale, today: Date) -> some View {
+        let top = max(scale.topMinutes, 1)
+        return HStack(alignment: .bottom, spacing: 8) {
+            VStack(alignment: .trailing) {
+                Text(History.minutesLabel(scale.topMinutes))
+                Spacer()
+                Text(History.minutesLabel(scale.midMinutes))
+                Spacer()
+                Text("0")
+            }
+            .font(.system(.caption2, design: .rounded))
+            .foregroundStyle(colors.textFaint)
+            .frame(width: 36, height: 120)
+
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(summary.weekBars.enumerated()), id: \.offset) { _, bar in
+                    let isToday = Journey.calendar.isDate(bar.date, inSameDayAs: today)
+                    let ratio: CGFloat = bar.focusMinutes <= 0
+                        ? 0
+                        : CGFloat(min(max(Double(bar.focusMinutes) / Double(top), 0.04), 1))
+                    VStack(spacing: 6) {
+                        ZStack(alignment: .bottom) {
+                            if isToday {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Brand.coral.opacity(0.12))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 120)
+                            }
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(Brand.coral)
+                                .frame(width: 14, height: max(4, 100 * ratio))
+                                .opacity(bar.focusMinutes > 0 ? 1 : 0)
+                        }
+                        .frame(height: 120)
+                        Text(String(bar.dayLabel.prefix(3)))
+                            .font(.system(.caption2, design: .rounded).weight(isToday ? .bold : .regular))
+                            .foregroundStyle(isToday ? Brand.coral : colors.textFaint)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(
+                        isToday
+                            ? loc.t("journey.todayColumnA11y", History.minutesLabel(bar.focusMinutes))
+                            : "\(bar.dayLabel), \(History.minutesLabel(bar.focusMinutes))"
+                    )
+                }
+            }
+        }
+    }
+
+    // MARK: Month
+
+    private var monthCard: some View {
+        let grid = MonthGrid(month: Date(), mondayFirst: true)
+        return HStack(alignment: .center, spacing: 16) {
+            VStack(spacing: 8) {
+                HStack(spacing: 0) {
+                    ForEach(Array(grid.mondayWeekdaySymbols.enumerated()), id: \.offset) { _, sym in
+                        Text(sym)
+                            .font(.system(size: 10, design: .rounded).weight(.semibold))
+                            .foregroundStyle(colors.textFaint)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+                LazyVGrid(columns: columns, spacing: 4) {
+                    ForEach(grid.days) { cell in
+                        monthHeatCell(cell)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+
+            VStack(alignment: .leading, spacing: 14) {
+                monthStat(icon: "calendar", value: "\(month.focusDays)", label: loc.t("journey.statFocusDays"))
+                Divider()
+                monthStat(icon: "clock", value: month.focusTimeLabel, label: loc.t("journey.allTimeTotal"))
+                Divider()
+                monthStat(icon: "flame.fill", value: "\(monthStreak)", label: loc.t("journey.statStreak"))
+            }
+            .frame(width: 110)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private func monthHeatCell(_ cell: MonthDay) -> some View {
+        if let date = cell.date {
+            let level = intensities[Journey.calendar.startOfDay(for: date)] ?? 0
+            let isToday = Journey.calendar.isDateInToday(date)
+            ZStack(alignment: .topTrailing) {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(heatColor(level))
+                    .aspectRatio(1, contentMode: .fit)
+                if isToday {
+                    Circle()
+                        .fill(level >= 3 ? Color.white : Brand.coral)
+                        .frame(width: 5, height: 5)
+                        .padding(2)
+                }
+            }
+        } else {
+            Color.clear.aspectRatio(1, contentMode: .fit)
+        }
+    }
+
+    private func heatColor(_ level: Int) -> Color {
+        switch level {
+        case 1: return Brand.coral.opacity(0.22)
+        case 2: return Brand.coral.opacity(0.45)
+        case 3: return Brand.coral.opacity(0.70)
+        case 4: return Brand.coral
+        default: return colors.border.opacity(0.45)
+        }
+    }
+
+    private func monthStat(icon: String, value: String, label: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Brand.coral)
+                .frame(width: 16)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.system(.subheadline, design: .rounded).weight(.bold))
+                    .foregroundStyle(colors.textPrimary)
+                    .monospacedDigit()
+                Text(label)
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(colors.textFaint)
+            }
+        }
+    }
+
+    // MARK: All time
+
+    private var allTimeCard: some View {
+        HStack(spacing: 8) {
+            allTimeStat(icon: "clock", value: allTime.totalFocusLabel, label: loc.t("journey.allTimeTotal"))
+            allTimeStat(icon: "flame.fill", value: "\(allTime.bestStreakDays)", label: loc.t("journey.allTimeStreak"))
+            allTimeStat(icon: "target", value: "\(allTime.totalSessions)", label: loc.t("journey.allTimeSessions"))
+            Image("CatCelebrate")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 64, height: 72)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(colors.border, lineWidth: 1))
+    }
+
+    private func allTimeStat(icon: String, value: String, label: String) -> some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle().fill(Brand.coral.opacity(0.15)).frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Brand.coral)
+            }
+            Text(value)
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .foregroundStyle(colors.textPrimary)
+                .monospacedDigit()
+            Text(label)
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(colors.textFaint)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func timeLabel(_ record: FocusSessionRecord) -> String {
+        Self.timeFormatter.string(from: History.startedAt(for: record))
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -311,30 +455,6 @@ struct JourneyView: View {
         f.dateFormat = "h:mm a"
         return f
     }()
-
-    private static let dayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        return f
-    }()
-
-    private func monthButton(systemName: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(colors.textSecondary)
-                .frame(width: 34, height: 34)
-                .background(colors.page, in: Circle())
-                .overlay(Circle().stroke(colors.border, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func shiftMonth(_ delta: Int) {
-        if let next = Journey.calendar.date(byAdding: .month, value: delta, to: month) {
-            withAnimation(.easeInOut(duration: 0.2)) { month = next }
-        }
-    }
 }
 
 #Preview {

@@ -3,8 +3,8 @@
 //  Purrodoro
 //
 //  The Habits tab: gentle daily rituals with a per-day target, a 7-day
-//  completion strip, a streak, tap-to-log, and a "focus on this" action that
-//  routes a session toward the habit.
+//  completion strip on each card, a streak, tap-to-log, and a detail sheet
+//  (monthly progress + best streak) matching Android HabitDetailContent.
 //
 
 import SwiftUI
@@ -21,6 +21,7 @@ struct HabitsView: View {
     @EnvironmentObject private var history: SessionHistoryStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.colorScheme) private var scheme
+    @State private var detailHabit: HabitItem?
     @State private var editing: HabitItem?
     @State private var showAdd = false
     @State private var premiumUpsellTrigger: PremiumUpsellTrigger?
@@ -89,6 +90,24 @@ struct HabitsView: View {
                     timeBlock: draft.timeBlock
                 )
             }
+        }
+        .sheet(item: $detailHabit) { habit in
+            HabitDetailSheet(
+                habitID: habit.id,
+                onFocus: {
+                    detailHabit = nil
+                    onFocusHabit(habit)
+                },
+                onEdit: {
+                    detailHabit = nil
+                    // Present editor after the detail sheet dismisses.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        if let latest = store.habits.first(where: { $0.id == habit.id }) {
+                            editing = latest
+                        }
+                    }
+                }
+            )
         }
         .sheet(item: $editing) { habit in
             HabitEditor(habit: habit) { draft in
@@ -206,7 +225,7 @@ struct HabitsView: View {
                                 Label(loc.t("common.delete"), systemImage: "trash")
                             }
                         }
-                        .onTapGesture { editing = habit }
+                        .onTapGesture { detailHabit = habit }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -356,6 +375,326 @@ private struct HabitCard: View {
         let f = DateFormatter()
         f.dateFormat = "EEEEE"
         return f.string(from: date)
+    }
+}
+
+// MARK: - Detail sheet
+
+/// Habit detail (Android `HabitDetailContent`): streaks, mark done, focus CTA,
+/// this-week strip, monthly progress grid, delete.
+private struct HabitDetailSheet: View {
+    let habitID: UUID
+    let onFocus: () -> Void
+    let onEdit: () -> Void
+
+    @EnvironmentObject private var store: HabitStore
+    @EnvironmentObject private var engine: TimerEngine
+    @EnvironmentObject private var loc: Localization
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var scheme
+    @State private var confirmDelete = false
+
+    private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
+    private var habit: HabitItem? { store.habits.first { $0.id == habitID } }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                colors.page.ignoresSafeArea()
+                if let habit {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 18) {
+                            header(habit)
+                            streakTiles(habit)
+                            markDoneButton(habit)
+                            if !habit.isScheduledToday {
+                                helperRow(loc.t("habits.notToday"))
+                            }
+                            focusButton(habit)
+                            helperRow(focusHelper(habit))
+
+                            sectionHeader(loc.t("habits.thisWeek"))
+                            HabitWeekStripCard(habit: habit, colors: colors)
+
+                            sectionHeader(loc.t("habits.monthlyProgress"))
+                            HabitMonthlyProgressCard(habit: habit, colors: colors)
+
+                            Button(role: .destructive) {
+                                confirmDelete = true
+                            } label: {
+                                Text(loc.t("common.delete"))
+                                    .font(.system(.body, design: .rounded).weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Brand.coral)
+                            .background(colors.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(colors.border, lineWidth: 1))
+                        }
+                        .padding(20)
+                        .padding(.bottom, 24)
+                    }
+                } else {
+                    ProgressView()
+                }
+            }
+            .navigationTitle(loc.t("habits.title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(loc.t("settings.done")) { dismiss() }
+                }
+            }
+            .alert(loc.t("habits.deleteTitle"), isPresented: $confirmDelete) {
+                Button(loc.t("common.delete"), role: .destructive) {
+                    if let habit {
+                        store.delete(habit)
+                    }
+                    dismiss()
+                }
+                Button(loc.t("common.cancel"), role: .cancel) {}
+            } message: {
+                Text(loc.t("habits.deleteBody"))
+            }
+        }
+    }
+
+    private func header(_ habit: HabitItem) -> some View {
+        HStack(spacing: 14) {
+            Text(habit.emoji)
+                .font(.system(size: 34))
+                .frame(width: 64, height: 64)
+                .background(habit.color.opacity(0.25), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(habit.name)
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundStyle(colors.textPrimary)
+                Text(scheduleSummary(habit))
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(colors.textSecondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Button(action: onEdit) {
+                Text(loc.t("common.edit"))
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(colors.textPrimary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(colors.page, in: Capsule())
+                    .overlay(Capsule().stroke(colors.border, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(loc.t("habits.edit"))
+        }
+    }
+
+    private func streakTiles(_ habit: HabitItem) -> some View {
+        HStack(spacing: 12) {
+            streakTile(value: "\(habit.streak)", label: loc.t("habits.currentStreak"))
+            streakTile(value: "\(habit.bestStreak())", label: loc.t("habits.bestStreak"))
+        }
+    }
+
+    private func streakTile(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(.title2, design: .rounded).weight(.bold))
+                .foregroundStyle(colors.textPrimary)
+                .monospacedDigit()
+            Text(label)
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(colors.textFaint)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(colors.border, lineWidth: 1))
+    }
+
+    private func markDoneButton(_ habit: HabitItem) -> some View {
+        Button {
+            store.toggleToday(habit)
+        } label: {
+            Text(habit.isDoneToday ? loc.t("habits.completedToday") : loc.t("habits.markDoneToday"))
+                .font(.system(.body, design: .rounded).weight(.bold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    habit.isScheduledToday ? Brand.coral : Brand.coral.opacity(0.4),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!habit.isScheduledToday)
+    }
+
+    private func focusButton(_ habit: HabitItem) -> some View {
+        let isLive = store.activeHabitID == habit.id && engine.isStarted
+        return Button(action: onFocus) {
+            Text(isLive ? loc.t("habits.openFocus") : loc.t("habits.focusWithKuro"))
+                .font(.system(.body, design: .rounded).weight(.semibold))
+                .foregroundStyle(colors.textPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(colors.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(colors.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func focusHelper(_ habit: HabitItem) -> String {
+        let isLive = store.activeHabitID == habit.id && engine.isStarted
+        if isLive { return loc.t("habits.helper.open") }
+        if engine.isStarted { return loc.t("habits.helper.blocked") }
+        if !habit.isScheduledToday { return loc.t("habits.helper.focusNotScheduled") }
+        if habit.isDoneToday { return loc.t("habits.helper.completed") }
+        return loc.t("habits.helper.start")
+    }
+
+    private func helperRow(_ message: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image("CatMascot")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 36, height: 36)
+                .clipShape(Circle())
+            Text(message)
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(colors.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.system(.subheadline, design: .rounded).weight(.bold))
+            .foregroundStyle(colors.textSecondary)
+            .padding(.top, 4)
+    }
+
+    private func scheduleSummary(_ habit: HabitItem) -> String {
+        if habit.scheduledWeekdays.isEmpty {
+            return loc.t("habits.everyDay")
+        }
+        let symbols = Journey.calendar.shortWeekdaySymbols
+        let labels = habit.scheduledWeekdays.sorted().compactMap { wd -> String? in
+            let idx = wd - 1
+            return symbols.indices.contains(idx) ? symbols[idx] : nil
+        }
+        return labels.joined(separator: ", ")
+    }
+}
+
+private struct HabitWeekStripCard: View {
+    @EnvironmentObject private var loc: Localization
+    let habit: HabitItem
+    let colors: PurrodoroColors
+
+    var body: some View {
+        let dots = HabitDisplay.weekDots(habit: habit)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Text(habit.emoji)
+                    .font(.system(size: 22))
+                    .frame(width: 42, height: 42)
+                    .background(habit.color.opacity(0.3), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(habit.name)
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .foregroundStyle(colors.textPrimary)
+                    Text(loc.t(habit.streak == 1 ? "habits.dayStreak" : "habits.daysStreak", habit.streak))
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(colors.textFaint)
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 0) {
+                ForEach(Array(dots.enumerated()), id: \.offset) { _, dot in
+                    VStack(spacing: 5) {
+                        Text(dot.label)
+                            .font(.system(size: 10, design: .rounded).weight(.semibold))
+                            .foregroundStyle(colors.textFaint)
+                        Circle()
+                            .fill(dot.isCompleted ? habit.color : colors.page)
+                            .frame(width: 22, height: 22)
+                            .overlay(
+                                Circle().stroke(
+                                    dot.isToday ? Brand.coral : colors.border,
+                                    lineWidth: dot.isToday ? 2 : 1
+                                )
+                            )
+                            .opacity(dot.isScheduled ? 1 : 0.4)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(14)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colors.border, lineWidth: 1))
+    }
+}
+
+private struct HabitMonthlyProgressCard: View {
+    let habit: HabitItem
+    let colors: PurrodoroColors
+
+    private var monthLabel: String {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM yyyy"
+        return f.string(from: Date())
+    }
+
+    var body: some View {
+        let dots = HabitDisplay.monthlyProgressDots(habit: habit)
+        let leading = dots.first.map { HabitDisplay.mondayLeadingBlanks(forFirstDay: $0.date) } ?? 0
+        let today = Journey.calendar.startOfDay(for: Date())
+        let symbols = HabitDisplay.mondayWeekdaySymbols()
+
+        VStack(alignment: .leading, spacing: 12) {
+            Text(monthLabel)
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(colors.textPrimary)
+
+            HStack(spacing: 0) {
+                ForEach(Array(symbols.enumerated()), id: \.offset) { _, sym in
+                    Text(sym)
+                        .font(.system(size: 10, design: .rounded).weight(.semibold))
+                        .foregroundStyle(colors.textFaint)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(0..<leading, id: \.self) { _ in
+                    Color.clear.frame(height: 18)
+                }
+                ForEach(Array(dots.enumerated()), id: \.offset) { _, dot in
+                    let isToday = Journey.calendar.isDate(dot.date, inSameDayAs: today)
+                    Circle()
+                        .fill(dot.isCompleted ? habit.color : colors.page)
+                        .frame(width: 18, height: 18)
+                        .overlay(
+                            Circle().stroke(
+                                isToday ? Brand.coral : colors.border,
+                                lineWidth: isToday ? 2 : 1
+                            )
+                        )
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(16)
+        .background(colors.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colors.border, lineWidth: 1))
     }
 }
 
