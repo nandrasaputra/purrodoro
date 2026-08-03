@@ -20,6 +20,7 @@ struct ProfileView: View {
     @EnvironmentObject private var history: SessionHistoryStore
     @EnvironmentObject private var sounds: SoundsStore
     @EnvironmentObject private var prefs: PreferencesStore
+    @EnvironmentObject private var shield: FocusShieldStore
     @EnvironmentObject private var loc: Localization
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -94,6 +95,7 @@ struct ProfileView: View {
                         )
                         cycleCard
                         autoStartCard
+                        focusShieldRow
 
                         sectionHeader(loc.t("settings.appearance"))
                         appearanceCard
@@ -803,6 +805,53 @@ struct ProfileView: View {
         }
     }
 
+    private var focusShieldRow: some View {
+        NavigationLink {
+            FocusShieldView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Brand.coral)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(loc.t("focusShield.title"))
+                        .font(.system(.headline, design: .rounded))
+                        .foregroundStyle(colors.textPrimary)
+                    Text(focusShieldSubtitle)
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(colors.textFaint)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(colors.textFaint)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(colors.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colors.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .onAppear { shield.refreshAuthorizationStatus() }
+    }
+
+    private var focusShieldSubtitle: String {
+        if !shield.enabled {
+            return loc.t("focusShield.profile.disabled")
+        }
+        switch shield.readiness {
+        case .needAuthorization:
+            return loc.t("focusShield.status.needAuth")
+        case .needApps:
+            return loc.t("focusShield.status.needApps")
+        case .ready(let count):
+            return loc.t("focusShield.status.ready", count)
+        case .off:
+            return loc.t("focusShield.profile.enabled")
+        }
+    }
+
     private var divider: some View {
         Rectangle().fill(colors.border).frame(height: 1)
     }
@@ -873,5 +922,6 @@ private struct SyncStatusMiniPanel: View {
         .environmentObject(AccountOwnerStore())
         .environmentObject(TimerEngine())
         .environmentObject(PreferencesStore())
+        .environmentObject(FocusShieldStore())
         .environmentObject(Localization())
 }

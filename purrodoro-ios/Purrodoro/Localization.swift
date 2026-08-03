@@ -588,6 +588,43 @@ final class Localization: ObservableObject {
         "habits.markNotDoneA11y": [.en: "Mark not done today", .id: "Batalkan catat hari ini"],
         "journey.streakA11y": [.en: "Focus streak", .id: "Rentetan fokus"],
 
+        // Focus Shield (Screen Time / FamilyControls)
+        "focusShield.title": [.en: "Distraction App Blocker", .id: "Pemblokir Aplikasi Distraksi"],
+        "focusShield.profile.enabled": [.en: "Enabled", .id: "Aktif"],
+        "focusShield.profile.disabled": [.en: "Disabled", .id: "Nonaktif"],
+        "focusShield.howBody": [
+            .en: "While you focus, Purrodoro can gently pause distraction apps and invite you back to your session.",
+            .id: "Saat kamu fokus, Purrodoro bisa menjeda lembut aplikasi distraksi dan mengajakmu kembali ke sesi.",
+        ],
+        "focusShield.section.duringFocus": [.en: "During focus", .id: "Saat fokus"],
+        "focusShield.section.permission": [.en: "Permission", .id: "Izin"],
+        "focusShield.section.apps": [.en: "Blocked apps", .id: "Aplikasi diblokir"],
+        "focusShield.useDuringFocus": [.en: "Use during focus", .id: "Gunakan saat fokus"],
+        "focusShield.status.offHint": [.en: "Tap to turn on for focus sessions", .id: "Ketuk untuk menyalakan saat fokus"],
+        "focusShield.status.needAuth": [.en: "Screen Time access needed", .id: "Perlu akses Screen Time"],
+        "focusShield.status.needApps": [.en: "Add apps to block", .id: "Tambahkan aplikasi untuk diblokir"],
+        "focusShield.status.ready": [.en: "Ready · %ld apps", .id: "Siap · %ld aplikasi"],
+        "focusShield.noApps": [.en: "No apps selected yet.", .id: "Belum ada aplikasi dipilih."],
+        "focusShield.editApps": [.en: "Edit apps", .id: "Edit aplikasi"],
+        "focusShield.remove": [.en: "Remove", .id: "Hapus"],
+        "focusShield.sheetCopy": [.en: "Pause distraction apps while you focus", .id: "Jeda aplikasi distraksi saat kamu fokus"],
+        "focusShield.sheetStateCount": [.en: "%ld apps blocked when focusing", .id: "%ld aplikasi diblokir saat fokus"],
+        "focusShield.sheetStateNone": [.en: "No apps blocked yet", .id: "Belum ada aplikasi yang diblokir"],
+        "focusShield.grantNeeded": [.en: "Grant permission to use this feature", .id: "Berikan izin untuk memakai fitur ini"],
+        "focusShield.perm.screenTimeTitle": [.en: "Screen Time", .id: "Screen Time"],
+        "focusShield.perm.screenTimeBody": [
+            .en: "Purrodoro uses Screen Time only while a Focus segment is running, to shield the apps you pick.",
+            .id: "Purrodoro memakai Screen Time hanya saat segmen Fokus berjalan, untuk melindungi aplikasi yang kamu pilih.",
+        ],
+        "focusShield.perm.enable": [.en: "Enable", .id: "Aktifkan"],
+        "focusShield.perm.requesting": [.en: "Requesting…", .id: "Meminta…"],
+        "focusShield.perm.granted": [.en: "Granted", .id: "Diberikan"],
+        "focusShield.perm.needed": [.en: "Needed", .id: "Diperlukan"],
+        "focusShield.deviceLocalHint": [
+            .en: "Pick apps to gently interrupt during focus. Changes apply to this device.",
+            .id: "Pilih aplikasi yang diganggu lembut saat fokus. Perubahan berlaku di perangkat ini.",
+        ],
+
         // Premium
         "premium.member.title": [.en: "You're Premium", .id: "Kamu Premium"],
         "premium.member.body": [

@@ -25,6 +25,7 @@ struct PurrodoroApp: App {
     @StateObject private var storeKit: StoreKitManager
     @StateObject private var syncCoordinator: SyncCoordinator
     @StateObject private var focusMode: FocusModeController
+    @StateObject private var focusShield: FocusShieldStore
     @StateObject private var tutorial: TutorialController
     @StateObject private var deepLinks: DeepLinkRouter
     @StateObject private var loc: Localization
@@ -81,6 +82,7 @@ struct PurrodoroApp: App {
         _storeKit = StateObject(wrappedValue: storeKit)
         _syncCoordinator = StateObject(wrappedValue: coordinator)
         _focusMode = StateObject(wrappedValue: FocusModeController())
+        _focusShield = StateObject(wrappedValue: FocusShieldStore(store: store))
         _tutorial = StateObject(wrappedValue: TutorialController())
         _deepLinks = StateObject(wrappedValue: DeepLinkRouter())
         _loc = StateObject(wrappedValue: loc)
@@ -101,6 +103,7 @@ struct PurrodoroApp: App {
                 .environmentObject(sounds)
                 .environmentObject(storeKit)
                 .environmentObject(focusMode)
+                .environmentObject(focusShield)
                 .environmentObject(tutorial)
                 .environmentObject(deepLinks)
                 .environmentObject(loc)
@@ -147,11 +150,21 @@ struct PurrodoroApp: App {
                         )
                     }
                     engine.publishWidgetSnapshot()
+                    focusShield.onBypassExpired = { [weak focusShield, weak engine] in
+                        guard let focusShield, let engine else { return }
+                        let isFocus = engine.session.currentItem?.type.isFocus == true
+                        focusShield.syncWithTimer(
+                            timerState: engine.session.timerState,
+                            currentIsFocus: isFocus
+                        )
+                    }
+                    syncFocusShield()
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, !isRunningUnitTests {
                         syncCoordinator.requestImmediateSync()
                         engine.publishWidgetSnapshot()
+                        syncFocusShield()
                         Task {
                             await storeKit.refreshEntitlements()
                             await sounds.refreshCatalog()
@@ -166,6 +179,16 @@ struct PurrodoroApp: App {
                 }
                 .onChange(of: engine.session.timerState) { _, _ in
                     engine.publishWidgetSnapshot()
+                    syncFocusShield()
+                }
+                .onChange(of: engine.session.currentIndex) { _, _ in
+                    syncFocusShield()
+                }
+                .onChange(of: focusShield.enabled) { _, _ in
+                    syncFocusShield()
+                }
+                .onChange(of: focusShield.selectedAppCount) { _, _ in
+                    syncFocusShield()
                 }
                 .onChange(of: engine.pendingCycleComplete) { _, _ in
                     engine.publishWidgetSnapshot()
@@ -179,6 +202,18 @@ struct PurrodoroApp: App {
                         }
                     }
                 }
+        }
+    }
+
+    private func syncFocusShield() {
+        guard !isRunningUnitTests else { return }
+        let isFocus = engine.session.currentItem?.type.isFocus == true
+        focusShield.syncWithTimer(
+            timerState: engine.session.timerState,
+            currentIsFocus: isFocus
+        )
+        if engine.session.timerState == .idle {
+            focusShield.clearBypass()
         }
     }
 }

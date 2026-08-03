@@ -39,6 +39,7 @@ struct StartFocusSheet: View {
     @State private var selectedHabitID: UUID?
     @State private var sessionSettings = TimerSettings()
     @State private var didSeed = false
+    @State private var showFocusShieldSettings = false
 
     private var colors: PurrodoroColors { PurrodoroColors(scheme: scheme) }
     private var today: Date { Date() }
@@ -66,6 +67,9 @@ struct StartFocusSheet: View {
                         intentSection
                         intentPicker
                         configCard
+                        FocusShieldStartFocusRow {
+                            showFocusShieldSettings = true
+                        }
                     }
                     .padding(20)
                     .padding(.bottom, 90)
@@ -78,6 +82,9 @@ struct StartFocusSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(loc.t("common.cancel")) { dismiss() }
                 }
+            }
+            .navigationDestination(isPresented: $showFocusShieldSettings) {
+                FocusShieldView()
             }
         }
         .environment(\.pColors, colors)
