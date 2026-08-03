@@ -633,6 +633,8 @@ private struct HabitWeekStripCard: View {
                             .opacity(dot.isScheduled ? 1 : 0.4)
                     }
                     .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(weekDotLabel(dot))
                 }
             }
         }
@@ -640,9 +642,20 @@ private struct HabitWeekStripCard: View {
         .background(colors.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colors.border, lineWidth: 1))
     }
+
+    private func weekDotLabel(_ dot: HabitWeekDot) -> String {
+        if !dot.isScheduled {
+            return loc.t("a11y.habitDotUnscheduled", dot.label)
+        }
+        if dot.isCompleted {
+            return loc.t("a11y.habitDotCompleted", dot.label)
+        }
+        return loc.t("a11y.habitDotMissed", dot.label)
+    }
 }
 
 private struct HabitMonthlyProgressCard: View {
+    @EnvironmentObject private var loc: Localization
     let habit: HabitItem
     let colors: PurrodoroColors
 
@@ -679,6 +692,7 @@ private struct HabitMonthlyProgressCard: View {
                 }
                 ForEach(Array(dots.enumerated()), id: \.offset) { _, dot in
                     let isToday = Journey.calendar.isDate(dot.date, inSameDayAs: today)
+                    let day = Journey.calendar.component(.day, from: dot.date)
                     Circle()
                         .fill(dot.isCompleted ? habit.color : colors.page)
                         .frame(width: 18, height: 18)
@@ -689,6 +703,12 @@ private struct HabitMonthlyProgressCard: View {
                             )
                         )
                         .frame(maxWidth: .infinity)
+                        .accessibilityLabel(
+                            dot.isCompleted
+                                ? loc.t("a11y.monthDotCompleted", day)
+                                : loc.t("a11y.monthDotEmpty", day)
+                        )
+                        .accessibilityAddTraits(isToday ? .isSelected : [])
                 }
             }
         }
@@ -751,26 +771,38 @@ private struct HabitEditor: View {
                         card(title: loc.t("habits.icon")) {
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 12) {
                                 ForEach(HabitStore.emojis, id: \.self) { e in
-                                    Text(e)
-                                        .font(.system(size: 24))
-                                        .frame(width: 40, height: 40)
-                                        .background(emoji == e ? Color(hex: colorHex).opacity(0.4) : colors.page,
-                                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .stroke(emoji == e ? Brand.coral : colors.border, lineWidth: emoji == e ? 2 : 1))
-                                        .onTapGesture { emoji = e }
+                                    Button {
+                                        emoji = e
+                                    } label: {
+                                        Text(e)
+                                            .font(.system(size: 24))
+                                            .frame(width: 40, height: 40)
+                                            .background(emoji == e ? Color(hex: colorHex).opacity(0.4) : colors.page,
+                                                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .stroke(emoji == e ? Brand.coral : colors.border, lineWidth: emoji == e ? 2 : 1))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(loc.t("a11y.emojiChoice", e))
+                                    .accessibilityAddTraits(emoji == e ? [.isButton, .isSelected] : .isButton)
                                 }
                             }
                         }
 
                         card(title: loc.t("habits.color")) {
                             HStack(spacing: 12) {
-                                ForEach(HabitStore.palette, id: \.self) { c in
-                                    Circle()
-                                        .fill(Color(hex: c))
-                                        .frame(width: 34, height: 34)
-                                        .overlay(Circle().stroke(colors.textPrimary, lineWidth: colorHex == c ? 2.5 : 0))
-                                        .onTapGesture { colorHex = c }
+                                ForEach(Array(HabitStore.palette.enumerated()), id: \.element) { index, c in
+                                    Button {
+                                        colorHex = c
+                                    } label: {
+                                        Circle()
+                                            .fill(Color(hex: c))
+                                            .frame(width: 34, height: 34)
+                                            .overlay(Circle().stroke(colors.textPrimary, lineWidth: colorHex == c ? 2.5 : 0))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(loc.t("a11y.colorChoice") + " \(index + 1)")
+                                    .accessibilityAddTraits(colorHex == c ? [.isButton, .isSelected] : .isButton)
                                 }
                                 Spacer()
                             }
@@ -842,6 +874,8 @@ private struct HabitEditor: View {
                                     .stroke(selected ? Color.clear : colors.border, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(fullWeekdayName(wd))
+                        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
                     }
                 }
                 Text(weekdays.isEmpty ? loc.t("habits.everyDay") : "")
@@ -872,6 +906,8 @@ private struct HabitEditor: View {
                             .stroke(selected ? Color.clear : colors.border, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(loc.t(block.labelKey))
+                    .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
                 }
             }
         }
@@ -887,6 +923,12 @@ private struct HabitEditor: View {
         let symbols = Journey.calendar.veryShortWeekdaySymbols
         let idx = weekday - 1
         return symbols.indices.contains(idx) ? symbols[idx] : "?"
+    }
+
+    private func fullWeekdayName(_ weekday: Int) -> String {
+        let symbols = Journey.calendar.weekdaySymbols
+        let idx = weekday - 1
+        return symbols.indices.contains(idx) ? symbols[idx] : weekdaySymbol(weekday)
     }
 
     private func card<Content: View>(title: String?, @ViewBuilder _ content: () -> Content) -> some View {

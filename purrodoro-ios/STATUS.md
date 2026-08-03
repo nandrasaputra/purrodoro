@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-03 (Focus Shield FamilyControls)_
+_Last updated: 2026-08-03 (full a11y + Crashlytics)_
 
 ---
 
@@ -32,19 +32,16 @@ _Last updated: 2026-08-03 (Focus Shield FamilyControls)_
 | iPad + a11y polish | 🔶 | `ReadableContentLayout` + Tasks/Habits/Journey/Profile labels |
 | Habit detail + Journey periods | ✅ | Detail sheet + monthly grid; Today/Week/Month/All-time Journey |
 | **Focus Shield** | 🔶 | FamilyControls + ManagedSettings; entitlement approval + device QA pending |
+| **Full a11y + Crashlytics** | ✅ | Editors/Soundscape/History/Start Focus/Focus Mode; Firebase Crashlytics SPM |
 
-### Session note (2026-08-03b)
+### Session note (2026-08-03c)
 
-Shipped **Focus Shield (Screen Time / FamilyControls)** foundation:
-1. Design: [`docs/superpowers/specs/2026-08-03-ios-focus-shield-design.md`](../docs/superpowers/specs/2026-08-03-ios-focus-shield-design.md)
-2. Pure `FocusShield.isArmed` + bypass duration (ported tests)
-3. `FocusShieldStore` — prefs, `FamilyActivitySelection`, auth request, ManagedSettings apply/clear while Focus armed
-4. `FocusShieldView` + Profile row + Start Focus toggle row
-5. Entitlement key `com.apple.developer.family-controls` in `Purrodoro.entitlements`
+Shipped **full accessibility sweep + Crashlytics**:
+1. **A11y** — SoundsSheet tracks/silence; History day cells + timeline + stats; Habit/Task editors; habit week/month dots; Start Focus intent chips + steppers; Focus Mode timer/dots/mascot; Profile language/cycle/sync panel
+2. **Crashlytics** — SPM `firebase-ios-sdk` (FirebaseCore + FirebaseCrashlytics); `CrashReporting.start()` no-op without `GoogleService-Info.plist`; collection off in DEBUG; auth/billing breadcrumbs
+3. Example plist: `Purrodoro/GoogleService-Info.plist.example`
 
-Still needs: Apple Family Controls distribution approval, on-device Screen Time QA, optional ShieldConfiguration/Action extensions.
-
-Still next: App Store Connect QA · NAN-65 · full a11y / UI tests / Crashlytics.
+Still next: App Store Connect QA · NAN-65 · Family Controls approval · add real `GoogleService-Info.plist` + dSYM upload script in Xcode Release.
 
 ---
 
@@ -69,11 +66,11 @@ premium foundation** (discovery, upsell, 10/10 caps), unit tests. Builds on iOS
 
 **Ops / approval still open:** **App Store Connect products** (local `.storekit`
 only), **Family Controls entitlement approval** + Focus Shield device QA,
-**NAN-65 two-device sync QA**, Google iOS OAuth client ID.
+**NAN-65 two-device sync QA**, Google iOS OAuth client ID, real
+`GoogleService-Info.plist` for Crashlytics collection.
 
-**Next recommended:** App Store Connect product setup + purchase QA. Run NAN-65
-two-device sync QA on iOS. Request Family Controls distribution approval and
-device-test Focus Shield.
+**Next recommended:** Drop Firebase iOS plist into `Purrodoro/`, enable Crashlytics
+dSYM upload in Release, App Store Connect product setup + purchase QA, NAN-65.
 
 ---
 
@@ -255,8 +252,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | UI / snapshot tests | — | ❌ templates only |
 | Persistence | Room + DataStore | `UserDefaults` via `KeyValueStore` |
 | iPad / macOS layout | tablet-aware | 🔶 readable 720pt columns + capped dock on regular size class |
-| Accessibility sweep | broad | 🔶 Focus + Tasks/Habits/Journey/Profile primary controls |
-| Crashlytics | ✅ release | ❌ |
+| Accessibility sweep | broad | ✅ Focus + Tasks/Habits/Journey/Profile + editors, Soundscape, History, Start Focus, Focus Mode |
+| Crashlytics | ✅ release | 🔶 SPM wired; needs `GoogleService-Info.plist` + dSYM upload for Release |
 
 ---
 
@@ -309,6 +306,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `TaskStore.swift` / `TasksView.swift` | Tasks + categories + due dates |
 | `HabitStore.swift` / `HabitsView.swift` | Habits + scheduling + rest days + detail/monthly |
 | `HabitDisplayModels.swift` | Week/month dots + `bestStreak` (Android display helpers) |
+| `CrashReporting.swift` | Firebase Crashlytics bootstrap + breadcrumbs |
 | `FocusShield.swift` / `FocusShieldStore.swift` / `FocusShieldView.swift` | Distraction blocker (FamilyControls + ManagedSettings) |
 | `JourneyModels.swift` / `JourneyView.swift` | Streaks, period summaries, heatmap, today timeline |
 | `HistoryModels.swift` / `HistoryView.swift` | History month heatmap, day drill-down, delete sheet |
@@ -459,7 +457,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] Extra widgets (dashboard, daily plan, streak, stats grid, calm, cozy)
 - [x] Widget → app deep links (open tab, auto Start Focus) — all widgets wired
 - [x] iPad readable-width columns + capped dock (`ReadableContentLayout`)
-- [ ] Full accessibility sweep (editors, Soundscape, History cells)
+- [x] Full accessibility sweep (editors, Soundscape, History cells)
 - [ ] Snapshot / UI tests (replace XCTest templates)
 - [x] Remove misleading **"Coming soon"** badge on empty states (`PlaceholderScreen`)
 
@@ -469,7 +467,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 - [x] Habit monthly dot grid + detail sheets (Android parity)
 - [x] Journey period summaries (today / all-time — Android uses stacked cards)
 - [ ] Glass readability mode (Android: persist + Adaptive default; **no Profile picker yet**)
-- [ ] Crashlytics or equivalent
+- [x] Crashlytics or equivalent — `CrashReporting` + Firebase SPM; add real plist for collection
 - [ ] Consider SQLite/Core Data if sync lands (volume + query needs)
 
 ---

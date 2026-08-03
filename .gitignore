@@ -78,11 +78,13 @@ Package.resolved
 # CocoaPods (if introduced later)
 Pods/
 
-# ──────────────────────────────────────────────────────────────
-# Worktrees / misc
-# ──────────────────────────────────────────────────────────────
-.worktrees
-**/.worktrees
+# Android Firebase / Google Services
+!**/google-services.json.example
+**/google-services.json
+
+# iOS Firebase (Crashlytics) — commit the example only
+!**/GoogleService-Info.plist.example
+**/GoogleService-Info.plist
 
 # ──────────────────────────────────────────────────────────────
 # Generated sample PNGs (not shipped; WebP staging lives under thumbnails/)

@@ -131,6 +131,8 @@ final class StoreKitManager: ObservableObject {
         } catch {
             purchaseInFlight = false
             lastError = "premium.error.purchase_failed"
+            CrashReporting.log("billing: purchase_failed", detail: String(describing: error))
+            CrashReporting.record(error)
         }
     }
 
@@ -148,6 +150,8 @@ final class StoreKitManager: ObservableObject {
         } catch {
             purchaseInFlight = false
             lastError = "premium.error.restore_failed"
+            CrashReporting.log("billing: restore_failed", detail: String(describing: error))
+            CrashReporting.record(error)
         }
     }
 

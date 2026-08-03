@@ -171,6 +171,7 @@ struct SoundsSheet: View {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(Brand.lavender)
+                                .accessibilityHidden(true)
                         }
                     }
                     Text(subtitle(for: track))
@@ -192,6 +193,26 @@ struct SoundsSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(trackAccessibilityLabel(track, isPlaying: isPlaying))
+        .accessibilityAddTraits(isPlaying ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func trackAccessibilityLabel(_ track: SoundscapeTrack, isPlaying: Bool) -> String {
+        var parts: [String] = [track.name]
+        if track.locked && !prefs.isPremium {
+            parts.append(loc.t("a11y.lockedPremium"))
+        }
+        if isPlaying {
+            parts.append(loc.t("a11y.playing"))
+        }
+        if case .downloading(let progress) = track.remote?.downloadState {
+            parts.append(loc.t("a11y.downloading", Int((progress * 100).rounded())))
+        } else {
+            let sub = subtitle(for: track)
+            if !sub.isEmpty { parts.append(sub) }
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func subtitle(for track: SoundscapeTrack) -> String {
@@ -220,6 +241,7 @@ struct SoundsSheet: View {
             Image(systemName: "arrow.down.circle")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(colors.textSecondary)
+                .accessibilityHidden(true)
         } else if isPlaying {
             statusPill(loc.t("sounds.playing"), active: true)
         } else {
@@ -263,6 +285,9 @@ struct SoundsSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(loc.t("a11y.silenceOption", label, desc))
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var globalSilenceRow: some View {
@@ -272,6 +297,7 @@ struct SoundsSheet: View {
             HStack {
                 Image(systemName: "speaker.slash")
                     .font(.system(size: 16, weight: .semibold))
+                    .accessibilityHidden(true)
                 Text(loc.t("soundscape.mute_all"))
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 Spacer()
@@ -285,6 +311,7 @@ struct SoundsSheet: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(loc.t("a11y.muteAllSounds"))
         .padding(.top, 4)
     }
 

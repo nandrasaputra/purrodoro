@@ -162,6 +162,15 @@ struct HistoryView: View {
         .frame(maxWidth: .infinity)
         .frame(height: 42)
         .accessibilityLabel(Self.dayA11yFormatter.string(from: date))
+        .accessibilityValue(dayAccessibilityValue(selected: selected, isToday: isToday, intensity: intensity))
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func dayAccessibilityValue(selected: Bool, isToday: Bool, intensity: Int) -> String {
+        var parts: [String] = [loc.t("a11y.historyIntensity", intensity)]
+        if isToday { parts.append(loc.t("a11y.historyDayToday")) }
+        if selected { parts.append(loc.t("a11y.historyDaySelected")) }
+        return parts.joined(separator: ", ")
     }
 
     private func dayBackground(selected: Bool, inMonth: Bool, intensity: Int) -> Color {
@@ -228,6 +237,7 @@ struct HistoryView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 90)
+                .accessibilityHidden(true)
             Text(loc.t("history.emptyDay"))
                 .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(colors.textSecondary)
@@ -242,6 +252,7 @@ struct HistoryView: View {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Brand.coral)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.system(.subheadline, design: .rounded).weight(.bold))
@@ -252,17 +263,22 @@ struct HistoryView: View {
                     .foregroundStyle(colors.textSecondary)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(loc.t("a11y.stat", label, value))
     }
 
     private func timelineRow(_ record: FocusSessionRecord, isLatest: Bool) -> some View {
-        Button {
+        let title = record.intentName ?? loc.t("journey.focusSession")
+        let meta = timelineMeta(record)
+        return Button {
             selectedRecord = record
         } label: {
             HStack(alignment: .top, spacing: 12) {
                 timelineRail(isLatest: isLatest)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .top, spacing: 8) {
-                        Text(record.intentName ?? loc.t("journey.focusSession"))
+                        Text(title)
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
                             .foregroundStyle(colors.textPrimary)
                             .lineLimit(2)
@@ -270,8 +286,9 @@ struct HistoryView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 14))
                             .foregroundStyle(Color(hex: 0x8BA05E))
+                            .accessibilityHidden(true)
                     }
-                    Text(timelineMeta(record))
+                    Text(meta)
                         .font(.system(.caption2, design: .rounded))
                         .foregroundStyle(colors.textFaint)
                 }
@@ -283,6 +300,9 @@ struct HistoryView: View {
             .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(loc.t("a11y.historySession", title, meta, loc.t("journey.statusCompleted")))
+        .accessibilityHint(loc.t("a11y.historySessionHint"))
     }
 
     private func timelineRail(isLatest: Bool) -> some View {

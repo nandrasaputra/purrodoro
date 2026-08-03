@@ -623,6 +623,8 @@ struct ProfileView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(loc.t("a11y.languageOption", languageLabel(lang)))
+                    .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
                     if lang != AppLanguage.allCases.last {
                         divider
                     }
@@ -783,6 +785,9 @@ struct ProfileView: View {
                     .monospacedDigit()
                     .frame(width: 28, alignment: .trailing)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(loc.t("settings.focusSessions"))
+            .accessibilityValue("\(engine.settings.focusSessionsPerCycle)")
         }
     }
 
@@ -891,6 +896,7 @@ private struct SyncStatusMiniPanel: View {
             Image(systemName: "icloud.fill")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(accent)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(loc.t(labels.titleKey))
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
@@ -906,6 +912,16 @@ private struct SyncStatusMiniPanel: View {
         }
         .padding(12)
         .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(loc.t("a11y.syncStatus"))
+        .accessibilityValue({
+            var parts = [loc.t(labels.titleKey)]
+            if let subtitleKey = labels.subtitleKey, let relativeKey = labels.relativeTimeKey {
+                let relative = relativeLabel(relativeKey: relativeKey, value: labels.relativeTimeValue, loc: loc)
+                parts.append(loc.t(subtitleKey, relative))
+            }
+            return parts.joined(separator: ", ")
+        }())
     }
 
     private func relativeLabel(relativeKey: String, value: Int?, loc: Localization) -> String {

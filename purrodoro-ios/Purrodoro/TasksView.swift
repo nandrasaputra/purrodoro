@@ -506,6 +506,8 @@ private struct TaskEditor: View {
                                         .background(CategoryPalette.color(for: name).opacity(0.3), in: Capsule())
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityLabel(loc.t("a11y.categorySuggestion", name))
+                                .accessibilityAddTraits(category == name ? [.isButton, .isSelected] : .isButton)
                             }
                         }
                     }
@@ -524,10 +526,11 @@ private struct TaskEditor: View {
                 }
                 .tint(Brand.coral)
                 if hasDueDate {
-                    DatePicker("", selection: $dueDate, displayedComponents: .date)
+                    DatePicker(loc.t("a11y.dueDatePicker"), selection: $dueDate, displayedComponents: .date)
                         .labelsHidden()
                         .datePickerStyle(.graphical)
                         .tint(Brand.coral)
+                        .accessibilityLabel(loc.t("a11y.dueDatePicker"))
                 }
             }
         }

@@ -122,6 +122,7 @@ struct StartFocusSheet: View {
                 .resizable()
                 .scaledToFit()
                 .frame(height: 110)
+                .accessibilityHidden(true)
             Text(loc.t("start.whatWorkingOn"))
                 .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(colors.textSecondary)
@@ -189,6 +190,8 @@ struct StartFocusSheet: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(loc.t("a11y.intentKind", label))
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 
     @ViewBuilder
@@ -345,6 +348,9 @@ struct StartFocusSheet: View {
                 .monospacedDigit()
                 .frame(width: 64, alignment: .trailing)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(unit)
     }
 
     private var startBar: some View {

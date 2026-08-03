@@ -33,6 +33,8 @@ struct PurrodoroApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        CrashReporting.start()
+
         let sync = SyncRepository()
         let store = sync.store
         let auth = AuthStore()

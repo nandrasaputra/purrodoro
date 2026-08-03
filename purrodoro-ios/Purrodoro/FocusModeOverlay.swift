@@ -94,8 +94,14 @@ struct FocusModeOverlay: View {
 
                     Text(formatSeconds(remainingSeconds))
                         .font(.system(size: 72, weight: .regular, design: .rounded))
-                        .monospacedDigit()
                         .foregroundStyle(colors.textPrimary)
+                        .monospacedDigit()
+                        .accessibilityLabel(loc.t("a11y.timer", loc.t(modeLabelKey)))
+                        .accessibilityValue(
+                            timerState == .paused
+                                ? loc.t("a11y.paused") + ", " + loc.t("a11y.remaining", formatSeconds(remainingSeconds))
+                                : loc.t("a11y.remaining", formatSeconds(remainingSeconds))
+                        )
                         .scaleEffect(breathScale)
                         .frame(maxWidth: .infinity)
 
@@ -142,6 +148,7 @@ struct FocusModeOverlay: View {
                         .scaledToFit()
                         .frame(width: size.width, height: size.height)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityHidden(true)
                         .contentShape(Rectangle())
                         .onTapGesture { onExit() }
                 }
@@ -281,6 +288,7 @@ private struct FocusIntentPill: View {
 }
 
 private struct FocusOverlayDots: View {
+    @EnvironmentObject private var loc: Localization
     let dots: CycleDotsState
     let colors: PurrodoroColors
 
@@ -298,6 +306,9 @@ private struct FocusOverlayDots: View {
                     .frame(width: isActive ? 11 : 8, height: isActive ? 11 : 8)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(loc.t("a11y.cycleProgress"))
+        .accessibilityValue(loc.t("a11y.sessionsOf", dots.completedFocusSessions, dots.totalFocusSessions))
     }
 }
 

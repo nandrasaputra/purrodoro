@@ -176,6 +176,8 @@
 			packageProductDependencies = (
 				A100000000000000000003 /* Supabase */,
 				A100000000000000000004 /* GoogleSignIn */,
+				A100000000000000000006 /* FirebaseCore */,
+				A100000000000000000007 /* FirebaseCrashlytics */,
 			);
 			productName = Purrodoro;
 			productReference = D7E024162FD019FC00D68465 /* Purrodoro.app */;
@@ -287,6 +289,7 @@
 			packageReferences = (
 				A100000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				A100000000000000000002 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				A100000000000000000005 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D7E024172FD019FC00D68465 /* Products */;
@@ -825,6 +828,14 @@
 				minimumVersion = 8.0.0;
 			};
 		};
+		A100000000000000000005 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -837,6 +848,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A100000000000000000002 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		A100000000000000000006 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A100000000000000000005 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		A100000000000000000007 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A100000000000000000005 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

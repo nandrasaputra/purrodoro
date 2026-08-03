@@ -139,6 +139,8 @@ struct LoginSheet: View {
             onSignedIn(user)
         } catch {
             if (error as NSError).code == GIDSignInError.canceled.rawValue { return }
+            CrashReporting.log("auth: google_sign_in_failed", detail: String(describing: error))
+            CrashReporting.record(error)
             errorMessage = loc.t("login.error.generic")
         }
     }
@@ -163,6 +165,8 @@ struct LoginSheet: View {
             onSignedIn(user)
         } catch {
             if (error as NSError).code == ASAuthorizationError.canceled.rawValue { return }
+            CrashReporting.log("auth: apple_sign_in_failed", detail: String(describing: error))
+            CrashReporting.record(error)
             errorMessage = loc.t("login.error.generic")
         }
     }
