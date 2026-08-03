@@ -246,8 +246,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Unit tests | ✅ 311+ (Gradle) | ✅ Swift Testing — all passing; includes `BackupCodecTests`, auth ownership tests |
 | UI / snapshot tests | — | ❌ templates only |
 | Persistence | Room + DataStore | `UserDefaults` via `KeyValueStore` |
-| iPad / macOS layout | tablet-aware | 🔶 | iOS: readable 720pt columns + capped dock on regular size class |
-| Accessibility sweep | broad | 🔶 | Focus + Tasks/Habits/Journey/Profile primary controls |
+| iPad / macOS layout | tablet-aware | 🔶 readable 720pt columns + capped dock on regular size class |
+| Accessibility sweep | broad | 🔶 Focus + Tasks/Habits/Journey/Profile primary controls |
 | Crashlytics | ✅ release | ❌ |
 
 ---
