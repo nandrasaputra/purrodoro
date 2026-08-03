@@ -87,6 +87,12 @@ Pods/
 **/GoogleService-Info.plist
 
 # ──────────────────────────────────────────────────────────────
+# Worktrees / misc
+# ──────────────────────────────────────────────────────────────
+.worktrees
+**/.worktrees
+
+# ──────────────────────────────────────────────────────────────
 # Generated sample PNGs (not shipped; WebP staging lives under thumbnails/)
 assets/soundscape/samples/
 # Source PNGs staged for WebP conversion (shipped copies live in res/drawable/)
