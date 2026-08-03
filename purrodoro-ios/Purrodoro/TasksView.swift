@@ -78,6 +78,7 @@ struct TasksView: View {
             .padding(.bottom, 96)
             .accessibilityLabel(loc.t("tasks.add"))
         }
+        .readableContentWidth()
         .environment(\.pColors, colors)
         .sheet(isPresented: $showAdd) {
             TaskEditor(task: nil, suggestions: store.categories) { draft in
@@ -263,6 +264,9 @@ private struct TaskRow: View {
                 .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(
+                task.completed ? loc.t("tasks.markNotDoneA11y") : loc.t("tasks.markDoneA11y")
+            )
 
             VStack(alignment: .leading, spacing: 5) {
                 if isLive {

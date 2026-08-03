@@ -7,7 +7,7 @@ _Android source of truth:_ `purrodoro-android/app/src/main/java/com/endiar/purro
 · _Product reference:_ [`docs/PRODUCT.md`](../docs/PRODUCT.md) · _Android release
 checklist:_ [`purrodoro-android/docs/release-readiness.md`](../purrodoro-android/docs/release-readiness.md)
 
-_Last updated: 2026-08-01 (iOS parity bundle)_
+_Last updated: 2026-08-01 (iPad readable width + a11y)_
 
 ---
 
@@ -28,19 +28,17 @@ _Last updated: 2026-08-01 (iOS parity bundle)_
 | History screen | ✅ | `HistoryView`, `HistoryModels`, soft-delete via sync tombstone |
 | Tutorial + deep links + note | ✅ | `TutorialController`, `SpotlightTutorialOverlay`, `DeepLinkRouter`, Start Focus note |
 | Extra widgets | ✅ | Stats / Plan / Streak / Dashboard / Calm / Cozy + `WidgetSnapshotBuilder` |
-| **Onboarding auth + live focus** | ✅ | `OnboardingView` LoginSheet + language; Tasks row live ring |
-| **2026-08-01 merge** | docs | `feature/ios-storekit-premium` → `main`: StoreKit + caps + Soundscape #1 |
+| Onboarding auth + live focus | ✅ | `OnboardingView` LoginSheet + language; Tasks row live ring |
+| **iPad + a11y polish** | 🔶 | `ReadableContentLayout` + Tasks/Habits/Journey/Profile labels |
 
 ### Session note (2026-08-01)
 
-Shipped **tutorial + deep links + simple note + extra widgets + onboarding auth / live focus** (History already on main):
-1. **Tutorial / deep links / note** — spotlight tour, `purrodoro://`, Start Focus simple note
-2. **Widgets** — Stats, Daily plan, Streak hero, Dashboard, Calm, Cozy + App Group `WidgetDashboardSnapshot`
-3. **Onboarding** — Welcome Sign in / Continue as guest (`LoginSheet` + Claim/Keep/Drop); language menu in top bar; Not now on notifications
-4. **Live focus** — Tasks row shows NOW FOCUSING + accent ring while that task is attached to a playing/paused Pomodoro
-5. **Polish** — removed misleading "Coming soon" badge on empty Tasks/Habits placeholders
+Shipped **iPad readable-width + primary accessibility**:
+1. **Readable columns** — 720pt content / 580pt dock on regular size class (`ReadableContentLayout`)
+2. **Applied** — Focus, Tasks, Habits, Journey, Profile + capped bottom dock
+3. **A11y** — Tasks complete toggle; Habits focus/log localized; Journey streak/stats; Profile appearance + duration steppers; wired unused timer a11y keys on active dial
 
-Still next: iPad polish / Focus Shield design. App Store Connect QA + NAN-65 remain open.
+Still next: Habit detail / Journey period PRs (if unmerged) · Focus Shield design · App Store Connect QA · NAN-65.
 
 ---
 
@@ -64,9 +62,10 @@ Builds on iOS 26 simulator.
 iOS would need Screen Time / FamilyControls). StoreKit foundation + task/habit caps
 shipped; **NAN-65 two-device QA** still pending.
 
-**Next recommended port slices:** iPad polish / accessibility / Focus Shield
-design. Finish App Store Connect product setup + purchase QA. Run NAN-65
-two-device sync QA on iOS.
+**Next recommended port slices:** Focus Shield design (Screen Time /
+FamilyControls). Finish App Store Connect product setup + purchase QA. Run
+NAN-65 two-device sync QA on iOS. Merge pending habit-detail / Journey-period
+PRs if still open.
 
 ---
 
@@ -247,8 +246,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | Unit tests | ✅ 311+ (Gradle) | ✅ Swift Testing — all passing; includes `BackupCodecTests`, auth ownership tests |
 | UI / snapshot tests | — | ❌ templates only |
 | Persistence | Room + DataStore | `UserDefaults` via `KeyValueStore` |
-| iPad / macOS layout | tablet-aware | ❌ phone-first |
-| Accessibility sweep | broad | 🔶 Focus screen only |
+| iPad / macOS layout | tablet-aware | 🔶 readable 720pt columns + capped dock on regular size class |
+| Accessibility sweep | broad | 🔶 Focus + Tasks/Habits/Journey/Profile primary controls |
 | Crashlytics | ✅ release | ❌ |
 
 ---
@@ -312,6 +311,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 | `SoundscapeTransportBar.swift` | Focus-tab dock transport |
 | `SoundscapeThumbnailLoader.swift` / `SoundscapeThumbnailView.swift` | R2 WebP thumbs + vinyl/ambience UI |
 | `Localization.swift` | Runtime EN/ID string table |
+| `ReadableContentLayout.swift` | iPad regular-size readable column + dock width |
 | `Persistence.swift` | `KeyValueStore` protocol |
 | `LiveActivityController.swift` | ActivityKit lifecycle |
 | `PurrodoroTheme.swift` | Brand palette (ported from Android `Color.kt`) |
@@ -446,8 +446,8 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 
 - [x] Extra widgets (dashboard, daily plan, streak, stats grid, calm, cozy)
 - [x] Widget → app deep links (open tab, auto Start Focus) — all widgets wired
-- [ ] iPad / macOS layout polish (targets enabled, phone-first UI)
-- [ ] Full accessibility sweep (Tasks, Habits, Settings)
+- [x] iPad readable-width columns + capped dock (`ReadableContentLayout`)
+- [ ] Full accessibility sweep (editors, Soundscape, History cells)
 - [ ] Snapshot / UI tests (replace XCTest templates)
 - [x] Remove misleading **"Coming soon"** badge on empty states (`PlaceholderScreen`)
 
@@ -477,7 +477,7 @@ Legend: ✅ done · 🔶 partial / substitute · ❌ missing · — N/A on iOS
 10. Tutorial + widget deep links + simple note ✅
 11. Extra widgets ✅ — Stats / Plan / Streak / Dashboard / Calm / Cozy
 12. Onboarding auth + live focus ✅
-13. iPad polish / accessibility
+13. iPad readable width + primary a11y ✅
 14. Focus Shield (platform-specific; design before port)
 ```
 

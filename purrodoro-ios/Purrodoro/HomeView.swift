@@ -64,6 +64,7 @@ struct HomeView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 140)
             }
+            .readableContentWidth()
 
             if engine.pendingCycleComplete {
                 CelebrationOverlay { engine.acknowledgeCycleComplete() }
@@ -242,6 +243,9 @@ struct HomeView: View {
                 Spacer()
                 ModeChip(mode: engine.currentMode, state: engine.session.timerState)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(timerAccessibilityLabel)
+            .accessibilityValue(timerAccessibilityValue)
 
             CycleDotsRow(dots: engine.dots, colors: colors)
 
@@ -472,6 +476,18 @@ struct HomeView: View {
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(colors.textFaint)
         }
+    }
+
+    private var timerAccessibilityLabel: String {
+        loc.t("a11y.timer", loc.t(engine.currentMode.labelKey))
+    }
+
+    private var timerAccessibilityValue: String {
+        let remaining = loc.t("a11y.remaining", formatSeconds(engine.displayRemaining))
+        if engine.session.timerState == .paused {
+            return "\(remaining), \(loc.t("a11y.paused"))"
+        }
+        return remaining
     }
 }
 

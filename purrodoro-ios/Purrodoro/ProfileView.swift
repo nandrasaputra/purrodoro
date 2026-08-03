@@ -111,6 +111,7 @@ struct ProfileView: View {
                         aboutCard
                     }
                     .padding(20)
+                    .readableContentWidth()
                 }
             }
             .navigationTitle(loc.t("profile.title"))
@@ -721,7 +722,7 @@ struct ProfileView: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(mode.label)
+        .accessibilityLabel(loc.t("appearance.\(mode.rawValue)"))
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
@@ -749,6 +750,9 @@ struct ProfileView: View {
                     .frame(width: 64, alignment: .trailing)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityValue(loc.t("unit.min", minutes))
     }
 
     private var cycleCard: some View {

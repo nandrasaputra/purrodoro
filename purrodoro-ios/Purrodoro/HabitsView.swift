@@ -76,6 +76,7 @@ struct HabitsView: View {
             .padding(.bottom, 96)
             .accessibilityLabel(loc.t("habits.add"))
         }
+        .readableContentWidth()
         .environment(\.pColors, colors)
         .sheet(isPresented: $showAdd) {
             HabitEditor(habit: nil) { draft in
@@ -263,7 +264,7 @@ private struct HabitCard: View {
                         .foregroundStyle(isActive ? Brand.coral : colors.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isActive ? "Active focus habit" : "Focus on this habit")
+                .accessibilityLabel(isActive ? loc.t("habits.activeFocusA11y") : loc.t("habits.focusA11y"))
 
                 Button(action: onToggle) {
                     Image(systemName: habit.isDoneToday ? "checkmark.circle.fill" : "circle")
@@ -271,7 +272,9 @@ private struct HabitCard: View {
                         .foregroundStyle(habit.isDoneToday ? habit.color : colors.textFaint)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Log today")
+                .accessibilityLabel(
+                    habit.isDoneToday ? loc.t("habits.markNotDoneA11y") : loc.t("habits.logTodayA11y")
+                )
             }
 
             weekStrip
