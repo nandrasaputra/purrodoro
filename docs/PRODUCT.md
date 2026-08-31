@@ -253,10 +253,10 @@ callbacks; acknowledges purchases; drives `AppRepository.setIsPremium` from acti
 Play subscriptions only. Paywall UI: [`PremiumScreen`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumScreen.kt),
 [`PremiumUpsellSheet`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/ui/PremiumUpsellSheet.kt).
 
-**Still required for monetization go-live:** create `purrodoro_premium` in Play Console,
-upload to **Internal testing**, add license testers, and run purchase QA. Server-side
-verification (Play Developer API / RTDN) and private premium audio URLs remain
-follow-ups — see [`release-readiness.md`](../purrodoro-android/docs/release-readiness.md).
+**Monetization go-live: done.** `purrodoro_premium` is live in Play Console as of
+**2026-08-31**. Server-side verification (Play Developer API / RTDN) and private
+premium audio URLs remain optional follow-ups — see
+[`release-readiness.md`](../purrodoro-android/docs/release-readiness.md).
 
 **Philosophy:** generous free core (timer, cycles, focus mode, Journey, categories,
 notifications, light/dark appearance, all home-screen widgets). Premium sells
@@ -341,8 +341,6 @@ one opens `PremiumUpsellSheet`. Selection persists device-local in DataStore
 
 ### Still to build
 
-- **Play Console setup + purchase QA** — create `purrodoro_premium` (monthly/yearly),
-  internal testing track, license testers, end-to-end subscribe/restore/cancel matrix
 - **Paywall copy cleanup** — remove stale **one-time** strings (`premium_one_time_hint`,
   `premium_screen_price_placeholder`) where still shown in older surfaces
 - **Optional:** Real-time developer notifications / server entitlement check (not

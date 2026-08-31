@@ -4,7 +4,8 @@ Production-readiness assessment and pre-launch checklist for the Purrodoro
 Android app (`com.endiar.purrodoro`).
 
 > Last assessed: **2026-06-19** against `main` (ahead of `origin/main` by 7
-> commits at assessment time).
+> commits at assessment time). Monetization status refreshed **2026-08-31**
+> (Android premium live).
 >
 > Scope: Android only. Verified by building `assembleRelease` and running
 > `testDebugUnitTest` locally.
@@ -102,23 +103,20 @@ is currently empty and the app uses libraries that need them:
 - `kotlinx.serialization` (`@Serializable` models / DTOs)
 - Room
 
-### 7. Premium entitlement — Play Billing integrated (client-side)  ·  medium (ops + QA)
+### 7. ~~Premium entitlement — Play Billing integrated (client-side)~~  ·  resolved — **live 2026-08-31**
 
 > Updated **2026-06-23.** Play Billing Library 8.x is wired via
 > [`BillingManager`](../app/src/main/java/com/endiar/purrodoro/billing/BillingManager.kt):
 > subscribe/restore, acknowledgement, foreground + sign-in refresh, user-visible errors,
 > suspended-subscription query. The paywall no longer calls `setIsPremium(true)` directly.
 
-**Remaining before monetization go-live:**
+`purrodoro_premium` (monthly/yearly base plans + yearly-trial offer) is created in
+Play Console and **live in production** as of **2026-08-31** — monetization go-live
+is done.
 
-- Create subscription `purrodoro_premium` with base plans `purrodoro-premium-monthly` /
-  `purrodoro-premium-yearly` and offer `purrodoro-premium-yearly-trial` in Play Console
-- Upload to **Internal testing** and add **license testers**
-- Run purchase QA matrix (subscribe, restore, cancel, expiry)
-- Optional later: Play Developer API / RTDN server check (client-only is acceptable for v1)
-
-**Accepted limitation:** client-only verification — rooted/modded clients can still cheat;
-server entitlement is a follow-up.
+**Optional follow-up:** Play Developer API / RTDN server-side entitlement check
+(client-only verification is accepted for v1 — rooted/modded clients can still
+cheat, but server entitlement was never a launch blocker).
 
 ### 8. Premium cloud audio is publicly downloadable (paywall is UI-only)  ·  medium (security/monetization)
 
@@ -168,7 +166,7 @@ similar). Optionally omit `file_path` from anonymous catalog responses.
 - [x] Switch to AAB; enable R8 + `shrinkResources`; add ProGuard keep rules — **2026-06-23**
 - [x] Confirm `app-release.aab` is signed and uploaded to Play Console — **2026-06-25**
 - [x] Update stale auth-stub docs (`PRODUCT.md`, `pending-actions.md`) — **2026-06-25**
-- [x] Gate premium on Play Billing **subscriptions** (monthly + yearly) + restore — §7 **code shipped 2026-06-23**; Play Console + QA still open
+- [x] Gate premium on Play Billing **subscriptions** (monthly + yearly) + restore — §7 **code shipped 2026-06-23**; **live in production 2026-08-31**
 - [ ] Move premium cloud audio to a private bucket with signed URLs + entitlement checks — §8
 
 ---

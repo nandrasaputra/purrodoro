@@ -268,7 +268,8 @@ fun OnboardingScreen(
                                 contentDescription = stringResource(R.string.onboarding_welcome_cat_cd),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop,
-                                alignment = Alignment.Center,
+                                // Portrait art: scene sits low; crop empty top, keep cat + timer.
+                                alignment = Alignment.BottomCenter,
                             )
                         },
                         title = stringResource(R.string.onboarding_welcome_title),
