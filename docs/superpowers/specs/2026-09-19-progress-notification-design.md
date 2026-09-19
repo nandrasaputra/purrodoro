@@ -1,6 +1,6 @@
 # Progress-Centric Timer Notification — Design
 
-Date: 2026-09-19 · Status: approved design, pre-plan · Scope: Android only
+Date: 2026-09-19 · Status: implemented (single-bar revision) · Scope: Android only
 
 Replaces the running timer's compat progress bar with Android 16's
 `Notification.ProgressStyle` on API 36+, keeping the current rendering as the
@@ -9,10 +9,10 @@ promotion spec (promotion requires a qualifying style, which this provides).
 
 ## Goal
 
-Give the ongoing Pomodoro cycle a system-grade progress surface: one bar for
-the whole cycle, color-coded Focus/Break segments, milestone points at each
-completed Focus, and a state-reflecting tracker icon — while changing nothing
-about countdown text, actions, channels, or update plumbing.
+Give the ongoing Pomodoro cycle a calm, system-grade progress surface: one
+coral bar for whole-cycle elapsed time with a dot tracker — matching the
+brand instead of repeating cycle structure (which already lives in the app UI
+and the notification text).
 
 ## Non-goals
 
@@ -37,11 +37,12 @@ Pure mapping function (unit-testable, no framework):
   `currentIndex` + (`segmentTotal − segmentRemaining`), reusing the
   `endsAtMillis`-vs-`remainingSeconds` logic already in
   `currentRemainingSeconds`.
-- Segments built dynamically from `session.items` (2–8 items for N = 1..4):
-  Focus = accent, ShortBreak = secondary, LongBreak = tertiary.
-- Points at the cumulative end of each Focus item (focus completions).
-- `setStyledByProgress(false)` — segments carry the color, brand chrome stays.
-- Tracker icon reflects Playing / Paused / break state.
+- One full-length coral segment (`DockCoral`) carries the bar color; a dot
+  tracker (`notif_tracker_dot`: DeepCoral core, white halo) marks now.
+  Deliberately no per-segment colors or milestone points — device testing
+  showed them noisy against the calm brand; cycle structure stays in the
+  notification text.
+- `setStyledByProgress(false)` — brand colors hold.
 - Title, countdown text, and pause/resume/stop/skip actions reuse `describe()`
   and the existing action builders verbatim. Ongoing, silent,
   only-alert-once, `CATEGORY_PROGRESS`, public visibility, and content intent
@@ -57,17 +58,16 @@ in-app language applies; segment/point colors are locale-independent.
 
 ## Edge cases
 
-- `focusSessionsPerCycle` 1..4 → segments always derived from the live `items`
+- `focusSessionsPerCycle` 1..4 → total derived from the live `items`
   list, which is fixed at cycle start (mid-cycle setting edits can't skew it).
-- Paused freezes progress and swaps the tracker icon to the paused glyph.
+- Paused freezes progress at the current elapsed value.
 - Process-death reconcile recomputes from `endsAtMillis`; no special casing.
-- Very short (1-minute test) segments may cluster points — acceptable.
 - Update cadence stays at the current 1s tick (battery parity; throttling is a
   future optimization, not this spec).
 
 ## Testing
 
-- Unit: pure cycle → progress/segments/points mapping across N = 1..4,
+- Unit: pure cycle → total/elapsed mapping across N = 1..4,
   mid-cycle index, paused state, and boundary ticks.
 - Robolectric: built notification smoke test (ongoing flag, channel, style
   present on 36, legacy style below 36).
