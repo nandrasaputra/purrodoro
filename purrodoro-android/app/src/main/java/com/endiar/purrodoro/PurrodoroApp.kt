@@ -58,6 +58,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.R
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import com.endiar.purrodoro.audio.SoundscapeLoopPlayer
 import com.endiar.purrodoro.billing.BillingModule
 import com.endiar.purrodoro.billing.BillingUiEvent
@@ -165,6 +167,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Unwraps [ContextWrapper] layers (e.g. the localized configuration context
+ * provided by `KuroLocalizationProvider`) to find the host [Activity].
+ */
+internal fun Context.findHostActivity(): Activity? {
+    var current: Context = this
+    while (current is ContextWrapper) {
+        if (current is Activity) return current
+        current = current.baseContext
+    }
+    return null
+}
+
 @Composable
 fun PurrodoroApp(
     repo: AppRepository,
@@ -238,7 +253,11 @@ fun PurrodoroApp(
     val subscriptionOffers by billingManager.offers.collectAsStateWithLifecycle()
     val purchaseInFlight by billingManager.purchaseInFlight.collectAsStateWithLifecycle()
     var selectedPremiumPlan by rememberSaveable { mutableStateOf(PremiumPlan.Yearly) }
-    val billingActivity = context as? Activity
+    // LocalContext can be a configuration wrapper: KuroLocalizationProvider
+    // replaces it via createConfigurationContext when a non-System language is
+    // selected. A direct cast would yield null there and every purchase would
+    // end in LaunchFailed, so unwrap to the host Activity instead.
+    val billingActivity = context.findHostActivity()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(billingManager) {

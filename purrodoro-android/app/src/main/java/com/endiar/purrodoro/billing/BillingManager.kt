@@ -119,6 +119,7 @@ class BillingManager(
 
     fun launchSubscribe(activity: Activity?, plan: PremiumPlan) {
         if (activity == null) {
+            logBilling("subscribe_no_activity")
             emitUiEvent(BillingUiEvent.LaunchFailed)
             return
         }

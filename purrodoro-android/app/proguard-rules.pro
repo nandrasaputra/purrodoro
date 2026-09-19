@@ -97,8 +97,11 @@
 -dontwarn androidx.credentials.**
 
 # ── Google Play Billing ───────────────────────────────────────────────────────
--keep class com.android.vending.billing.** { *; }
--dontwarn com.android.vending.billing.**
+# BillingClient lives in com.android.billingclient (the old vending.billing
+# path kept nothing). The library ships its own consumer rules; this guards
+# the public API surface in release builds.
+-keep class com.android.billingclient.** { *; }
+-dontwarn com.android.billingclient.**
 # Firebase discovers ComponentRegistrar implementations via manifest metadata and
 # reflection (class name strings). R8 must not rename or strip them — otherwise
 # FirebaseCrashlytics.getInstance() throws "component is not present" at launch.
