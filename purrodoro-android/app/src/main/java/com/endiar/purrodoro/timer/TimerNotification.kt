@@ -171,8 +171,6 @@ object TimerNotification {
         CycleSegmentKind.LongBreak -> 0xFF9B7FCC.toInt()  // LockedPurpleLight
     }
 
-    private val PROGRESS_POINT_COLOR = 0xFFC64432.toInt() // DeepCoral
-
     @RequiresApi(36)
     private fun buildProgressRunningNotification(
         context: Context,
@@ -187,16 +185,11 @@ object TimerNotification {
             .setStyledByProgress(false)
             .setProgress(progress.elapsedSeconds)
             .setProgressTrackerIcon(
-                Icon.createWithResource(context, R.mipmap.ic_launcher_monochrome)
+                Icon.createWithResource(context, R.drawable.notif_tracker_dot)
             )
             .setProgressSegments(
                 progress.segments.map {
                     Notification.ProgressStyle.Segment(it.endSeconds).setColor(segmentColor(it.kind))
-                }
-            )
-            .setProgressPoints(
-                progress.milestoneSeconds.map {
-                    Notification.ProgressStyle.Point(it).setColor(PROGRESS_POINT_COLOR)
                 }
             )
         val builder = Notification.Builder(context, CHANNEL_RUNNING)

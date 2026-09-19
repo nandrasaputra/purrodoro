@@ -15,11 +15,10 @@ class TimerCycleProgressTest {
     )
 
     @Test
-    fun `whole cycle totals 4200 seconds with focus milestones`() {
+    fun `whole cycle totals 4200 seconds with segment boundaries`() {
         val p = cycleProgress(items(), currentIndex = 0, segmentRemainingSeconds = 25 * 60)
         assertEquals(4200, p.totalSeconds)
         assertEquals(0, p.elapsedSeconds)
-        assertEquals(listOf(1500, 3300), p.milestoneSeconds)
         assertEquals(listOf(1500, 1800, 3300, 4200), p.segments.map { it.endSeconds })
         assertEquals(
             listOf(
@@ -49,11 +48,11 @@ class TimerCycleProgressTest {
     }
 
     @Test
-    fun `single focus cycle has no milestones`() {
+    fun `single focus cycle has one segment`() {
         val single = listOf(TimerSessionItem(SessionItemType.Focus(25 * 60)))
         val p = cycleProgress(single, currentIndex = 0, segmentRemainingSeconds = 900)
         assertEquals(1500, p.totalSeconds)
         assertEquals(600, p.elapsedSeconds)
-        assertEquals(emptyList<Int>(), p.milestoneSeconds)
+        assertEquals(1, p.segments.size)
     }
 }

@@ -15,8 +15,6 @@ data class CycleProgress(
     val totalSeconds: Int,
     val elapsedSeconds: Int,
     val segments: List<CycleProgressSegment>,
-    /** Cumulative Focus-end boundaries strictly before the cycle end. */
-    val milestoneSeconds: List<Int>,
 )
 
 /**
@@ -41,14 +39,10 @@ fun cycleProgress(
     }
     val segmentTotal = items.getOrNull(currentIndex)?.type?.seconds() ?: 0
     val elapsed = (elapsedBefore + (segmentTotal - segmentRemainingSeconds)).coerceIn(0, total)
-    val milestones = segments
-        .filter { it.kind == CycleSegmentKind.Focus && it.endSeconds < total }
-        .map { it.endSeconds }
     return CycleProgress(
         totalSeconds = total,
         elapsedSeconds = elapsed,
         segments = segments,
-        milestoneSeconds = milestones,
     )
 }
 
