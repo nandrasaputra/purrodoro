@@ -7,6 +7,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.drawable.Icon
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import com.endiar.purrodoro.MainActivity
@@ -100,6 +103,9 @@ object TimerNotification {
         state: TimerRuntimeState,
         now: Long
     ): Notification {
+        if (Build.VERSION.SDK_INT >= 36) {
+            return buildProgressRunningNotification(context, state, now)
+        }
         val res = localized(context)
         val (title, subtitle) = describe(res, state, now)
         val remaining = currentRemainingSeconds(state, now)
@@ -158,8 +164,89 @@ object TimerNotification {
             .build()
     }
 
-    private fun describe(res: Context, state: TimerRuntimeState, now: Long): Pair<String, String?> {
-        val remaining = currentRemainingSeconds(state, now)
+    /** Segment colors mirror the Compose tokens (ARGB literals; notification code runs outside Compose). */
+    private fun segmentColor(kind: CycleSegmentKind): Int = when (kind) {
+        CycleSegmentKind.Focus -> 0xFFFF8B6F.toInt()      // DockCoral
+        CycleSegmentKind.ShortBreak -> 0xFF8BA05E.toInt() // JourneyGreen
+        CycleSegmentKind.LongBreak -> 0xFF9B7FCC.toInt()  // LockedPurpleLight
+    }
+
+    private val PROGRESS_POINT_COLOR = 0xFFC64432.toInt() // DeepCoral
+
+    @RequiresApi(36)
+    private fun buildProgressRunningNotification(
+        context: Context,
+        state: TimerRuntimeState,
+        now: Long
+    ): Notification {
+        val res = localized(context)
+        val (title, subtitle) = describe(res, state, now)
+        val items = state.session.items
+        val progress = cycleProgress(items, state.session.currentIndex, currentRemainingSeconds(state, now))
+        val style = Notification.ProgressStyle()
+            .setStyledByProgress(false)
+            .setProgress(progress.elapsedSeconds)
+            .setProgressTrackerIcon(
+                Icon.createWithResource(context, R.mipmap.ic_launcher_monochrome)
+            )
+            .setProgressSegments(
+                progress.segments.map {
+                    Notification.ProgressStyle.Segment(it.endSeconds).setColor(segmentColor(it.kind))
+                }
+            )
+            .setProgressPoints(
+                progress.milestoneSeconds.map {
+                    Notification.ProgressStyle.Point(it).setColor(PROGRESS_POINT_COLOR)
+                }
+            )
+        val builder = Notification.Builder(context, CHANNEL_RUNNING)
+            .setSmallIcon(R.mipmap.ic_launcher_monochrome)
+            .setContentTitle(title)
+            .setContentText(subtitle)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(openAppIntent(context))
+            .setStyle(style)
+            .setCategory(Notification.CATEGORY_PROGRESS)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+
+        when (state.session.timerState) {
+            TimerState.Playing -> {
+                builder.addAction(frameworkAction(context, res.getString(R.string.notif_action_pause), TimerService.ACTION_PAUSE))
+                builder.addAction(frameworkAction(context, res.getString(R.string.notif_action_stop), TimerService.ACTION_STOP))
+                if (isOnBreak(state)) {
+                    builder.addAction(frameworkAction(context, res.getString(R.string.notif_action_skip), TimerService.ACTION_SKIP))
+                }
+            }
+
+            TimerState.Paused -> {
+                builder.addAction(frameworkAction(context, res.getString(R.string.notif_action_resume), TimerService.ACTION_RESUME))
+                builder.addAction(frameworkAction(context, res.getString(R.string.notif_action_stop), TimerService.ACTION_STOP))
+            }
+
+            TimerState.Idle -> Unit
+        }
+        return builder.build()
+    }
+
+    @RequiresApi(36)
+    private fun frameworkAction(
+        context: Context,
+        label: String,
+        intentAction: String
+    ): Notification.Action {
+        // Null icon mirrors the compat path, which builds text actions with icon 0.
+        val intent = Intent(context, TimerService::class.java).setAction(intentAction)
+        val pi = PendingIntent.getService(
+            context,
+            intentAction.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        return Notification.Action.Builder(null, label, pi).build()
+    }
+
+    private fun describe(res: Context, state: TimerRuntimeState, now: Long): Pair<String, String?> {        val remaining = currentRemainingSeconds(state, now)
         val timeStr = formatSeconds(remaining)
         val currentItem = state.session.items.getOrNull(state.session.currentIndex)
         val segmentLabel = when (currentItem?.type) {
