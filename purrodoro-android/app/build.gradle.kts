@@ -69,6 +69,16 @@ android {
     buildFeatures {
         compose = true
     }
+    bundle {
+        language {
+            // In-app language picker (System/English/Indonesia via
+            // KuroLocalizationProvider) needs all locales on-device.
+            // Play splits languages into per-locale APKs by default, so a
+            // device installed with English would silently lack values-in
+            // and switching would fall back to English only on Play builds.
+            enableSplit = false
+        }
+    }
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
