@@ -15,20 +15,10 @@ class TimerCycleProgressTest {
     )
 
     @Test
-    fun `whole cycle totals 4200 seconds with segment boundaries`() {
+    fun `whole cycle totals 4200 seconds`() {
         val p = cycleProgress(items(), currentIndex = 0, segmentRemainingSeconds = 25 * 60)
         assertEquals(4200, p.totalSeconds)
         assertEquals(0, p.elapsedSeconds)
-        assertEquals(listOf(1500, 1800, 3300, 4200), p.segments.map { it.endSeconds })
-        assertEquals(
-            listOf(
-                CycleSegmentKind.Focus,
-                CycleSegmentKind.ShortBreak,
-                CycleSegmentKind.Focus,
-                CycleSegmentKind.LongBreak,
-            ),
-            p.segments.map { it.kind },
-        )
     }
 
     @Test
@@ -48,11 +38,10 @@ class TimerCycleProgressTest {
     }
 
     @Test
-    fun `single focus cycle has one segment`() {
+    fun `single focus cycle totals its own length`() {
         val single = listOf(TimerSessionItem(SessionItemType.Focus(25 * 60)))
         val p = cycleProgress(single, currentIndex = 0, segmentRemainingSeconds = 900)
         assertEquals(1500, p.totalSeconds)
         assertEquals(600, p.elapsedSeconds)
-        assertEquals(1, p.segments.size)
     }
 }

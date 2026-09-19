@@ -164,12 +164,8 @@ object TimerNotification {
             .build()
     }
 
-    /** Segment colors mirror the Compose tokens (ARGB literals; notification code runs outside Compose). */
-    private fun segmentColor(kind: CycleSegmentKind): Int = when (kind) {
-        CycleSegmentKind.Focus -> 0xFFFF8B6F.toInt()      // DockCoral
-        CycleSegmentKind.ShortBreak -> 0xFF8BA05E.toInt() // JourneyGreen
-        CycleSegmentKind.LongBreak -> 0xFF9B7FCC.toInt()  // LockedPurpleLight
-    }
+    /** Bar color mirrors the DockCoral Compose token (notification code runs outside Compose). */
+    private val PROGRESS_BAR_COLOR = 0xFFFF8B6F.toInt()
 
     @RequiresApi(36)
     private fun buildProgressRunningNotification(
@@ -187,10 +183,13 @@ object TimerNotification {
             .setProgressTrackerIcon(
                 Icon.createWithResource(context, R.drawable.notif_tracker_dot)
             )
+            // Single full-length segment: one calm coral bar. The bar color
+            // comes from the segment; without it the system picks the color.
             .setProgressSegments(
-                progress.segments.map {
-                    Notification.ProgressStyle.Segment(it.endSeconds).setColor(segmentColor(it.kind))
-                }
+                listOf(
+                    Notification.ProgressStyle.Segment(progress.totalSeconds)
+                        .setColor(PROGRESS_BAR_COLOR)
+                )
             )
         val builder = Notification.Builder(context, CHANNEL_RUNNING)
             .setSmallIcon(R.mipmap.ic_launcher_monochrome)

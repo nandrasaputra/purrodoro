@@ -3,18 +3,9 @@ package com.endiar.purrodoro.timer
 import com.endiar.purrodoro.model.SessionItemType
 import com.endiar.purrodoro.model.TimerSessionItem
 
-enum class CycleSegmentKind { Focus, ShortBreak, LongBreak }
-
-data class CycleProgressSegment(
-    val kind: CycleSegmentKind,
-    /** Cumulative end of this segment in seconds from cycle start. */
-    val endSeconds: Int,
-)
-
 data class CycleProgress(
     val totalSeconds: Int,
     val elapsedSeconds: Int,
-    val segments: List<CycleProgressSegment>,
 )
 
 /**
@@ -29,10 +20,7 @@ fun cycleProgress(
     segmentRemainingSeconds: Int,
 ): CycleProgress {
     var total = 0
-    val segments = items.map { item ->
-        total += item.type.seconds()
-        CycleProgressSegment(kind = item.type.kind(), endSeconds = total)
-    }
+    items.forEach { total += it.type.seconds() }
     var elapsedBefore = 0
     for (i in 0 until currentIndex.coerceIn(0, items.size)) {
         elapsedBefore += items[i].type.seconds()
@@ -42,7 +30,6 @@ fun cycleProgress(
     return CycleProgress(
         totalSeconds = total,
         elapsedSeconds = elapsed,
-        segments = segments,
     )
 }
 
@@ -50,10 +37,4 @@ private fun SessionItemType.seconds(): Int = when (this) {
     is SessionItemType.Focus -> seconds
     is SessionItemType.ShortBreak -> seconds
     is SessionItemType.LongBreak -> seconds
-}
-
-private fun SessionItemType.kind(): CycleSegmentKind = when (this) {
-    is SessionItemType.Focus -> CycleSegmentKind.Focus
-    is SessionItemType.ShortBreak -> CycleSegmentKind.ShortBreak
-    is SessionItemType.LongBreak -> CycleSegmentKind.LongBreak
 }
