@@ -1,5 +1,7 @@
 package com.endiar.purrodoro.data.backup
 
+import android.content.Context
+import android.net.Uri
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -14,6 +16,8 @@ import com.endiar.purrodoro.model.GlassReadabilityMode
 import com.endiar.purrodoro.model.HomeScene
 import com.endiar.purrodoro.model.TimerSettings
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -26,6 +30,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -127,5 +132,75 @@ class BackupManagerTest {
 
         val safetyFiles = safetyDir.listFiles { f -> f.name.startsWith("autobackup-") } ?: emptyArray()
         assertTrue("expected at most 3 safety backups, got ${safetyFiles.size}", safetyFiles.size <= 3)
+    }
+
+    @Test
+    fun export_writesJsonAndReturnsFalseWhenTheStreamIsMissingOrFails() = runTest {
+        val repo = makeRepo()
+        repo.setUserName("Exported")
+        val mgr = manager(repo)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val uri = Uri.parse("content://purrodoro.test/export")
+        val out = ByteArrayOutputStream()
+        shadowOf(context.contentResolver).registerOutputStream(uri, out)
+
+        assertTrue(mgr.export(context.contentResolver, uri))
+        val parsed = BackupCodec.decode(out.toString(Charsets.UTF_8.name()))
+        assertTrue(parsed is BackupParseResult.Success)
+        assertEquals("Exported", (parsed as BackupParseResult.Success).bundle.displayName)
+
+        val missing = Uri.parse("content://purrodoro.test/missing")
+        assertEquals(false, mgr.export(context.contentResolver, missing))
+
+        val broken = Uri.parse("content://purrodoro.test/broken")
+        shadowOf(context.contentResolver).registerOutputStream(broken, ThrowingOutputStream())
+        assertEquals(false, mgr.export(context.contentResolver, broken))
+    }
+
+    @Test
+    fun restore_roundTripsAFileAndMapsReadFailures() = runTest {
+        val source = makeRepo()
+        source.setUserName("Round trip")
+        val exported = BackupCodec.encode(source.appState.first(), "test", 1L)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val uri = Uri.parse("content://purrodoro.test/restore")
+        shadowOf(context.contentResolver).registerInputStream(
+            uri,
+            ByteArrayInputStream(exported.toByteArray()),
+        )
+
+        val target = makeRepo()
+        val outcome = manager(target).restore(context.contentResolver, uri)
+        assertEquals(RestoreOutcome.Success, outcome)
+        assertEquals("Round trip", target.appState.first().userName)
+
+        val missing = Uri.parse("content://purrodoro.test/no-such-file")
+        assertEquals(RestoreOutcome.ReadError, manager(target).restore(context.contentResolver, missing))
+
+        val huge = Uri.parse("content://purrodoro.test/huge")
+        shadowOf(context.contentResolver).registerInputStream(huge, OversizedInputStream())
+        assertEquals(RestoreOutcome.TooLarge, manager(target).restore(context.contentResolver, huge))
+    }
+
+    /** Reports more bytes than [BackupManager.MAX_FILE_BYTES] without allocating them. */
+    private class OversizedInputStream : java.io.InputStream() {
+        private var remaining = BackupManager.MAX_FILE_BYTES + 1
+
+        override fun read(): Int {
+            if (remaining <= 0) return -1
+            remaining--
+            return 'x'.code
+        }
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+            if (remaining <= 0) return -1
+            val n = minOf(len, remaining)
+            remaining -= n
+            return n
+        }
+    }
+
+    private class ThrowingOutputStream : OutputStream() {
+        override fun write(b: Int) = throw java.io.IOException("disk full")
     }
 }

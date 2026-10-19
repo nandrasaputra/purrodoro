@@ -38,6 +38,7 @@ import com.composables.icons.lucide.HardDrive
 import com.composables.icons.lucide.Info
 import com.composables.icons.lucide.Languages
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
@@ -80,15 +81,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.endiar.purrodoro.AppLinks
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.backup.BackupStatusStore
 import com.endiar.purrodoro.model.AppLanguage
-import com.endiar.purrodoro.model.AuthState
-import com.endiar.purrodoro.ui.auth.AccountSection
-import com.endiar.purrodoro.sync.SyncStatusPresentation
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.ui.components.KuroCard
 import com.endiar.purrodoro.ui.components.KuroPrimaryButton
 import com.endiar.purrodoro.ui.designsystem.KuroBackScreenTopBar
+import com.endiar.purrodoro.ui.designsystem.premiumAuroraOutline
 import com.endiar.purrodoro.ui.designsystem.KuroBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroDivider
 import com.endiar.purrodoro.ui.designsystem.KuroInputField
@@ -115,13 +115,6 @@ fun ProfileScreen(
     userName: String = "",
     onUpdateUserName: (String) -> Unit = {},
     onRequestEnableNotifications: () -> Unit = {},
-    authState: AuthState = AuthState.Guest,
-    onRequestLogin: () -> Unit = {},
-    onSignOut: () -> Unit = {},
-    syncEnabled: Boolean = false,
-    syncPresentation: SyncStatusPresentation? = null,
-    storageUsedLabel: String = "",
-    onOpenStorage: () -> Unit = {},
     onOpenBackupRestore: () -> Unit = {},
     onOpenFocusShield: () -> Unit = {},
     focusShieldEnabled: Boolean = false,
@@ -140,11 +133,15 @@ fun ProfileScreen(
     var notificationsEnabled by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
+    var backupStatus by remember {
+        mutableStateOf(BackupStatusStore.read(context.filesDir))
+    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationsEnabled =
                     NotificationManagerCompat.from(context).areNotificationsEnabled()
+                backupStatus = BackupStatusStore.read(context.filesDir)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -168,32 +165,40 @@ fun ProfileScreen(
                 .padding(horizontal = KuroSpacing.lg)
                 .padding(top = KuroSpacing.sm)
         ) {
-            KuroSectionHeader(title = stringResource(R.string.settings_section_account))
+            KuroSectionHeader(title = stringResource(R.string.settings_section_profile))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
-            AccountSection(
-                authState = authState,
-                onRequestLogin = onRequestLogin,
-                onSignOut = onSignOut,
-                syncPresentation = if (syncEnabled) syncPresentation else null,
-                isPremium = isPremium,
-                onOpenPremium = onOpenPremium,
-            )
+            KuroCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (isPremium) {
+                            Modifier.premiumAuroraOutline(RoundedCornerShape(KuroSpacing.radiusLg))
+                        } else {
+                            Modifier
+                        },
+                    ),
+            ) {
+                ProfileNameRow(
+                    userName = userName,
+                    showFromAccountHint = false,
+                    onClick = { editingField = "name" },
+                )
+                KuroDivider()
+                TappableRow(
+                    icon = Lucide.Sparkles,
+                    label = stringResource(
+                        if (isPremium) R.string.premium_member_title else R.string.premium_screen_title,
+                    ),
+                    value = if (isPremium) {
+                        stringResource(R.string.premium_member_view_benefits)
+                    } else {
+                        ""
+                    },
+                    onClick = onOpenPremium,
+                )
+            }
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
-
-            if (authState is AuthState.Guest) {
-                KuroSectionHeader(title = stringResource(R.string.settings_section_profile))
-                Spacer(modifier = Modifier.height(KuroSpacing.sm))
-                KuroCard(modifier = Modifier.fillMaxWidth()) {
-                    ProfileNameRow(
-                        userName = userName,
-                        showFromAccountHint = false,
-                        onClick = { editingField = "name" },
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(KuroSpacing.xl))
-            }
 
             if (!notificationsEnabled) {
                 NotificationsSettingsSection(
@@ -294,20 +299,13 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))
 
-            KuroSectionHeader(title = stringResource(R.string.settings_section_storage))
+            KuroSectionHeader(title = stringResource(R.string.settings_section_backup))
             Spacer(modifier = Modifier.height(KuroSpacing.sm))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
                 TappableRow(
-                    icon = Lucide.HardDrive,
-                    label = stringResource(R.string.storage_manage_label),
-                    value = storageUsedLabel,
-                    onClick = onOpenStorage,
-                )
-                KuroDivider()
-                TappableRow(
                     icon = Lucide.ShieldCheck,
                     label = stringResource(R.string.backup_manage_label),
-                    value = "",
+                    value = backupTimestampText(backupStatus.latestAt()),
                     onClick = onOpenBackupRestore,
                 )
             }

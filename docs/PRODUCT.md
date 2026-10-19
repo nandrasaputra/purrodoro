@@ -276,6 +276,7 @@ val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
 
 - **`appState.isPremium`** — DataStore cache written by [`BillingManager`](../purrodoro-android/app/src/main/java/com/endiar/purrodoro/billing/BillingManager.kt)
   from `queryPurchasesAsync` (`SUBS`, including suspended subscriptions).
+- Android has no account sync. Tasks, habits, and session history stay on the device. Android Auto Backup includes the Room database. Profile → Backup & restore still exports a JSON file.
 - **`PremiumOverride`** — debug-only toggle in Dev Tools; ignored in release builds.
 - Premium entitlement is **device-local** (not synced via Supabase) — same Google
   account on a new device restores via **Play subscription restore**, not cloud sync.

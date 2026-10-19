@@ -25,10 +25,7 @@ data class BundledTrackDefault(
  * Supabase `soundscape_bundled_catalog` table only *overrides* visibility,
  * premium, order, and display — see [SoundscapeCatalogBuilder].
  *
- * Bundled `res/raw` stems encode kind + delivery:
- * - ambience → `l_amb_*` (local APK)
- * - music (lo-fi) → `l_lofi_*` (local APK)
- * Cloud Storage uses `amb_*` / `lofi_*` without the `l_` prefix.
+ * Bundled `res/raw` stems are ambience only: `l_amb_*`.
  */
 object BundledTrackRegistry {
 
@@ -39,12 +36,6 @@ object BundledTrackRegistry {
         BundledTrackDefault("ambience", 4, "l_amb_forest", R.string.sound_forest_name, R.string.sound_forest_desc, "Forest", true, 40),
         BundledTrackDefault("ambience", 5, "l_amb_sea_wave", R.string.sound_sea_wave_name, R.string.sound_sea_wave_desc, "Wave", false, 50),
         BundledTrackDefault("ambience", 6, "l_amb_winter_wind", R.string.sound_winter_wind_name, R.string.sound_winter_wind_desc, "Wind", true, 60),
-        BundledTrackDefault("music", 1, "l_lofi_desk_lamp_rain", R.string.l_desk_lamp_rain_name, R.string.lofi_local_artist, "", false, 10),
-        BundledTrackDefault("music", 2, "l_lofi_mosswood_morning", R.string.l_mosswood_morning_name, R.string.lofi_local_artist, "", false, 20),
-        BundledTrackDefault("music", 3, "l_lofi_paper_skies", R.string.l_paper_skies_name, R.string.lofi_local_artist, "", false, 30),
-        BundledTrackDefault("music", 4, "l_lofi_quiet_window_code", R.string.l_quiet_window_code_name, R.string.lofi_local_artist, "", false, 40),
-        BundledTrackDefault("music", 5, "l_lofi_sore_di_pendopo", R.string.l_sore_di_pendopo_name, R.string.lofi_local_artist, "", true, 50),
-        BundledTrackDefault("music", 6, "l_lofi_sudirman_rain_loop", R.string.l_sudirman_rain_loop_name, R.string.lofi_local_artist, "", true, 60),
     )
 
     private val rawByName: Map<String, Int> = mapOf(
@@ -54,12 +45,6 @@ object BundledTrackRegistry {
         "l_amb_forest" to R.raw.l_amb_forest,
         "l_amb_sea_wave" to R.raw.l_amb_sea_wave,
         "l_amb_winter_wind" to R.raw.l_amb_winter_wind,
-        "l_lofi_desk_lamp_rain" to R.raw.l_lofi_desk_lamp_rain,
-        "l_lofi_mosswood_morning" to R.raw.l_lofi_mosswood_morning,
-        "l_lofi_paper_skies" to R.raw.l_lofi_paper_skies,
-        "l_lofi_quiet_window_code" to R.raw.l_lofi_quiet_window_code,
-        "l_lofi_sore_di_pendopo" to R.raw.l_lofi_sore_di_pendopo,
-        "l_lofi_sudirman_rain_loop" to R.raw.l_lofi_sudirman_rain_loop,
     )
 
     /** Stale `soundscape_bundled_catalog.raw_resource` values from earlier APK seeds. */
@@ -78,17 +63,6 @@ object BundledTrackRegistry {
         "l_forest" to R.raw.l_amb_forest,
         "l_sea_wave" to R.raw.l_amb_sea_wave,
         "l_winter_wind" to R.raw.l_amb_winter_wind,
-        // music (original seed)
-        "lofi_bloom_yasumu" to R.raw.l_lofi_desk_lamp_rain,
-        "lofi_chill_fm_dope_cat" to R.raw.l_lofi_mosswood_morning,
-        "lofi_midnight_whisper_matrika" to R.raw.l_lofi_paper_skies,
-        // music (intermediate l_* rename)
-        "l_desk_lamp_rain" to R.raw.l_lofi_desk_lamp_rain,
-        "l_mosswood_morning" to R.raw.l_lofi_mosswood_morning,
-        "l_paper_skies" to R.raw.l_lofi_paper_skies,
-        "l_quiet_window_code" to R.raw.l_lofi_quiet_window_code,
-        "l_sore_di_pendopo" to R.raw.l_lofi_sore_di_pendopo,
-        "l_sudirman_rain_loop" to R.raw.l_lofi_sudirman_rain_loop,
     )
 
     /** Lookup a bundled `res/raw` id, or null when [rawResource] is unknown. */

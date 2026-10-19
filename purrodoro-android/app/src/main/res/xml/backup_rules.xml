@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- API 28–30 full backup; API 31+ uses data_extraction_rules.xml -->
 <full-backup-content>
-    <exclude domain="sharedpref" path="purrodoro_auth_session.xml" />
-    <exclude domain="database" path="purrodoro.db" />
-    <exclude domain="database" path="purrodoro.db-shm" />
-    <exclude domain="database" path="purrodoro.db-wal" />
     <exclude domain="file" path="backups/" />
+    <exclude domain="file" path="backup-status/" />
+    <exclude domain="file" path="soundscapes/" />
+    <exclude domain="file" path="soundscape-thumbs/" />
 </full-backup-content>

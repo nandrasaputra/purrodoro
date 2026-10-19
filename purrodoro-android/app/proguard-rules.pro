@@ -28,14 +28,6 @@
 -keep class kotlinx.serialization.** { *; }
 -dontwarn kotlinx.serialization.**
 
-# ── Ktor ──────────────────────────────────────────────────────────────────────
-# Ktor 3.x and the OkHttp engine use internal service-loader lookups and
-# reflective engine initialisation. Keep the whole io.ktor namespace so a first
-# R8 enable does not silently break networking; tighten in a follow-up once
-# end-to-end tests confirm stability.
--keep class io.ktor.** { *; }
--dontwarn io.ktor.**
-
 # ── OkHttp / Okio ─────────────────────────────────────────────────────────────
 # OkHttp ships its own consumer ProGuard rules inside the AAR; these suppress
 # warnings for APIs that target Java 9+ modules not present on Android.
@@ -44,12 +36,6 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.openjsse.**
 -dontwarn okio.**
-
-# ── Supabase ──────────────────────────────────────────────────────────────────
-# Supabase-kt 3.x is built on Ktor + kotlinx.serialization. Keep the whole
-# namespace for the same reason as Ktor above.
--keep class io.github.jan.supabase.** { *; }
--dontwarn io.github.jan.supabase.**
 
 # ── Room ──────────────────────────────────────────────────────────────────────
 # Room's KSP-generated _Impl classes reference the abstract Database/DAO classes

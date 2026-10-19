@@ -18,16 +18,6 @@
                 android:value="true" />
         </activity>
 
-        <activity
-            android:name=".debug.SyncDebugActivity"
-            android:exported="false"
-            android:label="Sync Debug"
-            android:screenOrientation="portrait">
-            <property
-                android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
-                android:value="true" />
-        </activity>
-
     </application>
 
 </manifest>

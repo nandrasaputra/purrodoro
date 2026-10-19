@@ -30,9 +30,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.endiar.purrodoro.R
-import com.endiar.purrodoro.soundscape.SoundscapeConfig
-import com.endiar.purrodoro.soundscape.SoundscapeModule
-import com.endiar.purrodoro.soundscape.SoundscapeThumbnailLoader
 import com.endiar.purrodoro.ui.theme.Coral
 import kotlin.math.min
 
@@ -68,17 +65,7 @@ fun bundledMusicCoverRes(trackId: Int): Int = when (trackId) {
     else -> R.drawable.soundscape_lofi_fallback
 }
 
-fun remoteThumbnailObjectKey(thumbnailPath: String?, audioFilePath: String? = null): String {
-    val path = thumbnailPath.orEmpty()
-    val audio = audioFilePath.orEmpty()
-    return SoundscapeConfig.thumbnailKey(path, audio)
-}
-
-@Composable
-private fun rememberSoundscapeThumbnailLoader(): SoundscapeThumbnailLoader {
-    val context = LocalContext.current
-    return remember { SoundscapeModule.get(context).thumbnailLoader }
-}
+fun remoteThumbnailObjectKey(thumbnailPath: String?, audioFilePath: String? = null): String = ""
 
 @Composable
 private fun SoundscapeRemoteThumbnail(
@@ -89,45 +76,12 @@ private fun SoundscapeRemoteThumbnail(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
 ) {
-    val loader = rememberSoundscapeThumbnailLoader()
-    var bitmap by remember(objectKey, cacheVersion) { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var failed by remember(objectKey, cacheVersion) { mutableStateOf(false) }
-
-    LaunchedEffect(objectKey, cacheVersion) {
-        failed = false
-        bitmap = null
-        if (objectKey.isEmpty()) {
-            failed = true
-            return@LaunchedEffect
-        }
-        val loaded = loader.loadBitmap(objectKey, cacheVersion)
-        if (loaded != null) {
-            bitmap = loaded
-        } else {
-            failed = true
-        }
-    }
-
-    when {
-        bitmap != null -> Image(
-            bitmap = bitmap!!.asImageBitmap(),
-            contentDescription = null,
-            modifier = modifier,
-            contentScale = contentScale,
-        )
-        failed -> Image(
-            painter = painterResource(fallbackRes),
-            contentDescription = null,
-            modifier = modifier,
-            contentScale = contentScale,
-        )
-        else -> Image(
-            painter = painterResource(placeholderRes),
-            contentDescription = null,
-            modifier = modifier,
-            contentScale = contentScale,
-        )
-    }
+    Image(
+        painter = painterResource(fallbackRes),
+        contentDescription = null,
+        modifier = modifier,
+        contentScale = contentScale,
+    )
 }
 
 @Composable

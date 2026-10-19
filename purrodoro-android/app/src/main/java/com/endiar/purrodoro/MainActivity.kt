@@ -21,13 +21,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.billing.BillingModule
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.AppState
 import com.endiar.purrodoro.model.AppearanceMode
 import com.endiar.purrodoro.model.AppTab
-import com.endiar.purrodoro.sync.SyncModule
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
 import com.endiar.purrodoro.ui.KuroLocalizationProvider
@@ -87,8 +85,6 @@ class MainActivity : ComponentActivity() {
         handleWidgetIntent(intent)
 
         val repo = AppRepository.get(this)
-        val authRepository = AuthRepository.get(this)
-        SyncModule.get(this) // start the offline-first sync triggers
         BillingModule.get(this) // Play Billing: query subs + sync premium entitlement
         // Block until the first app-state snapshot so theme, locale, and the home
         // hero scene match persisted values on frame 1 (no Room→saved-scene flash).
@@ -104,13 +100,6 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = initialStatusBarStyle,
             navigationBarStyle = initialNavigationBarStyle,
         )
-        runCatching {
-            runBlocking { authRepository.awaitInitialization() }
-        }
-        val initialAuthState = authRepository.snapshotAuthState()
-        val initialOwnerId = runCatching {
-            runBlocking { repo.currentOwnerId() }
-        }.getOrNull()
         val (initialHasSeenOnboarding, initialHasSeenTutorial) = runCatching {
             runBlocking {
                 Pair(
@@ -136,7 +125,6 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val repo = AppRepository.get(this)
-            val authRepository = AuthRepository.get(this)
             val appState by repo.appState.collectAsStateWithLifecycle(
                 initialValue = initialAppState ?: AppState.loadingPlaceholder(),
             )
@@ -165,15 +153,12 @@ class MainActivity : ComponentActivity() {
                 PurrodoroTheme(appearanceMode = appearanceMode) {
                     PurrodoroApp(
                         repo = repo,
-                        authRepository = authRepository,
                         timerConnection = timerConnection,
                         requestNotificationPermission = ::requestNotificationPermissionIfNeeded,
                         onEnableNotifications = ::promptEnableNotifications,
                         onLanguageChanged = { uiLanguage = it },
                         autoOpenStartFocus = autoOpenStartFocus,
                         openTab = openTab,
-                        initialAuthState = initialAuthState,
-                        initialOwnerId = initialOwnerId,
                         initialAppState = initialAppState,
                         initialHasSeenOnboarding = initialHasSeenOnboarding,
                         initialHasSeenTutorial = initialHasSeenTutorial,

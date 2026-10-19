@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-Purrodoro is a Pomodoro focus timer. You can use the app **as a guest** (data stays on your device) or **sign in with Google** to sync tasks, habits, and focus history across devices.
+Purrodoro is a Pomodoro focus timer. Tasks, habits, settings, and focus history stay on your device. There is no account sign-in. Android can include that data in your Google account's app backup, and you can also export a JSON file.
 
 This policy explains what information we collect, how we use it, and your choices. If you do not agree, please do not use the app.
 
@@ -20,22 +20,20 @@ This policy explains what information we collect, how we use it, and your choice
 
 ### 2.1 Information you provide
 
-| Data | Guest | Signed in | Purpose |
-|------|-------|-----------|---------|
-| Display name | Optional (local) | Yes (from Google or your edits) | Greeting & profile |
-| Tasks, categories, habits | Yes (local) | Yes (synced) | Core app features |
-| Pomodoro / focus session history | Yes (local) | Yes (synced) | Journey, calendar, stats |
-| Timer & app settings | Yes (local) | Yes (synced) | Preferences |
-| Manual backup file (JSON) | Optional, user-initiated export | Optional | Backup & restore (guest only) |
+| Data | Where | Purpose |
+|------|-------|---------|
+| Display name | On device | Greeting and profile |
+| Tasks, categories, habits | On device | Core app features |
+| Pomodoro / focus session history | On device | Journey, calendar, stats |
+| Timer and app settings | On device | Preferences |
+| Manual backup file (JSON) | A file you choose | Backup and restore |
 
-We do **not** ask for a password. Sign-in uses **Google** via Supabase Auth.
+We do **not** ask you to sign in, and we do not store an account for you.
 
 ### 2.2 Information collected automatically
 
 | Data | When | Purpose |
 |------|------|---------|
-| **Google account info** (email, name, profile photo URL) | When you sign in with Google | Authentication & profile display |
-| **Supabase user ID** | When signed in | Account identity & sync |
 | **Subscription / purchase status** | When you subscribe or restore via Google Play | Premium features |
 | **Crash & diagnostic logs** | When the app crashes (release builds) | Fix bugs via Firebase Crashlytics |
 | **Device & app metadata** (OS version, device model, app version) | With crash reports | Debugging |
@@ -70,13 +68,11 @@ We use data to:
 
 | Storage | What | Who can access |
 |---------|------|----------------|
-| **Your device** (Room database, preferences, encrypted session) | Guest & signed-in local cache | You; excluded from Android cloud backup: auth session, main database, safety backup folder |
-| **Supabase** (hosted cloud database & auth) | Signed-in user data & account metadata | You (via your account); protected by row-level security |
-| **Google** | Sign-in credentials; Play Billing records | Google (per [Google Privacy Policy](https://policies.google.com/privacy)) |
+| **Your device** (Room database, preferences) | Tasks, habits, history, settings, display name | You. Included in Android Auto Backup and phone-to-phone transfer, except JSON safety copies |
+| **Google** | Play Billing records; Android app backup | Google (per [Google Privacy Policy](https://policies.google.com/privacy)) |
 | **Firebase Crashlytics** (Google) | Crash stack traces & diagnostic logs | Google / Firebase (per [Firebase Privacy](https://firebase.google.com/support/privacy)) |
-| **Cloudflare R2** | Public soundscape audio files & catalog | Anyone with the URL (audio files); catalog via our backend |
 
-Guest data is **not uploaded** to our servers unless you sign in.
+We do not upload your tasks, habits, or focus history to a server we operate. Soundscape audio ships inside the app.
 
 ---
 
@@ -86,13 +82,11 @@ Purrodoro uses:
 
 | Service | Provider | Role |
 |---------|----------|------|
-| **Supabase Auth & Database** | Supabase, Inc. | Google sign-in, cloud sync |
-| **Google Sign-In** | Google LLC | Authentication |
 | **Google Play Billing** | Google LLC | Premium subscriptions |
 | **Firebase Crashlytics** | Google LLC | Crash reporting (release builds only) |
-| **Cloudflare R2** | Cloudflare, Inc. | Soundscape audio hosting |
+| **Android backup** | Google LLC | Restores app data on a new phone with the same Google account |
 
-Each provider has its own privacy policy. We only share what is needed for these services to work (for example, your Supabase user ID and synced app data, or crash logs).
+Each provider has its own privacy policy. We share crash logs with Firebase, and purchase status with Google Play. Android backup is stored by Google with your account.
 
 ---
 
@@ -102,7 +96,7 @@ The app may request:
 
 | Permission | Why |
 |------------|-----|
-| **Internet** | Sign-in, sync, soundscape catalog & downloads |
+| **Internet** | Play Billing and crash reporting |
 | **Notifications** | Timer completion alerts |
 | **Foreground service** | Keep the focus timer running reliably |
 | **Schedule exact alarms** | Fire segment-end alerts if the app is in the background *(optional; user can deny “Alarms & reminders”)* |
@@ -114,8 +108,7 @@ You can deny notifications or alarm permission; core timing still works while th
 
 ## 7. Data retention & deletion
 
-- **Guest data:** Stays on your device until you uninstall the app or use in-app delete/reset features.
-- **Signed-in data:** Kept in Supabase while your account exists. Sign out clears the on-device session; cloud data remains until you delete it or request account deletion.
+- **On-device data:** Stays on your device until you uninstall the app or clear app storage. Android backup may keep a copy with your Google account until you delete that backup.
 - **Crash logs:** Retained per Firebase Crashlytics default retention (typically ~90 days).
 - **Manual backups:** Files you export stay wherever you save them (Downloads, Drive, etc.).
 
@@ -128,9 +121,8 @@ https://nandrasaputra.dev/purrodoro/delete-account
 
 ## 8. Security
 
-- Supabase sessions use **encrypted storage** on device (Android Keystore).
-- Cloud access uses **HTTPS** and **row-level security** so each user only sees their own rows.
-- We exclude sensitive local files (auth session, database, automatic safety backups) from Android cloud backup.
+- Play Billing and crash reports use **HTTPS**.
+- JSON safety copies and leftover downloaded audio are excluded from Android backup. The task and history database is included so a reinstall can restore it.
 
 No method of transmission or storage is 100% secure; we work to protect data using industry-standard practices.
 
@@ -144,7 +136,7 @@ Purrodoro is not directed at children under 13 (or the minimum age in your count
 
 ## 10. International transfers
 
-Our service providers (Supabase, Google, Cloudflare) may process data in the United States and other countries. By using Purrodoro, you understand your information may be transferred to jurisdictions with different data-protection laws.
+Google may process Play Billing records, crash logs, and Android backup in the United States and other countries. By using Purrodoro, you understand that information may be transferred to jurisdictions with different data-protection laws.
 
 ---
 
@@ -153,7 +145,7 @@ Our service providers (Supabase, Google, Cloudflare) may process data in the Uni
 Depending on where you live, you may have the right to:
 
 - Access, correct, or delete your personal data
-- Export your data (in-app backup for guests; synced data when signed in)
+- Export your data from Profile → Backup & restore
 - Withdraw consent (e.g. sign out, uninstall, deny notifications)
 - Lodge a complaint with a data protection authority
 
@@ -184,13 +176,13 @@ Use this as a guide when filling Play Console **Data safety**. Adjust if your li
 
 | Data type | Collected | Shared | Purpose | Optional |
 |-----------|-----------|--------|---------|----------|
-| Email address | Yes (sign-in) | Supabase, Google | Account | Yes (guest mode) |
-| Name | Yes (sign-in) | Supabase, Google | Account | Yes |
-| User IDs | Yes | Supabase, Firebase | Account, analytics (crashes) | Partial |
-| App activity (tasks, habits, focus history) | Yes | Supabase (if signed in) | App functionality | Yes (guest: local only) |
+| Email address | No | — | — | — |
+| Name | On device only | Not shared by us | App functionality | Yes |
+| User IDs | Crash installs only | Firebase | Analytics | No (release builds) |
+| App activity (tasks, habits, focus history) | On device; may be in Android backup | Google (backup) | App functionality | No |
 | Crash logs | Yes | Firebase | Analytics | No (release builds) |
 | Purchase history | Yes | Google Play | App functionality | Yes (only if subscribing) |
-| Photos | Profile image URL only | Google | Account | Yes |
+| Photos | No | — | — | — |
 
 **Encryption in transit:** Yes  
 **Users can request deletion:** Yes (contact email)  

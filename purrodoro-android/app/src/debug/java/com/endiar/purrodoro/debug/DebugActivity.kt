@@ -95,7 +95,6 @@ private fun DebugScreen(
     val isPremiumOverrideEnabled by debugRepo.isPremiumOverrideEnabled.collectAsStateWithLifecycle()
     val premiumOverrideValue by debugRepo.premiumOverrideValue.collectAsStateWithLifecycle()
     val isSkipTicksEnabled by debugRepo.isSkipTicksEnabled.collectAsStateWithLifecycle()
-    val syncNotificationEnabled by debugRepo.syncNotificationEnabled.collectAsStateWithLifecycle()
     var showCatalog by remember { mutableStateOf(false) }
 
     if (showCatalog) {
@@ -348,38 +347,6 @@ private fun DebugScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
-
-                HorizontalDivider()
-
-                // --- Sync debug notification ---
-                SectionTitle("SYNC DEBUG")
-                Text(
-                    "Shows a persistent notification with the latest sync pass outcome. Tap it to open the sync debug screen.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Sync notification", style = MaterialTheme.typography.bodyMedium)
-                    Switch(
-                        checked = syncNotificationEnabled,
-                        onCheckedChange = debugRepo::setSyncNotificationEnabled,
-                    )
-                }
-                OutlinedButton(
-                    onClick = {
-                        context.startActivity(
-                            android.content.Intent(context, SyncDebugActivity::class.java)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = syncNotificationEnabled,
-                ) {
-                    Text("Open sync debug screen")
-                }
 
                 HorizontalDivider()
 

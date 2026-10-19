@@ -30,17 +30,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.endiar.purrodoro.R
-import com.endiar.purrodoro.auth.AccountAvatarStore
 import com.endiar.purrodoro.ui.theme.kuroTokens
 import androidx.compose.material3.MaterialTheme
 
-@Composable
-fun rememberAccountAvatarStore(): AccountAvatarStore {
-    val context = LocalContext.current
-    return remember { AccountAvatarStore.get(context) }
-}
-
-/** Photo when cached, otherwise the user's initial on the accent gradient. */
+/** User initial on the accent gradient. */
 @Composable
 fun KuroAccountAvatarContent(
     userId: String?,
@@ -49,42 +42,25 @@ fun KuroAccountAvatarContent(
     contentDescription: String? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    val store = rememberAccountAvatarStore()
-    val revision by store.revision.collectAsStateWithLifecycle()
-    var bitmap by remember(userId, revision) { mutableStateOf<android.graphics.Bitmap?>(null) }
     val avatarDescription = contentDescription
         ?: stringResource(R.string.account_avatar_cd, displayName)
-
-    LaunchedEffect(userId, revision) {
-        bitmap = userId?.let { store.localBitmap(it) }
-    }
-
-    if (bitmap != null) {
-        Image(
-            bitmap = bitmap!!.asImageBitmap(),
-            contentDescription = avatarDescription,
-            contentScale = ContentScale.Crop,
-            modifier = modifier.clip(CircleShape),
-        )
-    } else {
-        val initial = displayName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
-        Box(
-            modifier = modifier
-                .clip(CircleShape)
-                .semantics { this.contentDescription = avatarDescription }
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(tokens.accent, tokens.interactiveFill),
-                    ),
+    val initial = displayName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .semantics { this.contentDescription = avatarDescription }
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(tokens.accent, tokens.interactiveFill),
                 ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = initial,
-                style = KuroType.headingCard.copy(fontWeight = FontWeight.SemiBold),
-                color = tokens.interactiveText,
-            )
-        }
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = initial,
+            style = KuroType.headingCard.copy(fontWeight = FontWeight.SemiBold),
+            color = tokens.interactiveText,
+        )
     }
 }
 

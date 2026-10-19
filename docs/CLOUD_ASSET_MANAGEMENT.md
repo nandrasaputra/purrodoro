@@ -1,5 +1,7 @@
 # Cloud Soundscapes — Asset Management
 
+> **Android client (2026-10-19):** the Android app no longer reads this catalog or the R2 bucket. It plays the tracks shipped in the APK. This document remains the operations reference for anything that still uses the cloud catalog.
+
 How to add, replace, and remove downloadable soundscape tracks (music + ambience)
 without shipping an app update. This is the permanent operations reference for the
 **Cloud Soundscapes** feature.

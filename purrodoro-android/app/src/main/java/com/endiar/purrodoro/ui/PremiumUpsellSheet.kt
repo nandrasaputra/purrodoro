@@ -29,10 +29,8 @@ import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.ListTodo
 import com.composables.icons.lucide.Lucide
 import com.endiar.purrodoro.R
-import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.billing.PremiumPlan
 import com.endiar.purrodoro.billing.SubscriptionOffers
-import com.endiar.purrodoro.model.AuthUser
 import com.endiar.purrodoro.model.PremiumGate
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -52,12 +50,8 @@ fun PremiumUpsellSheet(
     onRefreshCatalog: () -> Unit,
     onRetryCatalog: () -> Unit,
     onExplorePremium: (() -> Unit)? = null,
-    isGuest: Boolean = false,
-    authRepository: AuthRepository? = null,
-    onGuestSignedIn: ((AuthUser) -> Unit)? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
-    var isSigningIn by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         onRefreshCatalog()
@@ -68,52 +62,33 @@ fun PremiumUpsellSheet(
         PremiumUpsellReason.ActiveTaskCap -> "cap:tasks"
         PremiumUpsellReason.HabitCap -> "cap:habits"
         PremiumUpsellReason.Generic -> "generic"
-    } + if (isGuest) ":guest" else ":signed-in"
+    }
 
-    val isGuestMember = isGuest && authRepository != null && onGuestSignedIn != null
     KuroAdaptiveBottomSheet(
         onDismiss = onDismiss,
-        dismissBlocked = isSigningIn,
         horizontalPadding = 0.dp,
         containerColor = tokens.cardFill,
         showCloseButton = true,
         contentKey = contentKey,
-        footer = if (!isGuestMember) {
-            { scrollOverlay ->
-                PremiumSheetStickyFooter(
-                    subscriptionOffers = subscriptionOffers,
-                    selectedPlan = selectedPlan,
-                    purchaseInFlight = purchaseInFlight,
-                    onUpgrade = onUpgrade,
-                    onRetryCatalog = onRetryCatalog,
-                    onDismiss = LocalKuroSheetDismiss.current,
-                    scrollOverlay = scrollOverlay,
-                )
-            }
-        } else {
-            null
-        },
-    ) {
-        val dismissSheet = LocalKuroSheetDismiss.current
-        if (isGuestMember) {
-            PremiumSignInGateContent(
-                title = guestUnlockTitle(trigger.reason),
-                body = guestUnlockBody(trigger.reason),
-                isSigningIn = isSigningIn,
-                authRepository = authRepository,
-                onSignedIn = onGuestSignedIn,
-                onDismiss = dismissSheet,
-                onSigningInChanged = { isSigningIn = it },
-            )
-        } else {
-            PremiumMemberUpsellContent(
-                trigger = trigger,
+        footer = { scrollOverlay ->
+            PremiumSheetStickyFooter(
                 subscriptionOffers = subscriptionOffers,
                 selectedPlan = selectedPlan,
-                onPlanSelected = onPlanSelected,
-                onExplorePremium = onExplorePremium,
+                purchaseInFlight = purchaseInFlight,
+                onUpgrade = onUpgrade,
+                onRetryCatalog = onRetryCatalog,
+                onDismiss = LocalKuroSheetDismiss.current,
+                scrollOverlay = scrollOverlay,
             )
-        }
+        },
+    ) {
+        PremiumMemberUpsellContent(
+            trigger = trigger,
+            subscriptionOffers = subscriptionOffers,
+            selectedPlan = selectedPlan,
+            onPlanSelected = onPlanSelected,
+            onExplorePremium = onExplorePremium,
+        )
     }
 }
 
@@ -194,28 +169,6 @@ private fun shouldShowCompareLink(reason: PremiumUpsellReason): Boolean = when (
     PremiumUpsellReason.HabitCap,
     -> false
     else -> true
-}
-
-@Composable
-private fun guestUnlockTitle(reason: PremiumUpsellReason): String = when (reason) {
-    is PremiumUpsellReason.LockedSound ->
-        stringResource(R.string.premium_guest_title_locked, reason.featureName)
-    is PremiumUpsellReason.LockedScene ->
-        stringResource(R.string.premium_guest_title_locked, reason.sceneName)
-    PremiumUpsellReason.ActiveTaskCap ->
-        stringResource(R.string.premium_cap_active_tasks_title)
-    PremiumUpsellReason.HabitCap ->
-        stringResource(R.string.premium_cap_habits_title)
-    PremiumUpsellReason.Generic ->
-        stringResource(R.string.premium_guest_title_feature)
-}
-
-@Composable
-private fun guestUnlockBody(reason: PremiumUpsellReason): String = when (reason) {
-    is PremiumUpsellReason.LockedSound, is PremiumUpsellReason.LockedScene ->
-        stringResource(R.string.premium_guest_body_locked)
-    else ->
-        stringResource(R.string.premium_guest_body)
 }
 
 @Composable

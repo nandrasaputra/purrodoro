@@ -2,9 +2,8 @@ package com.endiar.purrodoro.soundscape
 
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.audio.AudioSource
-import com.endiar.purrodoro.data.local.SoundscapeBundledEntity
-import com.endiar.purrodoro.data.local.SoundscapeTrackEntity
-import com.endiar.purrodoro.model.DownloadState
+import com.endiar.purrodoro.model.MusicOption
+import com.endiar.purrodoro.model.SoundOption
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -12,203 +11,76 @@ import org.junit.Test
 
 class SoundscapeCatalogBuilderTest {
 
-    private val rainDefault = BundledTrackDefault(
+    private val rain = BundledTrackDefault(
         kind = "ambience", localId = 1, rawResource = "l_amb_rain",
         nameRes = R.string.sound_rain_name, subtitleRes = R.string.sound_rain_desc,
         symbol = "Rain", defaultPremium = false, sortOrder = 10,
     )
-    private val cafeDefault = BundledTrackDefault(
-        kind = "ambience", localId = 2, rawResource = "l_amb_cafe",
-        nameRes = R.string.sound_cafe_name, subtitleRes = R.string.sound_cafe_desc,
-        symbol = "Cafe", defaultPremium = false, sortOrder = 20,
-    )
-
-    private fun bundled(
-        localId: Int,
-        premium: Boolean = false,
-        active: Boolean = true,
-        sort: Int = 0,
-    ) = SoundscapeBundledEntity(
-        kind = "ambience", localId = localId, name = "", artist = "", symbol = "",
-        rawResource = "l_amb_rain", isPremium = premium, sortOrder = sort, isActive = active,
-    )
-
-    private fun remote(id: Int) = SoundscapeTrackEntity(
-        id = id, kind = "music", name = "Cloud Track", artist = "Artist", symbol = "",
-        filePath = "lofi/x.mp3", fileSizeBytes = 2_000_000, isPremium = false,
-        sortOrder = 10, updatedAtMillis = 1_000,
+    private val forest = BundledTrackDefault(
+        kind = "ambience", localId = 4, rawResource = "l_amb_forest",
+        nameRes = R.string.sound_forest_name, subtitleRes = R.string.sound_forest_desc,
+        symbol = "Forest", defaultPremium = true, sortOrder = 40,
     )
 
     @Test
-    fun `missing rows fall back to defaults and stay visible`() {
+    fun `bundled ambience stays visible with registry premium locks`() {
         val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
-            bundledRows = emptyList(),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "name" },
-            subtitleFor = { _, _ -> "sub" },
-            bundledDefaults = listOf(rainDefault, cafeDefault),
+            nameFor = { it.symbol },
+            subtitleFor = { "sub" },
+            bundledDefaults = listOf(forest, rain),
         )
-        assertEquals(listOf(1, 2), options.map { it.id })
+        assertEquals(listOf(1, 4), options.map { it.id })
         assertEquals(AudioSource.Bundled(R.raw.l_amb_rain), options[0].audio)
         assertNull(options[0].remote)
+        assertTrue(options[1].locked)
     }
 
     @Test
-    fun `inactive row hides its default`() {
-        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
-            bundledRows = listOf(bundled(localId = 1, active = false)),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "name" },
-            subtitleFor = { _, _ -> "sub" },
-            bundledDefaults = listOf(rainDefault, cafeDefault),
+    fun `registry has six ambience tracks and no music`() {
+        val ambience = SoundscapeCatalogBuilder.buildAmbienceOptions(
+            nameFor = { it.rawResource },
+            subtitleFor = { "" },
         )
-        assertEquals(listOf(2), options.map { it.id }) // rain hidden, cafe remains
+        val music = SoundscapeCatalogBuilder.buildMusicOptions(
+            nameFor = { it.rawResource },
+            subtitleFor = { "" },
+        )
+        assertEquals(6, ambience.size)
+        assertEquals(0, music.size)
+        assertEquals(
+            listOf("l_amb_forest", "l_amb_winter_wind"),
+            ambience.filter { it.locked }.map { it.name },
+        )
     }
 
     @Test
-    fun `row premium override wins over default`() {
-        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
-            bundledRows = listOf(bundled(localId = 1, premium = true)),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "name" },
-            subtitleFor = { _, _ -> "sub" },
-            bundledDefaults = listOf(rainDefault),
-        )
-        assertTrue(options.single().locked)
+    fun `unknown ambience id falls back to rain`() {
+        val options = listOf(sound(1, locked = false), sound(4, locked = true))
+        assertEquals(1, SoundscapeCatalogBuilder.resolveAmbienceId(99, isPremium = false, options))
+        assertEquals(1, SoundscapeCatalogBuilder.resolveAmbienceId(4, isPremium = false, options))
+        assertEquals(4, SoundscapeCatalogBuilder.resolveAmbienceId(4, isPremium = true, options))
     }
 
     @Test
-    fun `row sort_order override reorders bundled tracks`() {
-        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
-            bundledRows = listOf(
-                bundled(localId = 1, sort = 99), // rain pushed last
-                bundled(localId = 2, sort = 1),  // cafe pulled first
-            ),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "name" },
-            subtitleFor = { _, _ -> "sub" },
-            bundledDefaults = listOf(rainDefault, cafeDefault),
-        )
-        assertEquals(listOf(2, 1), options.map { it.id })
+    fun `unknown music id falls back to the first free track`() {
+        val options = listOf(music(1, locked = false), music(5, locked = true))
+        assertNull(SoundscapeCatalogBuilder.resolveMusicId(null, isPremium = false, options))
+        assertEquals(1, SoundscapeCatalogBuilder.resolveMusicId(99, isPremium = false, options))
+        assertEquals(5, SoundscapeCatalogBuilder.resolveMusicId(5, isPremium = true, options))
     }
 
     @Test
-    fun `non-blank name and description overrides win`() {
-        val row = bundled(localId = 1)
-            .copy(name = "Custom Rain", artist = "Soft drizzle", symbol = "Storm")
-        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
-            bundledRows = listOf(row),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "default name" },
-            subtitleFor = { _, _ -> "default sub" },
-            bundledDefaults = listOf(rainDefault),
-        )
-        assertEquals("Custom Rain", options.single().name)
-        assertEquals("Soft drizzle", options.single().description)
-        assertEquals("Storm", options.single().symbol)
+    fun `saved music id clears when the catalog has no tracks`() {
+        assertNull(SoundscapeCatalogBuilder.resolveMusicId(1, isPremium = true, emptyList()))
     }
 
-    @Test
-    fun `remote music not downloaded has null audio and NotDownloaded state`() {
-        val options = SoundscapeCatalogBuilder.buildMusicOptions(
-            bundledRows = emptyList(),
-            remoteRows = listOf(remote(100)),
-            downloadStates = mapOf(100 to DownloadState.NotDownloaded),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "unused" },
-            subtitleFor = { _, _ -> "unused" },
-            bundledDefaults = emptyList(),
-        )
-        assertNull(options.single().audio)
-        assertEquals(DownloadState.NotDownloaded, options.single().remote?.downloadState)
-    }
+    private fun sound(id: Int, locked: Boolean) = SoundOption(
+        id = id, name = "n", description = "d", locked = locked, symbol = "",
+        audio = AudioSource.Bundled(R.raw.l_amb_rain), remote = null,
+    )
 
-    @Test
-    fun `unknown catalog rawResource falls back to registry default`() {
-        val row = SoundscapeBundledEntity(
-            kind = "ambience",
-            localId = 1,
-            name = "",
-            artist = "",
-            symbol = "",
-            rawResource = "stale_server_name",
-            isPremium = false,
-            sortOrder = 10,
-            isActive = true,
-        )
-        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
-            bundledRows = listOf(row),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "name" },
-            subtitleFor = { _, _ -> "sub" },
-            bundledDefaults = listOf(rainDefault),
-        )
-        assertEquals(AudioSource.Bundled(R.raw.l_amb_rain), options.single().audio)
-    }
-
-    @Test
-    fun `bundled track omitted when no raw resource resolves`() {
-        val unmappedDefault = rainDefault.copy(rawResource = "does_not_exist")
-        val options = SoundscapeCatalogBuilder.buildAmbienceOptions(
-            bundledRows = emptyList(),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "name" },
-            subtitleFor = { _, _ -> "sub" },
-            bundledDefaults = listOf(unmappedDefault, cafeDefault),
-        )
-        assertEquals(listOf(2), options.map { it.id })
-    }
-
-    @Test
-    fun `bundled music keeps row with null audio when raw resource missing`() {
-        val unmapped = BundledTrackDefault(
-            "music", 1, "does_not_exist",
-            R.string.l_desk_lamp_rain_name, R.string.lofi_local_artist, "", false, 10,
-        )
-        val options = SoundscapeCatalogBuilder.buildMusicOptions(
-            bundledRows = emptyList(),
-            remoteRows = emptyList(),
-            downloadStates = emptyMap(),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "name" },
-            subtitleFor = { _, _ -> "artist" },
-            bundledDefaults = listOf(unmapped),
-        )
-        assertEquals(1, options.size)
-        assertEquals(1, options.single().id)
-        assertNull(options.single().audio)
-    }
-
-    @Test
-    fun `bundled tracks render before remote tracks`() {
-        val options = SoundscapeCatalogBuilder.buildMusicOptions(
-            bundledRows = emptyList(),
-            remoteRows = listOf(remote(100)),
-            downloadStates = mapOf(100 to DownloadState.NotDownloaded),
-            localPaths = emptyMap(),
-            nameFor = { _, _ -> "Bloom" },
-            subtitleFor = { _, _ -> "Yasumu" },
-            bundledDefaults = listOf(
-                BundledTrackDefault(
-                    "music", 1, "l_lofi_desk_lamp_rain",
-                    R.string.l_desk_lamp_rain_name, R.string.lofi_local_artist, "", false, 10,
-                ),
-            ),
-        )
-        assertEquals(listOf(1, 100), options.map { it.id })
-    }
+    private fun music(id: Int, locked: Boolean) = MusicOption(
+        id = id, name = "n", artist = "a", locked = locked,
+        audio = AudioSource.Bundled(R.raw.l_amb_rain), remote = null,
+    )
 }

@@ -78,10 +78,7 @@ not ship unverified.
 
 ~~`AndroidManifest.xml` has `allowBackup="true"` and
 `res/xml/data_extraction_rules.xml` enables `<cloud-backup/>` with no exclusions~~
-**Fixed:** `data_extraction_rules.xml` and `backup_rules.xml` now exclude
-`purrodoro_auth_session`, `purrodoro.db` (+ WAL/SHM), and `files/backups/`
-from cloud backup and device transfer. `EncryptedSessionManager` clears
-unreadable session storage and treats the user as signed-out instead of crashing.
+**Updated 2026-10-19:** sign-in is gone. `purrodoro.db` (+ WAL/SHM) is included in cloud backup and device transfer so tasks, habits, and session history restore with the user's Google account. `files/backups/`, `files/soundscapes/`, and `files/soundscape-thumbs/` stay excluded. `PurrodoroBackupAgent` checkpoints the WAL before the copy.
 
 ### 5. No crash reporting / analytics  ·  medium (operability)
 

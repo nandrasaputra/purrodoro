@@ -1049,39 +1049,41 @@ fun SoundsScreen(
             }
         }
 
-        SoundscapeSectionHeader(
-            title = stringResource(R.string.soundscape_section_lofi),
-            expanded = musicExpanded,
-            onToggleExpand = { musicExpanded = !musicExpanded },
-            modifier = Modifier.padding(horizontal = KuroSpacing.lg),
-        )
-        if (musicExpanded) {
-            SoundscapeExpandedLofiGrid(
-                options = musicOptions,
-                playingMusicId = playingMusicId,
-                isPremium = isPremium,
-                onMusicSelected = onMusicSelected,
-                onMusicToggle = onMusicToggle,
-                onDownloadTrack = onDownloadTrack,
-                onDeleteDownload = onDeleteDownload,
+        if (musicOptions.isNotEmpty()) {
+            SoundscapeSectionHeader(
+                title = stringResource(R.string.soundscape_section_lofi),
+                expanded = musicExpanded,
+                onToggleExpand = { musicExpanded = !musicExpanded },
                 modifier = Modifier.padding(horizontal = KuroSpacing.lg),
             )
-        } else {
-            SoundscapeHorizontalRow(itemSpacing = KuroSpacing.md) {
-                musicOptions.forEach { track ->
-                    val isPlaying = track.id == playingMusicId
-                    LofiVinylTile(
-                        track = track,
-                        isPlaying = isPlaying,
-                        onClick = musicTileClick(
+            if (musicExpanded) {
+                SoundscapeExpandedLofiGrid(
+                    options = musicOptions,
+                    playingMusicId = playingMusicId,
+                    isPremium = isPremium,
+                    onMusicSelected = onMusicSelected,
+                    onMusicToggle = onMusicToggle,
+                    onDownloadTrack = onDownloadTrack,
+                    onDeleteDownload = onDeleteDownload,
+                    modifier = Modifier.padding(horizontal = KuroSpacing.lg),
+                )
+            } else {
+                SoundscapeHorizontalRow(itemSpacing = KuroSpacing.md) {
+                    musicOptions.forEach { track ->
+                        val isPlaying = track.id == playingMusicId
+                        LofiVinylTile(
                             track = track,
                             isPlaying = isPlaying,
-                            isPremium = isPremium,
-                            onMusicSelected = onMusicSelected,
-                            onMusicToggle = onMusicToggle,
-                            onDownloadTrack = onDownloadTrack,
-                        ),
-                    )
+                            onClick = musicTileClick(
+                                track = track,
+                                isPlaying = isPlaying,
+                                isPremium = isPremium,
+                                onMusicSelected = onMusicSelected,
+                                onMusicToggle = onMusicToggle,
+                                onDownloadTrack = onDownloadTrack,
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -1097,6 +1099,7 @@ fun SoundscapeSheetStickyFooter(
     onMusicVolumeChange: (Float) -> Unit,
     ambienceVolumeEnabled: Boolean,
     musicVolumeEnabled: Boolean,
+    showMusicVolume: Boolean = true,
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1175,14 +1178,16 @@ fun SoundscapeSheetStickyFooter(
                 compact = true,
                 modifier = Modifier.weight(1f),
             )
-            SoundscapeVolumeStepRow(
-                label = stringResource(R.string.soundscape_volume_music),
-                value = musicVolume,
-                onValueChange = onMusicVolumeChange,
-                enabled = musicVolumeEnabled,
-                compact = true,
-                modifier = Modifier.weight(1f),
-            )
+            if (showMusicVolume) {
+                SoundscapeVolumeStepRow(
+                    label = stringResource(R.string.soundscape_volume_music),
+                    value = musicVolume,
+                    onValueChange = onMusicVolumeChange,
+                    enabled = musicVolumeEnabled,
+                    compact = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             SoundscapeSheetPlayPauseButton(
                 isPlaying = isPlaying,
                 onClick = onPlayPause,

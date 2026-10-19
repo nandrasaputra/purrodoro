@@ -28,8 +28,8 @@ android {
         applicationId = "com.endiar.purrodoro"
         minSdk = 28
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.1.0"
+        versionCode = 8
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -105,25 +105,18 @@ dependencies {
     implementation(libs.composables.icons.lucide)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(platform(libs.supabase.bom))
-    implementation(libs.supabase.auth)
-    implementation(libs.supabase.compose.auth)
-    implementation(libs.supabase.postgrest)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.lottie.compose)
-    implementation(libs.okhttp.dnsoverhttps)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.junit)

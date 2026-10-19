@@ -129,7 +129,6 @@ fun HomeTimerScreen(
     activeFocusType: FocusType = FocusType.Empty,
     greeting: HomeGreeting,
     userName: String = "",
-    accountUserId: String? = null,
     todayMetrics: TodayFocusMetrics,
     cycleItems: List<TimerSessionItem>,
     cycleIndex: Int,
@@ -193,7 +192,6 @@ fun HomeTimerScreen(
             HomeHeader(
                 greeting = greeting,
                 userName = userName,
-                accountUserId = accountUserId,
                 onOpenProfile = onOpenProfile,
                 isPremium = isPremium,
                 modifier = Modifier.onSizeChanged { headerHeightPx = it.height },
@@ -276,7 +274,6 @@ fun HomeTimerScreen(
         ) {
             HomeStickyBar(
                 userName = userName,
-                accountUserId = accountUserId,
                 onOpenProfile = onOpenProfile,
                 isPremium = isPremium,
                 topInset = statusBarTop,
@@ -289,7 +286,6 @@ fun HomeTimerScreen(
 @Composable
 private fun HomeStickyBar(
     userName: String,
-    accountUserId: String?,
     onOpenProfile: () -> Unit,
     isPremium: Boolean = false,
     topInset: Dp = 0.dp,
@@ -331,7 +327,6 @@ private fun HomeStickyBar(
                 onClick = onOpenProfile,
                 size = 48.dp,
                 isPremium = isPremium,
-                userId = accountUserId,
                 displayName = displayName,
             )
         }
@@ -348,7 +343,6 @@ private fun HomeStickyBar(
 private fun HomeHeader(
     greeting: HomeGreeting,
     userName: String,
-    accountUserId: String? = null,
     onOpenProfile: () -> Unit = {},
     isPremium: Boolean = false,
     modifier: Modifier = Modifier,
@@ -406,7 +400,7 @@ private fun HomeHeader(
         CatAvatar(
             onClick = onOpenProfile,
             isPremium = isPremium,
-            userId = accountUserId,
+            userId = null,
             displayName = displayName,
             modifier = Modifier.align(Alignment.Top),
         )

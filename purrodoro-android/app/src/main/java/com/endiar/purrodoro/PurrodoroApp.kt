@@ -65,22 +65,12 @@ import com.endiar.purrodoro.billing.BillingModule
 import com.endiar.purrodoro.billing.BillingUiEvent
 import com.endiar.purrodoro.billing.PremiumPlan
 import com.endiar.purrodoro.audio.AudioSource
-import com.endiar.purrodoro.soundscape.SoundscapeModule
+import com.endiar.purrodoro.soundscape.SoundscapeCatalogBuilder
 import com.endiar.purrodoro.soundscape.buildLocalizedAmbienceOptions
 import com.endiar.purrodoro.soundscape.buildLocalizedMusicOptions
-import com.endiar.purrodoro.soundscape.toMusicOption
-import com.endiar.purrodoro.soundscape.toSoundOption
-import com.endiar.purrodoro.model.DownloadState
-import com.endiar.purrodoro.auth.AccountAvatarStore
-import com.endiar.purrodoro.auth.AccountManager
-import com.endiar.purrodoro.auth.AuthRepository
-import com.endiar.purrodoro.ui.auth.rememberAccountSwitchGate
 import com.endiar.purrodoro.data.AppRepository
 import com.endiar.purrodoro.data.AppState
 import com.endiar.purrodoro.data.backup.BackupManager
-import com.endiar.purrodoro.model.AuthState
-import com.endiar.purrodoro.model.AuthUser
-import com.endiar.purrodoro.model.resolvedDisplayName
 import com.endiar.purrodoro.model.AppClock
 import com.endiar.purrodoro.model.AppTab
 import com.endiar.purrodoro.model.AppearanceMode
@@ -100,10 +90,6 @@ import com.endiar.purrodoro.model.TimerSessionItem
 import com.endiar.purrodoro.model.TimerSettings
 import com.endiar.purrodoro.model.TimerState
 import com.endiar.purrodoro.model.glassTreatmentFor
-import com.endiar.purrodoro.sync.SyncModule
-import com.endiar.purrodoro.sync.SyncStatusStore
-import com.endiar.purrodoro.sync.canSync
-import com.endiar.purrodoro.sync.resolveSyncStatusPresentation
 import com.endiar.purrodoro.timer.TimerConnection
 import com.endiar.purrodoro.timer.TimerNotification
 import com.endiar.purrodoro.ui.CalendarScreen
@@ -121,9 +107,6 @@ import com.endiar.purrodoro.focusshield.FocusShieldUsageAccess
 import com.endiar.purrodoro.ui.FocusShieldScreen
 import com.endiar.purrodoro.ui.BackupRestoreScreen
 import com.endiar.purrodoro.ui.SoundsScreen
-import com.endiar.purrodoro.ui.StorageScreen
-import com.endiar.purrodoro.ui.buildStorageList
-import com.endiar.purrodoro.ui.formatBytes
 import com.endiar.purrodoro.ui.SoundscapeSheetStickyFooter
 import com.endiar.purrodoro.ui.soundscapeSavedMixLabel
 import com.endiar.purrodoro.ui.StartFocusPrefill
@@ -137,9 +120,6 @@ import com.endiar.purrodoro.ui.HomeSuggestion
 import com.endiar.purrodoro.ui.homeSuggestion
 import com.endiar.purrodoro.ui.interruptedRemainingMinutes
 import com.endiar.purrodoro.ui.remainingFocusSessionsAfterCurrent
-import com.endiar.purrodoro.ui.auth.LoginSheet
-import com.endiar.purrodoro.ui.auth.LogoutConfirmSheet
-import com.endiar.purrodoro.ui.auth.PremiumLoginRequiredSheet
 import com.endiar.purrodoro.ui.onboarding.OnboardingScreen
 import com.endiar.purrodoro.ui.todayFocusMetrics
 import com.endiar.purrodoro.model.InterruptedFocus
@@ -183,28 +163,16 @@ internal fun Context.findHostActivity(): Activity? {
 @Composable
 fun PurrodoroApp(
     repo: AppRepository,
-    authRepository: AuthRepository,
     timerConnection: TimerConnection,
     requestNotificationPermission: () -> Unit,
     onEnableNotifications: () -> Unit = {},
     onLanguageChanged: (com.endiar.purrodoro.model.AppLanguage) -> Unit = {},
     autoOpenStartFocus: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
     openTab: kotlinx.coroutines.flow.SharedFlow<AppTab>? = null,
-    initialAuthState: AuthState = AuthState.Guest,
-    initialOwnerId: String? = null,
     initialAppState: AppState? = null,
     initialHasSeenOnboarding: Boolean = true,
     initialHasSeenTutorial: Boolean = true,
 ) {
-    val authState by authRepository.authState.collectAsStateWithLifecycle(initialValue = initialAuthState)
-
-    val syncSnapshot by SyncStatusStore.snapshot.collectAsStateWithLifecycle()
-    val ownerId by repo.ownerIdFlow.collectAsStateWithLifecycle(initialValue = initialOwnerId)
-    val signedInUserId = (authState as? AuthState.SignedIn)?.user?.userId
-    val signedInAvatarUrl = (authState as? AuthState.SignedIn)?.user?.avatarUrl
-    val syncEnabled = canSync(signedInUserId, ownerId)
-    val syncPresentation = if (syncEnabled) resolveSyncStatusPresentation(syncSnapshot) else null
-
     val appState by repo.appState.collectAsStateWithLifecycle(
         initialValue = initialAppState ?: AppState.loadingPlaceholder(),
     )
@@ -269,20 +237,8 @@ fun PurrodoroApp(
         }
     }
 
-    LaunchedEffect(signedInUserId, signedInAvatarUrl) {
-        val userId = signedInUserId ?: return@LaunchedEffect
-        AccountAvatarStore.get(context).sync(userId, signedInAvatarUrl)
-    }
-
-    LaunchedEffect(authState) {
-        when (authState) {
-            AuthState.Guest -> {
-                repo.clearPremiumOverride()
-                billingManager.refreshEntitlement()
-            }
-            is AuthState.SignedIn -> billingManager.refreshEntitlement()
-            AuthState.Loading -> Unit
-        }
+    LaunchedEffect(billingManager) {
+        billingManager.refreshEntitlement()
     }
 
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
@@ -331,39 +287,12 @@ fun PurrodoroApp(
     var focusStartPending by rememberSaveable { mutableStateOf(false) }
     var showProfile by remember { mutableStateOf(false) }
     var showPremiumScreen by remember { mutableStateOf(false) }
-    var showPremiumLoginSheet by remember { mutableStateOf(false) }
-    var pendingPremiumRequest by remember { mutableStateOf<PremiumAccessRequest?>(null) }
     var showHistory by remember { mutableStateOf(false) }
-    var showStorage by remember { mutableStateOf(false) }
     var showBackupRestore by remember { mutableStateOf(false) }
     var showFocusShield by remember { mutableStateOf(false) }
-    var showLoginSheet by remember { mutableStateOf(false) }
-    var showLogoutSheet by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val tutorialController = rememberTutorialController()
-    val accountManager = remember(repo) { AccountManager(repo, SyncModule.get(context).syncHooks) }
-    val accountSwitchGate = rememberAccountSwitchGate()
-
-    // Cloud soundscape catalog: cached snapshot + per-track download states.
-    val soundscape = remember { SoundscapeModule.get(context) }
-    val catalogTracks by soundscape.catalogRepository.observeCatalog()
-        .collectAsStateWithLifecycle(initialValue = emptyList())
-    // Bundled (APK) catalog overrides: visibility / premium / order / display.
-    val bundledTracks by soundscape.bundledCatalogRepository.observeCatalog()
-        .collectAsStateWithLifecycle(initialValue = emptyList())
-    val downloadStates by soundscape.downloadManager.states.collectAsStateWithLifecycle()
-
-    // One refresh per app start. IMPORTANT: prune runs against the repository's
-    // cache snapshot, NOT against `catalogTracks` — that state starts as
-    // emptyList() before Room emits, and prune(emptyList()) would delete every
-    // downloaded file on launch. If refresh failed (offline), snapshot() is the
-    // last known catalog, which is still the correct prune reference.
-    LaunchedEffect(Unit) {
-        soundscape.catalogRepository.refresh()
-        soundscape.downloadManager.prune(soundscape.catalogRepository.snapshot())
-        soundscape.bundledCatalogRepository.refresh()
-    }
 
     // Bridge from widgets that auto-open Start Focus: when the host activity receives a
     // launch intent with EXTRA_AUTO_OPEN_START_FOCUS we surface the existing
@@ -393,13 +322,8 @@ fun PurrodoroApp(
         }
     }
 
-    // First-run gate: sign in with Google or continue as guest, then Home +
-    // spotlight tips teach the product.
     if (!hasSeenOnboarding) {
         OnboardingScreen(
-            authRepository = authRepository,
-            accountManager = accountManager,
-            confirmAccountSwitch = { accountSwitchGate.confirmDrop() },
             language = language,
             onUpdateLanguage = { v ->
                 language = v
@@ -408,17 +332,6 @@ fun PurrodoroApp(
             },
             onComplete = {
                 scope.launch { repo.setHasSeenOnboarding(true) }
-            },
-            onPersistUserName = { name ->
-                val trimmed = name.trim()
-                userName = trimmed
-                scope.launch { repo.setUserName(trimmed) }
-            },
-            onWelcomeGuestChoice = {
-                if (authState is AuthState.SignedIn) {
-                    authRepository.signOut()
-                    repo.setOwnerId(null)
-                }
             },
             onRequestNotificationPermission = onEnableNotifications,
         )
@@ -520,17 +433,9 @@ fun PurrodoroApp(
 
     fun requestPremiumAccess(request: PremiumAccessRequest) {
         when (request) {
-            PremiumAccessRequest.Discovery -> {
-                if (authState is AuthState.Guest) {
-                    pendingPremiumRequest = request
-                    showPremiumLoginSheet = true
-                } else {
-                    fulfillPremiumAccess(request)
-                }
-            }
+            PremiumAccessRequest.Discovery -> fulfillPremiumAccess(request)
             is PremiumAccessRequest.Upsell -> {
                 premiumUpsellTrigger = request.trigger
-                pendingPremiumRequest = request
                 showPremiumSheet = true
             }
         }
@@ -538,20 +443,6 @@ fun PurrodoroApp(
 
     fun showPremiumCapPaywall(trigger: PremiumUpsellTrigger) {
         requestPremiumAccess(PremiumAccessRequest.Upsell(trigger))
-    }
-
-    suspend fun completeSignIn(user: AuthUser): AccountManager.Result {
-        val previousOwnerId = repo.currentOwnerId()
-        val result = accountManager.onSignedIn(
-            incomingUserId = user.userId,
-            confirmDrop = { accountSwitchGate.confirmDrop() },
-            onBeforeClear = { timerConnection.controller.stop() },
-        )
-        if (result == AccountManager.Result.Dropped && previousOwnerId != null) {
-            AccountAvatarStore.get(context).delete(previousOwnerId)
-        }
-        billingManager.refreshEntitlement()
-        return result
     }
 
     fun tryCreateTask(
@@ -608,55 +499,30 @@ fun PurrodoroApp(
         }
         persistTasks(tasks.filterNot(toDelete))
     }
-    // Soundscape option lists merge bundled registry + cloud catalog. Bundled
-    // display strings come from strings.xml via [buildLocalizedAmbienceOptions] /
-    // [buildLocalizedMusicOptions] so they track the active locale.
-    val localPaths = remember(catalogTracks) {
-        catalogTracks.associate { track ->
-            track.id to soundscape.downloadManager.localFile(track).absolutePath
-        }
-    }
-    val ambienceOptions = buildLocalizedAmbienceOptions(
-        bundledRows = bundledTracks,
-        remoteRows = catalogTracks,
-        downloadStates = downloadStates,
-        localPaths = localPaths,
-    )
-    val musicOptions = buildLocalizedMusicOptions(
-        bundledRows = bundledTracks,
-        remoteRows = catalogTracks,
-        downloadStates = downloadStates,
-        localPaths = localPaths,
-    )
+    val ambienceOptions = buildLocalizedAmbienceOptions()
+    val musicOptions = buildLocalizedMusicOptions()
 
-    // Cloud-track download/delete actions, surfaced in the Sounds sheet (Task 8).
-    val onDownloadTrack: (Int) -> Unit = { trackId ->
-        catalogTracks.firstOrNull { it.id == trackId }?.let { track ->
-            scope.launch { soundscape.downloadManager.download(track) }
+    LaunchedEffect(ambienceOptions, musicOptions, isPremium) {
+        val resolvedAmbience = SoundscapeCatalogBuilder.resolveAmbienceId(
+            soundscapeMixAmbienceId ?: selectedSoundId,
+            isPremium,
+            ambienceOptions,
+        )
+        val resolvedMusic = SoundscapeCatalogBuilder.resolveMusicId(
+            soundscapeMixMusicId,
+            isPremium,
+            musicOptions,
+        )
+        val ambienceChanged = soundscapeMixAmbienceId != resolvedAmbience
+        val musicChanged = soundscapeMixMusicId != resolvedMusic
+        if (ambienceChanged) soundscapeMixAmbienceId = resolvedAmbience
+        if (musicChanged) soundscapeMixMusicId = resolvedMusic
+        if (ambienceChanged || musicChanged) {
+            repo.setSoundscapeMix(resolvedAmbience, resolvedMusic)
         }
-    }
-    val onDeleteDownload: (Int) -> Unit = { trackId ->
-        catalogTracks.firstOrNull { it.id == trackId }?.let { track ->
-            // Stop playback first if this exact track is playing.
-            if (playingMusicId == trackId) playingMusicId = null
-            if (playingAmbienceId == trackId) playingAmbienceId = null
-            soundscape.downloadManager.delete(track)
-        }
-    }
-
-    // Storage screen: downloaded-content list + total, recomputed when the
-    // catalog or per-track download states change. Sizes are read from disk.
-    val storageSummary = remember(catalogTracks, downloadStates) {
-        buildStorageList(catalogTracks, downloadStates) { soundscape.downloadManager.fileSizeBytes(it) }
-    }
-    val onRemoveAllDownloads: () -> Unit = {
-        catalogTracks.forEach { track ->
-            if (downloadStates[track.id] == DownloadState.Downloaded) {
-                // Mirror the single-delete safety: stop playback before removing bytes.
-                if (playingMusicId == track.id) playingMusicId = null
-                if (playingAmbienceId == track.id) playingAmbienceId = null
-                soundscape.downloadManager.delete(track)
-            }
+        if (selectedSoundId != resolvedAmbience) {
+            selectedSoundId = resolvedAmbience
+            repo.setSelectedSoundId(resolvedAmbience)
         }
     }
 
@@ -977,10 +843,7 @@ fun PurrodoroApp(
 
     val backdropTime = AppClock.now()
     val homeGreeting = com.endiar.purrodoro.ui.rememberHomeGreeting(backdropTime)
-    val homeDisplayName = rememberHomeDisplayName(
-        authState = authState,
-        localName = userName,
-    )
+    val homeDisplayName = userName
     val homeMetrics = todayFocusMetrics(
         sessionRecords = sessionRecords,
         today = LocalDate.now()
@@ -1047,7 +910,6 @@ fun PurrodoroApp(
                         suggestionFocusMinutes = settings.focusMinutes,
                         greeting = homeGreeting,
                         userName = homeDisplayName,
-                        accountUserId = signedInUserId,
                         todayMetrics = homeMetrics,
                         cycleItems = cycleItems,
                         cycleIndex = cycleIndex,
@@ -1373,10 +1235,7 @@ fun PurrodoroApp(
             if (showProfile) {
                 ProfileScreen(
                     settings = settings,
-                    onBack = {
-                        showLoginSheet = false
-                        showProfile = false
-                    },
+                    onBack = { showProfile = false },
                     onUpdateSettings = { persistSettings(it) },
                     notificationSoundEnabled = notificationSoundEnabled,
                     onUpdateNotificationSound = { persistNotificationSoundEnabled(it) },
@@ -1387,15 +1246,8 @@ fun PurrodoroApp(
                     userName = userName,
                     onUpdateUserName = { persistUserName(it) },
                     onRequestEnableNotifications = onEnableNotifications,
-                    authState = authState,
-                    onRequestLogin = { showLoginSheet = true },
-                    syncEnabled = syncEnabled,
-                    syncPresentation = syncPresentation,
-                    storageUsedLabel = stringResource(R.string.storage_used, formatBytes(storageSummary.totalBytes)),
-                    onOpenStorage = { showStorage = true },
                     onOpenBackupRestore = { showBackupRestore = true },
                     onOpenFocusShield = { showFocusShield = true },
-                    onSignOut = { showLogoutSheet = true },
                     focusShieldEnabled = appState.focusShieldEnabled,
                     isPremium = isPremium,
                     onOpenPremium = { requestPremiumAccess(PremiumAccessRequest.Discovery) },
@@ -1416,7 +1268,7 @@ fun PurrodoroApp(
                 )
             }
 
-            if (showPremiumScreen && authState !is AuthState.Guest) {
+            if (showPremiumScreen) {
                 PremiumScreen(
                     isPremium = isPremium,
                     subscriptionOffers = subscriptionOffers,
@@ -1429,22 +1281,6 @@ fun PurrodoroApp(
                     onSubscribe = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
                     onRestorePurchases = { billingManager.restorePurchases() },
                     onManageSubscription = { billingManager.openSubscriptionManagement(billingActivity) },
-                )
-            }
-
-            LogoutConfirmSheet(
-                visible = showLogoutSheet,
-                onDismiss = { showLogoutSheet = false },
-                flushBeforeLogout = { SyncModule.get(context).flushBeforeLogout() },
-                onSignOut = { authRepository.signOut() },
-            )
-
-            if (showStorage) {
-                StorageScreen(
-                    summary = storageSummary,
-                    onBack = { showStorage = false },
-                    onRemove = onDeleteDownload,
-                    onRemoveAll = onRemoveAllDownloads,
                 )
             }
 
@@ -1462,7 +1298,6 @@ fun PurrodoroApp(
                     )
                 }
                 BackupRestoreScreen(
-                    isGuest = authState is AuthState.Guest,
                     defaultFileName = stringResource(
                         R.string.backup_default_filename,
                         java.time.LocalDate.now().toString(),
@@ -1483,55 +1318,6 @@ fun PurrodoroApp(
                         timerConnection.controller.stop()
                         withContext(Dispatchers.IO) {
                             backupManager.restore(context.contentResolver, uri)
-                        }
-                    },
-                )
-            }
-
-            if (showLoginSheet) {
-                LoginSheet(
-                    authRepository = authRepository,
-                    onDismiss = { showLoginSheet = false },
-                    onSignedIn = { user ->
-                        scope.launch {
-                            when (completeSignIn(user)) {
-                                AccountManager.Result.DropCancelled ->
-                                    authRepository.signOut()
-                                else ->
-                                    user.displayName?.trim()?.takeIf { it.isNotBlank() }
-                                        ?.let { persistUserName(it) }
-                            }
-                            showLoginSheet = false
-                        }
-                    },
-                    onContinueAsGuest = { showLoginSheet = false },
-                    fallbackDisplayName = userName,
-                )
-            }
-
-            if (showPremiumLoginSheet) {
-                PremiumLoginRequiredSheet(
-                    authRepository = authRepository,
-                    onDismiss = {
-                        showPremiumLoginSheet = false
-                        pendingPremiumRequest = null
-                    },
-                    onSignedIn = { user ->
-                        scope.launch {
-                            val pending = pendingPremiumRequest
-                            pendingPremiumRequest = null
-                            when (completeSignIn(user)) {
-                                AccountManager.Result.DropCancelled ->
-                                    authRepository.signOut()
-                                else -> {
-                                    user.displayName?.trim()?.takeIf { it.isNotBlank() }
-                                        ?.let { persistUserName(it) }
-                                    if (pending != null) {
-                                        fulfillPremiumAccess(pending)
-                                    }
-                                }
-                            }
-                            showPremiumLoginSheet = false
                         }
                     },
                 )
@@ -1695,7 +1481,6 @@ fun PurrodoroApp(
             }
 
             if (showPremiumSheet && !isPremium) {
-                val isGuest = authState is AuthState.Guest
                 PremiumUpsellSheet(
                     trigger = premiumUpsellTrigger,
                     subscriptionOffers = subscriptionOffers,
@@ -1706,44 +1491,17 @@ fun PurrodoroApp(
                     onRetryCatalog = { billingManager.refreshCatalogForPaywall() },
                     onDismiss = {
                         showPremiumSheet = false
-                        pendingPremiumRequest = null
                         paywallAfterScenePicker = null
                         paywallAfterSoundsSheet = null
                     },
                     onUpgrade = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
-                    onExplorePremium = if (isGuest) {
-                        null
-                    } else {
-                        {
-                            showPremiumSheet = false
-                            showHomeScenePicker = false
-                            pendingSceneSelection = null
-                            pendingPremiumRequest = null
-                            paywallAfterScenePicker = null
-                            paywallAfterSoundsSheet = null
-                            showPremiumScreen = true
-                        }
-                    },
-                    isGuest = isGuest,
-                    authRepository = if (isGuest) authRepository else null,
-                    onGuestSignedIn = if (isGuest) {
-                        { user ->
-                            scope.launch {
-                                when (completeSignIn(user)) {
-                                    AccountManager.Result.DropCancelled ->
-                                        authRepository.signOut()
-                                    else -> {
-                                        user.displayName?.trim()?.takeIf { it.isNotBlank() }
-                                            ?.let { persistUserName(it) }
-                                        // Stay on the same sheet — authState flips to SignedIn and
-                                        // PremiumUpsellSheet swaps guest → member content in place.
-                                        pendingPremiumRequest = null
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        null
+                    onExplorePremium = {
+                        showPremiumSheet = false
+                        showHomeScenePicker = false
+                        pendingSceneSelection = null
+                        paywallAfterScenePicker = null
+                        paywallAfterSoundsSheet = null
+                        showPremiumScreen = true
                     },
                 )
             }
@@ -1768,6 +1526,7 @@ fun PurrodoroApp(
                             onMusicVolumeChange = { musicVolume = it },
                             ambienceVolumeEnabled = soundscapeMixAmbienceId != null,
                             musicVolumeEnabled = soundscapeMixMusicId != null,
+                            showMusicVolume = musicOptions.isNotEmpty(),
                             isPlaying = isSoundscapePlaying,
                             onPlayPause = {
                                 if (isSoundscapePlaying) pauseSoundscape() else resumeSoundscape()
@@ -1777,7 +1536,7 @@ fun PurrodoroApp(
                     },
                 ) {
                     val dismissSoundsSheet = LocalKuroSheetDismiss.current
-                    // Lo-fi + ambience play from bundled res/raw (MP3 loops).
+                    // Ambience plays from bundled res/raw (MP3 loops).
                     SoundsScreen(
                         ambienceOptions = ambienceOptions,
                         musicOptions = musicOptions,
@@ -1810,8 +1569,6 @@ fun PurrodoroApp(
                         onMusicToggle = {
                             removeMusicFromMix()
                         },
-                        onDownloadTrack = onDownloadTrack,
-                        onDeleteDownload = onDeleteDownload,
                         glassTreatment = GlassTreatment.Clear,
                         overBackdrop = false,
                     )
@@ -1825,9 +1582,6 @@ fun PurrodoroApp(
             val tutorialOverlayActive = tutorialVisible && tutorialController.visible
             BackHandler(
                 enabled = showPremiumScreen ||
-                    showPremiumLoginSheet ||
-                    showLoginSheet ||
-                    showStorage ||
                     showBackupRestore ||
                     showFocusShield ||
                     showProfile ||
@@ -1836,18 +1590,9 @@ fun PurrodoroApp(
             ) {
                 when {
                     showPremiumScreen -> showPremiumScreen = false
-                    showPremiumLoginSheet -> {
-                        showPremiumLoginSheet = false
-                        pendingPremiumRequest = null
-                    }
-                    showLoginSheet -> showLoginSheet = false
                     showFocusShield -> showFocusShield = false
                     showBackupRestore -> showBackupRestore = false
-                    showStorage -> showStorage = false
-                    showProfile -> {
-                        showLoginSheet = false
-                        showProfile = false
-                    }
+                    showProfile -> showProfile = false
                     showHistory -> showHistory = false
                     tutorialOverlayActive -> {
                         tutorialController.skip {
@@ -1943,28 +1688,6 @@ private fun deriveCycleCompleteSnapshot(
         intentEmoji = intentEmoji,
         intentLabel = intentLabel,
     )
-}
-
-/**
- * Keeps the home greeting stable while Supabase auth hydrates on cold start, but
- * always adopts the local profile name once the session is confirmed guest.
- */
-@Composable
-private fun rememberHomeDisplayName(
-    authState: AuthState,
-    localName: String,
-): String {
-    var displayName by remember(localName) {
-        mutableStateOf(resolvedDisplayName(authState, localName))
-    }
-    LaunchedEffect(authState, localName) {
-        when (authState) {
-            is AuthState.SignedIn, AuthState.Guest ->
-                displayName = resolvedDisplayName(authState, localName)
-            AuthState.Loading -> Unit
-        }
-    }
-    return displayName
 }
 
 private val FocusTaskSaver = Saver<FocusTask?, List<Any?>>(

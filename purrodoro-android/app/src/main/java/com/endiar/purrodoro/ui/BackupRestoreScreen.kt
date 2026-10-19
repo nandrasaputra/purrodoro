@@ -33,9 +33,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Download
 import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.ShieldCheck
 import com.composables.icons.lucide.Upload
 import com.endiar.purrodoro.R
+import com.endiar.purrodoro.backup.BackupStatus
+import com.endiar.purrodoro.backup.BackupStatusStore
 import com.endiar.purrodoro.data.backup.RestoreOutcome
 import com.endiar.purrodoro.ui.components.KuroCard
 import com.endiar.purrodoro.ui.designsystem.KuroBackScreenTopBar
@@ -44,12 +45,14 @@ import com.endiar.purrodoro.ui.designsystem.KuroSectionHeader
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.kuroTokens
+import java.text.DateFormat
+import java.util.Date
 import kotlinx.coroutines.launch
 
 /**
  * Backup & Restore — a pushed full-screen surface (entered from Profile).
- * Export is always available; **restore is gated to guest / signed-out** to
- * avoid overwriting an account's cloud data (see the data-backup spec).
+ * Export and restore are both available. Android Auto Backup can also restore
+ * this data on a new phone signed into the same Google account.
  *
  * The screen owns the Storage Access Framework launchers; the actual file IO +
  * decode + apply runs in the [onExport] / [onRestore] suspend callbacks
@@ -58,14 +61,17 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupRestoreScreen(
-    isGuest: Boolean,
     defaultFileName: String,
     onBack: () -> Unit,
     onExport: suspend (android.net.Uri) -> Boolean,
     onRestore: suspend (android.net.Uri) -> RestoreOutcome,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var backupStatus by remember {
+        mutableStateOf(BackupStatusStore.read(context.filesDir))
+    }
 
     var working by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
@@ -88,6 +94,10 @@ fun BackupRestoreScreen(
         statusMessage = null
         scope.launch {
             val ok = onExport(uri)
+            if (ok) {
+                BackupStatusStore.recordManualExport(context.filesDir)
+                backupStatus = BackupStatusStore.read(context.filesDir)
+            }
             working = false
             statusMessage = if (ok) exportSuccess else exportError
         }
@@ -115,7 +125,7 @@ fun BackupRestoreScreen(
                 .padding(top = KuroSpacing.sm, bottom = KuroSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(KuroSpacing.md),
         ) {
-            SummaryCard()
+            SummaryCard(status = backupStatus)
 
             KuroSectionHeader(title = stringResource(R.string.backup_section_backup))
             KuroCard(modifier = Modifier.fillMaxWidth()) {
@@ -136,12 +146,8 @@ fun BackupRestoreScreen(
                 ActionRow(
                     icon = Lucide.Download,
                     label = stringResource(R.string.backup_import_label),
-                    hint = if (isGuest) {
-                        stringResource(R.string.backup_import_hint)
-                    } else {
-                        stringResource(R.string.backup_restore_blocked_signed_in)
-                    },
-                    enabled = !working && isGuest,
+                    hint = stringResource(R.string.backup_import_hint),
+                    enabled = !working,
                     onClick = {
                         statusMessage = null
                         openLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/*"))
@@ -206,25 +212,50 @@ fun BackupRestoreScreen(
 }
 
 @Composable
-private fun SummaryCard() {
+internal fun backupTimestampText(at: Long?): String {
+    if (at == null) return stringResource(R.string.backup_status_never)
+    return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(at))
+}
+
+@Composable
+private fun SummaryCard(status: BackupStatus) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     KuroElevatedCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(KuroSpacing.md),
-        ) {
-            Icon(
-                imageVector = Lucide.ShieldCheck,
-                contentDescription = null,
-                tint = tokens.accent,
-                modifier = Modifier.size(KuroSpacing.lg),
+        Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.md)) {
+            Text(
+                stringResource(R.string.backup_summary_title),
+                color = tokens.textPrimary,
+                style = KuroType.headingCard,
             )
-            Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.xs / 2)) {
-                Text(stringResource(R.string.backup_summary_title), color = tokens.textPrimary, style = KuroType.headingCard)
-                Text(stringResource(R.string.backup_summary_body), color = tokens.textSecondary, style = KuroType.labelMeta)
+            Text(
+                stringResource(R.string.backup_summary_body),
+                color = tokens.textSecondary,
+                style = KuroType.bodySecondary,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(KuroSpacing.sm)) {
+                StatusLine(
+                    label = stringResource(R.string.backup_status_file),
+                    value = backupTimestampText(status.manualExportAt),
+                )
+                StatusLine(
+                    label = stringResource(R.string.backup_status_phone),
+                    value = backupTimestampText(status.autoBackupAt),
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun StatusLine(label: String, value: String) {
+    val tokens = MaterialTheme.colorScheme.kuroTokens
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, color = tokens.textSecondary, style = KuroType.bodySecondary)
+        Text(value, color = tokens.textPrimary, style = KuroType.bodySecondary)
     }
 }
 

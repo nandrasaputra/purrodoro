@@ -49,7 +49,6 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource, 
             premiumOverrideValue.value = prefs[KEY_PREMIUM_OVERRIDE_VALUE] ?: true
             isSkipTicksEnabled.value = prefs[KEY_SKIP_TICKS_ENABLED] ?: false
             syncNotificationEnabled.value = prefs[KEY_SYNC_NOTIFICATION_ENABLED] ?: true
-            applySyncNotificationPreference()
         }
     }
 
@@ -98,17 +97,6 @@ class DebugRepository(private val context: Context? = null) : ClockDebugSource, 
 
     fun setSyncNotificationEnabled(enabled: Boolean) {
         syncNotificationEnabled.value = enabled
-        val ctx = context ?: return
-        scope.launch {
-            ctx.debugDataStore.edit { prefs ->
-                prefs[KEY_SYNC_NOTIFICATION_ENABLED] = enabled
-            }
-            SyncDebugController.setEnabled(ctx, enabled)
-        }
-    }
-
-    fun applySyncNotificationPreference() {
-        context?.let { SyncDebugController.setEnabled(it, syncNotificationEnabled.value) }
     }
 
     companion object {

@@ -13,11 +13,6 @@ class BundledTrackRegistryTest {
     }
 
     @Test
-    fun `resolveRaw maps bundled lofi to R raw id`() {
-        assertEquals(R.raw.l_lofi_desk_lamp_rain, BundledTrackRegistry.rawResId("l_lofi_desk_lamp_rain"))
-    }
-
-    @Test
     fun `resolveRawResId falls back when catalog name is unknown`() {
         assertEquals(
             R.raw.l_amb_rain,
@@ -42,27 +37,18 @@ class BundledTrackRegistryTest {
     }
 
     @Test
-    fun `bundled raw resources use kind prefix`() {
+    fun `bundled raw resources are ambience`() {
         BundledTrackRegistry.defaults.forEach { def ->
-            when (def.kind) {
-                "ambience" -> assertTrue(
-                    "${def.rawResource} should start with l_amb_",
-                    def.rawResource.startsWith("l_amb_"),
-                )
-                "music" -> assertTrue(
-                    "${def.rawResource} should start with l_lofi_",
-                    def.rawResource.startsWith("l_lofi_"),
-                )
-            }
+            assertEquals("ambience", def.kind)
+            assertTrue(
+                "${def.rawResource} should start with l_amb_",
+                def.rawResource.startsWith("l_amb_"),
+            )
         }
     }
 
     @Test
     fun `resolveRawResId resolves legacy catalog raw names`() {
-        assertEquals(
-            R.raw.l_lofi_desk_lamp_rain,
-            BundledTrackRegistry.resolveRawResId("lofi_bloom_yasumu", "l_lofi_desk_lamp_rain"),
-        )
         assertEquals(
             R.raw.l_amb_fireplace,
             BundledTrackRegistry.resolveRawResId("ambience_fireplace", "l_amb_fireplace"),
@@ -70,8 +56,8 @@ class BundledTrackRegistryTest {
     }
 
     @Test
-    fun `defaults include six ambience and six music tracks`() {
+    fun `defaults include six ambience tracks and no music`() {
         assertEquals(6, BundledTrackRegistry.defaults.count { it.kind == "ambience" })
-        assertEquals(6, BundledTrackRegistry.defaults.count { it.kind == "music" })
+        assertEquals(0, BundledTrackRegistry.defaults.count { it.kind == "music" })
     }
 }

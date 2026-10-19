@@ -42,12 +42,9 @@ import com.composables.icons.lucide.Crown
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Sparkles
 import com.endiar.purrodoro.R
-import com.endiar.purrodoro.auth.AuthRepository
 import com.endiar.purrodoro.billing.BillingCatalogState
 import com.endiar.purrodoro.billing.PremiumPlan
 import com.endiar.purrodoro.billing.SubscriptionOffers
-import com.endiar.purrodoro.model.AuthUser
-import com.endiar.purrodoro.ui.auth.GoogleSignInBlock
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.Cocoa
@@ -90,63 +87,6 @@ fun PremiumGuestUnlockHeader(modifier: Modifier = Modifier) {
  *
  * Hierarchy: illustration → headline → supporting line → primary CTA → secondary dismiss.
  */
-@Composable
-fun PremiumSignInGateContent(
-    title: String,
-    body: String,
-    isSigningIn: Boolean,
-    authRepository: AuthRepository,
-    onSignedIn: (AuthUser) -> Unit,
-    onDismiss: () -> Unit,
-    onSigningInChanged: (Boolean) -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    val tokens = MaterialTheme.colorScheme.kuroTokens
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        PremiumGuestUnlockHeader()
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = KuroSpacing.xl)
-                .padding(top = KuroSpacing.md, bottom = KuroSpacing.lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = title,
-                style = KuroType.headingScreen.copy(
-                    fontFamily = NunitoFamily,
-                    fontWeight = FontWeight.SemiBold,
-                ),
-                color = tokens.textPrimary,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(KuroSpacing.sm))
-            Text(
-                text = body,
-                style = KuroType.bodyPrimary,
-                color = tokens.textSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(max = 300.dp),
-            )
-            Spacer(modifier = Modifier.height(KuroSpacing.lg))
-            GoogleSignInBlock(
-                authRepository = authRepository,
-                onSignedIn = onSignedIn,
-                onSigningInChanged = onSigningInChanged,
-            )
-            TextButton(onClick = onDismiss, enabled = !isSigningIn) {
-                Text(
-                    text = stringResource(R.string.premium_sheet_dismiss),
-                    style = KuroType.bodySecondary,
-                    color = tokens.textSecondary,
-                )
-            }
-        }
-    }
-}
-
 /** Sticky paywall footer: gradient CTA + dismiss. Used with [KuroAdaptiveBottomSheet] footer slot. */
 @Composable
 fun PremiumSheetStickyFooter(

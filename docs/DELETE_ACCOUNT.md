@@ -4,7 +4,9 @@
 **Developer:** Endiar  
 **Last updated:** 26 June 2026
 
-This page explains how to request deletion of your **Purrodoro account** and the data we store for you in the cloud.
+The Android app no longer has an account or cloud sync. Uninstalling the app removes the on-device copy. A copy may remain in your Google account's Android backup until you delete that backup in your Google account settings. The JSON file you exported stays wherever you saved it.
+
+The steps below apply only if you previously signed in and data was stored for that account.
 
 ---
 

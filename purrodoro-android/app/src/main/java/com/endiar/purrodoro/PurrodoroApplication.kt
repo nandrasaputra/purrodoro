@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.pm.ApplicationInfo
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import java.io.File
+import kotlin.concurrent.thread
 
 /**
  * Application entry for release builds. Initializes Firebase Crashlytics when
@@ -15,6 +17,15 @@ open class PurrodoroApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         initCrashlytics()
+        thread(name = "clear-retired-files", start = true) {
+            clearRetiredSoundscapeFiles(this)
+        }
+    }
+
+    private fun clearRetiredSoundscapeFiles(app: Application) {
+        listOf("soundscapes", "soundscape-thumbs", "account-avatars").forEach { name ->
+            runCatching { File(app.filesDir, name).deleteRecursively() }
+        }
     }
 
     private fun initCrashlytics() {
