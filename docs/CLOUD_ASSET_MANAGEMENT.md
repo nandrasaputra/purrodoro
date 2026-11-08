@@ -277,8 +277,8 @@ The **lock** column toggles `is_premium` (`premium` ↔ `free`) and bumps
 migration or hand-written SQL required after the row exists.
 
 See the tool's [README](../tools/soundscape-admin/README.md) for setup. It is
-**dev-server only** — uses the Supabase service role key and R2 write credentials;
-never build/deploy it (`npm run build` would inline secrets).
+**local-only** — its loopback server uses the Supabase service role key and R2
+write credentials. Production builds are disabled; never expose or deploy it.
 
 ### Local (bundled) catalog table
 

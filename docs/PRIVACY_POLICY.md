@@ -1,6 +1,6 @@
 # Privacy Policy — Purrodoro
 
-**Effective date:** 25 June 2026  
+**Last updated:** 8 November 2026
 **App:** Purrodoro (Android)  
 **Developer:** Endiar  
 **Contact:** nandra.saputrass@gmail.com  
@@ -28,19 +28,17 @@ This policy explains what information we collect, how we use it, and your choice
 | Timer and app settings | On device | Preferences |
 | Manual backup file (JSON) | A file you choose | Backup and restore |
 
-We do **not** ask you to sign in, and we do not store an account for you.
+The current Android app does not ask you to sign in or create an account. Accounts and cloud data from earlier versions may still exist until deleted.
 
 ### 2.2 Information collected automatically
 
 | Data | When | Purpose |
 |------|------|---------|
-| **Subscription / purchase status** | When you subscribe or restore via Google Play | Premium features |
+| **Purchase status** | When you purchase or restore Premium via Google Play | Premium features |
 | **Crash & diagnostic logs** | When the app crashes (release builds) | Fix bugs via Firebase Crashlytics |
 | **Device & app metadata** (OS version, device model, app version) | With crash reports | Debugging |
-| **Soundscape catalog metadata** | When you open Sounds | List available ambience / lo-fi tracks |
-| **Downloaded audio files** | When you download cloud tracks | Offline playback |
 
-We do **not** collect precise location, contacts, photos (except your Google profile image URL when signed in), microphone, or camera data.
+We do **not** collect precise location, contacts, photos, microphone, or camera data.
 
 ### 2.3 Information we do not collect
 
@@ -55,9 +53,7 @@ We do **not** collect precise location, contacts, photos (except your Google pro
 We use data to:
 
 - Run the Pomodoro timer, tasks, habits, and soundscapes
-- Sync your data across devices when you are signed in
-- Show your account name and avatar in Profile
-- Verify Premium subscription status
+- Verify Premium purchase status
 - Send **local notifications** for timer completion (if you allow notifications)
 - Diagnose crashes and improve stability
 - Respond to support requests
@@ -72,7 +68,7 @@ We use data to:
 | **Google** | Play Billing records; Android app backup | Google (per [Google Privacy Policy](https://policies.google.com/privacy)) |
 | **Firebase Crashlytics** (Google) | Crash stack traces & diagnostic logs | Google / Firebase (per [Firebase Privacy](https://firebase.google.com/support/privacy)) |
 
-We do not upload your tasks, habits, or focus history to a server we operate. Soundscape audio ships inside the app.
+The current Android app does not upload your tasks, habits, or focus history to a server we operate. Soundscape audio ships inside the app. Earlier versions supported accounts and cloud sync; see the deletion page below if you used those versions.
 
 ---
 
@@ -82,7 +78,7 @@ Purrodoro uses:
 
 | Service | Provider | Role |
 |---------|----------|------|
-| **Google Play Billing** | Google LLC | Premium subscriptions |
+| **Google Play Billing** | Google LLC | Premium purchases |
 | **Firebase Crashlytics** | Google LLC | Crash reporting (release builds only) |
 | **Android backup** | Google LLC | Restores app data on a new phone with the same Google account |
 
@@ -111,6 +107,7 @@ You can deny notifications or alarm permission; core timing still works while th
 - **On-device data:** Stays on your device until you uninstall the app or clear app storage. Android backup may keep a copy with your Google account until you delete that backup.
 - **Crash logs:** Retained per Firebase Crashlytics default retention (typically ~90 days).
 - **Manual backups:** Files you export stay wherever you save them (Downloads, Drive, etc.).
+- **Accounts from earlier versions:** Previously synced cloud data may remain until you request deletion using the page below.
 
 **To delete your account and cloud data:** See our dedicated page:  
 https://nandrasaputra.dev/purrodoro/delete-account
@@ -146,10 +143,10 @@ Depending on where you live, you may have the right to:
 
 - Access, correct, or delete your personal data
 - Export your data from Profile → Backup & restore
-- Withdraw consent (e.g. sign out, uninstall, deny notifications)
+- Withdraw consent where applicable (e.g. uninstall or deny notifications)
 - Lodge a complaint with a data protection authority
 
-**EU/UK (GDPR):** Legal bases include contract (providing the app), legitimate interests (security, crash fixes), and consent (notifications, optional sign-in).  
+**EU/UK (GDPR):** Legal bases include contract (providing the app), legitimate interests (security, crash fixes), and consent where applicable (such as notifications).
 **California (CCPA/CPRA):** We do not sell personal information. You may request access or deletion via the contact below.
 
 ---
@@ -181,7 +178,7 @@ Use this as a guide when filling Play Console **Data safety**. Adjust if your li
 | User IDs | Crash installs only | Firebase | Analytics | No (release builds) |
 | App activity (tasks, habits, focus history) | On device; may be in Android backup | Google (backup) | App functionality | No |
 | Crash logs | Yes | Firebase | Analytics | No (release builds) |
-| Purchase history | Yes | Google Play | App functionality | Yes (only if subscribing) |
+| Purchase history | Yes | Google Play | App functionality | Yes (only if purchasing) |
 | Photos | No | — | — | — |
 
 **Encryption in transit:** Yes  

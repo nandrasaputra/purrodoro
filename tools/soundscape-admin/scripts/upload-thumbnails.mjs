@@ -4,7 +4,7 @@
  * Run from repo root:
  *   node tools/soundscape-admin/scripts/upload-thumbnails.mjs
  *
- * Reads R2 credentials from tools/soundscape-admin/.env (VITE_R2_*).
+ * Reads R2 credentials from tools/soundscape-admin/.env.local (R2_*).
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -42,12 +42,12 @@ function walkWebp(dir, base = dir) {
   return out;
 }
 
-const env = loadEnv(join(adminDir, '.env'));
-const accountId = env.VITE_R2_ACCOUNT_ID;
-const accessKeyId = env.VITE_R2_ACCESS_KEY_ID;
-const secretAccessKey = env.VITE_R2_SECRET_ACCESS_KEY;
+const env = loadEnv(join(adminDir, '.env.local'));
+const accountId = env.R2_ACCOUNT_ID;
+const accessKeyId = env.R2_ACCESS_KEY_ID;
+const secretAccessKey = env.R2_SECRET_ACCESS_KEY;
 if (!accountId || !accessKeyId || !secretAccessKey) {
-  console.error('Missing VITE_R2_* in tools/soundscape-admin/.env');
+  console.error('Missing R2_* in tools/soundscape-admin/.env.local');
   process.exit(1);
 }
 

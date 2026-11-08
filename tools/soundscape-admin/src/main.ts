@@ -1,5 +1,4 @@
-import { supabase } from './supabase';
-import { publicAudioUrl, publicThumbnailUrl, thumbnailPathForAudio, uploadAudio, uploadImage } from './r2';
+import { initApi, loadRemoteTracks, loadBundledTracks, updateRemote, updateBundled, insertRemote, publicAudioUrl, publicThumbnailUrl, thumbnailPathForAudio, uploadAudio, uploadImage } from './api';
 import type { BundledTrack, RemoteTrack, TrackKind } from './types';
 
 const REMOTE_ID_FLOOR = 100;
@@ -41,23 +40,9 @@ function el<K extends keyof HTMLElementTagNameMap>(
 
 // ── Remote tracks ────────────────────────────────────────────────────────────
 
-async function loadRemoteTracks(): Promise<RemoteTrack[]> {
-  const { data, error } = await supabase
-    .from('soundscape_tracks')
-    .select('*')
-    .order('sort_order');
-  if (error) throw error;
-  return (data ?? []) as RemoteTrack[];
-}
-
 async function nextRemoteId(tracks: RemoteTrack[]): Promise<number> {
   const max = tracks.reduce((m, t) => Math.max(m, t.id), REMOTE_ID_FLOOR - 1);
   return Math.max(max + 1, REMOTE_ID_FLOOR);
-}
-
-async function updateRemote(id: number, patch: Partial<RemoteTrack>) {
-  const { error } = await supabase.from('soundscape_tracks').update(patch).eq('id', id);
-  if (error) throw error;
 }
 
 function folderFor(kind: TrackKind): string {
@@ -111,8 +96,7 @@ async function addRemoteTrack(form: HTMLFormElement, existing: RemoteTrack[]) {
     is_active: true,
     updated_at: new Date().toISOString(),
   };
-  const { error: insErr } = await supabase.from('soundscape_tracks').insert(row);
-  if (insErr) throw insErr;
+  await insertRemote(row);
 
   remoteTracks = [...remoteTracks, row].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
   replaceRemoteRow(row);
@@ -261,24 +245,6 @@ function renderRemotePanel(container: HTMLElement) {
 
 // ── Bundled (APK) tracks ───────────────────────────────────────────────────────
 
-async function loadBundledTracks(): Promise<BundledTrack[]> {
-  const { data, error } = await supabase
-    .from('soundscape_bundled_catalog')
-    .select('*')
-    .order('sort_order');
-  if (error) throw error;
-  return (data ?? []) as BundledTrack[];
-}
-
-async function updateBundled(kind: TrackKind, localId: number, patch: Partial<BundledTrack>) {
-  const { error } = await supabase
-    .from('soundscape_bundled_catalog')
-    .update(patch)
-    .eq('kind', kind)
-    .eq('local_id', localId);
-  if (error) throw error;
-}
-
 function bundledTrack(kind: TrackKind, localId: number): BundledTrack {
   const track = bundledTracks.find((t) => t.kind === kind && t.local_id === localId);
   if (!track) throw new Error(`Unknown bundled track ${kind}/${localId}`);
@@ -397,6 +363,7 @@ function selectField(name: string, options: string[]): HTMLSelectElement {
 async function bootstrap() {
   app.replaceChildren(el('p', { className: 'muted', textContent: 'Loading…' }));
   try {
+    await initApi();
     [remoteTracks, bundledTracks] = await Promise.all([loadRemoteTracks(), loadBundledTracks()]);
     app.replaceChildren();
     const remoteSection = el('section');

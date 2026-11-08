@@ -4,12 +4,12 @@ A tiny Vite + TypeScript SPA for managing the soundscape catalogs without an app
 release: the **remote** cloud catalog (`soundscape_tracks`) and the **local**
 APK override table (`soundscape_bundled_catalog`).
 
-> ⚠️ **Security — dev-server only.** This tool uses the Supabase **service role
-> key** and R2 **write credentials**, which bypass normal access controls. Vite
-> inlines any `VITE_*` env var into the client bundle at build time, so **never
-> run `npm run build` / serve `dist/`** — that would ship secrets in plaintext
-> JS. Use `npm run dev` locally only. Keep secrets in `.env` / `.env.local`
-> (gitignored) and never commit them.
+> **Security — local use only.** A loopback-only Node server holds the Supabase
+> service-role key and R2 write credentials; the browser calls its scoped local
+> API. These credentials bypass normal access controls. Do not expose the server
+> through a proxy or tunnel, or use this tool on an untrusted computer. Malicious
+> local software or browser extensions can still compromise it. Production builds
+> and previews are disabled. Keep credentials in `.env.local` and never commit them.
 
 ## Prerequisites
 
@@ -23,8 +23,18 @@ APK override table (`soundscape_bundled_catalog`).
 cd tools/soundscape-admin
 cp .env.example .env.local   # paste Supabase + R2 credentials
 npm install
-npm run dev                  # http://localhost:5173
+npm run dev                  # http://127.0.0.1:5173
 ```
+
+### Migrating existing credentials
+
+In your ignored `.env` or `.env.local`, rename `VITE_SUPABASE_URL` to `SUPABASE_URL`,
+`VITE_SUPABASE_SERVICE_ROLE_KEY` to `SUPABASE_SERVICE_ROLE_KEY`, and all
+`VITE_R2_*` entries to `R2_*`. See `.env.example`. The server refuses to start
+while old privileged `VITE_` variables remain in either file or the shell. If credentials were ever exposed
+through a published build, network-accessible dev server, or untrusted browser,
+rotate them in Supabase and Cloudflare. The thumbnail upload script also reads
+the new `R2_*` names from `.env.local`.
 
 ## Remote workflow (cloud tracks, ids ≥ 100)
 

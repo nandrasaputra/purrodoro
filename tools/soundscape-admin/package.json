@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "check": "tsc --noEmit",
+    "test": "node --test server/*.test.mjs",
     "upload-thumbnails": "node scripts/upload-thumbnails.mjs"
   },
   "dependencies": {

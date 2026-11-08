@@ -20,7 +20,7 @@ The steps below apply only if you previously signed in and data was stored for t
    - A clear statement that you want your **Purrodoro account and cloud data deleted**
 3. We will verify the request and delete your account within **30 days** (usually sooner). We may reply once to confirm your identity if needed.
 
-**Optional before you email:** Sign in to Purrodoro → **Profile** → sign out on devices you no longer use. This removes the encrypted session on those devices but does **not** delete cloud data by itself.
+If you still have an older version with sign-in, signing out does **not** delete cloud data by itself.
 
 ---
 
@@ -38,7 +38,7 @@ When your account is deleted, we remove your **Supabase auth account** and all s
 | Daily stamps / journey stats | Yes |
 | Google sign-in link to Purrodoro (Supabase Auth) | Yes |
 
-Deletion is permanent. You can use Purrodoro again as a **guest** or sign in with Google to create a **new** account (empty cloud data).
+Deletion is permanent. The current Android app can be used without an account.
 
 ---
 
@@ -49,7 +49,7 @@ Deletion is permanent. You can use Purrodoro again as a **guest** or sign in wit
 | **Data on your device** | Not removed by cloud deletion. Uninstall the app or clear **Purrodoro** storage in Android Settings to remove local data. |
 | **Manual backup files (JSON)** | Files you exported stay wherever you saved them (Downloads, Drive, etc.). Delete those copies yourself. |
 | **Crash & diagnostic logs** | May remain in **Firebase Crashlytics** for up to **~90 days** (Google’s default retention). Not linked to your account after deletion. |
-| **Google Play subscription & purchase records** | Kept by **Google**. Deleting your Purrodoro account does **not** cancel Premium. Cancel in [Google Play → Subscriptions](https://play.google.com/store/account/subscriptions). |
+| **Google Play subscription & purchase records** | Kept by **Google**. Deleting your Purrodoro account does **not** cancel a previous subscription or delete purchase records. Manage subscriptions in [Google Play → Subscriptions](https://play.google.com/store/account/subscriptions). |
 | **Downloaded soundscape audio** | Cached files on your device; clear app storage or uninstall to remove. |
 
 We do **not** sell your data. We do not keep a copy of your synced tasks, habits, or focus history after account deletion is completed.
