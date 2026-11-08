@@ -46,7 +46,10 @@ features and release readiness can differ from Android; consult the port status.
 
 ## Licensing and assets
 
-No project license has been specified yet. Do not assume permission to reuse or
-redistribute the code, branding, audio, or other assets; the owner must confirm
-the applicable terms and any third-party attribution requirements. The bundled
-Nunito fonts have their own [SIL Open Font License](LICENSES/Nunito-OFL.txt).
+The project's original source code is licensed under the [MIT License](LICENSE).
+Third-party dependencies remain subject to their own licenses.
+
+The MIT license does not grant rights to the project's branding, audio,
+artwork, or other media assets. Those assets are subject to their respective
+owners' terms. The bundled Nunito fonts are provided under the
+[SIL Open Font License](LICENSES/Nunito-OFL.txt).
