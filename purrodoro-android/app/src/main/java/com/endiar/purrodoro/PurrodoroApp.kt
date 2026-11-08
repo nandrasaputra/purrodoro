@@ -62,8 +62,9 @@ import android.content.Context
 import android.content.ContextWrapper
 import com.endiar.purrodoro.audio.SoundscapeLoopPlayer
 import com.endiar.purrodoro.billing.BillingModule
+import com.endiar.purrodoro.billing.DiscountOffer
+import com.endiar.purrodoro.billing.DiscountOfferController
 import com.endiar.purrodoro.billing.BillingUiEvent
-import com.endiar.purrodoro.billing.PremiumPlan
 import com.endiar.purrodoro.audio.AudioSource
 import com.endiar.purrodoro.soundscape.SoundscapeCatalogBuilder
 import com.endiar.purrodoro.soundscape.buildLocalizedAmbienceOptions
@@ -99,6 +100,7 @@ import com.endiar.purrodoro.ui.HabitDraft
 import com.endiar.purrodoro.ui.HistoryScreen
 import com.endiar.purrodoro.ui.HomeScenePickerSheet
 import com.endiar.purrodoro.ui.HomeTimerScreen
+import com.endiar.purrodoro.ui.DiscountOfferDialog
 import com.endiar.purrodoro.ui.ProfileScreen
 import com.endiar.purrodoro.focusshield.FocusShield
 import com.endiar.purrodoro.focusshield.FocusShieldController
@@ -218,14 +220,32 @@ fun PurrodoroApp(
 
     val context = LocalContext.current
     val billingManager = remember { BillingModule.get(context).billingManager }
-    val subscriptionOffers by billingManager.offers.collectAsStateWithLifecycle()
+    val premiumCatalog by billingManager.offers.collectAsStateWithLifecycle()
     val purchaseInFlight by billingManager.purchaseInFlight.collectAsStateWithLifecycle()
-    var selectedPremiumPlan by rememberSaveable { mutableStateOf(PremiumPlan.Yearly) }
     // LocalContext can be a configuration wrapper: KuroLocalizationProvider
     // replaces it via createConfigurationContext when a non-System language is
     // selected. A direct cast would yield null there and every purchase would
     // end in LaunchFailed, so unwrap to the host Activity instead.
     val billingActivity = context.findHostActivity()
+    val discountOffers = remember { DiscountOfferController(context.filesDir) }
+    val discountOfferedAt by discountOffers.offeredAt.collectAsStateWithLifecycle()
+    var discountNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val discountPhase = DiscountOffer.phase(discountOfferedAt, discountNow)
+    LaunchedEffect(discountPhase, discountOfferedAt) {
+        if (discountPhase != DiscountOffer.Phase.Active) return@LaunchedEffect
+        while (true) {
+            discountNow = System.currentTimeMillis()
+            delay(1_000)
+        }
+    }
+    LaunchedEffect(discountPhase) {
+        billingManager.setDiscountWindowActive(discountPhase == DiscountOffer.Phase.Active)
+        if (discountPhase == DiscountOffer.Phase.Active) {
+            billingManager.refreshCatalogForPaywall()
+        }
+    }
+    var showDiscountDialog by remember { mutableStateOf(false) }
+    val discountEndsAtMillis = discountOfferedAt?.plus(DiscountOffer.ACTIVE_WINDOW_MS)
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(billingManager) {
@@ -243,6 +263,20 @@ fun PurrodoroApp(
 
     val isPremium = PremiumOverride.overrideValue() ?: appState.isPremium
     val displayHomeScene = effectiveHomeScene(appState.homeScene, isPremium)
+    LaunchedEffect(isPremium) {
+        if (isPremium) showDiscountDialog = false
+    }
+    fun leavePremiumPaywall() {
+        if (isPremium) return
+        val started = discountOffers.onPaywallDismissed(
+            nowMillis = System.currentTimeMillis(),
+            discountPriceReady = premiumCatalog.discountPriceReady,
+        )
+        if (started) {
+            billingManager.setDiscountWindowActive(true)
+            showDiscountDialog = true
+        }
+    }
 
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) { mutableStateOf(AppTab.Timer) }
     var playingAmbienceId by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -1251,6 +1285,22 @@ fun PurrodoroApp(
                     focusShieldEnabled = appState.focusShieldEnabled,
                     isPremium = isPremium,
                     onOpenPremium = { requestPremiumAccess(PremiumAccessRequest.Discovery) },
+                    discountEndsAtMillis = if (
+                        discountPhase == DiscountOffer.Phase.Active && !isPremium
+                    ) {
+                        discountEndsAtMillis
+                    } else {
+                        null
+                    },
+                    discountPrice = premiumCatalog.discountPrice,
+                    discountCompareAtPrice = premiumCatalog.fullPrice,
+                    onOpenDiscount = {
+                        if (premiumCatalog.discountActive && premiumCatalog.isReady) {
+                            billingManager.launchPurchase(billingActivity, discounted = true)
+                        } else {
+                            requestPremiumAccess(PremiumAccessRequest.Discovery)
+                        }
+                    },
                 )
             }
 
@@ -1271,16 +1321,22 @@ fun PurrodoroApp(
             if (showPremiumScreen) {
                 PremiumScreen(
                     isPremium = isPremium,
-                    subscriptionOffers = subscriptionOffers,
-                    selectedPlan = selectedPremiumPlan,
-                    onPlanSelected = { selectedPremiumPlan = it },
+                    premiumCatalog = premiumCatalog,
                     purchaseInFlight = purchaseInFlight,
                     onRefreshCatalog = { billingManager.refreshCatalogForPaywall() },
                     onRetryCatalog = { billingManager.refreshCatalogForPaywall() },
-                    onBack = { showPremiumScreen = false },
-                    onSubscribe = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
+                    onBack = {
+                        showPremiumScreen = false
+                        leavePremiumPaywall()
+                    },
+                    onPurchase = {
+                        billingManager.launchPurchase(
+                            billingActivity,
+                            discounted = premiumCatalog.discountActive,
+                        )
+                    },
                     onRestorePurchases = { billingManager.restorePurchases() },
-                    onManageSubscription = { billingManager.openSubscriptionManagement(billingActivity) },
+                    discountEndsAtMillis = if (premiumCatalog.discountActive) discountEndsAtMillis else null,
                 )
             }
 
@@ -1483,9 +1539,7 @@ fun PurrodoroApp(
             if (showPremiumSheet && !isPremium) {
                 PremiumUpsellSheet(
                     trigger = premiumUpsellTrigger,
-                    subscriptionOffers = subscriptionOffers,
-                    selectedPlan = selectedPremiumPlan,
-                    onPlanSelected = { selectedPremiumPlan = it },
+                    premiumCatalog = premiumCatalog,
                     purchaseInFlight = purchaseInFlight,
                     onRefreshCatalog = { billingManager.refreshCatalogForPaywall() },
                     onRetryCatalog = { billingManager.refreshCatalogForPaywall() },
@@ -1493,8 +1547,14 @@ fun PurrodoroApp(
                         showPremiumSheet = false
                         paywallAfterScenePicker = null
                         paywallAfterSoundsSheet = null
+                        leavePremiumPaywall()
                     },
-                    onUpgrade = { plan -> billingManager.launchSubscribe(billingActivity, plan) },
+                    onUpgrade = {
+                        billingManager.launchPurchase(
+                            billingActivity,
+                            discounted = premiumCatalog.discountActive,
+                        )
+                    },
                     onExplorePremium = {
                         showPremiumSheet = false
                         showHomeScenePicker = false
@@ -1502,6 +1562,19 @@ fun PurrodoroApp(
                         paywallAfterScenePicker = null
                         paywallAfterSoundsSheet = null
                         showPremiumScreen = true
+                    },
+                    discountEndsAtMillis = if (premiumCatalog.discountActive) discountEndsAtMillis else null,
+                )
+            }
+
+            if (showDiscountDialog && !isPremium) {
+                DiscountOfferDialog(
+                    price = premiumCatalog.discountPrice,
+                    endsAtMillis = discountEndsAtMillis ?: System.currentTimeMillis(),
+                    onDismiss = { showDiscountDialog = false },
+                    onUnlock = {
+                        showDiscountDialog = false
+                        billingManager.launchPurchase(billingActivity, discounted = true)
                     },
                 )
             }
@@ -1589,7 +1662,10 @@ fun PurrodoroApp(
                     tutorialOverlayActive
             ) {
                 when {
-                    showPremiumScreen -> showPremiumScreen = false
+                    showPremiumScreen -> {
+                        showPremiumScreen = false
+                        leavePremiumPaywall()
+                    }
                     showFocusShield -> showFocusShield = false
                     showBackupRestore -> showBackupRestore = false
                     showProfile -> showProfile = false

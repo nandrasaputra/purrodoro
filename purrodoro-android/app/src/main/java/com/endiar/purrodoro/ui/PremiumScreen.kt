@@ -42,15 +42,12 @@ import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Lucide
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.billing.BillingCatalogState
-import com.endiar.purrodoro.billing.PremiumPlan
-import com.endiar.purrodoro.billing.SubscriptionOffers
-import com.endiar.purrodoro.billing.TrialPeriod
+import com.endiar.purrodoro.billing.PremiumCatalog
 import com.endiar.purrodoro.model.PremiumGate
 import com.endiar.purrodoro.ui.components.KuroCard
 import com.endiar.purrodoro.ui.designsystem.KuroBackScreenTopBar
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
-import com.endiar.purrodoro.ui.theme.Coral
 import com.endiar.purrodoro.ui.theme.JourneyGreen
 import com.endiar.purrodoro.ui.theme.NunitoFamily
 import com.endiar.purrodoro.ui.theme.PremiumBadgeGradientBottom
@@ -63,16 +60,14 @@ private const val PremiumExploreHeaderAspectRatio = 3f / 2f
 @Composable
 fun PremiumScreen(
     isPremium: Boolean,
-    subscriptionOffers: SubscriptionOffers,
-    selectedPlan: PremiumPlan,
-    onPlanSelected: (PremiumPlan) -> Unit,
+    premiumCatalog: PremiumCatalog,
     purchaseInFlight: Boolean,
     onRefreshCatalog: () -> Unit,
     onRetryCatalog: () -> Unit,
     onBack: () -> Unit,
-    onSubscribe: (PremiumPlan) -> Unit,
+    onPurchase: () -> Unit,
     onRestorePurchases: () -> Unit,
-    onManageSubscription: () -> Unit,
+    discountEndsAtMillis: Long? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
@@ -91,13 +86,12 @@ fun PremiumScreen(
         bottomBar = {
             PremiumStickyBottomBar(
                 isPremium = isPremium,
-                selectedPlan = selectedPlan,
-                subscriptionOffers = subscriptionOffers,
+                premiumCatalog = premiumCatalog,
                 purchaseInFlight = purchaseInFlight,
-                onSubscribe = onSubscribe,
+                onPurchase = onPurchase,
                 onRestorePurchases = onRestorePurchases,
-                onManageSubscription = onManageSubscription,
                 onRetryCatalog = onRetryCatalog,
+                discountEndsAtMillis = discountEndsAtMillis,
             )
         },
     ) { innerPadding ->
@@ -114,16 +108,7 @@ fun PremiumScreen(
                     .padding(horizontal = KuroSpacing.lg)
                     .padding(top = KuroSpacing.lg, bottom = KuroSpacing.xxl),
             ) {
-                PremiumHeadlineBlock(
-                    isPremium = isPremium,
-                    trialPeriod = if (
-                        !isPremium && subscriptionOffers.catalogState == BillingCatalogState.Ready
-                    ) {
-                        subscriptionOffers.yearly.trialPeriod
-                    } else {
-                        null
-                    },
-                )
+                PremiumHeadlineBlock(isPremium = isPremium)
 
                 if (!isPremium) {
                     Spacer(modifier = Modifier.height(KuroSpacing.lg))
@@ -138,15 +123,6 @@ fun PremiumScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    Spacer(modifier = Modifier.height(KuroSpacing.xl))
-                    PremiumSectionLabel(text = stringResource(R.string.premium_screen_pick_plan))
-                    Spacer(modifier = Modifier.height(KuroSpacing.sm))
-                    PremiumPlanPicker(
-                        selectedPlan = selectedPlan,
-                        onPlanSelected = onPlanSelected,
-                        subscriptionOffers = subscriptionOffers,
-                        layout = PlanPickerLayout.Compact,
-                    )
                 } else {
                     Spacer(modifier = Modifier.height(KuroSpacing.sm))
                     Text(
@@ -204,16 +180,16 @@ private fun PremiumExploreHeader(isPremium: Boolean) {
 @Composable
 private fun PremiumStickyBottomBar(
     isPremium: Boolean,
-    selectedPlan: PremiumPlan,
-    subscriptionOffers: SubscriptionOffers,
+    premiumCatalog: PremiumCatalog,
     purchaseInFlight: Boolean,
-    onSubscribe: (PremiumPlan) -> Unit,
+    onPurchase: () -> Unit,
     onRestorePurchases: () -> Unit,
-    onManageSubscription: () -> Unit,
     onRetryCatalog: () -> Unit,
+    discountEndsAtMillis: Long? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
+    val discountRemaining = rememberDiscountRemaining(discountEndsAtMillis ?: 0L)
     val barShape = RoundedCornerShape(
         topStart = KuroSpacing.radiusLg,
         topEnd = KuroSpacing.radiusLg,
@@ -247,9 +223,9 @@ private fun PremiumStickyBottomBar(
             .navigationBarsPadding(),
     ) {
         if (isPremium) {
-            PremiumActiveFooter(onManageSubscription = onManageSubscription)
+            PremiumActiveFooter()
         } else {
-            when (subscriptionOffers.catalogState) {
+            when (premiumCatalog.catalogState) {
                 BillingCatalogState.Idle,
                 BillingCatalogState.Loading,
                 -> {
@@ -278,26 +254,31 @@ private fun PremiumStickyBottomBar(
                     }
                 }
                 BillingCatalogState.Ready -> {
-                    Text(
-                        text = selectedPlanSummary(selectedPlan, subscriptionOffers),
-                        style = KuroType.labelStrong,
-                        color = tokens.textSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = KuroSpacing.sm),
-                    )
+                    val price = premiumCatalog.formattedPrice
+                    if (premiumCatalog.discountActive && discountEndsAtMillis != null) {
+                        DiscountRemainingPill(
+                            remaining = discountRemaining,
+                            modifier = Modifier.padding(bottom = KuroSpacing.sm),
+                        )
+                    }
+                    if (price != null) {
+                        DiscountOfferPriceLine(
+                            price = price,
+                            compareAtPrice = premiumCatalog.compareAtPrice,
+                            modifier = Modifier.padding(bottom = KuroSpacing.sm),
+                        )
+                    }
                     PremiumGradientCtaButton(
-                        text = stringResource(subscriptionOffers.ctaResId(selectedPlan, forSheet = false)),
-                        onClick = { onSubscribe(selectedPlan) },
+                        text = if (premiumCatalog.discountActive && price != null) {
+                            stringResource(R.string.premium_discount_unlock, price)
+                        } else {
+                            stringResource(premiumCatalog.ctaResId(forSheet = false))
+                        },
+                        onClick = onPurchase,
                         enabled = !purchaseInFlight,
                     )
                     Text(
-                        text = if (selectedPlan == PremiumPlan.Yearly && subscriptionOffers.yearly.hasTrial) {
-                            stringResource(R.string.premium_trial_terms)
-                        } else {
-                            stringResource(R.string.premium_subscription_hint)
-                        },
+                        text = stringResource(R.string.premium_one_time_hint),
                         style = KuroType.bodySecondary,
                         color = tokens.textMuted,
                         textAlign = TextAlign.Center,
@@ -335,7 +316,6 @@ private fun PremiumSectionLabel(text: String) {
 @Composable
 private fun PremiumHeadlineBlock(
     isPremium: Boolean,
-    trialPeriod: TrialPeriod?,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -352,14 +332,6 @@ private fun PremiumHeadlineBlock(
             color = tokens.textPrimary,
         )
         if (!isPremium) {
-            trialSublineText(trialPeriod)?.let { subline ->
-                Spacer(modifier = Modifier.height(KuroSpacing.xs))
-                Text(
-                    text = subline,
-                    style = KuroType.labelStrong,
-                    color = Coral,
-                )
-            }
             Spacer(modifier = Modifier.height(KuroSpacing.xs))
             Text(
                 text = stringResource(R.string.premium_screen_body_discover),
@@ -494,7 +466,7 @@ private fun PremiumCompareDivider() {
 }
 
 @Composable
-private fun PremiumActiveFooter(onManageSubscription: () -> Unit) {
+private fun PremiumActiveFooter() {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -521,35 +493,6 @@ private fun PremiumActiveFooter(onManageSubscription: () -> Unit) {
                 style = KuroType.bodyPrimary.copy(fontWeight = FontWeight.SemiBold),
                 color = tokens.lockedText,
             )
-        }
-        TextButton(onClick = onManageSubscription) {
-            Text(
-                text = stringResource(R.string.premium_manage_subscription),
-                style = KuroType.bodySecondary,
-                color = tokens.textSecondary,
-            )
-        }
-    }
-}
-
-@Composable
-private fun selectedPlanSummary(
-    plan: PremiumPlan,
-    offers: SubscriptionOffers,
-): String {
-    val details = offers.forPlan(plan)
-    return when (plan) {
-        PremiumPlan.Yearly -> when {
-            details.hasTrial ->
-                trialStickyYearlySummary(details.trialPeriod)
-            details.priceLine != null ->
-                stringResource(R.string.premium_sticky_plan_yearly, details.priceLine)
-            else -> stringResource(R.string.premium_screen_plan_yearly)
-        }
-        PremiumPlan.Monthly -> when {
-            details.priceLine != null ->
-                stringResource(R.string.premium_sticky_plan_monthly, details.priceLine)
-            else -> stringResource(R.string.premium_screen_plan_monthly)
         }
     }
 }

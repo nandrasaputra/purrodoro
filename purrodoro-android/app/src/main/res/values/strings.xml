@@ -490,6 +490,13 @@
     <string name="premium_sticky_plan_monthly">Monthly · %1$s/mo</string>
     <string name="premium_trial_terms">Free trial for new subscribers. Cancel in Google Play before it ends to avoid charges.</string>
     <string name="premium_subscription_hint">Cancel anytime in Google Play</string>
+    <string name="premium_one_time_price">One payment · %1$s</string>
+    <string name="premium_one_time_hint">One payment. Yours to keep.</string>
+    <string name="premium_discount_ribbon">24 hours</string>
+    <string name="premium_discount_title">A softer price</string>
+    <string name="premium_discount_body">For 24 hours. Then the full price. It stays on Profile.</string>
+    <string name="premium_discount_remaining">%1$s left</string>
+    <string name="premium_discount_unlock">Unlock for %1$s</string>
     <string name="premium_restore_purchases">Restore purchases</string>
     <string name="premium_manage_subscription">Manage subscription</string>
     <string name="billing_error_service_unavailable">Google Play billing isn\'t available right now. Try again in a moment.</string>

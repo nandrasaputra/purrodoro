@@ -15,7 +15,7 @@ class PremiumEntitlementTest {
     fun grantsPremium_whenPurchasedAndProductMatches() {
         assertTrue(
             PremiumEntitlement.grantsPremium(
-                products = listOf(BillingConfig.SUBSCRIPTION_PRODUCT_ID),
+                products = listOf(BillingConfig.PRODUCT_ID),
                 purchaseState = Purchase.PurchaseState.PURCHASED,
             ),
         )
@@ -35,7 +35,7 @@ class PremiumEntitlementTest {
     fun grantsPremium_falseForNonPurchasedState() {
         assertFalse(
             PremiumEntitlement.grantsPremium(
-                products = listOf(BillingConfig.SUBSCRIPTION_PRODUCT_ID),
+                products = listOf(BillingConfig.PRODUCT_ID),
                 purchaseState = Purchase.PurchaseState.PENDING,
             ),
         )
@@ -48,8 +48,8 @@ class PremiumEntitlementTest {
             {
               "orderId": "order",
               "packageName": "com.endiar.purrodoro",
-              "productId": "${BillingConfig.SUBSCRIPTION_PRODUCT_ID}",
-              "products": ["${BillingConfig.SUBSCRIPTION_PRODUCT_ID}"],
+              "productId": "${BillingConfig.PRODUCT_ID}",
+              "products": ["${BillingConfig.PRODUCT_ID}"],
               "purchaseTime": 1,
               "purchaseState": ${Purchase.PurchaseState.PURCHASED},
               "purchaseToken": "token",
@@ -81,6 +81,14 @@ class PremiumEntitlementTest {
     }
 
     @Test
+    fun hasActivePremium_trueForTheDiscountProduct() {
+        val purchases = listOf(
+            purchase(acknowledged = true, productId = BillingConfig.DISCOUNT_PRODUCT_ID),
+        )
+        assertTrue(PremiumEntitlement.hasActivePremium(purchases))
+    }
+
+    @Test
     fun hasActivePremium_falseWhenNoMatchingPurchase() {
         val purchases = listOf(
             purchase(acknowledged = true, productId = "other_product"),
@@ -90,7 +98,7 @@ class PremiumEntitlementTest {
 
     private fun purchase(
         acknowledged: Boolean,
-        productId: String = BillingConfig.SUBSCRIPTION_PRODUCT_ID,
+        productId: String = BillingConfig.PRODUCT_ID,
     ): Purchase = Purchase(
         """
         {

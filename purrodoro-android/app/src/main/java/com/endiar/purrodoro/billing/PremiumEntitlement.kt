@@ -9,7 +9,7 @@ object PremiumEntitlement {
 
     fun purchaseGrantsPremium(
         purchase: Purchase,
-        productId: String = BillingConfig.SUBSCRIPTION_PRODUCT_ID,
+        productId: String = BillingConfig.PRODUCT_ID,
     ): Boolean = grantsPremium(
         products = purchase.products,
         purchaseState = purchase.purchaseState,
@@ -19,16 +19,18 @@ object PremiumEntitlement {
     internal fun grantsPremium(
         products: Collection<String>,
         purchaseState: Int,
-        productId: String = BillingConfig.SUBSCRIPTION_PRODUCT_ID,
+        productId: String = BillingConfig.PRODUCT_ID,
     ): Boolean {
         if (productId !in products) return false
         return purchaseState == Purchase.PurchaseState.PURCHASED
     }
 
-    fun hasActivePremium(
-        purchases: List<Purchase>,
-        productId: String = BillingConfig.SUBSCRIPTION_PRODUCT_ID,
-    ): Boolean = purchases.any { purchaseGrantsPremium(it, productId) }
+    fun hasActivePremium(purchases: List<Purchase>): Boolean =
+        purchases.any { purchase ->
+            BillingConfig.premiumProductIds.any { productId ->
+                purchaseGrantsPremium(purchase, productId)
+            }
+        }
 
     fun purchasesNeedAcknowledgement(purchases: List<Purchase>): List<Purchase> =
         purchases.filter {

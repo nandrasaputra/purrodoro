@@ -29,8 +29,7 @@ import com.composables.icons.lucide.Leaf
 import com.composables.icons.lucide.ListTodo
 import com.composables.icons.lucide.Lucide
 import com.endiar.purrodoro.R
-import com.endiar.purrodoro.billing.PremiumPlan
-import com.endiar.purrodoro.billing.SubscriptionOffers
+import com.endiar.purrodoro.billing.PremiumCatalog
 import com.endiar.purrodoro.model.PremiumGate
 import com.endiar.purrodoro.ui.designsystem.KuroAdaptiveBottomSheet
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
@@ -42,14 +41,13 @@ import com.endiar.purrodoro.ui.theme.kuroTokens
 fun PremiumUpsellSheet(
     trigger: PremiumUpsellTrigger,
     onDismiss: () -> Unit,
-    onUpgrade: (PremiumPlan) -> Unit,
-    subscriptionOffers: SubscriptionOffers,
-    selectedPlan: PremiumPlan,
-    onPlanSelected: (PremiumPlan) -> Unit,
+    onUpgrade: () -> Unit,
+    premiumCatalog: PremiumCatalog,
     purchaseInFlight: Boolean,
     onRefreshCatalog: () -> Unit,
     onRetryCatalog: () -> Unit,
     onExplorePremium: (() -> Unit)? = null,
+    discountEndsAtMillis: Long? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
 
@@ -72,21 +70,18 @@ fun PremiumUpsellSheet(
         contentKey = contentKey,
         footer = { scrollOverlay ->
             PremiumSheetStickyFooter(
-                subscriptionOffers = subscriptionOffers,
-                selectedPlan = selectedPlan,
+                premiumCatalog = premiumCatalog,
                 purchaseInFlight = purchaseInFlight,
                 onUpgrade = onUpgrade,
                 onRetryCatalog = onRetryCatalog,
                 onDismiss = LocalKuroSheetDismiss.current,
                 scrollOverlay = scrollOverlay,
+                discountEndsAtMillis = discountEndsAtMillis,
             )
         },
     ) {
         PremiumMemberUpsellContent(
             trigger = trigger,
-            subscriptionOffers = subscriptionOffers,
-            selectedPlan = selectedPlan,
-            onPlanSelected = onPlanSelected,
             onExplorePremium = onExplorePremium,
         )
     }
@@ -95,9 +90,6 @@ fun PremiumUpsellSheet(
 @Composable
 private fun PremiumMemberUpsellContent(
     trigger: PremiumUpsellTrigger,
-    subscriptionOffers: SubscriptionOffers,
-    selectedPlan: PremiumPlan,
-    onPlanSelected: (PremiumPlan) -> Unit,
     onExplorePremium: (() -> Unit)?,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
@@ -138,13 +130,7 @@ private fun PremiumMemberUpsellContent(
             Spacer(modifier = Modifier.height(KuroSpacing.lg))
             if (onExplorePremium != null && shouldShowCompareLink(trigger.reason)) {
                 PremiumSheetCompareLink(onClick = onExplorePremium)
-                Spacer(modifier = Modifier.height(KuroSpacing.sm))
             }
-            PremiumPlanPicker(
-                selectedPlan = selectedPlan,
-                onPlanSelected = onPlanSelected,
-                subscriptionOffers = subscriptionOffers,
-            )
         }
     }
 }

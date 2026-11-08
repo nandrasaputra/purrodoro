@@ -120,6 +120,10 @@ fun ProfileScreen(
     focusShieldEnabled: Boolean = false,
     isPremium: Boolean = false,
     onOpenPremium: () -> Unit = {},
+    discountEndsAtMillis: Long? = null,
+    discountPrice: String? = null,
+    discountCompareAtPrice: String? = null,
+    onOpenDiscount: () -> Unit = {},
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     var editingField by remember { mutableStateOf<String?>(null) }
@@ -184,18 +188,27 @@ fun ProfileScreen(
                     onClick = { editingField = "name" },
                 )
                 KuroDivider()
-                TappableRow(
-                    icon = Lucide.Sparkles,
-                    label = stringResource(
-                        if (isPremium) R.string.premium_member_title else R.string.premium_screen_title,
-                    ),
-                    value = if (isPremium) {
-                        stringResource(R.string.premium_member_view_benefits)
-                    } else {
-                        ""
-                    },
-                    onClick = onOpenPremium,
-                )
+                if (discountEndsAtMillis != null) {
+                    DiscountOfferProfileBlock(
+                        endsAtMillis = discountEndsAtMillis,
+                        price = discountPrice,
+                        compareAtPrice = discountCompareAtPrice,
+                        onClick = onOpenDiscount,
+                    )
+                } else {
+                    TappableRow(
+                        icon = Lucide.Sparkles,
+                        label = stringResource(
+                            if (isPremium) R.string.premium_member_title else R.string.premium_screen_title,
+                        ),
+                        value = if (isPremium) {
+                            stringResource(R.string.premium_member_view_benefits)
+                        } else {
+                            ""
+                        },
+                        onClick = onOpenPremium,
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(KuroSpacing.xl))

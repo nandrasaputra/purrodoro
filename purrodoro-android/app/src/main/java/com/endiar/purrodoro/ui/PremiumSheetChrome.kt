@@ -43,8 +43,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Sparkles
 import com.endiar.purrodoro.R
 import com.endiar.purrodoro.billing.BillingCatalogState
-import com.endiar.purrodoro.billing.PremiumPlan
-import com.endiar.purrodoro.billing.SubscriptionOffers
+import com.endiar.purrodoro.billing.PremiumCatalog
 import com.endiar.purrodoro.ui.designsystem.KuroSpacing
 import com.endiar.purrodoro.ui.designsystem.KuroType
 import com.endiar.purrodoro.ui.theme.Cocoa
@@ -90,17 +89,18 @@ fun PremiumGuestUnlockHeader(modifier: Modifier = Modifier) {
 /** Sticky paywall footer: gradient CTA + dismiss. Used with [KuroAdaptiveBottomSheet] footer slot. */
 @Composable
 fun PremiumSheetStickyFooter(
-    subscriptionOffers: SubscriptionOffers,
-    selectedPlan: PremiumPlan,
+    premiumCatalog: PremiumCatalog,
     purchaseInFlight: Boolean,
-    onUpgrade: (PremiumPlan) -> Unit,
+    onUpgrade: () -> Unit,
     onRetryCatalog: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     scrollOverlay: Float = 0f,
+    discountEndsAtMillis: Long? = null,
 ) {
     val tokens = MaterialTheme.colorScheme.kuroTokens
     val isDark = MaterialTheme.colorScheme.background.luminance() <= 0.5f
+    val discountRemaining = rememberDiscountRemaining(discountEndsAtMillis ?: 0L)
     val overlay = scrollOverlay.coerceIn(0f, 1f)
     val footerElevation by animateDpAsState(
         targetValue = KuroSpacing.soundscapeStickyFooterElevation * overlay,
@@ -118,17 +118,20 @@ fun PremiumSheetStickyFooter(
         Color(0xFF7A5C4C).copy(alpha = 0.32f * overlay)
     }
     val scrimColor = if (isDark) Color.Black else Cocoa
-    val catalogState = subscriptionOffers.catalogState
-    val ctaText = stringResource(
-        when (catalogState) {
-            BillingCatalogState.Unavailable -> R.string.premium_catalog_retry
-            BillingCatalogState.Idle,
-            BillingCatalogState.Loading,
-            -> R.string.premium_catalog_loading
-            BillingCatalogState.Ready ->
-                subscriptionOffers.ctaResId(selectedPlan, forSheet = true)
-        },
-    )
+    val catalogState = premiumCatalog.catalogState
+    val readyPrice = premiumCatalog.formattedPrice
+    val ctaText = when (catalogState) {
+        BillingCatalogState.Unavailable -> stringResource(R.string.premium_catalog_retry)
+        BillingCatalogState.Idle,
+        BillingCatalogState.Loading,
+        -> stringResource(R.string.premium_catalog_loading)
+        BillingCatalogState.Ready ->
+            if (premiumCatalog.discountActive && readyPrice != null) {
+                stringResource(R.string.premium_discount_unlock, readyPrice)
+            } else {
+                stringResource(premiumCatalog.ctaResId(forSheet = true))
+            }
+    }
     val ctaEnabled = when (catalogState) {
         BillingCatalogState.Unavailable -> !purchaseInFlight
         BillingCatalogState.Ready -> !purchaseInFlight
@@ -178,12 +181,25 @@ fun PremiumSheetStickyFooter(
                     .background(tokens.cardBorder.copy(alpha = 0.45f + (0.35f * overlay))),
             )
             Spacer(modifier = Modifier.height(KuroSpacing.md))
+            if (catalogState == BillingCatalogState.Ready && readyPrice != null) {
+                if (premiumCatalog.discountActive && discountEndsAtMillis != null) {
+                    DiscountRemainingPill(
+                        remaining = discountRemaining,
+                        modifier = Modifier.padding(bottom = KuroSpacing.sm),
+                    )
+                }
+                DiscountOfferPriceLine(
+                    price = readyPrice,
+                    compareAtPrice = premiumCatalog.compareAtPrice,
+                    modifier = Modifier.padding(bottom = KuroSpacing.sm),
+                )
+            }
             PremiumGradientCtaButton(
                 text = ctaText,
                 onClick = {
                     when (catalogState) {
                         BillingCatalogState.Unavailable -> onRetryCatalog()
-                        BillingCatalogState.Ready -> onUpgrade(selectedPlan)
+                        BillingCatalogState.Ready -> onUpgrade()
                         else -> Unit
                     }
                 },

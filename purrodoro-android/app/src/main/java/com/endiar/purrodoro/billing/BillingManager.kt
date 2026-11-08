@@ -1,8 +1,6 @@
 package com.endiar.purrodoro.billing
 
 import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -40,11 +38,10 @@ import kotlin.coroutines.resume
 private const val PurchaseInFlightTimeoutMs = 5 * 60_000L
 
 /**
- * Play Billing client for the Purrodoro Premium subscription.
+ * Play Billing client for the one-time Purrodoro Premium product.
  *
- * Owns product catalog queries, purchase flow launch, acknowledgement, and
- * syncing [AppRepository.setPlayPremium] from owned subscriptions (reconciled
- * with any Supabase admin override on the signed-in user's profile).
+ * Owns catalog queries, the purchase flow, acknowledgement, and syncing
+ * [AppRepository.setPlayPremium] from an owned purchase.
  */
 class BillingManager(
     private val repo: AppRepository,
@@ -56,8 +53,8 @@ class BillingManager(
 
     private val billingClient: BillingClient = billingClientFactory(this)
 
-    private val _offers = MutableStateFlow(SubscriptionOffers())
-    val offers: StateFlow<SubscriptionOffers> = _offers.asStateFlow()
+    private val _offers = MutableStateFlow(PremiumCatalog())
+    val offers: StateFlow<PremiumCatalog> = _offers.asStateFlow()
 
     private val _purchaseInFlight = MutableStateFlow(false)
     val purchaseInFlight: StateFlow<Boolean> = _purchaseInFlight.asStateFlow()
@@ -68,7 +65,9 @@ class BillingManager(
     )
     val uiEvents: SharedFlow<BillingUiEvent> = _uiEvents.asSharedFlow()
 
-    private var productDetails: ProductDetails? = null
+    private var fullDetails: ProductDetails? = null
+    private var discountDetails: ProductDetails? = null
+    private var discountWindowActive: Boolean = false
     private var purchaseInFlightTimeoutJob: Job? = null
 
     private fun setPurchaseInFlight(inFlight: Boolean) {
@@ -102,7 +101,7 @@ class BillingManager(
     fun refreshCatalogForPaywall() {
         scope.launch {
             if (!ensureConnected()) {
-                _offers.value = SubscriptionOffers(catalogState = BillingCatalogState.Unavailable)
+                _offers.value = PremiumCatalog(catalogState = BillingCatalogState.Unavailable)
                 return@launch
             }
             refreshCatalog(paywallRefresh = true)
@@ -117,9 +116,20 @@ class BillingManager(
         }
     }
 
-    fun launchSubscribe(activity: Activity?, plan: PremiumPlan) {
+    /** The paywall sells the discount product while a 24-hour window is running. */
+    fun setDiscountWindowActive(active: Boolean) {
+        if (discountWindowActive == active) return
+        discountWindowActive = active
+        val state = _offers.value.catalogState
+        val nothingLoaded = fullDetails == null && discountDetails == null
+        if (state == BillingCatalogState.Loading) return
+        if (nothingLoaded && state == BillingCatalogState.Idle) return
+        publishCatalog()
+    }
+
+    fun launchPurchase(activity: Activity?, discounted: Boolean = false) {
         if (activity == null) {
-            logBilling("subscribe_no_activity")
+            logBilling("purchase_no_activity")
             emitUiEvent(BillingUiEvent.LaunchFailed)
             return
         }
@@ -128,30 +138,22 @@ class BillingManager(
                 emitUiEvent(BillingUiEvent.ServiceUnavailable)
                 return@launch
             }
-            if (!subscriptionsSupported()) {
-                emitUiEvent(BillingUiEvent.SubscriptionsUnsupported)
-                return@launch
-            }
             if (!_offers.value.isReady) {
                 emitUiEvent(BillingUiEvent.ProductsUnavailable)
                 return@launch
             }
             refreshCatalog(paywallRefresh = true)
-            val details = productDetails
-            if (details == null) {
-                emitUiEvent(BillingUiEvent.ProductsUnavailable)
-                return@launch
-            }
-            val offer = details.selectPurchaseOfferForPlan(plan)
-            if (offer == null) {
-                logBilling("subscribe_missing_offer plan=${plan.basePlanId}")
+            val details = if (discounted) discountDetails else fullDetails
+            val offerToken = details?.oneTimePurchaseOffer()?.offerToken
+            if (details == null || offerToken.isNullOrBlank()) {
+                logBilling("purchase_missing_offer")
                 emitUiEvent(BillingUiEvent.ProductsUnavailable)
                 return@launch
             }
 
             val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
                 .setProductDetails(details)
-                .setOfferToken(offer.offerToken)
+                .setOfferToken(offerToken)
                 .build()
             val flowParams = BillingFlowParams.newBuilder()
                 .setProductDetailsParamsList(listOf(productDetailsParams))
@@ -183,20 +185,6 @@ class BillingManager(
             } finally {
                 setPurchaseInFlight(false)
             }
-        }
-    }
-
-    fun openSubscriptionManagement(activity: Activity?) {
-        if (activity == null) {
-            emitUiEvent(BillingUiEvent.LaunchFailed)
-            return
-        }
-        val uri = Uri.parse(
-            "https://play.google.com/store/account/subscriptions?package=${activity.packageName}" +
-                "&sku=${BillingConfig.SUBSCRIPTION_PRODUCT_ID}",
-        )
-        runCatching {
-            activity.startActivity(Intent(Intent.ACTION_VIEW, uri))
         }
     }
 
@@ -248,11 +236,6 @@ class BillingManager(
         }
     }
 
-    private fun subscriptionsSupported(): Boolean {
-        val result = billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS)
-        return result.responseCode == BillingClient.BillingResponseCode.OK
-    }
-
     private suspend fun refreshCatalog(paywallRefresh: Boolean = false) {
         val wasReady = _offers.value.catalogState == BillingCatalogState.Ready
         if (paywallRefresh || !wasReady) {
@@ -261,12 +244,12 @@ class BillingManager(
 
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
-                listOf(
+                BillingConfig.premiumProductIds.map { productId ->
                     QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(BillingConfig.SUBSCRIPTION_PRODUCT_ID)
-                        .setProductType(BillingClient.ProductType.SUBS)
-                        .build(),
-                ),
+                        .setProductId(productId)
+                        .setProductType(BillingClient.ProductType.INAPP)
+                        .build()
+                },
             )
             .build()
 
@@ -277,23 +260,38 @@ class BillingManager(
             logBilling(
                 "query_product_details_failed code=${result?.billingResult?.responseCode}",
             )
-            productDetails = null
+            fullDetails = null
+            discountDetails = null
             if (paywallRefresh || !wasReady) {
-                _offers.value = SubscriptionOffers(catalogState = BillingCatalogState.Unavailable)
+                _offers.value = PremiumCatalog(catalogState = BillingCatalogState.Unavailable)
             }
             return
         }
-        val details = result.productDetailsList?.firstOrNull()
-        if (details == null) {
+        val listed = result.productDetailsList.orEmpty()
+        if (listed.isEmpty()) {
             logBilling("query_product_details_empty")
-            productDetails = null
+            fullDetails = null
+            discountDetails = null
             if (paywallRefresh || !wasReady) {
-                _offers.value = SubscriptionOffers(catalogState = BillingCatalogState.Unavailable)
+                _offers.value = PremiumCatalog(catalogState = BillingCatalogState.Unavailable)
             }
             return
         }
-        productDetails = details
-        _offers.value = details.toSubscriptionOffers()
+        fullDetails = listed.firstOrNull { it.productId == BillingConfig.PRODUCT_ID }
+        discountDetails = listed.firstOrNull { it.productId == BillingConfig.DISCOUNT_PRODUCT_ID }
+        publishCatalog()
+    }
+
+    private fun publishCatalog() {
+        val fullOffer = fullDetails?.oneTimePurchaseOffer()
+        val discountOffer = discountDetails?.oneTimePurchaseOffer()
+        _offers.value = presentPremiumCatalog(
+            fullPrice = fullOffer?.formattedPrice,
+            fullToken = fullOffer?.offerToken,
+            discountPrice = discountOffer?.formattedPrice,
+            discountToken = discountOffer?.offerToken,
+            discountWindowActive = discountWindowActive,
+        )
     }
 
     /**
@@ -301,7 +299,7 @@ class BillingManager(
      * purchases query failed and local premium state was left unchanged.
      */
     private suspend fun syncEntitlementFromPlay(): Boolean? {
-        return when (val outcome = querySubscriptionPurchases()) {
+        return when (val outcome = queryOneTimePurchases()) {
             PurchasesQueryOutcome.Failed -> {
                 logBilling("sync_entitlement_skipped_query_failed")
                 null
@@ -315,10 +313,9 @@ class BillingManager(
         }
     }
 
-    private suspend fun querySubscriptionPurchases(): PurchasesQueryOutcome {
+    private suspend fun queryOneTimePurchases(): PurchasesQueryOutcome {
         val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.SUBS)
-            .includeSuspendedSubscriptions(true)
+            .setProductType(BillingClient.ProductType.INAPP)
             .build()
         val result = runCatching { billingClient.queryPurchasesAsync(params) }.getOrNull()
             ?: return PurchasesQueryOutcome.Failed
