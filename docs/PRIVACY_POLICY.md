@@ -26,6 +26,7 @@ This policy explains what information we collect, how we use it, and your choice
 | Tasks, categories, habits | On device | Core app features |
 | Pomodoro / focus session history | On device | Journey, calendar, stats |
 | Timer and app settings | On device | Preferences |
+| Focus Shield settings and selected apps | On device | Interrupt selected apps during focus sessions |
 | Manual backup file (JSON) | A file you choose | Backup and restore |
 
 The current Android app does not ask you to sign in or create an account. Accounts and cloud data from earlier versions may still exist until deleted.
@@ -37,6 +38,9 @@ The current Android app does not ask you to sign in or create an account. Accoun
 | **Purchase status** | When you purchase or restore Premium via Google Play | Premium features |
 | **Crash & diagnostic logs** | When the app crashes (release builds) | Fix bugs via Firebase Crashlytics |
 | **Device & app metadata** (OS version, device model, app version) | With crash reports | Debugging |
+| **App-usage information** | If you enable Focus Shield and grant usage access | Detect the foreground app and show an interruption for selected apps |
+
+Focus Shield checks recent app-usage events on the device while it is active. The current Android app uses this information locally to decide whether to show an overlay. Selected app settings are stored on the device and may be included in Android backup.
 
 We do **not** collect precise location, contacts, photos, microphone, or camera data.
 
@@ -97,6 +101,8 @@ The app may request:
 | **Foreground service** | Keep the focus timer running reliably |
 | **Schedule exact alarms** | Fire segment-end alerts if the app is in the background *(optional; user can deny “Alarms & reminders”)* |
 | **Wake lock** | Timer reliability while the screen is off |
+| **Usage access** | Optional Focus Shield feature checks which app is in the foreground |
+| **Display over other apps** | Optional Focus Shield interruption overlay |
 
 You can deny notifications or alarm permission; core timing still works while the app is active.
 
@@ -178,6 +184,7 @@ Use this as a guide when filling Play Console **Data safety**. Adjust if your li
 | User IDs | Crash installs only | Firebase | Analytics | No (release builds) |
 | App activity (tasks, habits, focus history) | On device; may be in Android backup | Google (backup) | App functionality | No |
 | Crash logs | Yes | Firebase | Analytics | No (release builds) |
+| App-usage information | Processed on device for optional Focus Shield | Not uploaded by the current Android app | App functionality | Yes |
 | Purchase history | Yes | Google Play | App functionality | Yes (only if purchasing) |
 | Photos | No | — | — | — |
 

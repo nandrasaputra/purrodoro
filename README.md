@@ -48,4 +48,5 @@ features and release readiness can differ from Android; consult the port status.
 
 No project license has been specified yet. Do not assume permission to reuse or
 redistribute the code, branding, audio, or other assets; the owner must confirm
-the applicable terms and any third-party attribution requirements.
+the applicable terms and any third-party attribution requirements. The bundled
+Nunito fonts have their own [SIL Open Font License](LICENSES/Nunito-OFL.txt).
