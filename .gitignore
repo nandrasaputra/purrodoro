@@ -38,6 +38,7 @@ keystore.properties
 # ──────────────────────────────────────────────────────────────
 # Android — IntelliJ / Android Studio (.idea)
 # ──────────────────────────────────────────────────────────────
+/.idea/
 .idea/caches
 **/.idea/caches
 .idea/libraries
